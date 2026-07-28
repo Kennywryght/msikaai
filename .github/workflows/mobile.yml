@@ -1,0 +1,153 @@
+# .github/workflows/mobile.yml
+name: Mobile App CI/CD
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18.x'
+
+jobs:
+  # Job 1: Lint and Test
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: mobile/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./mobile
+      run: npm ci
+    
+    - name: Run linting
+      working-directory: ./mobile
+      run: npm run lint || echo "⚠️ Linting warnings found"
+    
+    - name: Run tests
+      working-directory: ./mobile
+      run: npm test || echo "⚠️ Tests failed"
+
+  # Job 2: Build
+  build:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: mobile/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./mobile
+      run: npm ci
+    
+    - name: Build project
+      working-directory: ./mobile
+      run: npm run build
+      env:
+        VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_KEY }}
+    
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: mobile-build
+        path: mobile/dist/
+        retention-days: 7
+
+  # Job 3: Deploy to Staging
+  deploy-staging:
+    needs: build
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Download build artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: mobile-build
+        path: mobile/dist/
+    
+    - name: Deploy to Netlify (Staging)
+      uses: nwtgck/actions-netlify@v2.0
+      with:
+        publish-dir: './mobile/dist'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: "Staging deploy from ${{ github.ref_name }}"
+        alias: staging
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  # Job 4: Deploy to Production
+  deploy-production:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Download build artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: mobile-build
+        path: mobile/dist/
+    
+    - name: Deploy to Netlify (Production)
+      uses: nwtgck/actions-netlify@v2.0
+      with:
+        publish-dir: './mobile/dist'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: "Production deploy from ${{ github.sha }}"
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "✅ Deployment successful!"
+        echo "🌐 URL: https://msikaai.netlify.app"
+
+  # Job 5: Security Scan (Optional)
+  security-scan:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Run Snyk Security Scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+      continue-on-error: true

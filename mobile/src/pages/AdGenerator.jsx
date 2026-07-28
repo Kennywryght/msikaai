@@ -1,0 +1,583 @@
+import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../context/TranslationContext';
+import { adAPI } from '../services/api';
+import SocialShare from '../components/SocialShare';
+
+// --- HAND-DRAWN STYLE INLINE SVG ICONS ---
+const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+  >
+    <path d={d} />
+  </svg>
+);
+
+const ICONS = {
+  arrowRight: "M5 12h14M12 5l7 7-7 7",
+  image: "M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
+  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+  tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  copy: "M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M15 2H9a1 1 0 00-1 1v2a1 1 0 001 1h6a1 1 0 001-1V3a1 1 0 00-1-1z",
+  close: "M18 6L6 18M6 6l12 12"
+};
+
+const AdGenerator = () => {
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [productInfo, setProductInfo] = useState({
+    title: '',
+    description: '',
+    category: '',
+    price: '',
+    unit: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef();
+
+  const categories = [
+    'Farm Inputs',
+    'Construction Materials',
+    'Plumber',
+    'Electrician',
+    'Carpenter',
+    'Mechanic',
+    'Retail',
+    'Restaurant',
+    'Tailor',
+    'Hairdresser',
+    'Other'
+  ];
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImage(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreview(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGenerateAd = async () => {
+    if (!image) {
+      setError('Please select an image first');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('image', image);
+      formData.append('productInfo', JSON.stringify(productInfo));
+
+      const response = await adAPI.generate(formData);
+      
+      if (response.data.success) {
+        setResult(response.data);
+      } else {
+        setError(response.data.error || 'Failed to generate ad');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to generate ad');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    setImage(null);
+    setImagePreview(null);
+    setResult(null);
+    setProductInfo({
+      title: '',
+      description: '',
+      category: '',
+      price: '',
+      unit: ''
+    });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    alert('📋 Copied to clipboard!');
+  };
+
+  // Styles
+  const styles = {
+    container: {
+      minHeight: '100vh',
+      backgroundColor: '#f8fafc',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      padding: '24px 16px'
+    },
+    card: {
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
+      padding: '24px',
+      marginBottom: '16px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+    },
+    backButton: {
+      padding: '8px 16px',
+      backgroundColor: '#e2e8f0',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500',
+      color: '#334155',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      marginBottom: '16px'
+    },
+    title: {
+      fontSize: '22px',
+      fontWeight: '800',
+      color: '#0f172a',
+      margin: '0 0 4px 0',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px'
+    },
+    subtitle: {
+      fontSize: '14px',
+      color: '#64748b',
+      margin: '0 0 20px 0'
+    },
+    label: {
+      display: 'block',
+      fontSize: '13px',
+      fontWeight: '600',
+      color: '#334155',
+      marginBottom: '4px'
+    },
+    input: {
+      width: '100%',
+      padding: '10px 14px',
+      border: '1px solid #cbd5e1',
+      borderRadius: '8px',
+      fontSize: '14px',
+      color: '#0f172a',
+      boxSizing: 'border-box',
+      outline: 'none',
+      backgroundColor: '#ffffff',
+      fontFamily: 'inherit'
+    },
+    textarea: {
+      width: '100%',
+      padding: '10px 14px',
+      border: '1px solid #cbd5e1',
+      borderRadius: '8px',
+      fontSize: '14px',
+      color: '#0f172a',
+      boxSizing: 'border-box',
+      outline: 'none',
+      backgroundColor: '#ffffff',
+      fontFamily: 'inherit',
+      resize: 'vertical',
+      minHeight: '80px'
+    },
+    select: {
+      width: '100%',
+      padding: '10px 14px',
+      border: '1px solid #cbd5e1',
+      borderRadius: '8px',
+      fontSize: '14px',
+      color: '#0f172a',
+      boxSizing: 'border-box',
+      outline: 'none',
+      backgroundColor: '#ffffff',
+      fontFamily: 'inherit'
+    },
+    row: {
+      display: 'flex',
+      gap: '12px'
+    },
+    half: {
+      flex: 1
+    },
+    uploadArea: {
+      border: '2px dashed #cbd5e1',
+      borderRadius: '12px',
+      padding: '24px',
+      textAlign: 'center',
+      cursor: 'pointer',
+      backgroundColor: '#f8fafc',
+      transition: 'border-color 0.2s'
+    },
+    previewImage: {
+      maxWidth: '100%',
+      maxHeight: '200px',
+      objectFit: 'contain',
+      borderRadius: '8px'
+    },
+    generateBtn: {
+      width: '100%',
+      padding: '12px',
+      backgroundColor: '#2563eb',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      fontSize: '16px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
+    },
+    generateDisabled: {
+      width: '100%',
+      padding: '12px',
+      backgroundColor: '#93c5fd',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      fontSize: '16px',
+      fontWeight: '600',
+      cursor: 'not-allowed',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
+    },
+    error: {
+      color: '#dc2626',
+      padding: '12px',
+      backgroundColor: '#fef2f2',
+      borderRadius: '8px',
+      border: '1px solid #fecaca',
+      marginTop: '12px'
+    },
+    adPreview: {
+      backgroundColor: '#f8fafc',
+      padding: '16px',
+      borderRadius: '12px',
+      border: '1px solid #e2e8f0',
+      marginBottom: '12px'
+    },
+    adTitle: {
+      fontSize: '18px',
+      fontWeight: '700',
+      color: '#1e40af',
+      margin: '0 0 6px 0'
+    },
+    adDesc: {
+      color: '#334155',
+      margin: '0 0 8px 0'
+    },
+    adCTA: {
+      color: '#2563eb',
+      fontWeight: '600',
+      margin: '0 0 8px 0'
+    },
+    hashtag: {
+      display: 'inline-block',
+      padding: '2px 10px',
+      backgroundColor: '#dbeafe',
+      color: '#1e40af',
+      borderRadius: '4px',
+      fontSize: '12px',
+      marginRight: '4px'
+    },
+    socialCard: {
+      padding: '12px',
+      borderRadius: '8px',
+      marginBottom: '8px'
+    },
+    socialHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '4px'
+    },
+    socialLabel: {
+      fontWeight: '600',
+      fontSize: '14px'
+    },
+    copyBtn: {
+      padding: '4px 12px',
+      backgroundColor: '#2563eb',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px'
+    },
+    socialText: {
+      fontSize: '14px',
+      color: '#334155',
+      margin: 0
+    },
+    resetBtn: {
+      width: '100%',
+      padding: '12px',
+      backgroundColor: '#e2e8f0',
+      color: '#334155',
+      border: 'none',
+      borderRadius: '8px',
+      fontSize: '16px',
+      fontWeight: '500',
+      cursor: 'pointer',
+      marginTop: '16px'
+    },
+    loadingContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '12px'
+    },
+    spinner: {
+      width: '20px',
+      height: '20px',
+      border: '3px solid #e2e8f0',
+      borderTop: '3px solid #2563eb',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite'
+    },
+    shareSection: {
+      marginTop: '16px',
+      paddingTop: '16px',
+      borderTop: '1px solid #e2e8f0'
+    },
+    shareLabel: {
+      fontSize: '14px',
+      fontWeight: '600',
+      color: '#0f172a',
+      marginBottom: '8px'
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
+        <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
+        Back to Dashboard
+      </button>
+
+      <div style={styles.card}>
+        <h2 style={styles.title}>
+          <SketchIcon d={ICONS.sparkles} size={24} color="#f59e0b" strokeWidth={2} />
+          AI Ad Generator
+        </h2>
+        <p style={styles.subtitle}>Upload a product image and let AI create a professional ad</p>
+
+        {/* Image Upload */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={styles.label}>
+            <SketchIcon d={ICONS.image} size={14} color="#64748b" strokeWidth={2} />
+            <span style={{ marginLeft: '4px' }}>Product Image</span>
+            <span style={{ color: '#dc2626' }}> *</span>
+          </label>
+          <div
+            style={styles.uploadArea}
+            onClick={() => fileInputRef.current?.click()}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#2563eb'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ display: 'none' }}
+            />
+            {imagePreview ? (
+              <img src={imagePreview} alt="Preview" style={styles.previewImage} />
+            ) : (
+              <div>
+                <SketchIcon d={ICONS.image} size={48} color="#94a3b8" strokeWidth={1.5} />
+                <p style={{ color: '#64748b', marginTop: '8px' }}>Click to upload product image</p>
+                <p style={{ color: '#94a3b8', fontSize: '12px' }}>PNG, JPG, GIF up to 10MB</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Product Info */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={styles.label}>Product Title</label>
+          <input
+            type="text"
+            value={productInfo.title}
+            onChange={(e) => setProductInfo({ ...productInfo, title: e.target.value })}
+            style={styles.input}
+            placeholder="e.g., Fresh Tomatoes"
+          />
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={styles.label}>Description</label>
+          <textarea
+            value={productInfo.description}
+            onChange={(e) => setProductInfo({ ...productInfo, description: e.target.value })}
+            style={styles.textarea}
+            placeholder="Brief description of your product..."
+          />
+        </div>
+
+        <div style={styles.row}>
+          <div style={styles.half}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={styles.label}>
+                <SketchIcon d={ICONS.tag} size={14} color="#64748b" strokeWidth={2} />
+                <span style={{ marginLeft: '4px' }}>Category</span>
+              </label>
+              <select
+                value={productInfo.category}
+                onChange={(e) => setProductInfo({ ...productInfo, category: e.target.value })}
+                style={styles.select}
+              >
+                <option value="">Select category</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div style={styles.half}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={styles.label}>
+                <SketchIcon d={ICONS.dollar} size={14} color="#64748b" strokeWidth={2} />
+                <span style={{ marginLeft: '4px' }}>Price (MWK)</span>
+              </label>
+              <input
+                type="number"
+                value={productInfo.price}
+                onChange={(e) => setProductInfo({ ...productInfo, price: e.target.value })}
+                style={styles.input}
+                placeholder="e.g., 5000"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <label style={styles.label}>Unit</label>
+          <input
+            type="text"
+            value={productInfo.unit}
+            onChange={(e) => setProductInfo({ ...productInfo, unit: e.target.value })}
+            style={styles.input}
+            placeholder="e.g., bag, kg, piece"
+          />
+        </div>
+
+        <button
+          onClick={handleGenerateAd}
+          disabled={loading || !image}
+          style={loading || !image ? styles.generateDisabled : styles.generateBtn}
+        >
+          {loading ? (
+            <span style={styles.loadingContainer}>
+              <span style={styles.spinner}></span>
+              Generating...
+            </span>
+          ) : (
+            <>
+              <SketchIcon d={ICONS.sparkles} size={18} color="#ffffff" strokeWidth={2} />
+              Generate Ad
+            </>
+          )}
+        </button>
+
+        {error && <div style={styles.error}>{error}</div>}
+      </div>
+
+      {/* Results */}
+      {result && (
+        <div style={styles.card}>
+          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '12px' }}>
+            <SketchIcon d={ICONS.sparkles} size={20} color="#f59e0b" strokeWidth={2} />
+            Your AI-Generated Ad
+          </h3>
+
+          <div style={styles.adPreview}>
+            <h3 style={styles.adTitle}>{result.ad?.title}</h3>
+            <p style={styles.adDesc}>{result.ad?.description}</p>
+            <p style={styles.adCTA}>{result.ad?.callToAction}</p>
+            <div style={{ marginTop: '8px' }}>
+              {result.ad?.hashtags?.map((tag, index) => (
+                <span key={index} style={styles.hashtag}>#{tag}</span>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginTop: '12px' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a', marginBottom: '8px' }}>
+              📱 Social Media Posts
+            </h4>
+            
+            {result.socialPosts?.facebook && (
+              <div style={{ ...styles.socialCard, backgroundColor: '#eff6ff' }}>
+                <div style={styles.socialHeader}>
+                  <span style={{ ...styles.socialLabel, color: '#1e40af' }}>📘 Facebook</span>
+                  <button onClick={() => copyToClipboard(result.socialPosts.facebook)} style={styles.copyBtn}>
+                    <SketchIcon d={ICONS.copy} size={12} color="#ffffff" strokeWidth={2} />
+                    Copy
+                  </button>
+                </div>
+                <p style={styles.socialText}>{result.socialPosts.facebook}</p>
+              </div>
+            )}
+
+            {result.socialPosts?.whatsapp && (
+              <div style={{ ...styles.socialCard, backgroundColor: '#ecfdf5' }}>
+                <div style={styles.socialHeader}>
+                  <span style={{ ...styles.socialLabel, color: '#065f46' }}>💬 WhatsApp</span>
+                  <button onClick={() => copyToClipboard(result.socialPosts.whatsapp)} style={styles.copyBtn}>
+                    <SketchIcon d={ICONS.copy} size={12} color="#ffffff" strokeWidth={2} />
+                    Copy
+                  </button>
+                </div>
+                <p style={styles.socialText}>{result.socialPosts.whatsapp}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Share Section */}
+          <div style={styles.shareSection}>
+            <p style={styles.shareLabel}>📤 Share This Ad</p>
+            <SocialShare 
+              title={result.ad?.title || 'Check out this product!'}
+              description={result.ad?.description || ''}
+              url={window.location.href}
+            />
+          </div>
+
+          <button onClick={handleReset} style={styles.resetBtn}>
+            <SketchIcon d={ICONS.close} size={16} color="#64748b" strokeWidth={2} />
+            Start Over
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdGenerator;
