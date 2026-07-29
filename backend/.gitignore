@@ -7,6 +7,7 @@ yarn.lock
 .env
 .env.local
 .env.*.local
+.env.production
 
 # Build output
 dist/
@@ -14,6 +15,7 @@ build/
 *.tsbuildinfo
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -22,9 +24,18 @@ yarn-error.log*
 # OS files
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
 
 # IDE files
 .vscode/
 .idea/
-*.swp
-*.swo
+*.iml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+*.pid
