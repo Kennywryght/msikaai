@@ -1,30 +1,204 @@
-# Node
-node_modules/
-package-lock.json
-yarn.lock
-
-# Environment
-.env
-.env.*
-*.local
-
-# IDE
-.vscode/
-.idea/
-*.iml
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-npm-debug.log*
-
-# Build
+﻿# ============================================
+# Python
+# ============================================
+myenv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+*.pyi
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
 dist/
 build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.manifest
+*.spec
+pip-wheel-metadata/
+share/python-wheels/
+
+# ============================================
+# Node.js / JavaScript
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.npm/
+.eslintcache
+.rollup.cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+*.tsbuildinfo
+
+# ============================================
+# Build Outputs
+# ============================================
+dist/
+build/
+out/
+.next/
+.vercel/
+.netlify/
+*.tgz
+.cache/
+.parcel-cache/
+*.zip
+*.tar.gz
+*.rar
+
+# ============================================
+# Environment Variables
+# ============================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+!.env.example
+
+# ============================================
+# IDE / Editor
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.workspace
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+*.iml
+*.iws
+*.ipr
+.vscode-test/
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+*.temp
+desktop.ini
+.BIN/
+
+# ============================================
+# Logs
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================
+# Docker
+# ============================================
+*.pid
+*.seed
+*.pid.lock
+docker-compose.override.yml
+
+# ============================================
+# Testing / Coverage
+# ============================================
+coverage/
+.nyc_output/
+*.lcov
+*.coverage
+test-report.xml
+junit.xml
+
+# ============================================
+# Deployment
+# ============================================
+.terraform/
+*.pem
+*.p12
+*.pfx
+*.key
+*.crt
+*.csr
+*.p7b
+*.jks
+*.keystore
+*.truststore
+
+# ============================================
+# Project Specific
+# ============================================
+# Backend
+backend/logs/
+backend/.env.local
+backend/.env.test
+backend/*.log
+
+# Mobile
+mobile/dist/
+mobile/build/
+mobile/.env.local
+mobile/.env.production.local
+mobile/*.log
+
+# Msika_Mitundu_AI (if you want to keep it)
+Msika_Mitundu_AI/
+!Msika_Mitundu_AI/README.md
+
+# ============================================
+# Misc
+# ============================================
 *.cache
+*.tmp
+*.temp
+.cache/
+.sass-cache/
+.less-cache/
+.stylelintcache
