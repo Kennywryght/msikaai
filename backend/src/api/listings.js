@@ -1,3 +1,4 @@
+// backend/src/api/listings.js
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
@@ -162,7 +163,7 @@ router.post('/create', async (req, res) => {
 });
 
 // ============================================
-// 2. SEARCH LISTINGS
+// 2. SEARCH LISTINGS ⭐ THIS IS THE ENDPOINT YOUR FRONTEND IS CALLING
 // ============================================
 router.get('/search', async (req, res) => {
   try {
@@ -175,7 +176,7 @@ router.get('/search', async (req, res) => {
       offset = 0 
     } = req.query;
 
-    console.log('🔍 Searching listings:', { q, category });
+    console.log('🔍 Searching listings:', { q, category, minPrice, maxPrice, limit, offset });
 
     let query = supabaseAdmin
       .from('listings')
