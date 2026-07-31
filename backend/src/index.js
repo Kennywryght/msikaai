@@ -169,7 +169,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // ============================================
-// ROUTES
+// ROUTES - Register all API routes
 // ============================================
 
 // Health check - Detailed
@@ -232,10 +232,12 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
-// API Routes
+// ============================================
+// API ROUTES - Mount all route handlers
+// ============================================
 app.use('/api/auth', authRoutes);
 app.use('/api/business', businessRoutes);
-app.use('/api/listings', listingsRoutes);
+app.use('/api/listings', listingsRoutes);  // ✅ This registers /api/listings/*
 app.use('/api/location', locationRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/profile', profileRoutes);
@@ -247,6 +249,7 @@ app.use('/api/notifications', notificationsRoutes);
 // 404 HANDLER
 // ============================================
 app.use((req, res) => {
+  console.warn(`⚠️ 404 Not Found: ${req.method} ${req.path}`);
   res.status(404).json({
     success: false,
     error: `Route ${req.method} ${req.path} not found`
@@ -293,20 +296,21 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('\n' + '='.repeat(60));
   console.log('🚀 MsikaAI Server is running!');
   console.log('='.repeat(60));
-  console.log(`📡 Server URL: http://localhost:${PORT}`);
-  console.log(`🔗 Health Check: http://localhost:${PORT}/api/health`);
+  console.log(`📡 Server URL: https://msikaai.onrender.com`);
+  console.log(`🔗 Health Check: https://msikaai.onrender.com/api/health`);
   console.log(`🗄️ Database: ${process.env.SUPABASE_URL}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('\n📋 API Endpoints:');
-  console.log(`   🔐 Auth: http://localhost:${PORT}/api/auth`);
-  console.log(`   🏪 Business: http://localhost:${PORT}/api/business`);
-  console.log(`   📦 Listings: http://localhost:${PORT}/api/listings`);
-  console.log(`   📍 Location: http://localhost:${PORT}/api/location`);
-  console.log(`   🤖 AI: http://localhost:${PORT}/api/ai`);
-  console.log(`   👤 Profile: http://localhost:${PORT}/api/profile`);
-  console.log(`   📊 Analytics: http://localhost:${PORT}/api/analytics`);
-  console.log(`   📤 Export: http://localhost:${PORT}/api/export`);
-  console.log(`   🔔 Notifications: http://localhost:${PORT}/api/notifications`);
+  console.log(`   🔐 Auth: /api/auth`);
+  console.log(`   🏪 Business: /api/business`);
+  console.log(`   📦 Listings: /api/listings`);
+  console.log(`   🔍 Search: /api/listings/search  ⭐`);
+  console.log(`   📍 Location: /api/location`);
+  console.log(`   🤖 AI: /api/ai`);
+  console.log(`   👤 Profile: /api/profile`);
+  console.log(`   📊 Analytics: /api/analytics`);
+  console.log(`   📤 Export: /api/export`);
+  console.log(`   🔔 Notifications: /api/notifications`);
   console.log('='.repeat(60) + '\n');
 });
 
