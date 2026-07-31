@@ -111,6 +111,7 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'http://localhost:5173',
   'http://localhost:3000',
+  'https://msikaai-mauve.vercel.app',
   'http://127.0.0.1:5173',
   'https://msikaai.vercel.app',
   'https://msikaai-backend.onrender.com'
