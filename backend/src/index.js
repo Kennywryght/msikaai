@@ -30,21 +30,32 @@ console.log('SUPABASE_KEY:', process.env.SUPABASE_KEY ? '✅ Loaded' : '❌ Miss
 console.log('SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? '✅ Loaded' : '❌ Missing');
 console.log('PORT:', process.env.PORT || 3000);
 console.log('NODE_ENV:', process.env.NODE_ENV || 'development');
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL || 'http://localhost:5173');
 
 // Validate required environment variables
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_KEY'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
   console.error('❌ ERROR: Missing required environment variables!');
-  console.error('Please check your .env file');
+  missingVars.forEach(varName => console.error(`   - ${varName}`));
+  console.error('\n📝 Please check your .env file and make sure all variables are set.');
+  console.error('💡 Copy .env.example to .env and fill in your values.');
   process.exit(1);
 }
 
 // Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
-
-console.log('✅ Supabase client initialized');
+let supabase;
+try {
+  supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY
+  );
+  console.log('✅ Supabase client initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize Supabase client:', error.message);
+  process.exit(1);
+}
 
 // ============================================
 // RATE LIMITING
@@ -52,8 +63,8 @@ console.log('✅ Supabase client initialized');
 
 // General rate limiter - 100 requests per 15 minutes
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: {
     success: false,
     error: 'Too many requests, please try again later.'
@@ -96,12 +107,31 @@ app.use('/api/ai', aiLimiter);
 // ============================================
 
 // CORS configuration
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'https://msikaai.vercel.app',
+  'https://msikaai-backend.onrender.com'
+].filter(Boolean);
+
+console.log('🌐 Allowed origins:', allowedOrigins);
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://your-domain.com', 'https://www.your-domain.com']
-    : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.warn('❌ CORS blocked for origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
@@ -143,8 +173,15 @@ app.get('/api/health', async (req, res) => {
       uptime: process.uptime(),
       responseTime: `${responseTime}ms`,
       database: error ? 'disconnected' : 'connected',
-      memoryUsage: process.memoryUsage(),
-      environment: process.env.NODE_ENV || 'development'
+      memoryUsage: {
+        rss: `${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`,
+        heapUsed: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`
+      },
+      environment: process.env.NODE_ENV || 'development',
+      cors: {
+        allowedOrigins: allowedOrigins
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -236,19 +273,24 @@ process.on('SIGINT', () => {
 // START SERVER
 // ============================================
 const server = app.listen(PORT, () => {
-  console.log(`🚀 MsikaAI server running on http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🔐 Auth routes: http://localhost:${PORT}/api/auth`);
-  console.log(`🏪 Business routes: http://localhost:${PORT}/api/business`);
-  console.log(`📦 Listings routes: http://localhost:${PORT}/api/listings`);
-  console.log(`📍 Location routes: http://localhost:${PORT}/api/location`);
-  console.log(`🤖 AI routes: http://localhost:${PORT}/api/ai`);
-  console.log(`👤 Profile routes: http://localhost:${PORT}/api/profile`);
-  console.log(`📊 Analytics routes: http://localhost:${PORT}/api/analytics`);
-  console.log(`📤 Export routes: http://localhost:${PORT}/api/export`);
-  console.log(`🔔 Notification routes: http://localhost:${PORT}/api/notifications`);
+  console.log('\n' + '='.repeat(60));
+  console.log('🚀 MsikaAI Server is running!');
+  console.log('='.repeat(60));
+  console.log(`📡 Server URL: http://localhost:${PORT}`);
+  console.log(`🔗 Health Check: http://localhost:${PORT}/api/health`);
   console.log(`🗄️ Database: ${process.env.SUPABASE_URL}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('\n📋 API Endpoints:');
+  console.log(`   🔐 Auth: http://localhost:${PORT}/api/auth`);
+  console.log(`   🏪 Business: http://localhost:${PORT}/api/business`);
+  console.log(`   📦 Listings: http://localhost:${PORT}/api/listings`);
+  console.log(`   📍 Location: http://localhost:${PORT}/api/location`);
+  console.log(`   🤖 AI: http://localhost:${PORT}/api/ai`);
+  console.log(`   👤 Profile: http://localhost:${PORT}/api/profile`);
+  console.log(`   📊 Analytics: http://localhost:${PORT}/api/analytics`);
+  console.log(`   📤 Export: http://localhost:${PORT}/api/export`);
+  console.log(`   🔔 Notifications: http://localhost:${PORT}/api/notifications`);
+  console.log('='.repeat(60) + '\n');
 });
 
 export default app;
