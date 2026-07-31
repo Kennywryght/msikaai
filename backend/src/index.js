@@ -1,3 +1,4 @@
+// backend/src/index.js
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -20,6 +21,11 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ============================================
+// TRUST PROXY (Required for Render)
+// ============================================
+app.set('trust proxy', true);
 
 // ============================================
 // ENVIRONMENT CHECK
@@ -71,6 +77,9 @@ const generalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: {
+    xForwardedForHeader: false,
+  },
 });
 
 // Stricter limiter for auth routes - 20 requests per 15 minutes
@@ -83,6 +92,9 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: {
+    xForwardedForHeader: false,
+  },
 });
 
 // Stricter limiter for AI routes - 50 requests per 15 minutes
@@ -95,6 +107,9 @@ const aiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: {
+    xForwardedForHeader: false,
+  },
 });
 
 // Apply rate limiters
@@ -103,28 +118,31 @@ app.use('/api/auth', authLimiter);
 app.use('/api/ai', aiLimiter);
 
 // ============================================
-// MIDDLEWARE
+// CORS CONFIGURATION
 // ============================================
 
-// CORS configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://msikaai-mauve.vercel.app',
   'http://127.0.0.1:5173',
   'https://msikaai.vercel.app',
-  'https://msikaai-backend.onrender.com'
+  'https://msikaai-mauve.vercel.app',
+  'https://msikaai-backend.onrender.com',
+  'https://msikaai.onrender.com'
 ].filter(Boolean);
 
-console.log('🌐 Allowed origins:', allowedOrigins);
+// Remove duplicates
+const uniqueOrigins = [...new Set(allowedOrigins)];
+
+console.log('🌐 Allowed origins:', uniqueOrigins);
 
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+    if (uniqueOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
       console.warn('❌ CORS blocked for origin:', origin);
@@ -159,7 +177,6 @@ app.get('/api/health', async (req, res) => {
   const startTime = Date.now();
   
   try {
-    // Check database connection
     const { data, error } = await supabase
       .from('profiles')
       .select('count')
@@ -181,7 +198,7 @@ app.get('/api/health', async (req, res) => {
       },
       environment: process.env.NODE_ENV || 'development',
       cors: {
-        allowedOrigins: allowedOrigins
+        allowedOrigins: uniqueOrigins
       }
     });
   } catch (error) {
@@ -243,7 +260,6 @@ app.use((err, req, res, next) => {
   console.error('❌ Server error:', err);
   console.error('❌ Stack:', err.stack);
   
-  // Handle specific error types
   if (err.type === 'entity.too.large') {
     return res.status(413).json({
       success: false,
@@ -273,7 +289,7 @@ process.on('SIGINT', () => {
 // ============================================
 // START SERVER
 // ============================================
-const server = app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('\n' + '='.repeat(60));
   console.log('🚀 MsikaAI Server is running!');
   console.log('='.repeat(60));
