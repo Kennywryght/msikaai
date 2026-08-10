@@ -463,7 +463,18 @@ const Landing = () => {
                         </span>
                       </div>
                       
-                      <button style={styles.cardActionButton}>
+                      {/* ✅ FIXED: View button now correctly navigates to listing details */}
+                      <button 
+                        style={styles.cardActionButton}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent the parent card click
+                          if (item.id && !item.is_business) {
+                            navigate(`/listing/${item.id}`);
+                          } else {
+                            navigate(`/search?q=${encodeURIComponent(item.title)}`);
+                          }
+                        }}
+                      >
                         <span>View</span>
                         <SketchIcon d={ICONS.arrowRight} size={12} color="#2563eb" strokeWidth={2.5} />
                       </button>
@@ -964,7 +975,8 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '4px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    transition: 'all 0.15s ease'
   },
   emptyState: {
     textAlign: 'center',

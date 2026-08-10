@@ -886,7 +886,7 @@ const Dashboard = () => {
           </div>
           <div>
             <h1 style={styles.brandTitle}>
-              Msika<span style={{ color: '#60a5fa' }}>AI</span>
+              Ku<span style={{ color: '#60a5fa' }}>Msika</span>
             </h1>
             <span style={styles.brandSubtitle}>{t('vendor_dashboard') || 'Vendor Dashboard'}</span>
           </div>

@@ -1,129 +1,193 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+// mobile/src/context/AuthContext.jsx
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
 import { authAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Initialize auth
   useEffect(() => {
-    checkAuth();
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsAuthenticated(!!session);
+
+        // If session exists but no token in localStorage, set it
+        if (session?.access_token) {
+          localStorage.setItem('auth_token', session.access_token);
+          if (session.refresh_token) {
+            localStorage.setItem('refresh_token', session.refresh_token);
+          }
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsAuthenticated(!!session);
+        setLoading(false);
+
+        // Update tokens in localStorage
+        if (session?.access_token) {
+          localStorage.setItem('auth_token', session.access_token);
+          if (session.refresh_token) {
+            localStorage.setItem('refresh_token', session.refresh_token);
+          }
+        }
+
+        // Handle events
+        switch (event) {
+          case 'SIGNED_IN':
+            toast.success('Welcome back! 👋');
+            break;
+          case 'SIGNED_OUT':
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('refresh_token');
+            toast.success('Signed out successfully');
+            break;
+          case 'USER_UPDATED':
+            toast.success('Profile updated!');
+            break;
+          default:
+            break;
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const checkAuth = async () => {
-    const token = localStorage.getItem('auth_token');
-    console.log('🔍 Checking auth, token exists:', !!token);
-    console.log('🔍 Token value:', token ? token.substring(0, 20) + '...' : 'null');
-    
-    if (!token) {
-      console.log('❌ No token found, setting loading to false');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      console.log('📤 Fetching user profile with token...');
-      const response = await authAPI.getMe();
-      console.log('✅ User profile fetched:', response.data);
-      setUser(response.data.user);
-    } catch (err) {
-      console.error('❌ Auth check failed:', err.response?.status, err.response?.data);
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Login with email
   const login = async (email, password) => {
-    setError(null);
-    console.log('🔐 Login attempt with email:', email);
-    
     try {
       const response = await authAPI.login({ email, password });
-      console.log('✅ Login response received:', response.status);
-      console.log('✅ Response data:', response.data);
-      
       const { user, session } = response.data;
-      
+
       if (session?.access_token) {
-        console.log('💾 Storing access token in localStorage');
         localStorage.setItem('auth_token', session.access_token);
         if (session.refresh_token) {
           localStorage.setItem('refresh_token', session.refresh_token);
         }
-        const stored = localStorage.getItem('auth_token');
-        console.log('💾 Token stored successfully:', !!stored);
-      } else {
-        console.warn('⚠️ No access token in response!');
       }
-      
+
       setUser(user);
-      console.log('✅ Login successful for user:', user?.email || user?.id);
+      setIsAuthenticated(true);
+      toast.success('Login successful! 🎉');
       return { success: true, user };
-    } catch (err) {
-      console.error('❌ Login error:', err.response?.status, err.response?.data);
-      setError(err.response?.data?.error || 'Login failed');
-      return { success: false, error: err.response?.data?.error };
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Login failed');
+      return { success: false, error: error.response?.data?.error };
     }
   };
 
-  const signup = async (email, password, fullName, phone) => {
-    setError(null);
-    console.log('📝 Signup attempt:', { email, fullName });
-    
+  // Register with email
+  const register = async (email, password, metadata = {}) => {
     try {
-      const response = await authAPI.signup({ email, password, fullName, phone });
-      console.log('✅ Signup response:', response.data);
-      
+      const response = await authAPI.signup({ email, password, ...metadata });
       const { user } = response.data;
-      setUser(user);
+
+      toast.success('Account created! Please verify your email.');
       return { success: true, user };
-    } catch (err) {
-      console.error('❌ Signup error:', err.response?.data);
-      setError(err.response?.data?.error || 'Signup failed');
-      return { success: false, error: err.response?.data?.error };
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Registration failed');
+      return { success: false, error: error.response?.data?.error };
     }
   };
 
+  // Logout
   const logout = async () => {
-    console.log('🚪 Logging out...');
     try {
-      await authAPI.logout();
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
+      await supabase.auth.signOut();
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
       setUser(null);
-      console.log('✅ Logged out');
+      setIsAuthenticated(false);
+      toast.success('Logged out successfully');
+      return { success: true };
+    } catch (error) {
+      toast.error('Logout failed');
+      return { success: false, error };
+    }
+  };
+
+  // Reset password
+  const resetPassword = async (email) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password reset email sent! Check your inbox.');
+      return { success: true };
+    } catch (error) {
+      toast.error(error.message || 'Password reset failed');
+      return { success: false, error };
+    }
+  };
+
+  // Update profile
+  const updateProfile = async (updates) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user?.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Profile updated successfully!');
+      return { success: true, data };
+    } catch (error) {
+      toast.error(error.message || 'Profile update failed');
+      return { success: false, error };
     }
   };
 
   const value = {
     user,
+    session,
     loading,
-    error,
+    isAuthenticated,
     login,
-    signup,
+    register,
     logout,
-    isAuthenticated: !!user,
+    resetPassword,
+    updateProfile,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export default AuthProvider;
