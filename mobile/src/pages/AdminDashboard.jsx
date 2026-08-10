@@ -75,7 +75,7 @@ const AdminDashboard = () => {
         .select('total_amount')
         .eq('status', 'completed');
 
-      const totalRevenue = ordersData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+      const totalRevenue = ordersData?.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0) || 0;
 
       // Get recent orders
       const { data: recentOrders } = await supabase
@@ -110,25 +110,46 @@ const AdminDashboard = () => {
     navigate('/login');
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-MW', {
+      style: 'currency',
+      currency: 'MWK',
+      maximumFractionDigits: 0
+    }).format(amount || 0);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f1f5f9',
+      backgroundColor: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     },
     header: {
-      backgroundColor: 'white',
+      backgroundColor: '#ffffff',
       padding: '20px 32px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      borderBottom: '1px solid #e2e8f0',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center'
     },
     headerTitle: {
       fontSize: '24px',
-      fontWeight: '700',
+      fontWeight: '800',
       color: '#0f172a',
-      margin: 0
+      margin: 0,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     },
     headerActions: {
       display: 'flex',
@@ -140,55 +161,61 @@ const AdminDashboard = () => {
       backgroundColor: '#ef4444',
       color: 'white',
       border: 'none',
-      borderRadius: '6px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: '500'
+      fontWeight: '600',
+      transition: 'background-color 0.2s'
     },
     statsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
       gap: '20px',
-      padding: '24px 32px'
+      padding: '28px 32px 20px 32px'
     },
     statCard: {
-      backgroundColor: 'white',
-      borderRadius: '12px',
+      backgroundColor: '#ffffff',
+      borderRadius: '14px',
       padding: '20px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
     },
     statLabel: {
-      fontSize: '14px',
+      fontSize: '13px',
+      fontWeight: '600',
       color: '#64748b',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
       margin: '0 0 8px 0'
     },
     statValue: {
       fontSize: '28px',
-      fontWeight: '700',
+      fontWeight: '800',
       color: '#0f172a',
       margin: 0
     },
     contentGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
       gap: '20px',
       padding: '0 32px 32px 32px'
     },
     section: {
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      padding: '20px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      backgroundColor: '#ffffff',
+      borderRadius: '14px',
+      padding: '24px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
     },
     sectionTitle: {
       fontSize: '18px',
-      fontWeight: '600',
+      fontWeight: '700',
       color: '#0f172a',
       margin: '0 0 16px 0'
     },
     listItem: {
       padding: '12px 0',
-      borderBottom: '1px solid #e2e8f0',
+      borderBottom: '1px solid #f1f5f9',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center'
@@ -197,18 +224,21 @@ const AdminDashboard = () => {
       borderBottom: 'none'
     },
     itemName: {
-      fontWeight: '500',
-      color: '#0f172a'
+      fontWeight: '600',
+      color: '#0f172a',
+      fontSize: '15px'
     },
     itemSub: {
-      fontSize: '14px',
-      color: '#64748b'
+      fontSize: '13px',
+      color: '#64748b',
+      marginTop: '2px'
     },
     statusBadge: {
       padding: '4px 12px',
       borderRadius: '20px',
       fontSize: '12px',
-      fontWeight: '600'
+      fontWeight: '600',
+      textTransform: 'capitalize'
     }
   };
 
@@ -229,7 +259,12 @@ const AdminDashboard = () => {
       <header style={styles.header}>
         <h1 style={styles.headerTitle}>📊 Admin Dashboard</h1>
         <div style={styles.headerActions}>
-          <button style={styles.logoutBtn} onClick={handleLogout}>
+          <button 
+            style={styles.logoutBtn} 
+            onClick={handleLogout}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
+          >
             Logout
           </button>
         </div>
@@ -238,19 +273,19 @@ const AdminDashboard = () => {
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
           <p style={styles.statLabel}>Total Users</p>
-          <p style={styles.statValue}>{stats.users}</p>
+          <p style={styles.statValue}>{stats.users.toLocaleString()}</p>
         </div>
         <div style={styles.statCard}>
           <p style={styles.statLabel}>Total Projects</p>
-          <p style={styles.statValue}>{stats.projects}</p>
+          <p style={styles.statValue}>{stats.projects.toLocaleString()}</p>
         </div>
         <div style={styles.statCard}>
           <p style={styles.statLabel}>Total Orders</p>
-          <p style={styles.statValue}>{stats.orders}</p>
+          <p style={styles.statValue}>{stats.orders.toLocaleString()}</p>
         </div>
         <div style={styles.statCard}>
-          <p style={styles.statLabel}>Revenue</p>
-          <p style={styles.statValue}>${stats.revenue.toFixed(2)}</p>
+          <p style={styles.statLabel}>Total Revenue</p>
+          <p style={{ ...styles.statValue, color: '#16a34a' }}>{formatCurrency(stats.revenue)}</p>
         </div>
       </div>
 
@@ -258,33 +293,41 @@ const AdminDashboard = () => {
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Recent Orders</h2>
           {stats.recentOrders.length === 0 ? (
-            <p style={styles.itemSub}>No orders yet</p>
+            <p style={styles.itemSub}>No orders recorded yet.</p>
           ) : (
-            stats.recentOrders.map((order, index) => (
-              <div key={order.id} style={{
-                ...styles.listItem,
-                ...(index === stats.recentOrders.length - 1 ? styles.listItemLast : {})
-              }}>
-                <div>
-                  <div style={styles.itemName}>Order #{order.id.slice(0, 8)}</div>
-                  <div style={styles.itemSub}>${order.total_amount?.toFixed(2) || '0.00'}</div>
-                </div>
-                <span style={{
-                  ...styles.statusBadge,
-                  backgroundColor: order.status === 'completed' ? '#d1fae5' : '#fef3c7',
-                  color: order.status === 'completed' ? '#065f46' : '#92400e'
+            stats.recentOrders.map((order, index) => {
+              const isCompleted = order.status === 'completed';
+              const isCancelled = order.status === 'cancelled';
+              
+              return (
+                <div key={order.id} style={{
+                  ...styles.listItem,
+                  ...(index === stats.recentOrders.length - 1 ? styles.listItemLast : {})
                 }}>
-                  {order.status || 'pending'}
-                </span>
-              </div>
-            ))
+                  <div>
+                    <div style={styles.itemName}>Order #{order.id.slice(0, 8)}</div>
+                    <div style={styles.itemSub}>
+                      {formatCurrency(order.total_amount)}
+                      {order.created_at && ` • ${formatDate(order.created_at)}`}
+                    </div>
+                  </div>
+                  <span style={{
+                    ...styles.statusBadge,
+                    backgroundColor: isCompleted ? '#d1fae5' : isCancelled ? '#fee2e2' : '#fef3c7',
+                    color: isCompleted ? '#065f46' : isCancelled ? '#991b1b' : '#92400e'
+                  }}>
+                    {order.status || 'pending'}
+                  </span>
+                </div>
+              );
+            })
           )}
         </div>
 
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Recent Users</h2>
           {stats.recentUsers.length === 0 ? (
-            <p style={styles.itemSub}>No users yet</p>
+            <p style={styles.itemSub}>No users registered yet.</p>
           ) : (
             stats.recentUsers.map((user, index) => (
               <div key={user.id} style={{
@@ -292,12 +335,15 @@ const AdminDashboard = () => {
                 ...(index === stats.recentUsers.length - 1 ? styles.listItemLast : {})
               }}>
                 <div>
-                  <div style={styles.itemName}>{user.full_name || 'Anonymous'}</div>
-                  <div style={styles.itemSub}>{user.email}</div>
+                  <div style={styles.itemName}>{user.full_name || 'Anonymous User'}</div>
+                  <div style={styles.itemSub}>
+                    {user.email || 'No email provided'}
+                    {user.created_at && ` • ${formatDate(user.created_at)}`}
+                  </div>
                 </div>
                 <span style={{
                   ...styles.statusBadge,
-                  backgroundColor: user.role === 'admin' ? '#dbeafe' : '#e2e8f0',
+                  backgroundColor: user.role === 'admin' ? '#dbeafe' : '#f1f5f9',
                   color: user.role === 'admin' ? '#1e40af' : '#475569'
                 }}>
                   {user.role || 'user'}

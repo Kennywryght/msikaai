@@ -131,20 +131,22 @@ const AdGenerator = () => {
       minHeight: '100vh',
       backgroundColor: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '24px 16px'
+      padding: '24px 16px',
+      maxWidth: '800px',
+      margin: '0 auto'
     },
     card: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
       padding: '24px',
-      marginBottom: '16px',
+      marginBottom: '20px',
       border: '1px solid #e2e8f0',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+      boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
     },
     backButton: {
       padding: '8px 16px',
-      backgroundColor: '#e2e8f0',
-      border: 'none',
+      backgroundColor: '#ffffff',
+      border: '1px solid #cbd5e1',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
@@ -153,7 +155,8 @@ const AdGenerator = () => {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
-      marginBottom: '16px'
+      marginBottom: '16px',
+      transition: 'all 0.2s'
     },
     title: {
       fontSize: '22px',
@@ -174,7 +177,7 @@ const AdGenerator = () => {
       fontSize: '13px',
       fontWeight: '600',
       color: '#334155',
-      marginBottom: '4px'
+      marginBottom: '6px'
     },
     input: {
       width: '100%',
@@ -228,13 +231,14 @@ const AdGenerator = () => {
       textAlign: 'center',
       cursor: 'pointer',
       backgroundColor: '#f8fafc',
-      transition: 'border-color 0.2s'
+      transition: 'all 0.2s ease-in-out'
     },
     previewImage: {
       maxWidth: '100%',
-      maxHeight: '200px',
+      maxHeight: '220px',
       objectFit: 'contain',
-      borderRadius: '8px'
+      borderRadius: '8px',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
     },
     generateBtn: {
       width: '100%',
@@ -249,7 +253,8 @@ const AdGenerator = () => {
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '8px'
+      gap: '8px',
+      transition: 'background-color 0.2s'
     },
     generateDisabled: {
       width: '100%',
@@ -272,14 +277,15 @@ const AdGenerator = () => {
       backgroundColor: '#fef2f2',
       borderRadius: '8px',
       border: '1px solid #fecaca',
-      marginTop: '12px'
+      marginTop: '12px',
+      fontSize: '14px'
     },
     adPreview: {
       backgroundColor: '#f8fafc',
-      padding: '16px',
+      padding: '18px',
       borderRadius: '12px',
       border: '1px solid #e2e8f0',
-      marginBottom: '12px'
+      marginBottom: '16px'
     },
     adTitle: {
       fontSize: '18px',
@@ -289,7 +295,8 @@ const AdGenerator = () => {
     },
     adDesc: {
       color: '#334155',
-      margin: '0 0 8px 0'
+      margin: '0 0 10px 0',
+      lineHeight: '1.5'
     },
     adCTA: {
       color: '#2563eb',
@@ -298,70 +305,86 @@ const AdGenerator = () => {
     },
     hashtag: {
       display: 'inline-block',
-      padding: '2px 10px',
+      padding: '3px 10px',
       backgroundColor: '#dbeafe',
       color: '#1e40af',
-      borderRadius: '4px',
+      borderRadius: '6px',
       fontSize: '12px',
-      marginRight: '4px'
+      fontWeight: '500',
+      marginRight: '6px',
+      marginTop: '4px'
     },
     socialCard: {
-      padding: '12px',
-      borderRadius: '8px',
-      marginBottom: '8px'
+      padding: '14px',
+      borderRadius: '10px',
+      marginBottom: '10px',
+      border: '1px solid transparent'
     },
     socialHeader: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '4px'
+      marginBottom: '6px'
     },
     socialLabel: {
       fontWeight: '600',
-      fontSize: '14px'
+      fontSize: '14px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px'
     },
     copyBtn: {
       padding: '4px 12px',
       backgroundColor: '#2563eb',
       color: 'white',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px'
+      fontSize: '12px',
+      fontWeight: '500',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px'
     },
     socialText: {
       fontSize: '14px',
       color: '#334155',
-      margin: 0
+      margin: 0,
+      whiteSpace: 'pre-wrap',
+      lineHeight: '1.4'
     },
     resetBtn: {
       width: '100%',
       padding: '12px',
-      backgroundColor: '#e2e8f0',
+      backgroundColor: '#f1f5f9',
       color: '#334155',
-      border: 'none',
+      border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '500',
+      fontSize: '15px',
+      fontWeight: '600',
       cursor: 'pointer',
-      marginTop: '16px'
+      marginTop: '16px',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
     },
     loadingContainer: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '12px'
+      gap: '10px'
     },
     spinner: {
-      width: '20px',
-      height: '20px',
-      border: '3px solid #e2e8f0',
-      borderTop: '3px solid #2563eb',
+      width: '18px',
+      height: '18px',
+      border: '2px solid #ffffff',
+      borderTop: '2px solid transparent',
       borderRadius: '50%',
       animation: 'spin 0.8s linear infinite'
     },
     shareSection: {
-      marginTop: '16px',
+      marginTop: '20px',
       paddingTop: '16px',
       borderTop: '1px solid #e2e8f0'
     },
@@ -369,12 +392,20 @@ const AdGenerator = () => {
       fontSize: '14px',
       fontWeight: '600',
       color: '#0f172a',
-      marginBottom: '8px'
+      marginBottom: '10px'
     }
   };
 
   return (
     <div style={styles.container}>
+      {/* Inject Keyframe Animation for Spinner */}
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
       <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
         <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
         Back to Dashboard
@@ -412,7 +443,7 @@ const AdGenerator = () => {
             ) : (
               <div>
                 <SketchIcon d={ICONS.image} size={48} color="#94a3b8" strokeWidth={1.5} />
-                <p style={{ color: '#64748b', marginTop: '8px' }}>Click to upload product image</p>
+                <p style={{ color: '#64748b', marginTop: '8px', fontWeight: '500' }}>Click to upload product image</p>
                 <p style={{ color: '#94a3b8', fontSize: '12px' }}>PNG, JPG, GIF up to 10MB</p>
               </div>
             )}
@@ -512,7 +543,7 @@ const AdGenerator = () => {
       {/* Results */}
       {result && (
         <div style={styles.card}>
-          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '12px' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <SketchIcon d={ICONS.sparkles} size={20} color="#f59e0b" strokeWidth={2} />
             Your AI-Generated Ad
           </h3>
@@ -534,7 +565,7 @@ const AdGenerator = () => {
             </h4>
             
             {result.socialPosts?.facebook && (
-              <div style={{ ...styles.socialCard, backgroundColor: '#eff6ff' }}>
+              <div style={{ ...styles.socialCard, backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }}>
                 <div style={styles.socialHeader}>
                   <span style={{ ...styles.socialLabel, color: '#1e40af' }}>📘 Facebook</span>
                   <button onClick={() => copyToClipboard(result.socialPosts.facebook)} style={styles.copyBtn}>
@@ -547,7 +578,7 @@ const AdGenerator = () => {
             )}
 
             {result.socialPosts?.whatsapp && (
-              <div style={{ ...styles.socialCard, backgroundColor: '#ecfdf5' }}>
+              <div style={{ ...styles.socialCard, backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }}>
                 <div style={styles.socialHeader}>
                   <span style={{ ...styles.socialLabel, color: '#065f46' }}>💬 WhatsApp</span>
                   <button onClick={() => copyToClipboard(result.socialPosts.whatsapp)} style={styles.copyBtn}>
@@ -571,7 +602,7 @@ const AdGenerator = () => {
           </div>
 
           <button onClick={handleReset} style={styles.resetBtn}>
-            <SketchIcon d={ICONS.close} size={16} color="#64748b" strokeWidth={2} />
+            <SketchIcon d={ICONS.close} size={16} color="#334155" strokeWidth={2} />
             Start Over
           </button>
         </div>

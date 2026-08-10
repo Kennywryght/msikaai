@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
@@ -42,6 +42,19 @@ const AISearch = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef();
+
+  // Close suggestions popover when clicking outside the component
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -96,8 +109,8 @@ const AISearch = () => {
   };
 
   const formatPrice = (price) => {
-    if (!price) return 'Price on request';
-    return `MWK ${price.toLocaleString()}`;
+    if (!price && price !== 0) return 'Price on request';
+    return `MWK ${Number(price).toLocaleString()}`;
   };
 
   // Styles
@@ -106,12 +119,14 @@ const AISearch = () => {
       minHeight: '100vh',
       backgroundColor: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '24px 16px'
+      padding: '24px 16px',
+      maxWidth: '800px',
+      margin: '0 auto'
     },
     backButton: {
       padding: '8px 16px',
-      backgroundColor: '#e2e8f0',
-      border: 'none',
+      backgroundColor: '#ffffff',
+      border: '1px solid #cbd5e1',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
@@ -120,7 +135,8 @@ const AISearch = () => {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
-      marginBottom: '16px'
+      marginBottom: '16px',
+      transition: 'all 0.2s'
     },
     card: {
       backgroundColor: '#ffffff',
@@ -172,7 +188,8 @@ const AISearch = () => {
       cursor: 'pointer',
       display: 'inline-flex',
       alignItems: 'center',
-      gap: '6px'
+      gap: '6px',
+      transition: 'background-color 0.2s'
     },
     searchBtnDisabled: {
       padding: '12px 24px',
@@ -194,21 +211,23 @@ const AISearch = () => {
       right: 0,
       backgroundColor: 'white',
       borderRadius: '8px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
       zIndex: 1000,
-      marginTop: '4px',
-      maxHeight: '200px',
+      marginTop: '6px',
+      maxHeight: '220px',
       overflowY: 'auto',
       border: '1px solid #e2e8f0'
     },
     suggestionItem: {
-      padding: '10px 16px',
+      padding: '12px 16px',
       cursor: 'pointer',
       borderBottom: '1px solid #f1f5f9',
       fontSize: '14px',
+      color: '#334155',
       display: 'flex',
       alignItems: 'center',
-      gap: '8px'
+      gap: '8px',
+      transition: 'background-color 0.15s'
     },
     error: {
       color: '#dc2626',
@@ -216,12 +235,14 @@ const AISearch = () => {
       backgroundColor: '#fef2f2',
       borderRadius: '8px',
       border: '1px solid #fecaca',
-      marginBottom: '16px'
+      marginBottom: '16px',
+      fontSize: '14px'
     },
     resultCount: {
       color: '#64748b',
       marginBottom: '12px',
-      fontSize: '14px'
+      fontSize: '14px',
+      fontWeight: '500'
     },
     resultCard: {
       backgroundColor: 'white',
@@ -230,23 +251,25 @@ const AISearch = () => {
       marginBottom: '12px',
       border: '1px solid #e2e8f0',
       cursor: 'pointer',
-      transition: 'all 0.2s'
+      transition: 'all 0.2s ease-in-out'
     },
     resultTitle: {
       fontSize: '16px',
-      fontWeight: '600',
+      fontWeight: '700',
       color: '#0f172a',
       margin: '0 0 4px 0'
     },
     resultSummary: {
       fontSize: '14px',
       color: '#475569',
-      margin: '0 0 4px 0'
+      margin: '0 0 6px 0',
+      lineHeight: '1.4'
     },
     resultBusiness: {
       fontSize: '13px',
       color: '#64748b',
-      margin: '0 0 8px 0'
+      margin: '0 0 8px 0',
+      fontWeight: '500'
     },
     badgeGroup: {
       display: 'flex',
@@ -271,7 +294,10 @@ const AISearch = () => {
     emptyState: {
       textAlign: 'center',
       padding: '40px 20px',
-      color: '#64748b'
+      color: '#64748b',
+      backgroundColor: '#ffffff',
+      borderRadius: '12px',
+      border: '1px solid #e2e8f0'
     },
     examples: {
       display: 'flex',
@@ -279,7 +305,7 @@ const AISearch = () => {
       gap: '8px'
     },
     exampleBtn: {
-      padding: '10px 14px',
+      padding: '12px 14px',
       backgroundColor: '#f8fafc',
       border: '1px solid #e2e8f0',
       borderRadius: '8px',
@@ -290,12 +316,12 @@ const AISearch = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
-      transition: 'background-color 0.2s'
+      transition: 'all 0.2s'
     },
     resultRow: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'start'
+      alignItems: 'flex-start'
     }
   };
 
@@ -356,7 +382,7 @@ const AISearch = () => {
 
       {results.length > 0 && (
         <div>
-          <p style={styles.resultCount}>Found {results.length} results</p>
+          <p style={styles.resultCount}>Found {results.length} {results.length === 1 ? 'result' : 'results'}</p>
           {results.map((item) => (
             <div
               key={item.id}
@@ -372,15 +398,17 @@ const AISearch = () => {
               }}
             >
               <div style={styles.resultRow}>
-                <div>
+                <div style={{ flex: 1 }}>
                   <h3 style={styles.resultTitle}>{item.title}</h3>
                   <p style={styles.resultSummary}>{item.ai_summary || item.description}</p>
                   <p style={styles.resultBusiness}>{item.businesses?.business_name || 'Unknown Business'}</p>
                   <div style={styles.badgeGroup}>
-                    <span style={{ ...styles.badge, backgroundColor: '#dbeafe', color: '#1e40af' }}>
-                      {item.category}
-                    </span>
-                    {item.price && (
+                    {item.category && (
+                      <span style={{ ...styles.badge, backgroundColor: '#dbeafe', color: '#1e40af' }}>
+                        {item.category}
+                      </span>
+                    )}
+                    {item.price !== undefined && item.price !== null && (
                       <span style={{ ...styles.badge, backgroundColor: '#d1fae5', color: '#065f46' }}>
                         {formatPrice(item.price)}
                       </span>
@@ -403,27 +431,47 @@ const AISearch = () => {
 
       {!loading && results.length === 0 && query && !error && (
         <div style={styles.emptyState}>
-          <p>No results found for "{query}"</p>
-          <p style={{ fontSize: '14px' }}>Try using different keywords or check your spelling</p>
+          <p style={{ fontWeight: '600', color: '#0f172a', margin: '0 0 4px 0' }}>No results found for "{query}"</p>
+          <p style={{ fontSize: '14px', margin: 0 }}>Try using different keywords or check your spelling</p>
         </div>
       )}
 
       {!query && !loading && results.length === 0 && (
         <div style={styles.card}>
-          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', marginBottom: '8px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', marginBottom: '12px' }}>
             💡 Try These Examples:
           </h3>
           <div style={styles.examples}>
-            <button onClick={() => performSearch('Ndikufuna plumber pafupi')} style={styles.exampleBtn}>
+            <button 
+              onClick={() => performSearch('Ndikufuna plumber pafupi')} 
+              style={styles.exampleBtn}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+            >
               🔧 "Ndikufuna plumber pafupi" - Find nearby plumbers
             </button>
-            <button onClick={() => performSearch('chimanga chogulitsa')} style={styles.exampleBtn}>
+            <button 
+              onClick={() => performSearch('chimanga chogulitsa')} 
+              style={styles.exampleBtn}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+            >
               🌾 "chimanga chogulitsa" - Find maize sellers
             </button>
-            <button onClick={() => performSearch('zomanga nyumba')} style={styles.exampleBtn}>
+            <button 
+              onClick={() => performSearch('zomanga nyumba')} 
+              style={styles.exampleBtn}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+            >
               🏗️ "zomanga nyumba" - Building services
             </button>
-            <button onClick={() => performSearch('salon yatsitsi')} style={styles.exampleBtn}>
+            <button 
+              onClick={() => performSearch('salon yatsitsi')} 
+              style={styles.exampleBtn}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+            >
               💇 "salon yatsitsi" - Hair salons
             </button>
           </div>

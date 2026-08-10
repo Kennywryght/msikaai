@@ -26,9 +26,11 @@ const ICONS = {
   mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
   bot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
   heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
-  users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 010 7.75",
   arrowRight: "M5 12h14M12 5l7 7-7 7",
-  check: "M20 6L9 17l-5-5"
+  check: "M20 6L9 17l-5-5",
+  mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6",
+  phone: "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
 };
 
 const About = () => {
@@ -144,6 +146,28 @@ const About = () => {
       padding: '24px',
       border: '1px solid #e2e8f0',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+    },
+    contactCard: {
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
+      padding: '28px',
+      border: '1px solid #cbd5e1',
+      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.06)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '16px'
+    },
+    contactRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      fontSize: '16px',
+      color: '#334155'
+    },
+    contactLink: {
+      color: '#2563eb',
+      textDecoration: 'none',
+      fontWeight: '600'
     },
     grid: {
       display: 'grid',
@@ -303,6 +327,42 @@ const About = () => {
           </div>
         </div>
 
+        {/* Developer Contact Info Section */}
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <SketchIcon d={ICONS.mail} size={22} color="#2563eb" strokeWidth={2} />
+            Developer & Contact Info
+          </h2>
+          <div style={styles.contactCard}>
+            <p style={{ margin: 0, fontSize: '15px', color: '#475569', lineHeight: '1.5' }}>
+              Have questions, feedback, or custom development inquiries? Get in touch directly with the lead developer:
+            </p>
+            <div style={styles.contactRow}>
+              <SketchIcon d={ICONS.mail} size={20} color="#2563eb" />
+              <span>
+                <strong>Email:</strong>{' '}
+                <a href="mailto:kennedybanda940@gmail.com" style={styles.contactLink}>
+                  kennedybanda940@gmail.com
+                </a>
+              </span>
+            </div>
+            <div style={styles.contactRow}>
+              <SketchIcon d={ICONS.phone} size={20} color="#16a34a" />
+              <span>
+                <strong>WhatsApp:</strong>{' '}
+                <a 
+                  href="https://wa.me/265888921110" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  style={{ ...styles.contactLink, color: '#16a34a' }}
+                >
+                  +265 888 921 110
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Stats */}
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>
@@ -369,8 +429,8 @@ const About = () => {
           <div style={styles.teamGrid}>
             <div style={styles.teamCard}>
               <div style={styles.teamAvatar}>👨‍💻</div>
-              <h4 style={styles.teamName}>The MsikaAI Team</h4>
-              <p style={styles.teamRole}>Local Developers & Innovators</p>
+              <h4 style={styles.teamName}>Kennedy Banda</h4>
+              <p style={styles.teamRole}>Lead Developer & Creator</p>
             </div>
             <div style={styles.teamCard}>
               <div style={styles.teamAvatar}>🌾</div>

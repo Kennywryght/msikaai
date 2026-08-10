@@ -4,7 +4,7 @@ import { listingsAPI, businessAPI } from '../services/api';
 import LanguageToggle from '../components/LanguageToggle';
 import { useTranslation } from '../context/TranslationContext';
 
-// --- HAND-DRAWN STYLE INLINE SVG ICONS ---
+// --- HAND-DRAWN / MODERN SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
   <svg
     width={size}
@@ -21,7 +21,6 @@ const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) =
   </svg>
 );
 
-// Drawn Icon Paths
 const ICONS = {
   store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
   search: "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35",
@@ -55,7 +54,6 @@ const CATEGORIES = [
   { label: 'Hardware', iconKey: 'hardware' }
 ];
 
-// Mitundu Locations
 const LOCATIONS = [
   'All Areas',
   'Mitundu Trading Centre',
@@ -87,25 +85,16 @@ const Landing = () => {
     setError('');
     try {
       console.log('📤 Fetching listings for landing page...');
-      
-      // --- FIX: Fetch LISTINGS, not businesses ---
       const listingsRes = await listingsAPI.search({ limit: 50 });
-      console.log('📦 Listings response:', listingsRes.data);
-      
       const listingsData = listingsRes.data?.listings || [];
-      console.log(`✅ Found ${listingsData.length} listings`);
-      
-      // --- FIX: Use the actual listing data ---
       setAllListings(listingsData);
 
-      // If no listings found, try fetching businesses as fallback
       if (listingsData.length === 0) {
         console.log('📤 No listings found, fetching businesses as fallback...');
         const bizResponse = await businessAPI.getAll({ limit: 20 });
         if (bizResponse.data?.businesses?.length > 0) {
-          // --- FIX: Convert businesses to listing format with unique IDs ---
           const bizListings = bizResponse.data.businesses.map((b) => ({
-            id: `biz-${b.id}`, // Prefix to distinguish from real listings
+            id: `biz-${b.id}`,
             title: b.business_name,
             description: b.description || 'Business in Mitundu',
             category: b.category,
@@ -116,11 +105,9 @@ const Landing = () => {
             is_business: true,
             location_area: b.location_text || 'Mitundu Trading Centre',
             delivery_available: b.delivery_available || false,
-            // Store the actual business ID for navigation
             business_id: b.id
           }));
           setAllListings(bizListings);
-          console.log(`✅ Found ${bizListings.length} businesses as fallback`);
         }
       }
     } catch (err) {
@@ -138,17 +125,11 @@ const Landing = () => {
     }
   };
 
-  // --- FIX: Handle click on listing - use the correct ID ---
   const handleListingClick = (item) => {
-    console.log('🖱️ Clicked listing:', item);
-    
-    // If it's a business fallback, navigate to search instead
     if (item.is_business) {
       navigate(`/search?q=${encodeURIComponent(item.title)}`);
       return;
     }
-    
-    // Navigate to listing details with the listing ID
     navigate(`/listing/${item.id}`);
   };
 
@@ -179,8 +160,8 @@ const Landing = () => {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <p style={{ color: '#475569', fontSize: '15px', fontWeight: '600' }}>
-          Loading Mitundu Marketplace...
+        <p style={{ color: '#64748b', fontSize: '15px', fontWeight: '600', tracking: '0.01em' }}>
+          Discovering local products & services in Mitundu...
         </p>
         <style>{`
           @keyframes spin {
@@ -194,7 +175,16 @@ const Landing = () => {
 
   return (
     <div style={styles.container}>
-      {/* Navigation - Same as before */}
+      {/* Dynamic Keyframe Injection */}
+      <style>{`
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hover-lift { transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease; }
+        .hover-lift:hover { transform: translateY(-4px); }
+        .pill-scroll::-webkit-scrollbar { display: none; }
+        .pill-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+
+      {/* Modern Navigation Header */}
       <nav style={styles.nav}>
         <div style={styles.brandContainer}>
           <div style={styles.logoBadge}>
@@ -205,48 +195,51 @@ const Landing = () => {
               Msika<span style={{ color: '#2563eb' }}>AI</span>
             </h1>
           </div>
-          <span style={styles.locationTag}>Mitundu 🇲🇼</span>
+          <span style={styles.locationTag}>
+            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', marginRight: '6px' }}></span>
+            Mitundu 🇲🇼
+          </span>
         </div>
 
         <div style={styles.navActions}>
           <LanguageToggle />
           <button onClick={() => navigate('/about')} style={styles.btnSecondary}>
-            <SketchIcon d={ICONS.about} size={14} color="#334155" strokeWidth={2} />
-            About
+            <SketchIcon d={ICONS.about} size={15} color="#475569" strokeWidth={2} />
+            <span>About</span>
           </button>
           <button onClick={() => navigate('/search')} style={styles.btnSecondary}>
             Browse All
           </button>
-          <Link to="/login" style={styles.btnPrimary}>
+          <Link to="/login" style={styles.btnOutline}>
             Sign In
           </Link>
-          <Link to="/login" style={styles.btnOutline}>
+          <Link to="/login" style={styles.btnPrimary}>
             + Post Listing
           </Link>
         </div>
       </nav>
 
-      {/* Hero Section - Same as before */}
+      {/* Refined Hero Header */}
       <header style={styles.hero}>
         <div style={styles.heroContent}>
           <div style={styles.heroPill}>
-            <SketchIcon d={ICONS.sparkles} size={15} color="#fcd34d" strokeWidth={2} />
-            <span>Mitundu's Smart Local Marketplace</span>
+            <SketchIcon d={ICONS.sparkles} size={15} color="#f59e0b" strokeWidth={2} />
+            <span>Mitundu's Local Goods & Service Directory</span>
           </div>
           <h1 style={styles.heroTitle}>
-            Trade, Buy & Hire in <span style={{ color: '#fcd34d', textDecoration: 'underline decoration-wavy decoration-2' }}>Mitundu</span>
+            Buy Goods & Hire Local Pros in <span style={styles.heroHighlight}>Mitundu</span>
           </h1>
           <p style={styles.heroSubtitle}>
-            Connecting local vendors, farmers, skilled labor, and buyers in one place.
+            Find farmers, hardware supplies, plumbers, tailors, and fresh local produce—all in one place.
           </p>
 
           <form onSubmit={handleSearch} style={styles.searchBox}>
-            <div style={{ paddingLeft: '18px', display: 'flex', alignItems: 'center' }}>
-              <SketchIcon d={ICONS.search} size={20} color="#64748b" strokeWidth={2.2} />
+            <div style={{ paddingLeft: '20px', display: 'flex', alignItems: 'center' }}>
+              <SketchIcon d={ICONS.search} size={20} color="#94a3b8" strokeWidth={2.2} />
             </div>
             <input
               type="text"
-              placeholder="Search plumber, maize, cement, hardware..."
+              placeholder="Search maize, plumber, cement, hardware, tailor..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={styles.searchInput}
@@ -259,27 +252,27 @@ const Landing = () => {
 
           <div style={styles.heroActionGroup}>
             <button onClick={() => navigate('/login')} style={styles.heroChipButton}>
-              <SketchIcon d={ICONS.mic} size={16} color="#60a5fa" strokeWidth={2} />
-              <span>List with Voice</span>
+              <SketchIcon d={ICONS.mic} size={15} color="#60a5fa" strokeWidth={2} />
+              <span>Voice Listing</span>
             </button>
             <button onClick={() => navigate('/login')} style={styles.heroChipButton}>
-              <SketchIcon d={ICONS.bot} size={16} color="#34d399" strokeWidth={2} />
+              <SketchIcon d={ICONS.bot} size={15} color="#34d399" strokeWidth={2} />
               <span>AI Assistant</span>
             </button>
             <button onClick={() => navigate('/search')} style={styles.heroChipButton}>
-              <SketchIcon d={ICONS.mapPin} size={16} color="#f87171" strokeWidth={2} />
+              <SketchIcon d={ICONS.mapPin} size={15} color="#f87171" strokeWidth={2} />
               <span>Near Me</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Stats Section */}
+      {/* Metrics Bar */}
       <div style={styles.statsBar}>
         <div style={styles.statsGrid}>
           <div style={styles.statBox}>
             <div style={styles.statNumber}>{allListings.length}+</div>
-            <div style={styles.statLabel}>Active Listings</div>
+            <div style={styles.statLabel}>Active Goods & Services</div>
           </div>
           <div style={styles.statBox}>
             <div style={styles.statNumber}>50+</div>
@@ -291,20 +284,21 @@ const Landing = () => {
           </div>
           <div style={styles.statBox}>
             <div style={{ ...styles.statNumber, color: '#16a34a' }}>100%</div>
-            <div style={styles.statLabel}>Free to Register</div>
+            <div style={styles.statLabel}>Verified Local Traders</div>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters Section */}
       <div style={styles.filterSection}>
         <div style={styles.filterRow}>
+          {/* Category Filter */}
           <div style={styles.filterGroup}>
             <label style={styles.filterLabel}>
               <SketchIcon d={ICONS.tag} size={14} color="#64748b" strokeWidth={2} />
-              Category
+              <span>FILTER BY CATEGORY</span>
             </label>
-            <div style={styles.filterScroll}>
+            <div style={styles.filterScroll} className="pill-scroll">
               {CATEGORIES.map((cat) => {
                 const isActive = selectedCategory === cat.label;
                 const iconPath = ICONS[cat.iconKey] || ICONS.store;
@@ -316,7 +310,8 @@ const Landing = () => {
                       ...styles.filterPill,
                       backgroundColor: isActive ? '#2563eb' : '#ffffff',
                       color: isActive ? '#ffffff' : '#334155',
-                      borderColor: isActive ? '#2563eb' : '#cbd5e1',
+                      borderColor: isActive ? '#2563eb' : '#e2e8f0',
+                      boxShadow: isActive ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'none'
                     }}
                   >
                     <SketchIcon
@@ -332,12 +327,13 @@ const Landing = () => {
             </div>
           </div>
 
+          {/* Location Filter */}
           <div style={styles.filterGroup}>
             <label style={styles.filterLabel}>
               <SketchIcon d={ICONS.mapPin} size={14} color="#64748b" strokeWidth={2} />
-              Location
+              <span>FILTER BY LOCATION</span>
             </label>
-            <div style={styles.filterScroll}>
+            <div style={styles.filterScroll} className="pill-scroll">
               {LOCATIONS.map((loc) => {
                 const isActive = selectedLocation === loc;
                 return (
@@ -346,15 +342,16 @@ const Landing = () => {
                     onClick={() => setSelectedLocation(loc)}
                     style={{
                       ...styles.filterPill,
-                      backgroundColor: isActive ? '#2563eb' : '#ffffff',
-                      color: isActive ? '#ffffff' : '#334155',
-                      borderColor: isActive ? '#2563eb' : '#cbd5e1',
+                      backgroundColor: isActive ? '#0f172a' : '#ffffff',
+                      color: isActive ? '#ffffff' : '#475569',
+                      borderColor: isActive ? '#0f172a' : '#e2e8f0',
+                      boxShadow: isActive ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none'
                     }}
                   >
                     <SketchIcon
                       d={ICONS.mapPin}
                       size={14}
-                      color={isActive ? '#ffffff' : '#2563eb'}
+                      color={isActive ? '#ffffff' : '#64748b'}
                       strokeWidth={2}
                     />
                     <span>{loc}</span>
@@ -366,11 +363,11 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* Main Listings Section */}
+      {/* Main Grid Content */}
       <main style={styles.section}>
         <div style={styles.sectionHeader}>
           <div>
-            <h2 style={styles.sectionTitle}>Available in Mitundu</h2>
+            <h2 style={styles.sectionTitle}>Marketplace & Services in Mitundu</h2>
             <p style={styles.sectionSubtitle}>
               {filteredListings.length > 0
                 ? `Showing ${filteredListings.length} verified listings`
@@ -390,22 +387,26 @@ const Landing = () => {
           <div style={styles.grid}>
             {filteredListings.map((item) => {
               const isHovered = hoveredCard === item.id;
+              const isService = item.category?.toLowerCase().includes('plumber') ||
+                                item.category?.toLowerCase().includes('tailor') ||
+                                item.category?.toLowerCase().includes('service');
+
               return (
                 <div
                   key={item.id}
                   style={{
                     ...styles.listingCard,
-                    transform: isHovered ? 'translateY(-5px)' : 'translateY(0)',
-                    borderColor: isHovered ? '#93c5fd' : '#e2e8f0',
+                    transform: isHovered ? 'translateY(-6px)' : 'translateY(0)',
+                    borderColor: isHovered ? '#bfdbfe' : '#e2e8f0',
                     boxShadow: isHovered
-                      ? '0 16px 32px -8px rgba(37,99,235,0.12)'
-                      : '0 2px 6px rgba(0,0,0,0.04)'
+                      ? '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.01)'
+                      : '0 1px 3px rgba(0,0,0,0.04)'
                   }}
                   onClick={() => handleListingClick(item)}
                   onMouseEnter={() => setHoveredCard(item.id)}
                   onMouseLeave={() => setHoveredCard(null)}
                 >
-                  <div style={{ position: 'relative', width: '100%', height: '190px', backgroundColor: '#f1f5f9' }}>
+                  <div style={styles.imageWrapper}>
                     {item.images && item.images.length > 0 ? (
                       <img
                         src={item.images[0]}
@@ -414,22 +415,30 @@ const Landing = () => {
                       />
                     ) : (
                       <div style={styles.imagePlaceholder}>
-                        <SketchIcon d={ICONS.store} size={48} color="#cbd5e1" strokeWidth={1.8} />
+                        <SketchIcon d={ICONS.store} size={42} color="#94a3b8" strokeWidth={1.5} />
                       </div>
                     )}
-                    <span style={styles.categoryBadge}>
-                      <SketchIcon d={ICONS.tag} size={12} color="#2563eb" strokeWidth={2} />
-                      <span style={{ marginLeft: '4px' }}>{item.category || 'General'}</span>
+                    
+                    {/* Good vs Service Tag */}
+                    <span style={{
+                      ...styles.typeBadge,
+                      backgroundColor: isService ? '#e0e7ff' : '#ecfdf5',
+                      color: isService ? '#3730a3' : '#065f46',
+                      borderColor: isService ? '#c7d2fe' : '#a7f3d0'
+                    }}>
+                      {isService ? 'SERVICE' : 'GOODS'}
                     </span>
+
                     {item.delivery_available && (
                       <span style={styles.deliveryBadge}>
-                        <SketchIcon d={ICONS.delivery} size={12} color="#16a34a" strokeWidth={2} />
+                        <SketchIcon d={ICONS.delivery} size={11} color="#ffffff" strokeWidth={2} />
                         <span style={{ marginLeft: '3px' }}>Delivery</span>
                       </span>
                     )}
+
                     {item.location_area && (
                       <span style={styles.locationBadge}>
-                        <SketchIcon d={ICONS.mapPin} size={12} color="#2563eb" strokeWidth={2} />
+                        <SketchIcon d={ICONS.mapPin} size={11} color="#ffffff" strokeWidth={2} />
                         <span style={{ marginLeft: '3px' }}>{item.location_area}</span>
                       </span>
                     )}
@@ -438,10 +447,6 @@ const Landing = () => {
                   <div style={styles.cardBody}>
                     <div style={styles.cardHeader}>
                       <h3 style={styles.cardTitle}>{item.title}</h3>
-                      <span style={styles.timeTag}>
-                        <SketchIcon d={ICONS.clock} size={12} color="#94a3b8" strokeWidth={2} />
-                        <span style={{ marginLeft: '3px' }}>{formatTimeAgo(item.created_at)}</span>
-                      </span>
                     </div>
 
                     <p style={styles.businessName}>
@@ -450,16 +455,18 @@ const Landing = () => {
 
                     <div style={styles.cardFooter}>
                       <div>
-                        <span style={{ display: 'block', fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: '700' }}>
-                          Price
+                        <span style={styles.priceLabel}>
+                          {isService ? 'ESTIMATED RATE' : 'PRICE'}
                         </span>
                         <span style={styles.priceTag}>
                           {formatPrice(item.price)}
                         </span>
                       </div>
-                      <span style={styles.viewLink}>
-                        View <SketchIcon d={ICONS.arrowRight} size={14} color="#2563eb" strokeWidth={2.5} />
-                      </span>
+                      
+                      <button style={styles.cardActionButton}>
+                        <span>View</span>
+                        <SketchIcon d={ICONS.arrowRight} size={12} color="#2563eb" strokeWidth={2.5} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -468,11 +475,11 @@ const Landing = () => {
           </div>
         ) : (
           <div style={styles.emptyState}>
-            <div style={{ marginBottom: '16px' }}>
-              <SketchIcon d={ICONS.store} size={56} color="#94a3b8" strokeWidth={1.5} />
+            <div style={styles.emptyIconCircle}>
+              <SketchIcon d={ICONS.store} size={36} color="#64748b" strokeWidth={1.5} />
             </div>
             <h3 style={styles.emptyTitle}>No listings found</h3>
-            <p style={styles.emptySubtitle}>Try adjusting your filters or be the first to post!</p>
+            <p style={styles.emptySubtitle}>Try adjusting your filters or be the first to offer this product/service!</p>
             <Link to="/login" style={styles.btnPrimaryLarge}>
               + Post a Listing Now
             </Link>
@@ -480,46 +487,49 @@ const Landing = () => {
         )}
       </main>
 
-      {/* Call to Action Banner */}
+      {/* Modern Call to Action Banner */}
       <div style={styles.ctaSection}>
         <div style={styles.ctaCard}>
-          <div style={{ marginBottom: '12px' }}>
-            <SketchIcon d={ICONS.sparkles} size={32} color="#fcd34d" strokeWidth={2} />
+          <div style={styles.ctaBadge}>
+            <SketchIcon d={ICONS.sparkles} size={18} color="#f59e0b" strokeWidth={2} />
+            <span>Join Local Sellers & Pros</span>
           </div>
-          <h2 style={styles.ctaTitle}>Grow Your Business in Mitundu</h2>
+          <h2 style={styles.ctaTitle}>Grow Your Local Business in Mitundu</h2>
           <p style={styles.ctaSubtitle}>
-            List products, post services, or advertise farm produce. It takes under 2 minutes and is completely free.
+            Sell physical goods, advertise farm crops, or offer repair & trade services. Set up in less than 2 minutes for free.
           </p>
           <Link to="/login" style={styles.ctaButton}>
-            <span>Start Selling Today</span>
-            <SketchIcon d={ICONS.arrowRight} size={18} color="#0f172a" strokeWidth={2.5} />
+            <span>Start Listing Today</span>
+            <SketchIcon d={ICONS.arrowRight} size={16} color="#0f172a" strokeWidth={2.5} />
           </Link>
         </div>
       </div>
 
       {/* Footer */}
       <footer style={styles.footer}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap', marginBottom: '8px' }}>
-          <Link to="/" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Home</Link>
-          <Link to="/about" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>About</Link>
-          <Link to="/search" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Browse</Link>
-          <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px' }}>Sell</Link>
+        <div style={styles.footerLinks}>
+          <Link to="/" style={styles.footerLink}>Home</Link>
+          <Link to="/about" style={styles.footerLink}>About</Link>
+          <Link to="/search" style={styles.footerLink}>Browse</Link>
+          <Link to="/login" style={styles.footerLink}>Sell Goods</Link>
+          <Link to="/login" style={styles.footerLink}>Offer Services</Link>
         </div>
-        <p style={{ margin: 0, opacity: 0.8, fontSize: '14px' }}>
-          © {new Date().getFullYear()} MsikaAI — Built for Mitundu, Malawi 🇲🇼
+        <p style={styles.copyrightText}>
+          © {new Date().getFullYear()} MsikaAI — Dedicated to Empowering Mitundu Commerce 🇲🇼
         </p>
       </footer>
     </div>
   );
 };
 
-// Styles - Same as before
+// --- ELEVATED STYLESHEET ---
 const styles = {
   container: {
     minHeight: '100vh',
     backgroundColor: '#f8fafc',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    color: '#0f172a'
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    color: '#0f172a',
+    lineHeight: '1.5'
   },
   loadingContainer: {
     minHeight: '100vh',
@@ -531,16 +541,18 @@ const styles = {
     backgroundColor: '#f8fafc'
   },
   spinner: {
-    width: '44px',
-    height: '44px',
-    border: '4px solid #cbd5e1',
-    borderTop: '4px solid #2563eb',
+    width: '40px',
+    height: '40px',
+    border: '3px solid #e2e8f0',
+    borderTop: '3px solid #2563eb',
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite'
   },
   nav: {
-    backgroundColor: '#ffffff',
-    padding: '14px 28px',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    padding: '12px 32px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -549,38 +561,41 @@ const styles = {
     top: 0,
     zIndex: 100,
     flexWrap: 'wrap',
-    gap: '12px'
+    gap: '16px'
   },
   brandContainer: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px'
+    gap: '12px'
   },
   logoBadge: {
-    width: '38px',
-    height: '38px',
+    width: '40px',
+    height: '40px',
     backgroundColor: '#eff6ff',
-    borderRadius: '10px',
+    borderRadius: '12px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1px solid #dbeafe'
+    border: '1px solid #dbeafe',
+    boxShadow: '0 2px 4px rgba(37,99,235,0.06)'
   },
   brandTitle: {
     fontSize: '22px',
     fontWeight: '800',
     color: '#0f172a',
     margin: 0,
-    lineHeight: '1'
+    letterSpacing: '-0.5px'
   },
   locationTag: {
-    fontSize: '11px',
+    fontSize: '12px',
     backgroundColor: '#f1f5f9',
     color: '#475569',
-    padding: '4px 10px',
+    padding: '5px 12px',
     borderRadius: '20px',
     fontWeight: '600',
-    border: '1px solid #e2e8f0'
+    border: '1px solid #e2e8f0',
+    display: 'inline-flex',
+    alignItems: 'center'
   },
   navActions: {
     display: 'flex',
@@ -589,31 +604,32 @@ const styles = {
     flexWrap: 'wrap'
   },
   btnPrimary: {
-    padding: '8px 18px',
+    padding: '9px 18px',
     backgroundColor: '#2563eb',
     color: '#ffffff',
-    borderRadius: '8px',
+    borderRadius: '10px',
     textDecoration: 'none',
     fontSize: '14px',
     fontWeight: '600',
-    display: 'inline-block'
+    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
   },
   btnPrimaryLarge: {
     padding: '12px 28px',
     backgroundColor: '#2563eb',
     color: '#ffffff',
-    borderRadius: '10px',
+    borderRadius: '12px',
     textDecoration: 'none',
-    fontSize: '15px',
+    fontSize: '14px',
     fontWeight: '600',
-    display: 'inline-block'
+    display: 'inline-block',
+    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)'
   },
   btnSecondary: {
-    padding: '8px 16px',
-    backgroundColor: '#f1f5f9',
+    padding: '9px 16px',
+    backgroundColor: '#f8fafc',
     color: '#334155',
-    border: 'none',
-    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    borderRadius: '10px',
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '600',
@@ -622,61 +638,70 @@ const styles = {
     gap: '6px'
   },
   btnOutline: {
-    padding: '8px 16px',
+    padding: '9px 16px',
     backgroundColor: 'transparent',
     color: '#2563eb',
     border: '1px solid #bfdbfe',
-    borderRadius: '8px',
+    borderRadius: '10px',
     textDecoration: 'none',
     fontSize: '14px',
     fontWeight: '600'
   },
   hero: {
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1d4ed8 100%)',
-    padding: '64px 24px 72px 24px',
+    background: 'radial-gradient(circle at top right, #1e3a8a 0%, #0f172a 60%, #020617 100%)',
+    padding: '72px 24px 80px 24px',
     textAlign: 'center',
-    color: '#ffffff'
+    color: '#ffffff',
+    position: 'relative'
   },
   heroContent: {
-    maxWidth: '780px',
+    maxWidth: '820px',
     margin: '0 auto'
   },
   heroPill: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     padding: '6px 16px',
-    borderRadius: '20px',
+    borderRadius: '30px',
     fontSize: '13px',
     fontWeight: '500',
-    marginBottom: '20px',
-    border: '1px solid rgba(255, 255, 255, 0.2)'
+    marginBottom: '24px',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    backdropFilter: 'blur(4px)'
   },
   heroTitle: {
-    fontSize: '42px',
+    fontSize: '44px',
     fontWeight: '800',
-    marginBottom: '16px',
-    lineHeight: '1.2',
-    letterSpacing: '-0.5px'
+    marginBottom: '18px',
+    lineHeight: '1.15',
+    letterSpacing: '-0.02em'
+  },
+  heroHighlight: {
+    background: 'linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    textDecoration: 'none'
   },
   heroSubtitle: {
     fontSize: '17px',
-    marginBottom: '32px',
-    opacity: 0.9,
+    marginBottom: '36px',
+    color: '#94a3b8',
     fontWeight: '400',
-    lineHeight: '1.5'
+    maxWidth: '640px',
+    margin: '0 auto 36px auto'
   },
   searchBox: {
-    maxWidth: '600px',
+    maxWidth: '640px',
     margin: '0 auto',
     display: 'flex',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    borderRadius: '50px',
-    boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
-    padding: '5px',
-    overflow: 'hidden'
+    borderRadius: '16px',
+    boxShadow: '0 20px 35px -10px rgba(0, 0, 0, 0.4)',
+    padding: '6px',
+    border: '1px solid rgba(255, 255, 255, 0.2)'
   },
   searchInput: {
     flex: 1,
@@ -688,86 +713,90 @@ const styles = {
     color: '#0f172a'
   },
   searchButton: {
-    padding: '12px 24px',
+    padding: '12px 26px',
     backgroundColor: '#2563eb',
     color: '#ffffff',
     border: 'none',
-    borderRadius: '40px',
+    borderRadius: '12px',
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    gap: '8px'
+    gap: '8px',
+    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
   },
   heroActionGroup: {
-    marginTop: '24px',
+    marginTop: '28px',
     display: 'flex',
-    gap: '10px',
+    gap: '12px',
     justifyContent: 'center',
     flexWrap: 'wrap'
   },
   heroChipButton: {
-    padding: '8px 16px',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    color: '#ffffff',
-    border: '1px solid rgba(255, 255, 255, 0.18)',
-    borderRadius: '20px',
+    padding: '8px 18px',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    color: '#e2e8f0',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    borderRadius: '30px',
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: '500',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px'
+    gap: '8px'
   },
   statsBar: {
     backgroundColor: '#ffffff',
     borderBottom: '1px solid #e2e8f0',
-    padding: '20px 24px'
+    padding: '24px'
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-    gap: '20px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gap: '24px',
     textAlign: 'center',
-    maxWidth: '960px',
+    maxWidth: '1000px',
     margin: '0 auto'
   },
   statBox: {
     padding: '4px'
   },
   statNumber: {
-    fontSize: '26px',
+    fontSize: '28px',
     fontWeight: '800',
-    color: '#2563eb'
+    color: '#2563eb',
+    letterSpacing: '-0.5px'
   },
   statLabel: {
     fontSize: '12px',
     color: '#64748b',
-    marginTop: '2px',
-    fontWeight: '600'
+    marginTop: '4px',
+    fontWeight: '600',
+    letterSpacing: '0.02em'
   },
   filterSection: {
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '20px 24px 0 24px'
+    padding: '28px 24px 0 24px'
   },
   filterRow: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px'
+    gap: '16px'
   },
   filterGroup: {
     width: '100%'
   },
   filterLabel: {
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#64748b',
+    fontSize: '11px',
+    fontWeight: '700',
+    color: '#94a3b8',
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    marginBottom: '6px'
+    marginBottom: '8px',
+    letterSpacing: '0.05em'
   },
   filterScroll: {
     display: 'flex',
@@ -780,28 +809,29 @@ const styles = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    padding: '6px 14px',
-    borderRadius: '20px',
+    padding: '8px 16px',
+    borderRadius: '12px',
     border: '1px solid #cbd5e1',
-    fontSize: '12px',
+    fontSize: '13px',
     fontWeight: '600',
     cursor: 'pointer',
     whiteSpace: 'nowrap',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
   },
   section: {
     maxWidth: '1200px',
     margin: '0 auto',
-    padding: '24px 24px 64px 24px'
+    padding: '28px 24px 72px 24px'
   },
   sectionHeader: {
-    marginBottom: '20px'
+    marginBottom: '24px'
   },
   sectionTitle: {
-    fontSize: '22px',
+    fontSize: '24px',
     fontWeight: '800',
     color: '#0f172a',
-    margin: '0 0 4px 0'
+    margin: '0 0 6px 0',
+    letterSpacing: '-0.01em'
   },
   sectionSubtitle: {
     fontSize: '14px',
@@ -810,133 +840,149 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-    gap: '20px'
+    gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
+    gap: '24px'
   },
   listingCard: {
     backgroundColor: '#ffffff',
-    borderRadius: '16px',
+    borderRadius: '18px',
     overflow: 'hidden',
     border: '1px solid #e2e8f0',
     cursor: 'pointer',
-    transition: 'all 0.25s ease',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+  },
+  imageWrapper: {
+    position: 'relative',
+    width: '100%',
+    height: '190px',
+    backgroundColor: '#f1f5f9',
+    overflow: 'hidden'
   },
   listingImage: {
     width: '100%',
-    height: '190px',
+    height: '100%',
     objectFit: 'cover'
   },
   imagePlaceholder: {
     width: '100%',
-    height: '190px',
+    height: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f1f5f9'
+    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
   },
-  categoryBadge: {
+  typeBadge: {
     position: 'absolute',
-    top: '10px',
-    left: '10px',
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    color: '#1e293b',
-    fontSize: '11px',
-    fontWeight: '700',
-    padding: '4px 10px',
-    borderRadius: '10px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.08)'
+    top: '12px',
+    left: '12px',
+    fontSize: '10px',
+    fontWeight: '800',
+    padding: '3px 8px',
+    borderRadius: '6px',
+    border: '1px solid',
+    letterSpacing: '0.04em'
   },
   deliveryBadge: {
     position: 'absolute',
-    top: '10px',
-    right: '10px',
-    backgroundColor: 'rgba(22, 163, 74, 0.9)',
+    top: '12px',
+    right: '12px',
+    backgroundColor: '#16a34a',
     color: '#ffffff',
     fontSize: '10px',
-    fontWeight: '600',
-    padding: '3px 10px',
-    borderRadius: '10px',
+    fontWeight: '700',
+    padding: '3px 8px',
+    borderRadius: '6px',
     display: 'inline-flex',
-    alignItems: 'center',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.08)'
+    alignItems: 'center'
   },
   locationBadge: {
     position: 'absolute',
-    bottom: '10px',
-    right: '10px',
-    backgroundColor: 'rgba(37, 99, 235, 0.9)',
+    bottom: '12px',
+    right: '12px',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    backdropFilter: 'blur(4px)',
     color: '#ffffff',
     fontSize: '10px',
     fontWeight: '600',
-    padding: '3px 10px',
-    borderRadius: '10px',
+    padding: '3px 8px',
+    borderRadius: '6px',
     display: 'inline-flex',
-    alignItems: 'center',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.08)'
+    alignItems: 'center'
   },
   cardBody: {
-    padding: '16px',
+    padding: '18px',
     display: 'flex',
     flexDirection: 'column',
     flex: 1
   },
   cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '8px',
-    marginBottom: '6px'
+    marginBottom: '4px'
   },
   cardTitle: {
-    fontSize: '15px',
+    fontSize: '16px',
     fontWeight: '700',
     color: '#0f172a',
     margin: 0,
     lineHeight: '1.3'
   },
-  timeTag: {
-    fontSize: '11px',
-    color: '#94a3b8',
-    whiteSpace: 'nowrap',
-    display: 'inline-flex',
-    alignItems: 'center'
-  },
   businessName: {
     fontSize: '13px',
     color: '#64748b',
-    margin: '0 0 16px 0'
+    margin: '0 0 18px 0',
+    fontWeight: '500'
   },
   cardFooter: {
     marginTop: 'auto',
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingTop: '10px',
+    alignItems: 'center',
+    paddingTop: '12px',
     borderTop: '1px solid #f1f5f9'
+  },
+  priceLabel: {
+    display: 'block',
+    fontSize: '9px',
+    color: '#94a3b8',
+    fontWeight: '800',
+    letterSpacing: '0.05em'
   },
   priceTag: {
     fontSize: '15px',
     fontWeight: '800',
     color: '#2563eb'
   },
-  viewLink: {
-    fontSize: '12px',
+  cardActionButton: {
+    backgroundColor: '#eff6ff',
     color: '#2563eb',
-    fontWeight: '600',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: '8px',
+    fontSize: '12px',
+    fontWeight: '700',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '4px'
+    gap: '4px',
+    cursor: 'pointer'
   },
   emptyState: {
     textAlign: 'center',
     padding: '64px 20px',
     backgroundColor: '#ffffff',
-    borderRadius: '16px',
-    border: '2px dashed #cbd5e1'
+    borderRadius: '20px',
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+  },
+  emptyIconCircle: {
+    width: '72px',
+    height: '72px',
+    borderRadius: '50%',
+    backgroundColor: '#f1f5f9',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 16px auto'
   },
   emptyTitle: {
     fontSize: '18px',
@@ -947,13 +993,13 @@ const styles = {
   emptySubtitle: {
     color: '#64748b',
     fontSize: '14px',
-    marginBottom: '20px'
+    marginBottom: '24px'
   },
   errorBanner: {
     backgroundColor: '#fef2f2',
     color: '#991b1b',
     padding: '12px 16px',
-    borderRadius: '8px',
+    borderRadius: '12px',
     border: '1px solid #fecaca',
     marginBottom: '20px',
     display: 'flex',
@@ -965,34 +1011,46 @@ const styles = {
     backgroundColor: '#991b1b',
     color: '#ffffff',
     border: 'none',
-    padding: '4px 12px',
-    borderRadius: '4px',
+    padding: '6px 14px',
+    borderRadius: '6px',
     cursor: 'pointer',
-    fontSize: '12px'
+    fontSize: '12px',
+    fontWeight: '600'
   },
   ctaSection: {
     maxWidth: '1200px',
-    margin: '0 auto 48px auto',
+    margin: '0 auto 56px auto',
     padding: '0 24px'
   },
   ctaCard: {
-    backgroundColor: '#0f172a',
+    background: 'radial-gradient(circle at top left, #1e293b 0%, #0f172a 100%)',
     color: '#ffffff',
     borderRadius: '24px',
-    padding: '48px 24px',
-    textAlign: 'center'
+    padding: '52px 24px',
+    textAlign: 'center',
+    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+  },
+  ctaBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#f59e0b',
+    marginBottom: '12px'
   },
   ctaTitle: {
-    fontSize: '28px',
+    fontSize: '30px',
     fontWeight: '800',
-    margin: '0 0 10px 0'
+    margin: '0 0 12px 0',
+    letterSpacing: '-0.01em'
   },
   ctaSubtitle: {
-    opacity: 0.85,
-    maxWidth: '520px',
-    margin: '0 auto 24px auto',
+    color: '#94a3b8',
+    maxWidth: '540px',
+    margin: '0 auto 28px auto',
     fontSize: '15px',
-    lineHeight: '1.5'
+    lineHeight: '1.6'
   },
   ctaButton: {
     padding: '14px 32px',
@@ -1004,14 +1062,33 @@ const styles = {
     fontWeight: '700',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '8px'
+    gap: '8px',
+    boxShadow: '0 4px 12px rgba(255, 255, 255, 0.15)'
   },
   footer: {
-    backgroundColor: '#020617',
+    backgroundColor: '#0f172a',
     color: '#ffffff',
-    padding: '28px 24px',
+    padding: '40px 24px',
     textAlign: 'center',
     borderTop: '1px solid #1e293b'
+  },
+  footerLinks: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '24px',
+    flexWrap: 'wrap',
+    marginBottom: '16px'
+  },
+  footerLink: {
+    color: '#94a3b8',
+    textDecoration: 'none',
+    fontSize: '14px',
+    fontWeight: '500'
+  },
+  copyrightText: {
+    margin: 0,
+    color: '#64748b',
+    fontSize: '13px'
   }
 };
 

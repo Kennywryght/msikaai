@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { businessAPI, listingsAPI } from '../services/api';
 
@@ -105,9 +105,14 @@ const CreateListing = () => {
     
     try {
       const response = await businessAPI.getByUser(user.id);
-      if (response.data.business) {
+      if (response.data?.business) {
         setBusinesses([response.data.business]);
         setSelectedBusiness(response.data.business.id);
+      } else if (Array.isArray(response.data?.businesses)) {
+        setBusinesses(response.data.businesses);
+        if (response.data.businesses.length > 0) {
+          setSelectedBusiness(response.data.businesses[0].id);
+        }
       }
     } catch (err) {
       console.error('Error fetching businesses:', err);
@@ -140,22 +145,29 @@ const CreateListing = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedBusiness) {
+      alert('Please select a business to associate with this listing.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const listingData = {
         businessId: selectedBusiness,
         ...formData,
-        price: formData.price ? parseFloat(formData.price) : null,
-        quantity: formData.quantity ? parseInt(formData.quantity) : null,
-        deliveryFee: formData.deliveryFee ? parseFloat(formData.deliveryFee) : null
+        price: formData.price !== '' ? parseFloat(formData.price) : null,
+        quantity: formData.quantity !== '' ? parseInt(formData.quantity, 10) : null,
+        deliveryFee: formData.deliveryAvailable && formData.deliveryFee !== '' ? parseFloat(formData.deliveryFee) : null
       };
 
       const response = await listingsAPI.create(listingData);
       
-      if (response.data.success) {
+      if (response.data?.success) {
         alert('🎉 Listing created successfully!');
         navigate('/dashboard');
+      } else {
+        alert(response.data?.error || 'Failed to create listing');
       }
     } catch (err) {
       console.error('Error creating listing:', err);
@@ -196,7 +208,9 @@ const CreateListing = () => {
       marginBottom: '12px',
       background: 'none',
       border: 'none',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      padding: 0,
+      transition: 'color 0.2s'
     },
     title: {
       fontSize: '24px',
@@ -217,11 +231,12 @@ const CreateListing = () => {
       marginBottom: '18px'
     },
     label: {
-      display: 'block',
+      display: 'flex',
+      alignItems: 'center',
       fontSize: '13px',
       fontWeight: '600',
       color: '#334155',
-      marginBottom: '4px'
+      marginBottom: '6px'
     },
     input: {
       width: '100%',
@@ -276,7 +291,7 @@ const CreateListing = () => {
       display: 'flex',
       flexWrap: 'wrap',
       gap: '8px',
-      marginTop: '8px'
+      marginTop: '10px'
     },
     imageWrapper: {
       position: 'relative'
@@ -310,7 +325,8 @@ const CreateListing = () => {
       border: '1px dashed #cbd5e1',
       borderRadius: '8px',
       width: '100%',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      cursor: 'pointer'
     },
     checkbox: {
       width: '18px',
@@ -332,7 +348,8 @@ const CreateListing = () => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '8px',
-      marginTop: '8px'
+      marginTop: '8px',
+      transition: 'background-color 0.2s'
     },
     submitDisabled: {
       width: '100%',
@@ -351,7 +368,8 @@ const CreateListing = () => {
       marginTop: '8px'
     },
     required: {
-      color: '#dc2626'
+      color: '#dc2626',
+      marginLeft: '2px'
     }
   };
 
@@ -360,7 +378,12 @@ const CreateListing = () => {
       <div style={styles.card}>
         {/* Header */}
         <div style={styles.header}>
-          <button onClick={() => navigate('/dashboard')} style={styles.backLink}>
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            style={styles.backLink}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#0f172a'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#64748b'}
+          >
             <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
             <span>Back to Dashboard</span>
           </button>
@@ -532,7 +555,7 @@ const CreateListing = () => {
             </div>
           </div>
 
-          {/* LOCATION - New Field */}
+          {/* LOCATION */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.mapPin} size={14} color="#64748b" strokeWidth={2} />
@@ -553,7 +576,7 @@ const CreateListing = () => {
             </select>
           </div>
 
-          {/* DELIVERY OPTIONS - New Field */}
+          {/* DELIVERY OPTIONS */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.delivery} size={14} color="#64748b" strokeWidth={2} />
@@ -585,7 +608,7 @@ const CreateListing = () => {
             </div>
           </div>
 
-          {/* CONTACT PHONE - New Field */}
+          {/* CONTACT PHONE */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.phone} size={14} color="#64748b" strokeWidth={2} />
@@ -622,6 +645,7 @@ const CreateListing = () => {
                   <div key={index} style={styles.imageWrapper}>
                     <img src={url} alt={`Upload ${index}`} style={styles.imageThumb} />
                     <button
+                      type="button"
                       onClick={() => removeImage(index)}
                       style={styles.removeBtn}
                     >
@@ -638,6 +662,12 @@ const CreateListing = () => {
             type="submit"
             disabled={loading || !selectedBusiness}
             style={loading || !selectedBusiness ? styles.submitDisabled : styles.submitBtn}
+            onMouseEnter={(e) => {
+              if (!loading && selectedBusiness) e.currentTarget.style.backgroundColor = '#1d4ed8';
+            }}
+            onMouseLeave={(e) => {
+              if (!loading && selectedBusiness) e.currentTarget.style.backgroundColor = '#2563eb';
+            }}
           >
             {loading ? (
               'Creating...'

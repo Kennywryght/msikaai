@@ -150,16 +150,9 @@ const HandZap = ({ size = 20, color = 'currentColor' }) => (
   </svg>
 );
 
-const HandCheck = ({ size = 14, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" style={iconStyle}>
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-
-const HandClock = ({ size = 14, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
+const HandDot = ({ size = 12, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={iconStyle}>
+    <circle cx="12" cy="12" r="8" />
   </svg>
 );
 
@@ -167,12 +160,6 @@ const HandClose = ({ size = 18, color = 'currentColor' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" style={iconStyle}>
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
-const HandDot = ({ size = 12, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={iconStyle}>
-    <circle cx="12" cy="12" r="8" />
   </svg>
 );
 
@@ -247,11 +234,8 @@ const Dashboard = () => {
     setError('');
 
     try {
-      console.log('📤 Fetching business for user:', user.id);
       const response = await businessAPI.getByUser(user.id);
-      console.log('✅ Business fetched:', response.data);
-      
-      const businessData = response.data.business;
+      const businessData = response.data.business || (Array.isArray(response.data.businesses) ? response.data.businesses[0] : null);
       setBusiness(businessData);
 
       if (businessData?.id) {
@@ -259,15 +243,11 @@ const Dashboard = () => {
         fetchAnalytics(businessData.id);
       }
     } catch (err) {
-      console.error('❌ Error fetching business:', err);
-      console.error('❌ Error response:', err.response?.data);
-      console.error('❌ Error status:', err.response?.status);
-      
+      console.error('Error fetching business:', err);
       if (err.response?.status === 404) {
-        console.log('ℹ️ No business found for user');
         setBusiness(null);
       } else {
-        const errorMsg = err.response?.data?.error || 'Failed to load business data';
+        const errorMsg = err.response?.data?.error || t('failed_load_business') || 'Failed to load business data';
         setError(errorMsg);
       }
     } finally {
@@ -289,7 +269,7 @@ const Dashboard = () => {
         totalContacts: listingsData.reduce((sum, l) => sum + (l.contact_count || 0), 0),
       });
     } catch (err) {
-      console.error('❌ Error fetching listings:', err);
+      console.error('Error fetching listings:', err);
       setListings([]);
     }
   };
@@ -336,7 +316,7 @@ const Dashboard = () => {
 
   const handleExportCSV = async () => {
     if (!business?.id) {
-      alert('No business data to export');
+      alert(t('no_business_export') || 'No business data to export');
       return;
     }
 
@@ -349,16 +329,16 @@ const Dashboard = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      alert('📊 CSV exported successfully!');
+      alert('📊 ' + (t('csv_exported') || 'CSV exported successfully!'));
     } catch (err) {
       console.error('Export CSV error:', err);
-      alert('Failed to export CSV');
+      alert(t('export_failed') || 'Failed to export CSV');
     }
   };
 
   const handleExportJSON = async () => {
     if (!business?.id) {
-      alert('No business data to export');
+      alert(t('no_business_export') || 'No business data to export');
       return;
     }
 
@@ -370,10 +350,10 @@ const Dashboard = () => {
       a.href = url;
       a.download = `business-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
-      alert('📄 JSON exported successfully!');
+      alert('📄 ' + (t('json_exported') || 'JSON exported successfully!'));
     } catch (err) {
       console.error('Export JSON error:', err);
-      alert('Failed to export JSON');
+      alert(t('export_failed') || 'Failed to export JSON');
     }
   };
 
@@ -383,20 +363,14 @@ const Dashboard = () => {
     setError('');
 
     try {
-      console.log('📤 Creating business with data:', {
-        userId: user.id,
-        ...formData,
-      });
-
       const response = await businessAPI.create({
         userId: user.id,
         ...formData,
       });
 
-      console.log('✅ Business created:', response.data);
       setBusiness(response.data.business);
       setShowCreateForm(false);
-      alert('🎉 Business created successfully!');
+      alert('🎉 ' + (t('business_created_success') || 'Business created successfully!'));
 
       setFormData({
         businessName: '',
@@ -408,8 +382,8 @@ const Dashboard = () => {
 
       fetchBusiness();
     } catch (err) {
-      console.error('❌ Business creation error:', err);
-      const errorMsg = err.response?.data?.error || 'Failed to create business';
+      console.error('Business creation error:', err);
+      const errorMsg = err.response?.data?.error || t('failed_create_business') || 'Failed to create business';
       setError(errorMsg);
       alert('❌ ' + errorMsg);
     } finally {
@@ -426,7 +400,7 @@ const Dashboard = () => {
   };
 
   const formatPrice = (price) => {
-    if (!price) return 'Price on request';
+    if (!price) return t('price_on_request') || 'Price on request';
     return `MWK ${price.toLocaleString()}`;
   };
 
@@ -889,7 +863,7 @@ const Dashboard = () => {
         <div style={{ textAlign: 'center' }}>
           <div style={styles.spinner}></div>
           <p style={{ marginTop: '16px', color: '#64748b', fontWeight: '500' }}>
-            Loading your business dashboard...
+            {t('loading_dashboard') || 'Loading your business dashboard...'}
           </p>
         </div>
         <style>{`
@@ -914,7 +888,7 @@ const Dashboard = () => {
             <h1 style={styles.brandTitle}>
               Msika<span style={{ color: '#60a5fa' }}>AI</span>
             </h1>
-            <span style={styles.brandSubtitle}>Vendor Dashboard</span>
+            <span style={styles.brandSubtitle}>{t('vendor_dashboard') || 'Vendor Dashboard'}</span>
           </div>
         </div>
 
@@ -947,13 +921,13 @@ const Dashboard = () => {
             onClick={() => navigate('/search')}
             style={styles.secondaryNavBtn}
           >
-            <HandSearch size={14} /> Browse
+            <HandSearch size={14} /> {t('browse') || 'Browse'}
           </button>
           <button
             onClick={() => navigate('/create-listing')}
             style={styles.primaryNavBtn}
           >
-            <HandPlus size={14} /> Add
+            <HandPlus size={14} /> {t('add') || 'Add'}
           </button>
 
           {/* Notification Bell */}
@@ -974,12 +948,12 @@ const Dashboard = () => {
           <span style={styles.userBadge}>
             <HandUser size={14} />
             <span style={{ fontWeight: '500' }}>
-              {business?.business_name || user?.email?.split('@')[0] || 'Vendor'}
+              {business?.business_name || user?.email?.split('@')[0] || t('vendor') || 'Vendor'}
             </span>
           </span>
 
           <button onClick={logout} style={styles.logoutBtn}>
-            <HandLogout size={14} /> Logout
+            <HandLogout size={14} /> {t('logout') || 'Logout'}
           </button>
         </div>
       </nav>
@@ -990,7 +964,7 @@ const Dashboard = () => {
         <div style={styles.headerSection}>
           <div>
             <h2 style={styles.welcomeTitle}>
-              <HandWave size={24} color="#d97706" /> Welcome
+              <HandWave size={24} color="#d97706" /> {t('welcome') || 'Welcome'}
               {business?.business_name
                 ? `, ${business.business_name}`
                 : user?.email
@@ -1000,8 +974,8 @@ const Dashboard = () => {
             </h2>
             <p style={{ color: '#64748b', marginTop: '2px', fontSize: '14px' }}>
               {business
-                ? 'Track your market presence, manage listings, and attract customer inquiries.'
-                : 'Register your business to get discovered by customers.'}
+                ? (t('dashboard_subtitle') || 'Track your market presence, manage listings, and attract customer inquiries.')
+                : (t('register_prompt_subtitle') || 'Register your business to get discovered by customers.')}
             </p>
           </div>
           {business && (
@@ -1009,7 +983,7 @@ const Dashboard = () => {
               onClick={() => navigate('/create-listing')}
               style={styles.headerActionBtn}
             >
-              <HandPackage size={16} /> Add Product
+              <HandPackage size={16} /> {t('add_product') || 'Add Product'}
             </button>
           )}
         </div>
@@ -1031,7 +1005,7 @@ const Dashboard = () => {
                 fontWeight: '600',
               }}
             >
-              Retry
+              {t('retry') || 'Retry'}
             </button>
           </div>
         )}
@@ -1113,7 +1087,7 @@ const Dashboard = () => {
                       backgroundColor: business.verified ? '#d1fae5' : '#fef3c7',
                       color: business.verified ? '#065f46' : '#92400e'
                     }}>
-                      {business.verified ? '✅ Verified' : '⏳ Pending'}
+                      {business.verified ? `✅ ${t('verified') || 'Verified'}` : `⏳ ${t('pending') || 'Pending'}`}
                     </span>
                     <span style={{
                       display: 'inline-block',
@@ -1124,7 +1098,7 @@ const Dashboard = () => {
                       backgroundColor: business.status === 'active' ? '#d1fae5' : '#fee2e2',
                       color: business.status === 'active' ? '#065f46' : '#991b1b'
                     }}>
-                      {business.status === 'active' ? '🟢 Active' : '🔴 Inactive'}
+                      {business.status === 'active' ? `🟢 ${t('active') || 'Active'}` : `🔴 ${t('inactive') || 'Inactive'}`}
                     </span>
                   </div>
                 </div>
@@ -1134,7 +1108,7 @@ const Dashboard = () => {
                     onClick={() => navigate('/edit-profile')}
                     style={styles.buttonSecondary}
                   >
-                    <HandPencil size={14} /> Edit Profile
+                    <HandPencil size={14} /> {t('edit_profile') || 'Edit Profile'}
                   </button>
                   
                   {/* Export Buttons */}
@@ -1170,7 +1144,7 @@ const Dashboard = () => {
                   <div style={{ ...styles.statNumber, color: '#2563eb' }}>
                     {stats.totalListings}
                   </div>
-                  <div style={styles.statLabel}>Total Products</div>
+                  <div style={styles.statLabel}>{t('total_products') || 'Total Products'}</div>
                 </div>
               </div>
 
@@ -1182,7 +1156,7 @@ const Dashboard = () => {
                   <div style={{ ...styles.statNumber, color: '#16a34a' }}>
                     {stats.activeListings}
                   </div>
-                  <div style={styles.statLabel}>Active Products</div>
+                  <div style={styles.statLabel}>{t('active_products') || 'Active Products'}</div>
                 </div>
               </div>
 
@@ -1194,7 +1168,7 @@ const Dashboard = () => {
                   <div style={{ ...styles.statNumber, color: '#8b5cf6' }}>
                     {stats.totalViews}
                   </div>
-                  <div style={styles.statLabel}>Views</div>
+                  <div style={styles.statLabel}>{t('views') || 'Views'}</div>
                 </div>
               </div>
 
@@ -1206,7 +1180,7 @@ const Dashboard = () => {
                   <div style={{ ...styles.statNumber, color: '#f59e0b' }}>
                     {stats.totalContacts}
                   </div>
-                  <div style={styles.statLabel}>Contacts</div>
+                  <div style={styles.statLabel}>{t('contacts') || 'Contacts'}</div>
                 </div>
               </div>
             </div>
@@ -1215,13 +1189,13 @@ const Dashboard = () => {
             <div style={styles.card}>
               <div style={styles.cardTitleRow}>
                 <h3 style={styles.cardTitle}>
-                  <HandClipboard size={20} color="#1e293b" /> Your Listings ({listings.length})
+                  <HandClipboard size={20} color="#1e293b" /> {t('your_listings') || 'Your Listings'} ({listings.length})
                 </h3>
                 <button
                   onClick={() => navigate('/create-listing')}
                   style={styles.buttonPrimary}
                 >
-                  <HandPlus size={14} /> Add
+                  <HandPlus size={14} /> {t('add') || 'Add'}
                 </button>
               </div>
 
@@ -1285,7 +1259,7 @@ const Dashboard = () => {
                           }}
                         >
                           <HandDot size={8} color={listing.status === 'active' ? '#16a34a' : '#dc2626'} />{' '}
-                          {listing.status === 'active' ? 'Active' : 'Inactive'}
+                          {listing.status === 'active' ? (t('active') || 'Active') : (t('inactive') || 'Inactive')}
                         </span>
                       </div>
                     </div>
@@ -1295,16 +1269,16 @@ const Dashboard = () => {
                 <div style={styles.emptyStateContainer}>
                   <HandPackage size={40} color="#94a3b8" />
                   <p style={{ fontWeight: '600', color: '#334155', fontSize: '15px', marginTop: '8px' }}>
-                    No products or services listed yet
+                    {t('no_products_yet') || 'No products or services listed yet'}
                   </p>
                   <p style={{ color: '#64748b', fontSize: '13px', marginTop: '2px' }}>
-                    Start adding items to reach customers across Mitundu.
+                    {t('start_adding_items') || 'Start adding items to reach customers across Mitundu.'}
                   </p>
                   <button
                     onClick={() => navigate('/create-listing')}
                     style={{ ...styles.buttonPrimary, marginTop: '12px' }}
                   >
-                    <HandPlus size={14} /> Create First Listing
+                    <HandPlus size={14} /> {t('create_first_listing') || 'Create First Listing'}
                   </button>
                 </div>
               )}
@@ -1313,10 +1287,10 @@ const Dashboard = () => {
             {/* AI Toolkit */}
             <div style={styles.card}>
               <h3 style={{ ...styles.cardTitle, marginBottom: '4px' }}>
-                <HandZap size={20} color="#f59e0b" /> AI Toolkit
+                <HandZap size={20} color="#f59e0b" /> {t('ai_toolkit') || 'AI Toolkit'}
               </h3>
               <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '12px' }}>
-                AI-powered tools to grow your business.
+                {t('ai_toolkit_sub') || 'AI-powered tools to grow your business.'}
               </p>
 
               <div style={styles.quickActionsGrid}>
@@ -1330,8 +1304,8 @@ const Dashboard = () => {
                     <HandMic size={22} color="#ec4899" />
                   </div>
                   <div>
-                    <div style={styles.actionTileTitle}>Voice Listing</div>
-                    <div style={styles.actionTileSub}>Speak to create products</div>
+                    <div style={styles.actionTileTitle}>{t('voice_listing') || 'Voice Listing'}</div>
+                    <div style={styles.actionTileSub}>{t('voice_listing_sub') || 'Speak to create products'}</div>
                   </div>
                 </div>
 
@@ -1345,8 +1319,8 @@ const Dashboard = () => {
                     <HandPalette size={22} color="#d97706" />
                   </div>
                   <div>
-                    <div style={styles.actionTileTitle}>Ad Generator</div>
-                    <div style={styles.actionTileSub}>Create promotional content</div>
+                    <div style={styles.actionTileTitle}>{t('ad_generator') || 'Ad Generator'}</div>
+                    <div style={styles.actionTileSub}>{t('ad_generator_sub') || 'Create promotional content'}</div>
                   </div>
                 </div>
 
@@ -1360,8 +1334,8 @@ const Dashboard = () => {
                     <HandRobot size={22} color="#7c3aed" />
                   </div>
                   <div>
-                    <div style={styles.actionTileTitle}>AI Assistant</div>
-                    <div style={styles.actionTileSub}>Market insights & demand</div>
+                    <div style={styles.actionTileTitle}>{t('ai_assistant') || 'AI Assistant'}</div>
+                    <div style={styles.actionTileSub}>{t('ai_assistant_sub') || 'Market insights & demand'}</div>
                   </div>
                 </div>
 
@@ -1375,8 +1349,8 @@ const Dashboard = () => {
                     <HandPackage size={22} color="#2563eb" />
                   </div>
                   <div>
-                    <div style={styles.actionTileTitle}>Manual Entry</div>
-                    <div style={styles.actionTileSub}>Add photos & pricing</div>
+                    <div style={styles.actionTileTitle}>{t('manual_entry') || 'Manual Entry'}</div>
+                    <div style={styles.actionTileSub}>{t('manual_entry_sub') || 'Add photos & pricing'}</div>
                   </div>
                 </div>
               </div>
@@ -1388,16 +1362,16 @@ const Dashboard = () => {
             <div style={styles.emptyStateContainer}>
               <HandStore size={48} color="#2563eb" />
               <p style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', marginTop: '10px' }}>
-                Register Your Business
+                {t('register_business') || 'Register Your Business'}
               </p>
               <p style={{ color: '#64748b', maxWidth: '400px', margin: '6px auto 16px', fontSize: '13px', lineHeight: '1.5' }}>
-                Connect with buyers in Mitundu. Set up your profile and start listing products in minutes.
+                {t('register_business_desc') || 'Connect with buyers in Mitundu. Set up your profile and start listing products in minutes.'}
               </p>
               <button
                 onClick={() => setShowCreateForm(true)}
                 style={{ ...styles.buttonPrimary, padding: '10px 20px', fontSize: '14px' }}
               >
-                Register Now
+                {t('register_now') || 'Register Now'}
               </button>
             </div>
           </div>
@@ -1410,7 +1384,7 @@ const Dashboard = () => {
           <div style={styles.modalContent}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <HandStore size={20} color="#2563eb" /> Register Business
+                <HandStore size={20} color="#2563eb" /> {t('register_business') || 'Register Business'}
               </h3>
               <button
                 onClick={() => setShowCreateForm(false)}
@@ -1420,7 +1394,7 @@ const Dashboard = () => {
               </button>
             </div>
             <p style={{ color: '#64748b', marginBottom: '16px', fontSize: '13px', marginTop: '4px' }}>
-              Fill in your shop details to begin listing products on MsikaAI.
+              {t('fill_shop_details') || 'Fill in your shop details to begin listing products on MsikaAI.'}
             </p>
 
             {error && (
@@ -1431,7 +1405,7 @@ const Dashboard = () => {
 
             <form onSubmit={handleCreateBusiness}>
               <div style={styles.fieldGroup}>
-                <label style={styles.label}>Business Name *</label>
+                <label style={styles.label}>{t('business_name') || 'Business Name'} *</label>
                 <input
                   type="text"
                   name="businessName"
@@ -1444,7 +1418,7 @@ const Dashboard = () => {
               </div>
 
               <div style={styles.fieldGroup}>
-                <label style={styles.label}>Category *</label>
+                <label style={styles.label}>{t('category') || 'Category'} *</label>
                 <select
                   name="category"
                   required
@@ -1452,7 +1426,7 @@ const Dashboard = () => {
                   onChange={handleChange}
                   style={styles.input}
                 >
-                  <option value="">Select category</option>
+                  <option value="">{t('select_category') || 'Select category'}</option>
                   <option value="Hardware">Hardware</option>
                   <option value="Retail Shop">Retail Shop</option>
                   <option value="Farm Inputs">Farm Inputs</option>
@@ -1469,7 +1443,7 @@ const Dashboard = () => {
               </div>
 
               <div style={styles.fieldGroup}>
-                <label style={styles.label}>Description</label>
+                <label style={styles.label}>{t('description') || 'Description'}</label>
                 <textarea
                   name="description"
                   value={formData.description}
@@ -1481,7 +1455,7 @@ const Dashboard = () => {
               </div>
 
               <div style={styles.fieldGroup}>
-                <label style={styles.label}>Phone / WhatsApp</label>
+                <label style={styles.label}>{t('phone_whatsapp') || 'Phone / WhatsApp'}</label>
                 <input
                   type="tel"
                   name="phone"
@@ -1493,7 +1467,7 @@ const Dashboard = () => {
               </div>
 
               <div style={styles.fieldGroup}>
-                <label style={styles.label}>Location / Address</label>
+                <label style={styles.label}>{t('location_address') || 'Location / Address'}</label>
                 <input
                   type="text"
                   name="address"
@@ -1510,7 +1484,7 @@ const Dashboard = () => {
                   disabled={creating}
                   style={creating ? styles.buttonDisabled : styles.buttonPrimary}
                 >
-                  {creating ? 'Saving...' : 'Complete Setup'}
+                  {creating ? (t('saving') || 'Saving...') : (t('complete_setup') || 'Complete Setup')}
                 </button>
                 <button
                   type="button"
@@ -1520,7 +1494,7 @@ const Dashboard = () => {
                   }}
                   style={styles.buttonSecondary}
                 >
-                  Cancel
+                  {t('cancel') || 'Cancel'}
                 </button>
               </div>
             </form>
