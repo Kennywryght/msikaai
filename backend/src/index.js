@@ -42,6 +42,11 @@ app.use((req, res, next) => {
 });
 
 // ============================================
+// TRUST PROXY (Required for Render)
+// ============================================
+app.set('trust proxy', true);
+
+// ============================================
 // ENVIRONMENT CHECK
 // ============================================
 logger.info('🔍 Checking environment variables:');
@@ -173,6 +178,7 @@ const generalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+<<<<<<< HEAD
   keyGenerator: (req) => req.ip,
   handler: (req, res) => {
     logger.warn(`Rate limit exceeded for IP: ${req.ip}`);
@@ -181,6 +187,10 @@ const generalLimiter = rateLimit({
       error: 'Too many requests, please try again later.',
       requestId: req.requestId,
     });
+=======
+  validate: {
+    xForwardedForHeader: false,
+>>>>>>> f999e5c291c720ffc4888eccce191599ef35b652
   },
 });
 
@@ -193,7 +203,13 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+<<<<<<< HEAD
   keyGenerator: (req) => req.ip,
+=======
+  validate: {
+    xForwardedForHeader: false,
+  },
+>>>>>>> f999e5c291c720ffc4888eccce191599ef35b652
 });
 
 const aiLimiter = rateLimit({
@@ -205,7 +221,13 @@ const aiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+<<<<<<< HEAD
   keyGenerator: (req) => req.ip,
+=======
+  validate: {
+    xForwardedForHeader: false,
+  },
+>>>>>>> f999e5c291c720ffc4888eccce191599ef35b652
 });
 
 // Apply rate limiters
@@ -214,6 +236,7 @@ app.use('/api/auth', authLimiter);
 app.use('/api/ai', aiLimiter);
 
 // ============================================
+<<<<<<< HEAD
 // HEALTH CHECK
 // ============================================
 app.get('/health', async (req, res) => {
@@ -221,6 +244,68 @@ app.get('/health', async (req, res) => {
   
   try {
     const { error } = await supabase
+=======
+// CORS CONFIGURATION
+// ============================================
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'https://msikaai.vercel.app',
+  'https://msikaai-mauve.vercel.app',
+  'https://msikaai-backend.onrender.com',
+  'https://msikaai.onrender.com'
+].filter(Boolean);
+
+// Remove duplicates
+const uniqueOrigins = [...new Set(allowedOrigins)];
+
+console.log('🌐 Allowed origins:', uniqueOrigins);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (uniqueOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.warn('❌ CORS blocked for origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Body parsers
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ============================================
+// REQUEST LOGGING (Development only)
+// ============================================
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    console.log(`📝 ${req.method} ${req.url}`);
+    next();
+  });
+}
+
+// ============================================
+// ROUTES - Register all API routes
+// ============================================
+
+// Health check - Detailed
+app.get('/api/health', async (req, res) => {
+  const startTime = Date.now();
+  
+  try {
+    const { data, error } = await supabase
+>>>>>>> f999e5c291c720ffc4888eccce191599ef35b652
       .from('profiles')
       .select('count', { head: true })
       .limit(1);
@@ -234,8 +319,20 @@ app.get('/health', async (req, res) => {
       uptime: process.uptime(),
       responseTime: `${responseTime}ms`,
       database: error ? 'disconnected' : 'connected',
+<<<<<<< HEAD
       environment: process.env.NODE_ENV,
       requestId: req.requestId,
+=======
+      memoryUsage: {
+        rss: `${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`,
+        heapUsed: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`
+      },
+      environment: process.env.NODE_ENV || 'development',
+      cors: {
+        allowedOrigins: uniqueOrigins
+      }
+>>>>>>> f999e5c291c720ffc4888eccce191599ef35b652
     });
   } catch (error) {
     res.status(500).json({
@@ -250,8 +347,17 @@ app.get('/health', async (req, res) => {
 // API ROUTES
 // ============================================
 
+<<<<<<< HEAD
 // Public routes
 app.use('/api/auth', authRoutes);
+=======
+// ============================================
+// API ROUTES - Mount all route handlers
+// ============================================
+app.use('/api/auth', authRoutes);
+app.use('/api/business', businessRoutes);
+app.use('/api/listings', listingsRoutes);  // ✅ This registers /api/listings/*
+>>>>>>> f999e5c291c720ffc4888eccce191599ef35b652
 app.use('/api/location', locationRoutes);
 
 // Protected routes (require authentication)
@@ -268,8 +374,18 @@ app.use('/api/ai', authenticateToken, aiLimiter, aiRoutes);
 // ============================================
 // 404 & ERROR HANDLING
 // ============================================
+<<<<<<< HEAD
 app.use(notFoundHandler);
 app.use(errorHandler);
+=======
+app.use((req, res) => {
+  console.warn(`⚠️ 404 Not Found: ${req.method} ${req.path}`);
+  res.status(404).json({
+    success: false,
+    error: `Route ${req.method} ${req.path} not found`
+  });
+});
+>>>>>>> f999e5c291c720ffc4888eccce191599ef35b652
 
 // ============================================
 // START SERVER
@@ -289,9 +405,23 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 ╚══════════════════════════════════════════════════════════════╝
   `;
   
+<<<<<<< HEAD
   console.log(startupMessage);
   logger.info(`Server started on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV}`);
+=======
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({
+      success: false,
+      error: 'Request entity too large'
+    });
+  }
+  
+  res.status(500).json({
+    success: false,
+    error: err.message || 'Internal server error'
+  });
+>>>>>>> f999e5c291c720ffc4888eccce191599ef35b652
 });
 
 // ============================================
@@ -320,8 +450,39 @@ process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', error);
 });
 
+<<<<<<< HEAD
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+=======
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  process.exit(0);
+});
+
+// ============================================
+// START SERVER
+// ============================================
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('\n' + '='.repeat(60));
+  console.log('🚀 MsikaAI Server is running!');
+  console.log('='.repeat(60));
+  console.log(`📡 Server URL: https://msikaai.onrender.com`);
+  console.log(`🔗 Health Check: https://msikaai.onrender.com/api/health`);
+  console.log(`🗄️ Database: ${process.env.SUPABASE_URL}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('\n📋 API Endpoints:');
+  console.log(`   🔐 Auth: /api/auth`);
+  console.log(`   🏪 Business: /api/business`);
+  console.log(`   📦 Listings: /api/listings`);
+  console.log(`   🔍 Search: /api/listings/search  ⭐`);
+  console.log(`   📍 Location: /api/location`);
+  console.log(`   🤖 AI: /api/ai`);
+  console.log(`   👤 Profile: /api/profile`);
+  console.log(`   📊 Analytics: /api/analytics`);
+  console.log(`   📤 Export: /api/export`);
+  console.log(`   🔔 Notifications: /api/notifications`);
+  console.log('='.repeat(60) + '\n');
+>>>>>>> f999e5c291c720ffc4888eccce191599ef35b652
 });
 
 export default app;
