@@ -57,12 +57,12 @@ const CATEGORIES = [
 const LOCATIONS = [
   'All Areas',
   'Mitundu Trading Centre',
-  'Mitundu Bunda',
-  'Mitundu Chimbiri',
-  'Mitundu Motolosi',
-  'Mitundu Nkhoma',
-  'Mitundu Town',
-  'Mitundu Rural'
+  'Bunda',
+  'Chimbiri',
+  'Motolosi',
+  'chingala',
+  'Mlale',
+  '+ Sorrounding Areas'
 ];
 
 const Landing = () => {
