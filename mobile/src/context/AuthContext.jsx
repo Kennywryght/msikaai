@@ -1,5 +1,5 @@
 // mobile/src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
@@ -16,24 +16,23 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const initialized = useRef(false);
 
-  // Initialize auth
   useEffect(() => {
+    // ✅ Prevent multiple initializations
+    if (initialized.current) return;
+    initialized.current = true;
+
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
 
         if (session?.access_token) {
           localStorage.setItem('auth_token', session.access_token);
-          if (session.refresh_token) {
-            localStorage.setItem('refresh_token', session.refresh_token);
-          }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -44,19 +43,15 @@ export const AuthProvider = ({ children }) => {
 
     initAuth();
 
-    // Listen for auth changes
+    // ✅ Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session);
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
         setLoading(false);
 
         if (session?.access_token) {
           localStorage.setItem('auth_token', session.access_token);
-          if (session.refresh_token) {
-            localStorage.setItem('refresh_token', session.refresh_token);
-          }
         }
 
         switch (event) {
@@ -65,13 +60,7 @@ export const AuthProvider = ({ children }) => {
             break;
           case 'SIGNED_OUT':
             localStorage.removeItem('auth_token');
-            localStorage.removeItem('refresh_token');
             toast.success('Signed out successfully');
-            break;
-          case 'USER_UPDATED':
-            toast.success('Profile updated!');
-            break;
-          default:
             break;
         }
       }
@@ -82,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // Login with email
+  // ✅ Login
   const login = async (email, password) => {
     try {
       const response = await authAPI.login({ email, password });
@@ -90,9 +79,6 @@ export const AuthProvider = ({ children }) => {
 
       if (session?.access_token) {
         localStorage.setItem('auth_token', session.access_token);
-        if (session.refresh_token) {
-          localStorage.setItem('refresh_token', session.refresh_token);
-        }
       }
 
       setUser(user);
@@ -105,7 +91,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register with email
+  // ✅ Register
   const register = async (email, password, metadata = {}) => {
     try {
       const response = await authAPI.signup({ email, password, ...metadata });
@@ -119,12 +105,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout
+  // ✅ Logout
   const logout = async () => {
     try {
       await supabase.auth.signOut();
       localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
       setUser(null);
       setIsAuthenticated(false);
       toast.success('Logged out successfully');
@@ -135,56 +120,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Reset password
-  const resetPassword = async (email) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
-      toast.success('Password reset email sent! Check your inbox.');
-      return { success: true };
-    } catch (error) {
-      toast.error(error.message || 'Password reset failed');
-      return { success: false, error };
-    }
-  };
-
-  // Update profile
-  const updateProfile = async (updates) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user?.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Profile updated successfully!');
-      return { success: true, data };
-    } catch (error) {
-      toast.error(error.message || 'Profile update failed');
-      return { success: false, error };
-    }
-  };
-
   const value = {
     user,
-    session,
     loading,
     isAuthenticated,
     login,
     register,
     logout,
-    resetPassword,
-    updateProfile,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export default AuthProvider;
