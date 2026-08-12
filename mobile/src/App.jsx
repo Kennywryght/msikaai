@@ -27,7 +27,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 
 const PageLoader = () => <LoadingSpinner message="Loading page..." />;
 
-// ✅ Protected Route with stable auth check
+// ✅ FIXED: Protected Route
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   const adminCheckDone = useRef(false);
 
   useEffect(() => {
-    // ✅ Only check admin once
+    // Only check admin once
     if (adminCheckDone.current) return;
     
     const checkAdmin = async () => {
@@ -70,7 +70,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     return <PageLoader />;
   }
 
-  // Not authenticated
+  // Not authenticated - redirect to login
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
@@ -83,48 +83,43 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   return children;
 };
 
-// ✅ Main App Routes with stable splash
+// ✅ FIXED: Main App Routes - Splash only once
 function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
-  const [showSplash, setShowSplash] = useState(false);
-  const splashShown = useRef(false);
+  
+  // ✅ CRITICAL FIX: Track if splash has been shown in this session
+  const [splashComplete, setSplashComplete] = useState(() => {
+    // If user is authenticated, skip splash entirely
+    if (isAuthenticated) return true;
+    // Check if splash was shown in this browser session
+    return sessionStorage.getItem('splash_shown') === 'true';
+  });
 
-  // ✅ Only show splash once
+  // ✅ CRITICAL FIX: Show splash only once
   useEffect(() => {
-    // Don't show splash if authenticated or on auth pages
-    if (isAuthenticated || loading) {
-      setShowSplash(false);
+    // If splash is already complete or user is authenticated, do nothing
+    if (splashComplete || isAuthenticated || loading) {
       return;
     }
 
-    // Only show splash on landing page and only once
-    const isLanding = location.pathname === '/';
-    if (isLanding && !splashShown.current) {
-      splashShown.current = true;
-      setShowSplash(true);
-      
-      const hasVisited = localStorage.getItem('kumsika_has_visited');
-      const duration = hasVisited === 'true' ? 600 : 2500;
-      
+    // Only show splash on landing page
+    if (location.pathname === '/') {
       const timer = setTimeout(() => {
-        setShowSplash(false);
-        if (hasVisited !== 'true') {
-          localStorage.setItem('kumsika_has_visited', 'true');
-        }
-      }, duration);
-      
+        setSplashComplete(true);
+        sessionStorage.setItem('splash_shown', 'true');
+      }, 2000); // 2 seconds splash
+
       return () => clearTimeout(timer);
+    } else {
+      // Not on landing page, skip splash
+      setSplashComplete(true);
+      sessionStorage.setItem('splash_shown', 'true');
     }
-  }, [isAuthenticated, loading, location.pathname]);
+  }, [location.pathname, isAuthenticated, loading, splashComplete]);
 
-  // Loading state
-  if (loading) {
-    return <PageLoader />;
-  }
-
-  // Show splash
-  if (showSplash && !isAuthenticated) {
+  // ✅ CRITICAL FIX: Show splash only if not complete and not authenticated
+  if (!splashComplete && !isAuthenticated && !loading && location.pathname === '/') {
     return (
       <Suspense fallback={<PageLoader />}>
         <SplashScreen />
@@ -132,61 +127,78 @@ function AppRoutes() {
     );
   }
 
-  // ✅ Routes
+  // Loading state
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  // ✅ CRITICAL FIX: If authenticated, always show dashboard
+  if (isAuthenticated) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Redirect root to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute adminOnly>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/onboarding" element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          } />
+          <Route path="/create-listing" element={
+            <ProtectedRoute>
+              <CreateListing />
+            </ProtectedRoute>
+          } />
+          <Route path="/ai-search" element={
+            <ProtectedRoute>
+              <AISearch />
+            </ProtectedRoute>
+          } />
+          <Route path="/voice-listing" element={
+            <ProtectedRoute>
+              <VoiceListing />
+            </ProtectedRoute>
+          } />
+          <Route path="/ad-generator" element={
+            <ProtectedRoute>
+              <AdGenerator />
+            </ProtectedRoute>
+          } />
+          <Route path="/edit-profile" element={
+            <ProtectedRoute>
+              <EditProfile />
+            </ProtectedRoute>
+          } />
+          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/register" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/listing/:id" element={<ListingDetails />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
+  // ✅ Not authenticated - show public routes
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public Routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/search" element={<Search />} />
         <Route path="/listing/:id" element={<ListingDetails />} />
-
-        {/* Protected Routes */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin" element={
-          <ProtectedRoute adminOnly>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/onboarding" element={
-          <ProtectedRoute>
-            <Onboarding />
-          </ProtectedRoute>
-        } />
-        <Route path="/create-listing" element={
-          <ProtectedRoute>
-            <CreateListing />
-          </ProtectedRoute>
-        } />
-        <Route path="/ai-search" element={
-          <ProtectedRoute>
-            <AISearch />
-          </ProtectedRoute>
-        } />
-        <Route path="/voice-listing" element={
-          <ProtectedRoute>
-            <VoiceListing />
-          </ProtectedRoute>
-        } />
-        <Route path="/ad-generator" element={
-          <ProtectedRoute>
-            <AdGenerator />
-          </ProtectedRoute>
-        } />
-        <Route path="/edit-profile" element={
-          <ProtectedRoute>
-            <EditProfile />
-          </ProtectedRoute>
-        } />
-
-        {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
