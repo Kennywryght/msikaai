@@ -5,14 +5,7 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react({
-      // Only include Babel plugin in development
-      babel: {
-        plugins: process.env.NODE_ENV === 'production' ? [] : ['@babel/plugin-transform-runtime']
-      }
-    })
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -39,7 +32,6 @@ export default defineConfig({
   },
   build: {
     target: 'es2015',
-    // ✅ Use esbuild for faster builds (no terser dependency needed)
     minify: 'esbuild',
     sourcemap: false,
     chunkSizeWarningLimit: 500,
@@ -48,18 +40,12 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           supabase: ['@supabase/supabase-js'],
-          ui: ['react-hot-toast', 'lucide-react'],
-          forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+          ui: ['lucide-react', 'react-hot-toast'],
         },
-        // Optimize chunk naming for better caching
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
-    // Optimize for faster builds
     cssCodeSplit: true,
-    assetsInlineLimit: 4096, // 4kb
+    assetsInlineLimit: 4096,
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],

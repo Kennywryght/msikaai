@@ -29,7 +29,7 @@ export const supabase = createClient(
     },
     global: {
       headers: {
-        'x-application-name': 'msikaai-mobile',
+        'x-application-name': 'kumsika-mobile',
       },
     },
   }
