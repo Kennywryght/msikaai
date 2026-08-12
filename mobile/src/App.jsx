@@ -1,5 +1,5 @@
-// mobile/src/App.jsx - COMPLETE REWRITE
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+// mobile/src/App.jsx
+import React, { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
@@ -27,16 +27,18 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 
 const PageLoader = () => <LoadingSpinner message="Loading page..." />;
 
-// ✅ SIMPLIFIED: Protected Route
+// ✅ Protected Route with stable auth check
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const adminCheckDone = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
-
+    // ✅ Only check admin once
+    if (adminCheckDone.current) return;
+    
     const checkAdmin = async () => {
       if (adminOnly && user) {
         try {
@@ -45,23 +47,23 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
             .select('role')
             .eq('id', user.id)
             .single();
-          if (mounted) setIsAdmin(data?.role === 'admin');
+          setIsAdmin(data?.role === 'admin');
         } catch (error) {
           console.error('Admin check error:', error);
-          if (mounted) setIsAdmin(false);
+          setIsAdmin(false);
         }
       }
-      if (mounted) setCheckingAdmin(false);
+      adminCheckDone.current = true;
+      setCheckingAdmin(false);
     };
 
-    if (user) {
+    if (!loading && user) {
       checkAdmin();
-    } else {
+    } else if (!loading) {
+      adminCheckDone.current = true;
       setCheckingAdmin(false);
     }
-
-    return () => { mounted = false; };
-  }, [user, adminOnly]);
+  }, [user, loading, adminOnly]);
 
   // Loading
   if (loading || checkingAdmin) {
@@ -81,49 +83,40 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   return children;
 };
 
-// ✅ SIMPLIFIED: Main App Routes
+// ✅ Main App Routes with stable splash
 function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
-  
-  // ✅ SIMPLIFIED: Single splash check
-  const [showSplash, setShowSplash] = useState(() => {
-    // Only show splash if not authenticated and not on login/register
-    const shouldShow = !isAuthenticated && 
-      !location.pathname.includes('/login') && 
-      !location.pathname.includes('/register');
-    return shouldShow;
-  });
+  const [showSplash, setShowSplash] = useState(false);
+  const splashShown = useRef(false);
 
+  // ✅ Only show splash once
   useEffect(() => {
-    // If user is authenticated, skip splash
-    if (isAuthenticated) {
+    // Don't show splash if authenticated or on auth pages
+    if (isAuthenticated || loading) {
       setShowSplash(false);
       return;
     }
 
-    // Only show splash on landing page
+    // Only show splash on landing page and only once
     const isLanding = location.pathname === '/';
-    if (isLanding) {
+    if (isLanding && !splashShown.current) {
+      splashShown.current = true;
+      setShowSplash(true);
+      
       const hasVisited = localStorage.getItem('kumsika_has_visited');
-      if (hasVisited === 'true') {
-        // Quick splash for returning users
-        setShowSplash(true);
-        const timer = setTimeout(() => setShowSplash(false), 800);
-        return () => clearTimeout(timer);
-      } else {
-        // Full splash for new users
-        setShowSplash(true);
-        const timer = setTimeout(() => {
-          setShowSplash(false);
+      const duration = hasVisited === 'true' ? 600 : 2500;
+      
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+        if (hasVisited !== 'true') {
           localStorage.setItem('kumsika_has_visited', 'true');
-        }, 2500);
-        return () => clearTimeout(timer);
-      }
-    } else {
-      setShowSplash(false);
+        }
+      }, duration);
+      
+      return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, location.pathname]);
+  }, [isAuthenticated, loading, location.pathname]);
 
   // Loading state
   if (loading) {
@@ -131,7 +124,7 @@ function AppRoutes() {
   }
 
   // Show splash
-  if (showSplash) {
+  if (showSplash && !isAuthenticated) {
     return (
       <Suspense fallback={<PageLoader />}>
         <SplashScreen />
@@ -139,7 +132,7 @@ function AppRoutes() {
     );
   }
 
-  // ✅ SIMPLIFIED: Routes
+  // ✅ Routes
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>

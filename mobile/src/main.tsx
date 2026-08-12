@@ -1,11 +1,10 @@
 // mobile/src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
+import App from './App';  // ✅ Remove .jsx extension
 import './index.css';
 import { Toaster } from 'react-hot-toast';
 
-// ✅ Add error boundary for better error handling
 console.log('🚀 Kumsika app starting...');
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
