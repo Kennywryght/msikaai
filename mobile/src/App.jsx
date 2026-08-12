@@ -1,4 +1,4 @@
-// mobile/src/App.jsx
+// mobile/src/App.jsx - Replace with this version
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -81,25 +81,32 @@ function AppRoutes() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashDone, setSplashDone] = useState(false);
 
-  // ✅ FIXED: Splash screen logic - only show once
+  // ✅ FIXED: Better localStorage handling with try-catch
   useEffect(() => {
-    const hasVisited = localStorage.getItem('kumsika_has_visited');
-    
-    if (hasVisited) {
-      // Already visited, show splash briefly
-      const timer = setTimeout(() => {
-        setShowSplash(false);
-        setSplashDone(true);
-      }, 800);
-      return () => clearTimeout(timer);
-    } else {
-      // First visit - show splash for 3 seconds
-      const timer = setTimeout(() => {
-        setShowSplash(false);
-        setSplashDone(true);
-        localStorage.setItem('kumsika_has_visited', 'true');
-      }, 3000);
-      return () => clearTimeout(timer);
+    try {
+      const hasVisited = localStorage.getItem('kumsika_has_visited');
+      
+      if (hasVisited === 'true') {
+        // Already visited, show splash briefly
+        const timer = setTimeout(() => {
+          setShowSplash(false);
+          setSplashDone(true);
+        }, 600);
+        return () => clearTimeout(timer);
+      } else {
+        // First visit - show splash for 2.5 seconds
+        const timer = setTimeout(() => {
+          setShowSplash(false);
+          setSplashDone(true);
+          localStorage.setItem('kumsika_has_visited', 'true');
+        }, 2500);
+        return () => clearTimeout(timer);
+      }
+    } catch (error) {
+      // If localStorage fails, skip splash
+      console.warn('LocalStorage not available, skipping splash');
+      setShowSplash(false);
+      setSplashDone(true);
     }
   }, []);
 

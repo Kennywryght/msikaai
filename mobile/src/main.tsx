@@ -5,6 +5,9 @@ import App from './App.jsx';
 import './index.css';
 import { Toaster } from 'react-hot-toast';
 
+// ✅ Add error boundary for better error handling
+console.log('🚀 Kumsika app starting...');
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
@@ -15,6 +18,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         style: {
           background: '#363636',
           color: '#fff',
+          borderRadius: '12px',
+          padding: '16px',
         },
         success: {
           duration: 3000,
