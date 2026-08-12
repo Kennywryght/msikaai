@@ -7,8 +7,8 @@ import path from 'path';
 export default defineConfig({
   plugins: [
     react({
+      // Only include Babel plugin in development
       babel: {
-        // Only include necessary plugins
         plugins: process.env.NODE_ENV === 'production' ? [] : ['@babel/plugin-transform-runtime']
       }
     })
@@ -39,7 +39,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2015',
-    // Use esbuild for faster builds (no terser needed)
+    // ✅ Use esbuild for faster builds (no terser dependency needed)
     minify: 'esbuild',
     sourcemap: false,
     chunkSizeWarningLimit: 500,
@@ -51,7 +51,7 @@ export default defineConfig({
           ui: ['react-hot-toast', 'lucide-react'],
           forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
         },
-        // Optimize chunk naming
+        // Optimize chunk naming for better caching
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
