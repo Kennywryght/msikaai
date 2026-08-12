@@ -1,3 +1,4 @@
+// mobile/vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -7,7 +8,8 @@ export default defineConfig({
   plugins: [
     react({
       babel: {
-        plugins: ['@babel/plugin-transform-runtime']
+        // Only include necessary plugins
+        plugins: process.env.NODE_ENV === 'production' ? [] : ['@babel/plugin-transform-runtime']
       }
     })
   ],
@@ -37,15 +39,10 @@ export default defineConfig({
   },
   build: {
     target: 'es2015',
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
+    // Use esbuild for faster builds (no terser needed)
+    minify: 'esbuild',
     sourcemap: false,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -54,7 +51,17 @@ export default defineConfig({
           ui: ['react-hot-toast', 'lucide-react'],
           forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
         },
+        // Optimize chunk naming
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
+    // Optimize for faster builds
+    cssCodeSplit: true,
+    assetsInlineLimit: 4096, // 4kb
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],
   },
 });

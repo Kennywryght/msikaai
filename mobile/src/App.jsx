@@ -1,26 +1,31 @@
 // mobile/src/App.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
-import SplashScreen from './pages/SplashScreen';
-import About from './pages/About';
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import Onboarding from './pages/Onboarding';
-import CreateListing from './pages/CreateListing';
-import Search from './pages/Search';
-import ListingDetails from './pages/ListingDetails';
-import AISearch from './pages/AISearch';
-import VoiceListing from './pages/VoiceListing';
-import AdGenerator from './pages/AdGenerator';
-import EditProfile from './pages/EditProfile';
-import NotFound from './pages/NotFound';
 import LoadingSpinner from './components/LoadingSpinner';
 import './index.css';
+
+// Lazy load pages for better performance
+const SplashScreen = lazy(() => import('./pages/SplashScreen'));
+const About = lazy(() => import('./pages/About'));
+const Landing = lazy(() => import('./pages/Landing'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const CreateListing = lazy(() => import('./pages/CreateListing'));
+const Search = lazy(() => import('./pages/Search'));
+const ListingDetails = lazy(() => import('./pages/ListingDetails'));
+const AISearch = lazy(() => import('./pages/AISearch'));
+const VoiceListing = lazy(() => import('./pages/VoiceListing'));
+const AdGenerator = lazy(() => import('./pages/AdGenerator'));
+const EditProfile = lazy(() => import('./pages/EditProfile'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+// Loading fallback component
+const PageLoader = () => <LoadingSpinner message="Loading page..." />;
 
 // Protected Route component
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -94,101 +99,107 @@ function AppRoutes() {
 
   // Show splash screen
   if (showSplash) {
-    return <SplashScreen />;
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <SplashScreen />
+      </Suspense>
+    );
   }
 
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Landing />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/search" element={<Search />} />
-      <Route path="/listing/:id" element={<ListingDetails />} />
-      
-      {/* Onboarding Route - Accessible after registration */}
-      <Route 
-        path="/onboarding" 
-        element={
-          <ProtectedRoute>
-            <Onboarding />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Protected Routes */}
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Admin Routes */}
-      <Route 
-        path="/admin" 
-        element={
-          <ProtectedRoute adminOnly>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/admin/*" 
-        element={
-          <ProtectedRoute adminOnly>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/create-listing" 
-        element={
-          <ProtectedRoute>
-            <CreateListing />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/ai-search" 
-        element={
-          <ProtectedRoute>
-            <AISearch />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/voice-listing" 
-        element={
-          <ProtectedRoute>
-            <VoiceListing />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/ad-generator" 
-        element={
-          <ProtectedRoute>
-            <AdGenerator />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/edit-profile" 
-        element={
-          <ProtectedRoute>
-            <EditProfile />
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* 404 Not Found - Always last */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/search" element={<Search />} />
+        <Route path="/listing/:id" element={<ListingDetails />} />
+        
+        {/* Onboarding Route - Accessible after registration */}
+        <Route 
+          path="/onboarding" 
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Protected Routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Admin Routes */}
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/*" 
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/create-listing" 
+          element={
+            <ProtectedRoute>
+              <CreateListing />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/ai-search" 
+          element={
+            <ProtectedRoute>
+              <AISearch />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/voice-listing" 
+          element={
+            <ProtectedRoute>
+              <VoiceListing />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/ad-generator" 
+          element={
+            <ProtectedRoute>
+              <AdGenerator />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/edit-profile" 
+          element={
+            <ProtectedRoute>
+              <EditProfile />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* 404 Not Found - Always last */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 }
 

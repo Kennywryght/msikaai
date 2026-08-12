@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { cacheMiddleware, keyGenerators, invalidateCache } from '../middleware/cache.js';
 
 dotenv.config();
 
@@ -12,13 +13,17 @@ const supabaseAdmin = createClient(
 );
 
 // ============================================
-// GET ALL LISTINGS (Root endpoint)
+// GET ALL LISTINGS (with caching)
 // ============================================
-router.get('/', async (req, res) => {
+router.get('/', cacheMiddleware(300, keyGenerators.listings), async (req, res) => {
   try {
     const { limit = 20, offset = 0, status = 'active' } = req.query;
 
     console.log('📦 Fetching all listings:', { limit, offset, status });
+
+    // Enforce reasonable limits
+    const maxLimit = Math.min(parseInt(limit), 50);
+    const validOffset = Math.max(parseInt(offset), 0);
 
     const { data, error } = await supabaseAdmin
       .from('listings')
@@ -35,7 +40,7 @@ router.get('/', async (req, res) => {
         )
       `)
       .eq('status', status)
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1)
+      .range(validOffset, validOffset + maxLimit - 1)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -46,7 +51,7 @@ router.get('/', async (req, res) => {
       });
     }
 
-    // Get total count
+    // Get total count (cached separately)
     const { count, error: countError } = await supabaseAdmin
       .from('listings')
       .select('*', { count: 'exact', head: true })
@@ -56,8 +61,8 @@ router.get('/', async (req, res) => {
       success: true,
       listings: data || [],
       total: count || 0,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: maxLimit,
+      offset: validOffset
     });
   } catch (error) {
     console.error('❌ Fetch listings error:', error);
@@ -69,7 +74,7 @@ router.get('/', async (req, res) => {
 });
 
 // ============================================
-// 1. CREATE LISTING
+// 1. CREATE LISTING (invalidate cache)
 // ============================================
 router.post('/create', async (req, res) => {
   try {
@@ -146,6 +151,10 @@ router.post('/create', async (req, res) => {
       });
     }
 
+    // Invalidate cache
+    await invalidateCache('listings:');
+    await invalidateCache(`business:${businessId}`);
+
     console.log('✅ Listing created:', data.id);
 
     return res.status(201).json({
@@ -163,9 +172,9 @@ router.post('/create', async (req, res) => {
 });
 
 // ============================================
-// 2. SEARCH LISTINGS ⭐ THIS IS THE ENDPOINT YOUR FRONTEND IS CALLING
+// 2. SEARCH LISTINGS (with caching)
 // ============================================
-router.get('/search', async (req, res) => {
+router.get('/search', cacheMiddleware(180, keyGenerators.search), async (req, res) => {
   try {
     const { 
       q, 
@@ -177,6 +186,10 @@ router.get('/search', async (req, res) => {
     } = req.query;
 
     console.log('🔍 Searching listings:', { q, category, minPrice, maxPrice, limit, offset });
+
+    // Enforce limits
+    const maxLimit = Math.min(parseInt(limit), 50);
+    const validOffset = Math.max(parseInt(offset), 0);
 
     let query = supabaseAdmin
       .from('listings')
@@ -208,7 +221,7 @@ router.get('/search', async (req, res) => {
     }
 
     const { data, error } = await query
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1)
+      .range(validOffset, validOffset + maxLimit - 1)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -237,8 +250,8 @@ router.get('/search', async (req, res) => {
       success: true,
       listings: data || [],
       total: count || 0,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: maxLimit,
+      offset: validOffset
     });
   } catch (error) {
     console.error('❌ Search error:', error);
@@ -250,9 +263,9 @@ router.get('/search', async (req, res) => {
 });
 
 // ============================================
-// 3. GET LISTINGS BY BUSINESS
+// 3. GET LISTINGS BY BUSINESS (with caching)
 // ============================================
-router.get('/business/:businessId', async (req, res) => {
+router.get('/business/:businessId', cacheMiddleware(300), async (req, res) => {
   try {
     const { businessId } = req.params;
     const { status = 'active' } = req.query;
@@ -289,9 +302,9 @@ router.get('/business/:businessId', async (req, res) => {
 });
 
 // ============================================
-// 4. GET LISTING BY ID
+// 4. GET LISTING BY ID (with caching)
 // ============================================
-router.get('/:id', async (req, res) => {
+router.get('/:id', cacheMiddleware(600), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -328,11 +341,13 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Increment view count
-    await supabaseAdmin
+    // Increment view count (async, don't wait)
+    supabaseAdmin
       .from('listings')
       .update({ view_count: (data.view_count || 0) + 1 })
-      .eq('id', id);
+      .eq('id', id)
+      .then(() => console.log(`📊 View count updated for listing ${id}`))
+      .catch(err => console.error('View count update error:', err));
 
     return res.json({
       success: true,
@@ -348,7 +363,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ============================================
-// 5. UPDATE LISTING
+// 5. UPDATE LISTING (invalidate cache)
 // ============================================
 router.put('/:id', async (req, res) => {
   try {
@@ -378,6 +393,10 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    // Invalidate cache
+    await invalidateCache('listings:');
+    await invalidateCache(`listing:${id}`);
+
     console.log('✅ Listing updated:', id);
 
     return res.json({
@@ -395,7 +414,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // ============================================
-// 6. DELETE LISTING
+// 6. DELETE LISTING (invalidate cache)
 // ============================================
 router.delete('/:id', async (req, res) => {
   try {
@@ -417,6 +436,10 @@ router.delete('/:id', async (req, res) => {
         error: error.message
       });
     }
+
+    // Invalidate cache
+    await invalidateCache('listings:');
+    await invalidateCache(`listing:${id}`);
 
     console.log('✅ Listing deleted:', id);
 
