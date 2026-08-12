@@ -23,6 +23,8 @@ export const supabase = createClient(
       persistSession: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
+      // ✅ IMPORTANT: Don't store session in localStorage if you're having issues
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     },
     db: {
       schema: 'public',
@@ -37,22 +39,32 @@ export const supabase = createClient(
 
 // Helper: Get current session
 export const getSession = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) {
-    console.error('Error getting session:', error);
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('Error getting session:', error);
+      return null;
+    }
+    return session;
+  } catch (error) {
+    console.error('Session error:', error);
     return null;
   }
-  return session;
 };
 
 // Helper: Get current user
 export const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error) {
-    console.error('Error getting user:', error);
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error('Error getting user:', error);
+      return null;
+    }
+    return user;
+  } catch (error) {
+    console.error('User error:', error);
     return null;
   }
-  return user;
 };
 
 export default supabase;

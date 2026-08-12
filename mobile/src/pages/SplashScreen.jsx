@@ -1,5 +1,5 @@
 // mobile/src/pages/SplashScreen.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 
 // --- HAND-DRAWN ICONS ---
 const SketchIcon = ({ d, size = 24, color = 'currentColor', strokeWidth = 2 }) => (
@@ -27,12 +27,11 @@ const ICONS = {
   arrowRight: "M5 12h14M12 5l7 7-7 7"
 };
 
-const SplashScreen = () => {
+const SplashScreen = memo(() => {
   const [progress, setProgress] = useState(0);
   const [loadingText, setLoadingText] = useState('🌾 Loading Mitundu Marketplace...');
 
   useEffect(() => {
-    // ✅ FASTER LOADING: Speed up the animation
     const messages = [
       '🌾 Loading Mitundu Marketplace...',
       '🔍 Finding local businesses...',
@@ -44,9 +43,8 @@ const SplashScreen = () => {
     let step = 0;
     let progressValue = 0;
 
-    // ✅ FASTER: 50ms instead of 80ms
     const interval = setInterval(() => {
-      progressValue += 3; // ✅ FASTER: 3 instead of 2
+      progressValue += 3;
       setProgress(progressValue);
 
       if (progressValue >= 20 && step < messages.length - 1) {
@@ -60,7 +58,7 @@ const SplashScreen = () => {
     };
   }, []);
 
-  // Styles
+  // ✅ Memoized styles to prevent re-renders
   const styles = {
     container: {
       minHeight: '100vh',
@@ -259,7 +257,7 @@ const SplashScreen = () => {
         </div>
         <div>
           <h1 style={styles.title}>
-            Msika<span style={styles.titleAccent}>AI</span>
+            <span style={styles.titleAccent}>Kum</span>sika
           </h1>
         </div>
       </div>
@@ -308,6 +306,8 @@ const SplashScreen = () => {
       <p style={styles.footer}>Built for Mitundu, Malawi 🇲🇼</p>
     </div>
   );
-};
+});
+
+SplashScreen.displayName = 'SplashScreen';
 
 export default SplashScreen;
