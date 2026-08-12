@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { supabase } from './lib/supabase';
 import './index.css';
 
 // Lazy load pages for better performance
@@ -36,22 +37,20 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   useEffect(() => {
     if (adminOnly && user) {
       setCheckingAdmin(true);
-      // Check if user is admin
-      import('./lib/supabase').then(({ supabase }) => {
-        supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-          .then(({ data }) => {
-            setIsAdmin(data?.role === 'admin');
-            setCheckingAdmin(false);
-          })
-          .catch(() => {
-            setIsAdmin(false);
-            setCheckingAdmin(false);
-          });
-      });
+      // ✅ FIXED: Static import instead of dynamic import
+      supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          setIsAdmin(data?.role === 'admin');
+          setCheckingAdmin(false);
+        })
+        .catch(() => {
+          setIsAdmin(false);
+          setCheckingAdmin(false);
+        });
     }
   }, [adminOnly, user]);
 
