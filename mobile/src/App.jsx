@@ -7,7 +7,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import { supabase } from './lib/supabase';
 import './index.css';
 
-// Lazy load pages for better performance
+// Lazy load pages
 const SplashScreen = lazy(() => import('./pages/SplashScreen'));
 const About = lazy(() => import('./pages/About'));
 const Landing = lazy(() => import('./pages/Landing'));
@@ -25,79 +25,86 @@ const AdGenerator = lazy(() => import('./pages/AdGenerator'));
 const EditProfile = lazy(() => import('./pages/EditProfile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-// Loading fallback component
 const PageLoader = () => <LoadingSpinner message="Loading page..." />;
 
-// Protected Route component
+// ✅ FIXED: Protected Route with proper auth check
 const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingAdmin, setCheckingAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   useEffect(() => {
-    if (adminOnly && user) {
-      setCheckingAdmin(true);
-      // ✅ FIXED: Static import instead of dynamic import
-      supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
+    const checkAdmin = async () => {
+      if (adminOnly && user) {
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
           setIsAdmin(data?.role === 'admin');
-          setCheckingAdmin(false);
-        })
-        .catch(() => {
+        } catch (error) {
+          console.error('Admin check error:', error);
           setIsAdmin(false);
-          setCheckingAdmin(false);
-        });
-    }
-  }, [adminOnly, user]);
+        }
+      }
+      setCheckingAdmin(false);
+    };
 
+    if (user) {
+      checkAdmin();
+    } else {
+      setCheckingAdmin(false);
+    }
+  }, [user, adminOnly]);
+
+  // Show loading while checking
   if (loading || checkingAdmin) {
     return <LoadingSpinner message="Checking authentication..." />;
   }
 
-  if (!isAuthenticated) {
-    console.log('🔒 Not authenticated, redirecting to login');
+  // Redirect to login if not authenticated
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
+  // Check admin access
   if (adminOnly && !isAdmin) {
-    console.log('🔒 Not admin, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
-  console.log('✅ Authenticated, showing protected content');
   return children;
 };
 
 function AppRoutes() {
+  const { isAuthenticated, loading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const [splashDone, setSplashDone] = useState(false);
 
+  // ✅ FIXED: Splash screen logic - only show once
   useEffect(() => {
-    // Check if user has visited before
-    const hasVisited = localStorage.getItem('msikaai_has_visited');
+    const hasVisited = localStorage.getItem('kumsika_has_visited');
     
-    // If has visited, skip splash after a brief moment
     if (hasVisited) {
+      // Already visited, show splash briefly
       const timer = setTimeout(() => {
         setShowSplash(false);
-      }, 500);
+        setSplashDone(true);
+      }, 800);
       return () => clearTimeout(timer);
     } else {
-      // First time visitor - show splash for 4 seconds
+      // First visit - show splash for 3 seconds
       const timer = setTimeout(() => {
         setShowSplash(false);
-        localStorage.setItem('msikaai_has_visited', 'true');
-      }, 4000);
+        setSplashDone(true);
+        localStorage.setItem('kumsika_has_visited', 'true');
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, []);
 
-  // Show splash screen
-  if (showSplash) {
+  // ✅ FIXED: Don't show splash if already done
+  if (showSplash && !splashDone) {
     return (
       <Suspense fallback={<PageLoader />}>
         <SplashScreen />
@@ -105,97 +112,77 @@ function AppRoutes() {
     );
   }
 
+  // ✅ FIXED: Show loading only during auth check
+  if (loading) {
+    return <LoadingSpinner message="Loading your account..." />;
+  }
+
+  // ✅ FIXED: If authenticated, redirect to dashboard
+  if (isAuthenticated) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute adminOnly>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/onboarding" element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          } />
+          <Route path="/create-listing" element={
+            <ProtectedRoute>
+              <CreateListing />
+            </ProtectedRoute>
+          } />
+          <Route path="/ai-search" element={
+            <ProtectedRoute>
+              <AISearch />
+            </ProtectedRoute>
+          } />
+          <Route path="/voice-listing" element={
+            <ProtectedRoute>
+              <VoiceListing />
+            </ProtectedRoute>
+          } />
+          <Route path="/ad-generator" element={
+            <ProtectedRoute>
+              <AdGenerator />
+            </ProtectedRoute>
+          } />
+          <Route path="/edit-profile" element={
+            <ProtectedRoute>
+              <EditProfile />
+            </ProtectedRoute>
+          } />
+          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/register" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/listing/:id" element={<ListingDetails />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
+  // ✅ FIXED: Not authenticated - show public routes
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public Routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/search" element={<Search />} />
         <Route path="/listing/:id" element={<ListingDetails />} />
-        
-        {/* Onboarding Route - Accessible after registration */}
-        <Route 
-          path="/onboarding" 
-          element={
-            <ProtectedRoute>
-              <Onboarding />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Protected Routes */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Admin Routes */}
-        <Route 
-          path="/admin" 
-          element={
-            <ProtectedRoute adminOnly>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/*" 
-          element={
-            <ProtectedRoute adminOnly>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        <Route 
-          path="/create-listing" 
-          element={
-            <ProtectedRoute>
-              <CreateListing />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/ai-search" 
-          element={
-            <ProtectedRoute>
-              <AISearch />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/voice-listing" 
-          element={
-            <ProtectedRoute>
-              <VoiceListing />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/ad-generator" 
-          element={
-            <ProtectedRoute>
-              <AdGenerator />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/edit-profile" 
-          element={
-            <ProtectedRoute>
-              <EditProfile />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* 404 Not Found - Always last */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

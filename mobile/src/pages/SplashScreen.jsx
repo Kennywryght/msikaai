@@ -1,5 +1,5 @@
+// mobile/src/pages/SplashScreen.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 // --- HAND-DRAWN ICONS ---
 const SketchIcon = ({ d, size = 24, color = 'currentColor', strokeWidth = 2 }) => (
@@ -32,7 +32,7 @@ const SplashScreen = () => {
   const [loadingText, setLoadingText] = useState('🌾 Loading Mitundu Marketplace...');
 
   useEffect(() => {
-    // Animate loading messages
+    // ✅ FASTER LOADING: Speed up the animation
     const messages = [
       '🌾 Loading Mitundu Marketplace...',
       '🔍 Finding local businesses...',
@@ -44,17 +44,17 @@ const SplashScreen = () => {
     let step = 0;
     let progressValue = 0;
 
+    // ✅ FASTER: 50ms instead of 80ms
     const interval = setInterval(() => {
-      progressValue += 2;
+      progressValue += 3; // ✅ FASTER: 3 instead of 2
       setProgress(progressValue);
 
       if (progressValue >= 20 && step < messages.length - 1) {
         step++;
         setLoadingText(messages[step]);
       }
-    }, 80);
+    }, 50);
 
-    // Clean up interval on unmount
     return () => {
       clearInterval(interval);
     };

@@ -1,5 +1,5 @@
 // mobile/src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
@@ -29,7 +29,6 @@ export const AuthProvider = ({ children }) => {
         setUser(session?.user ?? null);
         setIsAuthenticated(!!session);
 
-        // If session exists but no token in localStorage, set it
         if (session?.access_token) {
           localStorage.setItem('auth_token', session.access_token);
           if (session.refresh_token) {
@@ -53,7 +52,6 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(!!session);
         setLoading(false);
 
-        // Update tokens in localStorage
         if (session?.access_token) {
           localStorage.setItem('auth_token', session.access_token);
           if (session.refresh_token) {
@@ -61,7 +59,6 @@ export const AuthProvider = ({ children }) => {
           }
         }
 
-        // Handle events
         switch (event) {
           case 'SIGNED_IN':
             toast.success('Welcome back! 👋');
