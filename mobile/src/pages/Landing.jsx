@@ -1,5 +1,5 @@
 // mobile/src/pages/Landing.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { listingsAPI, businessAPI } from '../services/api';
 import LanguageToggle from '../components/LanguageToggle';
@@ -66,17 +66,36 @@ const Landing = () => {
   const [selectedLocation, setSelectedLocation] = useState('All Areas');
   const [hoveredCard, setHoveredCard] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const searchInputRef = useRef(null);
+
+  // Auto-focus search input on desktop
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   const filteredListings = useMemo(() => {
+    // Also filter by search query if present
+    const query = searchQuery.toLowerCase().trim();
     return allListings.filter((item) => {
       const categoryMatch = selectedCategory === 'All' || 
         item.category?.toLowerCase().includes(selectedCategory.toLowerCase());
       const locationMatch = selectedLocation === 'All Areas' || 
         (item.location_area && item.location_area.includes(selectedLocation)) ||
         (item.address && item.address.includes(selectedLocation));
-      return categoryMatch && locationMatch;
+      const searchMatch = !query || 
+        item.title?.toLowerCase().includes(query) ||
+        item.category?.toLowerCase().includes(query) ||
+        item.businesses?.business_name?.toLowerCase().includes(query);
+      return categoryMatch && locationMatch && searchMatch;
     });
-  }, [allListings, selectedCategory, selectedLocation]);
+  }, [allListings, selectedCategory, selectedLocation, searchQuery]);
 
   useEffect(() => {
     let mounted = true;
@@ -184,7 +203,7 @@ const Landing = () => {
       lineHeight: '1.5'
     }}>
       {/* ============================================
-      PROFESSIONAL NAVIGATION BAR - MOBILE RESPONSIVE
+      PROFESSIONAL NAVIGATION BAR - FULLY RESPONSIVE
       ============================================ */}
       <nav style={{
         backgroundColor: '#ffffff',
@@ -216,7 +235,7 @@ const Landing = () => {
           </div>
           <div>
             <h1 style={{
-              fontSize: '20px',
+              fontSize: 'clamp(18px, 3vw, 22px)',
               fontWeight: '800',
               color: '#0f172a',
               margin: 0,
@@ -274,7 +293,7 @@ const Landing = () => {
             '@media (min-width: 768px)': {
               display: 'flex'
             }
-          }}>
+          }} className="desktop-nav">
             <LanguageToggle />
             
             <button
@@ -404,8 +423,12 @@ const Landing = () => {
               cursor: 'pointer',
               padding: '8px',
               borderRadius: '8px',
-              transition: 'background-color 0.2s'
+              transition: 'background-color 0.2s',
+              '@media (min-width: 768px)': {
+                display: 'none'
+              }
             }}
+            className="hamburger-btn"
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             aria-label="Toggle menu"
@@ -573,10 +596,10 @@ const Landing = () => {
         </div>
       )}
 
-      {/* Hero Section */}
+      {/* Hero Section - Fully Responsive */}
       <header style={{
         background: 'radial-gradient(circle at top right, #1e3a8a 0%, #0f172a 60%, #020617 100%)',
-        padding: '72px 24px 80px 24px',
+        padding: 'clamp(48px, 10vh, 80px) clamp(16px, 4vw, 24px)',
         textAlign: 'center',
         color: '#ffffff',
         position: 'relative'
@@ -589,7 +612,7 @@ const Landing = () => {
             backgroundColor: 'rgba(255,255,255,0.08)',
             padding: '6px 16px',
             borderRadius: '30px',
-            fontSize: '13px',
+            fontSize: 'clamp(11px, 1.2vw, 13px)',
             fontWeight: '500',
             marginBottom: '24px',
             border: '1px solid rgba(255,255,255,0.15)'
@@ -598,7 +621,7 @@ const Landing = () => {
             <span>Mitundu's Local Goods & Service Directory</span>
           </div>
           <h1 style={{
-            fontSize: '44px',
+            fontSize: 'clamp(32px, 7vw, 52px)',
             fontWeight: '800',
             marginBottom: '18px',
             lineHeight: '1.15',
@@ -611,7 +634,7 @@ const Landing = () => {
             }}>Mitundu</span>
           </h1>
           <p style={{
-            fontSize: '17px',
+            fontSize: 'clamp(15px, 1.8vw, 18px)',
             marginBottom: '36px',
             color: '#94a3b8',
             fontWeight: '400',
@@ -630,12 +653,14 @@ const Landing = () => {
             borderRadius: '16px',
             boxShadow: '0 20px 35px -10px rgba(0,0,0,0.4)',
             padding: '6px',
-            border: '1px solid rgba(255,255,255,0.2)'
+            border: '1px solid rgba(255,255,255,0.2)',
+            flexDirection: window.innerWidth < 480 ? 'column' : 'row'
           }}>
-            <div style={{ paddingLeft: '20px' }}>
+            <div style={{ paddingLeft: '20px', display: 'flex', alignItems: 'center' }}>
               <SketchIcon d={ICONS.search} size={20} color="#94a3b8" strokeWidth={2.2} />
             </div>
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Search maize, plumber, cement, hardware, tailor..."
               value={searchQuery}
@@ -644,11 +669,13 @@ const Landing = () => {
                 flex: 1,
                 padding: '14px 16px',
                 border: 'none',
-                fontSize: '15px',
+                fontSize: 'clamp(14px, 1.4vw, 16px)',
                 outline: 'none',
                 backgroundColor: 'transparent',
-                color: '#0f172a'
+                color: '#0f172a',
+                width: '100%'
               }}
+              autoComplete="off"
             />
             <button type="submit" style={{
               padding: '12px 26px',
@@ -656,18 +683,43 @@ const Landing = () => {
               color: '#ffffff',
               border: 'none',
               borderRadius: '12px',
-              fontSize: '14px',
+              fontSize: 'clamp(13px, 1.2vw, 15px)',
               fontWeight: '600',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 4px 12px rgba(37,99,235,0.3)'
+              boxShadow: '0 4px 12px rgba(37,99,235,0.3)',
+              width: window.innerWidth < 480 ? '100%' : 'auto',
+              justifyContent: 'center',
+              marginTop: window.innerWidth < 480 ? '8px' : '0'
             }}>
               <span>Search</span>
               <SketchIcon d={ICONS.arrowRight} size={16} color="#ffffff" strokeWidth={2.5} />
             </button>
           </form>
+
+          {/* Keyboard shortcut hint - Desktop only */}
+          <div style={{
+            marginTop: '12px',
+            fontSize: '12px',
+            color: '#64748b',
+            display: window.innerWidth < 768 ? 'none' : 'block'
+          }}>
+            Press <kbd style={{
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              border: '1px solid rgba(255,255,255,0.15)'
+            }}>⌘K</kbd> or <kbd style={{
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              border: '1px solid rgba(255,255,255,0.15)'
+            }}>Ctrl+K</kbd> to search
+          </div>
 
           <div style={{
             marginTop: '28px',
@@ -683,7 +735,7 @@ const Landing = () => {
               border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '30px',
               cursor: 'pointer',
-              fontSize: '13px',
+              fontSize: 'clamp(11px, 1.2vw, 13px)',
               fontWeight: '500',
               display: 'inline-flex',
               alignItems: 'center',
@@ -699,7 +751,7 @@ const Landing = () => {
               border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '30px',
               cursor: 'pointer',
-              fontSize: '13px',
+              fontSize: 'clamp(11px, 1.2vw, 13px)',
               fontWeight: '500',
               display: 'inline-flex',
               alignItems: 'center',
@@ -715,7 +767,7 @@ const Landing = () => {
               border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '30px',
               cursor: 'pointer',
-              fontSize: '13px',
+              fontSize: 'clamp(11px, 1.2vw, 13px)',
               fontWeight: '500',
               display: 'inline-flex',
               alignItems: 'center',
@@ -728,56 +780,56 @@ const Landing = () => {
         </div>
       </header>
 
-      {/* Stats Bar */}
+      {/* Stats Bar - Responsive */}
       <div style={{
         backgroundColor: '#ffffff',
         borderBottom: '1px solid #e2e8f0',
-        padding: '24px'
+        padding: 'clamp(16px, 3vw, 24px)'
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: '24px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: 'clamp(16px, 2vw, 24px)',
           textAlign: 'center',
           maxWidth: '1000px',
           margin: '0 auto'
         }}>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#2563eb' }}>
+            <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: '800', color: '#2563eb' }}>
               {allListings.length}+
             </div>
-            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
+            <div style={{ fontSize: 'clamp(10px, 1vw, 12px)', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
               Active Goods & Services
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#2563eb' }}>50+</div>
-            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
+            <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: '800', color: '#2563eb' }}>50+</div>
+            <div style={{ fontSize: 'clamp(10px, 1vw, 12px)', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
               Local Businesses
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#2563eb' }}>10+</div>
-            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
+            <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: '800', color: '#2563eb' }}>10+</div>
+            <div style={{ fontSize: 'clamp(10px, 1vw, 12px)', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
               Service Categories
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#16a34a' }}>100%</div>
-            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
+            <div style={{ fontSize: 'clamp(22px, 3vw, 28px)', fontWeight: '800', color: '#16a34a' }}>100%</div>
+            <div style={{ fontSize: 'clamp(10px, 1vw, 12px)', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
               Verified Local Traders
             </div>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 24px 0 24px' }}>
+      {/* Filters - Responsive */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: 'clamp(16px, 3vw, 28px) clamp(16px, 4vw, 24px) 0' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Categories */}
           <div>
             <label style={{
-              fontSize: '11px',
+              fontSize: 'clamp(10px, 1vw, 12px)',
               fontWeight: '700',
               color: '#94a3b8',
               display: 'flex',
@@ -794,7 +846,8 @@ const Landing = () => {
               gap: '8px',
               overflowX: 'auto',
               paddingBottom: '8px',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
+              WebkitOverflowScrolling: 'touch'
             }}>
               {CATEGORIES.map((cat) => {
                 const isActive = selectedCategory === cat.label;
@@ -807,10 +860,10 @@ const Landing = () => {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
-                      padding: '8px 16px',
+                      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
                       borderRadius: '12px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '13px',
+                      fontSize: 'clamp(11px, 1.2vw, 13px)',
                       fontWeight: '600',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
@@ -818,7 +871,8 @@ const Landing = () => {
                       backgroundColor: isActive ? '#2563eb' : '#ffffff',
                       color: isActive ? '#ffffff' : '#334155',
                       borderColor: isActive ? '#2563eb' : '#e2e8f0',
-                      boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.25)' : 'none'
+                      boxShadow: isActive ? '0 4px 12px rgba(37,99,235,0.25)' : 'none',
+                      touchAction: 'manipulation'
                     }}
                   >
                     <SketchIcon
@@ -837,7 +891,7 @@ const Landing = () => {
           {/* Locations */}
           <div>
             <label style={{
-              fontSize: '11px',
+              fontSize: 'clamp(10px, 1vw, 12px)',
               fontWeight: '700',
               color: '#94a3b8',
               display: 'flex',
@@ -854,7 +908,8 @@ const Landing = () => {
               gap: '8px',
               overflowX: 'auto',
               paddingBottom: '8px',
-              flexWrap: 'wrap'
+              flexWrap: 'wrap',
+              WebkitOverflowScrolling: 'touch'
             }}>
               {LOCATIONS.map((loc) => {
                 const isActive = selectedLocation === loc;
@@ -866,10 +921,10 @@ const Landing = () => {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
-                      padding: '8px 16px',
+                      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
                       borderRadius: '12px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '13px',
+                      fontSize: 'clamp(11px, 1.2vw, 13px)',
                       fontWeight: '600',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
@@ -877,7 +932,8 @@ const Landing = () => {
                       backgroundColor: isActive ? '#0f172a' : '#ffffff',
                       color: isActive ? '#ffffff' : '#475569',
                       borderColor: isActive ? '#0f172a' : '#e2e8f0',
-                      boxShadow: isActive ? '0 4px 12px rgba(15,23,42,0.15)' : 'none'
+                      boxShadow: isActive ? '0 4px 12px rgba(15,23,42,0.15)' : 'none',
+                      touchAction: 'manipulation'
                     }}
                   >
                     <SketchIcon
@@ -895,11 +951,11 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* Listings Grid */}
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 24px 72px 24px' }}>
+      {/* Listings Grid - Responsive */}
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: 'clamp(20px, 3vw, 28px) clamp(16px, 4vw, 24px) clamp(48px, 8vw, 72px)' }}>
         <div style={{ marginBottom: '24px' }}>
           <h2 style={{
-            fontSize: '24px',
+            fontSize: 'clamp(20px, 2.5vw, 26px)',
             fontWeight: '800',
             color: '#0f172a',
             margin: '0 0 6px 0',
@@ -907,7 +963,7 @@ const Landing = () => {
           }}>
             Marketplace & Services in Mitundu
           </h2>
-          <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
+          <p style={{ fontSize: 'clamp(13px, 1.2vw, 15px)', color: '#64748b', margin: 0 }}>
             {filteredListings.length > 0
               ? `Showing ${filteredListings.length} verified listings`
               : 'No items match your selected filter.'}
@@ -925,7 +981,9 @@ const Landing = () => {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            fontSize: '14px'
+            fontSize: 'clamp(13px, 1.2vw, 14px)',
+            flexWrap: 'wrap',
+            gap: '10px'
           }}>
             <span>{error}</span>
             <button onClick={() => window.location.reload()} style={{
@@ -944,8 +1002,8 @@ const Landing = () => {
         {filteredListings.length > 0 ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
-            gap: '24px'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+            gap: 'clamp(16px, 2vw, 24px)'
           }}>
             {filteredListings.map((item) => {
               const isHovered = hoveredCard === item.id;
@@ -969,7 +1027,8 @@ const Landing = () => {
                     borderColor: isHovered ? '#bfdbfe' : '#e2e8f0',
                     boxShadow: isHovered
                       ? '0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.01)'
-                      : '0 1px 3px rgba(0,0,0,0.04)'
+                      : '0 1px 3px rgba(0,0,0,0.04)',
+                    touchAction: 'manipulation'
                   }}
                   onClick={() => handleListingClick(item)}
                   onMouseEnter={() => setHoveredCard(item.id)}
@@ -978,7 +1037,7 @@ const Landing = () => {
                   <div style={{
                     position: 'relative',
                     width: '100%',
-                    height: '190px',
+                    height: 'clamp(160px, 20vw, 190px)',
                     backgroundColor: '#f1f5f9',
                     overflow: 'hidden'
                   }}>
@@ -987,6 +1046,7 @@ const Landing = () => {
                         src={item.images[0]}
                         alt={item.title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        loading="lazy"
                       />
                     ) : (
                       <div style={{
@@ -1058,9 +1118,9 @@ const Landing = () => {
                     )}
                   </div>
 
-                  <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <div style={{ padding: 'clamp(14px, 1.5vw, 18px)', display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <h3 style={{
-                      fontSize: '16px',
+                      fontSize: 'clamp(14px, 1.4vw, 16px)',
                       fontWeight: '700',
                       color: '#0f172a',
                       margin: '0 0 4px 0',
@@ -1069,7 +1129,7 @@ const Landing = () => {
                       {item.title}
                     </h3>
                     <p style={{
-                      fontSize: '13px',
+                      fontSize: 'clamp(12px, 1.1vw, 13px)',
                       color: '#64748b',
                       margin: '0 0 18px 0',
                       fontWeight: '500'
@@ -1096,7 +1156,7 @@ const Landing = () => {
                           {isService ? 'ESTIMATED RATE' : 'PRICE'}
                         </span>
                         <span style={{
-                          fontSize: '15px',
+                          fontSize: 'clamp(13px, 1.2vw, 15px)',
                           fontWeight: '800',
                           color: '#2563eb'
                         }}>
@@ -1111,13 +1171,14 @@ const Landing = () => {
                           border: 'none',
                           padding: '6px 12px',
                           borderRadius: '8px',
-                          fontSize: '12px',
+                          fontSize: 'clamp(11px, 1vw, 12px)',
                           fontWeight: '700',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
                           cursor: 'pointer',
-                          transition: 'all 0.15s ease'
+                          transition: 'all 0.15s ease',
+                          touchAction: 'manipulation'
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1140,15 +1201,15 @@ const Landing = () => {
         ) : (
           <div style={{
             textAlign: 'center',
-            padding: '64px 20px',
+            padding: 'clamp(40px, 6vw, 64px) clamp(20px, 3vw, 40px)',
             backgroundColor: '#ffffff',
             borderRadius: '20px',
             border: '1px solid #e2e8f0',
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
           }}>
             <div style={{
-              width: '72px',
-              height: '72px',
+              width: 'clamp(56px, 6vw, 72px)',
+              height: 'clamp(56px, 6vw, 72px)',
               borderRadius: '50%',
               backgroundColor: '#f1f5f9',
               display: 'flex',
@@ -1159,14 +1220,14 @@ const Landing = () => {
               <SketchIcon d={ICONS.store} size={36} color="#64748b" strokeWidth={1.5} />
             </div>
             <h3 style={{
-              fontSize: '18px',
+              fontSize: 'clamp(16px, 1.6vw, 18px)',
               fontWeight: '700',
               color: '#0f172a',
               margin: '0 0 6px 0'
             }}>No listings found</h3>
             <p style={{
               color: '#64748b',
-              fontSize: '14px',
+              fontSize: 'clamp(13px, 1.2vw, 14px)',
               marginBottom: '24px'
             }}>Try adjusting your filters or be the first to offer this product/service!</p>
             <Link to="/login" style={{
@@ -1175,7 +1236,7 @@ const Landing = () => {
               color: '#ffffff',
               borderRadius: '12px',
               textDecoration: 'none',
-              fontSize: '14px',
+              fontSize: 'clamp(13px, 1.2vw, 14px)',
               fontWeight: '600',
               display: 'inline-block',
               boxShadow: '0 4px 14px rgba(37,99,235,0.25)'
@@ -1186,13 +1247,13 @@ const Landing = () => {
         )}
       </main>
 
-      {/* CTA Banner */}
+      {/* CTA Banner - Responsive */}
       <div style={{ maxWidth: '1200px', margin: '0 auto 56px auto', padding: '0 24px' }}>
         <div style={{
           background: 'radial-gradient(circle at top left, #1e293b 0%, #0f172a 100%)',
           color: '#ffffff',
           borderRadius: '24px',
-          padding: '52px 24px',
+          padding: 'clamp(32px, 5vw, 52px) clamp(16px, 3vw, 24px)',
           textAlign: 'center',
           boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
         }}>
@@ -1200,7 +1261,7 @@ const Landing = () => {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: '13px',
+            fontSize: 'clamp(12px, 1.2vw, 14px)',
             fontWeight: '600',
             color: '#f59e0b',
             marginBottom: '12px'
@@ -1209,7 +1270,7 @@ const Landing = () => {
             <span>Join Local Sellers & Pros</span>
           </div>
           <h2 style={{
-            fontSize: '30px',
+            fontSize: 'clamp(24px, 3.5vw, 32px)',
             fontWeight: '800',
             margin: '0 0 12px 0',
             letterSpacing: '-0.01em'
@@ -1218,18 +1279,18 @@ const Landing = () => {
             color: '#94a3b8',
             maxWidth: '540px',
             margin: '0 auto 28px auto',
-            fontSize: '15px',
+            fontSize: 'clamp(14px, 1.4vw, 16px)',
             lineHeight: '1.6'
           }}>
             Sell physical goods, advertise farm crops, or offer repair & trade services. Set up in less than 2 minutes for free.
           </p>
           <Link to="/login" style={{
-            padding: '14px 32px',
+            padding: 'clamp(12px, 1.2vw, 14px) clamp(24px, 3vw, 32px)',
             backgroundColor: '#ffffff',
             color: '#0f172a',
             borderRadius: '12px',
             textDecoration: 'none',
-            fontSize: '15px',
+            fontSize: 'clamp(14px, 1.2vw, 15px)',
             fontWeight: '700',
             display: 'inline-flex',
             alignItems: 'center',
@@ -1242,28 +1303,28 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer - Responsive */}
       <footer style={{
         backgroundColor: '#0f172a',
         color: '#ffffff',
-        padding: '40px 24px',
+        padding: 'clamp(32px, 4vw, 48px) clamp(16px, 4vw, 24px)',
         textAlign: 'center',
         borderTop: '1px solid #1e293b'
       }}>
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: '24px',
+          gap: 'clamp(16px, 2vw, 24px)',
           flexWrap: 'wrap',
           marginBottom: '16px'
         }}>
-          <Link to="/" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>Home</Link>
-          <Link to="/about" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>About</Link>
-          <Link to="/search" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>Browse</Link>
-          <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>Sell Goods</Link>
-          <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>Offer Services</Link>
+          <Link to="/" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: 'clamp(13px, 1.1vw, 14px)', fontWeight: '500' }}>Home</Link>
+          <Link to="/about" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: 'clamp(13px, 1.1vw, 14px)', fontWeight: '500' }}>About</Link>
+          <Link to="/search" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: 'clamp(13px, 1.1vw, 14px)', fontWeight: '500' }}>Browse</Link>
+          <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: 'clamp(13px, 1.1vw, 14px)', fontWeight: '500' }}>Sell Goods</Link>
+          <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: 'clamp(13px, 1.1vw, 14px)', fontWeight: '500' }}>Offer Services</Link>
         </div>
-        <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>
+        <p style={{ margin: 0, color: '#64748b', fontSize: 'clamp(12px, 1vw, 13px)' }}>
           © {new Date().getFullYear()} Kumsika — Dedicated to Empowering Mitundu Commerce 🇲🇼
         </p>
       </footer>

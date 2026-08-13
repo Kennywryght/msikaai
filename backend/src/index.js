@@ -24,6 +24,7 @@ import profileRoutes from './api/profile.js';
 import analyticsRoutes from './api/analytics.js';
 import exportRoutes from './api/export.js';
 import notificationsRoutes from './api/notifications.js';
+import matchingRoutes from './api/matching.js';
 
 // Load environment variables FIRST
 dotenv.config();
@@ -311,6 +312,7 @@ app.use('/api/profile', authenticateToken, profileRoutes);
 app.use('/api/analytics', authenticateToken, analyticsRoutes);
 app.use('/api/notifications', authenticateToken, notificationsRoutes);
 app.use('/api/export', authenticateToken, exportRoutes);
+app.use('/api/matching', authenticateToken, matchingRoutes);
 
 // AI routes with additional rate limiting
 app.use('/api/ai', authenticateToken, aiLimiter, aiRoutes);

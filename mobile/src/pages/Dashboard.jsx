@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
@@ -17,6 +17,7 @@ const iconStyle = {
   verticalAlign: 'middle',
   strokeLinecap: 'round',
   strokeLinejoin: 'round',
+  flexShrink: 0,
 };
 
 const HandStore = ({ size = 22, color = 'currentColor' }) => (
@@ -211,6 +212,10 @@ const Dashboard = () => {
     address: '',
   });
 
+  // Refs for auto-focus
+  const formRef = useRef(null);
+  const nameInputRef = useRef(null);
+
   // ==========================================
   // FETCH DATA
   // ==========================================
@@ -223,6 +228,13 @@ const Dashboard = () => {
       setLoading(false);
     }
   }, [user]);
+
+  // Auto-focus first input when modal opens
+  useEffect(() => {
+    if (showCreateForm && nameInputRef.current) {
+      setTimeout(() => nameInputRef.current.focus(), 100);
+    }
+  }, [showCreateForm]);
 
   const fetchBusiness = async () => {
     if (!user?.id) {
@@ -431,13 +443,13 @@ const Dashboard = () => {
     },
     nav: {
       backgroundColor: '#0f172a',
-      padding: '12px 24px',
+      padding: 'clamp(8px, 1.5vw, 12px) clamp(12px, 3vw, 24px)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
       flexWrap: 'wrap',
-      gap: '12px',
+      gap: '8px',
       position: 'sticky',
       top: 0,
       zIndex: 100,
@@ -446,86 +458,93 @@ const Dashboard = () => {
     brandGroup: {
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
+      gap: 'clamp(8px, 1.2vw, 12px)',
     },
     brandTitle: {
-      fontSize: '22px',
+      fontSize: 'clamp(18px, 2.2vw, 22px)',
       fontWeight: '800',
       color: '#ffffff',
       margin: 0,
       lineHeight: '1.1',
     },
     brandSubtitle: {
-      fontSize: '11px',
+      fontSize: 'clamp(9px, 0.9vw, 11px)',
       color: '#94a3b8',
       fontWeight: '500',
       textTransform: 'uppercase',
       letterSpacing: '0.05em',
     },
     brandIcon: {
-      width: '40px',
-      height: '40px',
+      width: 'clamp(34px, 3.5vw, 40px)',
+      height: 'clamp(34px, 3.5vw, 40px)',
       backgroundColor: '#2563eb',
       borderRadius: '10px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      flexShrink: 0,
     },
     navActions: {
       display: 'flex',
       alignItems: 'center',
-      gap: '6px',
+      gap: 'clamp(4px, 0.8vw, 6px)',
       flexWrap: 'wrap',
     },
     aiBtn: {
-      padding: '6px 12px',
+      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: 'clamp(10px, 1vw, 12px)',
       color: 'white',
       fontWeight: '600',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '4px',
       transition: 'opacity 0.2s, transform 0.2s',
+      touchAction: 'manipulation',
+      whiteSpace: 'nowrap',
     },
     secondaryNavBtn: {
-      padding: '6px 12px',
+      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
       backgroundColor: 'rgba(255, 255, 255, 0.08)',
       color: '#e2e8f0',
       border: '1px solid rgba(255, 255, 255, 0.1)',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: 'clamp(10px, 1vw, 12px)',
       fontWeight: '500',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '4px',
       transition: 'background-color 0.2s',
+      touchAction: 'manipulation',
+      whiteSpace: 'nowrap',
     },
     primaryNavBtn: {
-      padding: '6px 12px',
+      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
       backgroundColor: '#2563eb',
       color: 'white',
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: 'clamp(10px, 1vw, 12px)',
       fontWeight: '600',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '4px',
       transition: 'background-color 0.2s',
+      touchAction: 'manipulation',
+      whiteSpace: 'nowrap',
     },
     userBadge: {
-      fontSize: '12px',
+      fontSize: 'clamp(10px, 0.9vw, 12px)',
       color: '#e2e8f0',
       fontWeight: '500',
       backgroundColor: 'rgba(255, 255, 255, 0.06)',
-      padding: '4px 12px',
+      padding: 'clamp(3px, 0.5vw, 4px) clamp(8px, 1vw, 12px)',
       borderRadius: '8px',
-      maxWidth: '150px',
+      maxWidth: 'clamp(100px, 15vw, 150px)',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
@@ -539,83 +558,88 @@ const Dashboard = () => {
       background: 'none',
       border: 'none',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: 'clamp(10px, 0.9vw, 12px)',
       fontWeight: '500',
-      padding: '4px 8px',
+      padding: 'clamp(3px, 0.5vw, 4px) clamp(6px, 0.8vw, 8px)',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '4px',
       borderRadius: '6px',
       transition: 'background-color 0.2s',
+      touchAction: 'manipulation',
     },
     content: {
       maxWidth: '1140px',
       margin: '0 auto',
-      padding: '24px 16px',
+      padding: 'clamp(16px, 3vw, 24px) clamp(12px, 3vw, 16px)',
     },
     headerSection: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '20px',
+      alignItems: 'flex-start',
+      marginBottom: 'clamp(16px, 2vw, 20px)',
       flexWrap: 'wrap',
       gap: '12px',
     },
     welcomeTitle: {
-      fontSize: '24px',
+      fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '800',
       color: '#0f172a',
       margin: 0,
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
+      flexWrap: 'wrap',
     },
     headerActionBtn: {
-      padding: '8px 16px',
+      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
       backgroundColor: '#2563eb',
       color: 'white',
       border: 'none',
       borderRadius: '8px',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1.2vw, 13px)',
       fontWeight: '600',
       cursor: 'pointer',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
       transition: 'background-color 0.2s',
+      touchAction: 'manipulation',
+      whiteSpace: 'nowrap',
     },
     statsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-      gap: '12px',
-      marginBottom: '20px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 20vw, 180px), 1fr))',
+      gap: 'clamp(8px, 1.2vw, 12px)',
+      marginBottom: 'clamp(16px, 2vw, 20px)',
     },
     statCard: {
       backgroundColor: '#ffffff',
-      padding: '14px 16px',
+      padding: 'clamp(10px, 1.2vw, 14px) clamp(12px, 1.5vw, 16px)',
       borderRadius: '12px',
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
+      gap: 'clamp(8px, 1vw, 12px)',
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
       border: '1px solid #e2e8f0',
     },
     statIconWrapper: {
-      width: '40px',
-      height: '40px',
+      width: 'clamp(34px, 3.5vw, 40px)',
+      height: 'clamp(34px, 3.5vw, 40px)',
       borderRadius: '10px',
       backgroundColor: '#eff6ff',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      flexShrink: 0,
     },
     statNumber: {
-      fontSize: '20px',
+      fontSize: 'clamp(18px, 2.2vw, 20px)',
       fontWeight: '800',
       lineHeight: '1.2',
     },
     statLabel: {
-      fontSize: '12px',
+      fontSize: 'clamp(10px, 1vw, 12px)',
       color: '#64748b',
       fontWeight: '500',
       marginTop: '2px',
@@ -623,9 +647,9 @@ const Dashboard = () => {
     card: {
       backgroundColor: '#ffffff',
       borderRadius: '12px',
-      padding: '20px',
+      padding: 'clamp(14px, 1.8vw, 20px)',
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-      marginBottom: '16px',
+      marginBottom: 'clamp(12px, 1.5vw, 16px)',
       border: '1px solid #e2e8f0',
     },
     cardHeader: {
@@ -639,10 +663,12 @@ const Dashboard = () => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '12px',
+      marginBottom: 'clamp(10px, 1.2vw, 12px)',
+      flexWrap: 'wrap',
+      gap: '8px',
     },
     cardTitle: {
-      fontSize: '16px',
+      fontSize: 'clamp(14px, 1.6vw, 16px)',
       fontWeight: '700',
       color: '#0f172a',
       margin: 0,
@@ -654,46 +680,51 @@ const Dashboard = () => {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '4px',
-      padding: '4px 10px',
+      padding: 'clamp(3px, 0.4vw, 4px) clamp(8px, 0.8vw, 10px)',
       borderRadius: '9999px',
-      fontSize: '11px',
+      fontSize: 'clamp(9px, 0.9vw, 11px)',
       fontWeight: '600',
+      whiteSpace: 'nowrap',
     },
     buttonPrimary: {
-      padding: '8px 16px',
+      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
       backgroundColor: '#2563eb',
       color: 'white',
       border: 'none',
       borderRadius: '8px',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1.2vw, 13px)',
       fontWeight: '600',
       cursor: 'pointer',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
       transition: 'background-color 0.2s',
+      touchAction: 'manipulation',
+      whiteSpace: 'nowrap',
     },
     buttonSecondary: {
-      padding: '8px 16px',
+      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
       backgroundColor: '#ffffff',
       color: '#1e293b',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1.2vw, 13px)',
       fontWeight: '600',
       cursor: 'pointer',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
       transition: 'background-color 0.2s',
+      touchAction: 'manipulation',
+      whiteSpace: 'nowrap',
     },
     buttonDisabled: {
-      padding: '8px 16px',
+      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
       backgroundColor: '#93c5fd',
       color: 'white',
       border: 'none',
       borderRadius: '8px',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1.2vw, 13px)',
       fontWeight: '600',
       cursor: 'not-allowed',
     },
@@ -701,64 +732,69 @@ const Dashboard = () => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '10px 12px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(8px, 1vw, 12px)',
       border: '1px solid #e2e8f0',
       borderRadius: '8px',
       cursor: 'pointer',
       transition: 'all 0.15s ease-in-out',
+      gap: '8px',
+      flexWrap: 'wrap',
     },
     listingThumbnail: {
-      width: '44px',
-      height: '44px',
+      width: 'clamp(38px, 4vw, 44px)',
+      height: 'clamp(38px, 4vw, 44px)',
       objectFit: 'cover',
       borderRadius: '8px',
       border: '1px solid #cbd5e1',
+      flexShrink: 0,
     },
     placeholderThumbnail: {
-      width: '44px',
-      height: '44px',
+      width: 'clamp(38px, 4vw, 44px)',
+      height: 'clamp(38px, 4vw, 44px)',
       backgroundColor: '#f1f5f9',
       borderRadius: '8px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       border: '1px solid #e2e8f0',
+      flexShrink: 0,
     },
     listingMeta: {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'flex-end',
       gap: '2px',
-      fontSize: '11px',
+      fontSize: 'clamp(10px, 0.9vw, 11px)',
       color: '#64748b',
       fontWeight: '500',
     },
     emptyStateContainer: {
       textAlign: 'center',
-      padding: '30px 16px',
+      padding: 'clamp(20px, 3vw, 30px) clamp(12px, 2vw, 16px)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
     },
     quickActionsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-      gap: '12px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 20vw, 180px), 1fr))',
+      gap: 'clamp(8px, 1vw, 12px)',
     },
     actionTile: {
       display: 'flex',
       alignItems: 'center',
-      gap: '12px',
-      padding: '14px',
+      gap: 'clamp(8px, 1vw, 12px)',
+      padding: 'clamp(10px, 1.2vw, 14px)',
       border: '1px solid #e2e8f0',
       borderRadius: '10px',
       backgroundColor: '#f8fafc',
       cursor: 'pointer',
       transition: 'transform 0.15s, border-color 0.15s',
+      touchAction: 'manipulation',
     },
     tileIconWrapper: {
-      width: '44px',
-      height: '44px',
+      width: 'clamp(38px, 4vw, 44px)',
+      height: 'clamp(38px, 4vw, 44px)',
       borderRadius: '10px',
       display: 'flex',
       alignItems: 'center',
@@ -768,10 +804,10 @@ const Dashboard = () => {
     actionTileTitle: {
       fontWeight: '700',
       color: '#0f172a',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1.2vw, 13px)',
     },
     actionTileSub: {
-      fontSize: '11px',
+      fontSize: 'clamp(10px, 0.9vw, 11px)',
       color: '#64748b',
       marginTop: '2px',
       lineHeight: '1.3',
@@ -790,39 +826,42 @@ const Dashboard = () => {
     modalContent: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
-      maxWidth: '520px',
+      maxWidth: 'clamp(340px, 50vw, 520px)',
       width: '100%',
-      padding: '24px',
+      padding: 'clamp(16px, 2vw, 24px)',
       maxHeight: '90vh',
       overflowY: 'auto',
       boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
     },
     fieldGroup: {
-      marginBottom: '14px',
+      marginBottom: 'clamp(10px, 1.2vw, 14px)',
     },
     label: {
       display: 'block',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1.1vw, 13px)',
       fontWeight: '600',
       color: '#334155',
       marginBottom: '4px',
     },
     input: {
       width: '100%',
-      padding: '8px 12px',
+      padding: 'clamp(6px, 0.8vw, 8px) clamp(10px, 1vw, 12px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.2vw, 14px)',
       color: '#0f172a',
       marginTop: '2px',
       boxSizing: 'border-box',
       outline: 'none',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+      WebkitAppearance: 'none',
+      backgroundColor: '#ffffff',
     },
     errorBanner: {
       color: '#dc2626',
-      fontSize: '14px',
-      marginBottom: '16px',
-      padding: '10px 14px',
+      fontSize: 'clamp(13px, 1.2vw, 14px)',
+      marginBottom: 'clamp(12px, 1.5vw, 16px)',
+      padding: 'clamp(8px, 1vw, 10px) clamp(12px, 1.5vw, 14px)',
       backgroundColor: '#fef2f2',
       borderRadius: '8px',
       border: '1px solid #fecaca',
@@ -838,22 +877,34 @@ const Dashboard = () => {
       flexWrap: 'wrap',
     },
     exportBtn: {
-      padding: '6px 14px',
+      padding: 'clamp(4px, 0.6vw, 6px) clamp(10px, 1.2vw, 14px)',
       backgroundColor: '#f1f5f9',
       color: '#334155',
       border: '1px solid #cbd5e1',
       borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: 'clamp(11px, 1vw, 12px)',
       fontWeight: '500',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
       transition: 'background-color 0.2s',
+      touchAction: 'manipulation',
     },
     notificationWrapper: {
       position: 'relative',
       display: 'inline-block',
+    },
+    // Mobile responsive overrides
+    mobileHidden: {
+      '@media (max-width: 640px)': {
+        display: 'none',
+      },
+    },
+    mobileVisible: {
+      '@media (min-width: 641px)': {
+        display: 'none',
+      },
     },
   };
 
@@ -895,39 +946,48 @@ const Dashboard = () => {
         <div style={styles.navActions}>
           <LanguageToggle />
 
+          {/* Hide some buttons on very small screens */}
           <button
             onClick={() => navigate('/ai-search')}
             style={{ ...styles.aiBtn, backgroundColor: '#7c3aed' }}
             title="AI Search & Assistant"
           >
-            <HandRobot size={14} /> AI
+            <HandRobot size={14} /> 
+            <span className="btn-label">AI</span>
           </button>
+          
           <button
             onClick={() => navigate('/voice-listing')}
             style={{ ...styles.aiBtn, backgroundColor: '#db2777' }}
             title="Create listing using voice"
           >
-            <HandMic size={14} /> Voice
+            <HandMic size={14} /> 
+            <span className="btn-label">Voice</span>
           </button>
+          
           <button
             onClick={() => navigate('/ad-generator')}
             style={{ ...styles.aiBtn, backgroundColor: '#d97706' }}
             title="Generate advertisements"
           >
-            <HandPalette size={14} /> Ads
+            <HandPalette size={14} /> 
+            <span className="btn-label">Ads</span>
           </button>
 
           <button
             onClick={() => navigate('/search')}
             style={styles.secondaryNavBtn}
           >
-            <HandSearch size={14} /> {t('browse') || 'Browse'}
+            <HandSearch size={14} /> 
+            <span className="btn-label">{t('browse') || 'Browse'}</span>
           </button>
+          
           <button
             onClick={() => navigate('/create-listing')}
             style={styles.primaryNavBtn}
           >
-            <HandPlus size={14} /> {t('add') || 'Add'}
+            <HandPlus size={14} /> 
+            <span className="btn-label">{t('add') || 'Add'}</span>
           </button>
 
           {/* Notification Bell */}
@@ -953,9 +1013,27 @@ const Dashboard = () => {
           </span>
 
           <button onClick={logout} style={styles.logoutBtn}>
-            <HandLogout size={14} /> {t('logout') || 'Logout'}
+            <HandLogout size={14} /> 
+            <span className="btn-label">{t('logout') || 'Logout'}</span>
           </button>
         </div>
+
+        {/* Add responsive styles for button labels */}
+        <style>{`
+          @media (max-width: 480px) {
+            .btn-label {
+              display: none;
+            }
+            .nav-actions {
+              gap: 4px;
+            }
+          }
+          @media (min-width: 481px) {
+            .btn-label {
+              display: inline;
+            }
+          }
+        `}</style>
       </nav>
 
       {/* Main Content Area */}
@@ -964,7 +1042,7 @@ const Dashboard = () => {
         <div style={styles.headerSection}>
           <div>
             <h2 style={styles.welcomeTitle}>
-              <HandWave size={24} color="#d97706" /> {t('welcome') || 'Welcome'}
+              <HandWave size={clamp(20, 2.5, 24)} color="#d97706" /> {t('welcome') || 'Welcome'}
               {business?.business_name
                 ? `, ${business.business_name}`
                 : user?.email
@@ -972,7 +1050,7 @@ const Dashboard = () => {
                 : ''}
               !
             </h2>
-            <p style={{ color: '#64748b', marginTop: '2px', fontSize: '14px' }}>
+            <p style={{ color: '#64748b', marginTop: '2px', fontSize: 'clamp(13px, 1.2vw, 14px)' }}>
               {business
                 ? (t('dashboard_subtitle') || 'Track your market presence, manage listings, and attract customer inquiries.')
                 : (t('register_prompt_subtitle') || 'Register your business to get discovered by customers.')}
@@ -1001,8 +1079,9 @@ const Dashboard = () => {
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                fontSize: '12px',
+                fontSize: 'clamp(11px, 1vw, 12px)',
                 fontWeight: '600',
+                touchAction: 'manipulation',
               }}
             >
               {t('retry') || 'Retry'}
@@ -1024,20 +1103,20 @@ const Dashboard = () => {
             {/* Business Profile Card */}
             <div style={styles.card}>
               <div style={styles.cardHeader}>
-                <div>
+                <div style={{ flex: 1, minWidth: '200px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                     <div style={{
-                      width: '60px',
-                      height: '60px',
+                      width: 'clamp(48px, 5vw, 60px)',
+                      height: 'clamp(48px, 5vw, 60px)',
                       borderRadius: '50%',
                       backgroundColor: '#dbeafe',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '24px',
+                      fontSize: 'clamp(20px, 2.5vw, 24px)',
                       overflow: 'hidden',
                       border: '2px solid #e2e8f0',
-                      flexShrink: 0
+                      flexShrink: 0,
                     }}>
                       {business.logo_url ? (
                         <img src={business.logo_url} alt={business.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1046,10 +1125,10 @@ const Dashboard = () => {
                       )}
                     </div>
                     <div>
-                      <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
+                      <h2 style={{ fontSize: 'clamp(16px, 1.8vw, 18px)', fontWeight: '700', color: '#0f172a', margin: 0 }}>
                         {business.business_name}
                       </h2>
-                      <p style={{ fontSize: '13px', color: '#64748b', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <p style={{ fontSize: 'clamp(12px, 1.1vw, 13px)', color: '#64748b', margin: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                         <HandTag size={14} color="#64748b" />
                         <span>{business.category}</span>
                       </p>
@@ -1057,32 +1136,34 @@ const Dashboard = () => {
                   </div>
 
                   {business.description && (
-                    <p style={{ marginTop: '10px', color: '#475569', fontSize: '13px', lineHeight: '1.5' }}>
+                    <p style={{ marginTop: '10px', color: '#475569', fontSize: 'clamp(12px, 1.1vw, 13px)', lineHeight: '1.5' }}>
                       {business.description}
                     </p>
                   )}
 
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '6px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(8px, 1vw, 12px)', marginTop: '6px' }}>
                     {business.phone && (
-                      <span style={{ fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: 'clamp(12px, 1.1vw, 13px)', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <HandPhone size={14} color="#64748b" />
-                        {business.phone}
+                        <a href={`tel:${business.phone}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
+                          {business.phone}
+                        </a>
                       </span>
                     )}
                     {business.address && (
-                      <span style={{ fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: 'clamp(12px, 1.1vw, 13px)', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <HandPin size={14} color="#64748b" />
                         {business.address}
                       </span>
                     )}
                   </div>
 
-                  <div style={{ marginTop: '6px', display: 'flex', gap: '6px' }}>
+                  <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     <span style={{
                       display: 'inline-block',
                       padding: '2px 10px',
                       borderRadius: '9999px',
-                      fontSize: '11px',
+                      fontSize: 'clamp(10px, 0.9vw, 11px)',
                       fontWeight: '500',
                       backgroundColor: business.verified ? '#d1fae5' : '#fef3c7',
                       color: business.verified ? '#065f46' : '#92400e'
@@ -1093,7 +1174,7 @@ const Dashboard = () => {
                       display: 'inline-block',
                       padding: '2px 10px',
                       borderRadius: '9999px',
-                      fontSize: '11px',
+                      fontSize: 'clamp(10px, 0.9vw, 11px)',
                       fontWeight: '500',
                       backgroundColor: business.status === 'active' ? '#d1fae5' : '#fee2e2',
                       color: business.status === 'active' ? '#065f46' : '#991b1b'
@@ -1213,7 +1294,7 @@ const Dashboard = () => {
                       }
                       onClick={() => navigate(`/listing/${listing.id}`)}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '150px' }}>
                         {listing.images && listing.images.length > 0 ? (
                           <img
                             src={listing.images[0]}
@@ -1227,10 +1308,10 @@ const Dashboard = () => {
                         )}
 
                         <div>
-                          <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '14px' }}>
+                          <div style={{ fontWeight: '600', color: '#1e293b', fontSize: 'clamp(13px, 1.2vw, 14px)' }}>
                             {listing.title}
                           </div>
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ fontSize: 'clamp(11px, 1vw, 12px)', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                             <HandTag size={12} /> {listing.category || 'General'} &bull;{' '}
                             <span style={{ fontWeight: '700', color: '#059669' }}>
                               {formatPrice(listing.price)}
@@ -1239,7 +1320,7 @@ const Dashboard = () => {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1vw, 12px)', flexWrap: 'wrap' }}>
                         <div style={styles.listingMeta}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <HandEye size={12} /> {listing.view_count || 0}
@@ -1255,7 +1336,7 @@ const Dashboard = () => {
                             backgroundColor:
                               listing.status === 'active' ? '#d1fae5' : '#fee2e2',
                             color: listing.status === 'active' ? '#065f46' : '#991b1b',
-                            fontSize: '10px',
+                            fontSize: 'clamp(9px, 0.8vw, 10px)',
                           }}
                         >
                           <HandDot size={8} color={listing.status === 'active' ? '#16a34a' : '#dc2626'} />{' '}
@@ -1268,10 +1349,10 @@ const Dashboard = () => {
               ) : (
                 <div style={styles.emptyStateContainer}>
                   <HandPackage size={40} color="#94a3b8" />
-                  <p style={{ fontWeight: '600', color: '#334155', fontSize: '15px', marginTop: '8px' }}>
+                  <p style={{ fontWeight: '600', color: '#334155', fontSize: 'clamp(14px, 1.4vw, 15px)', marginTop: '8px' }}>
                     {t('no_products_yet') || 'No products or services listed yet'}
                   </p>
-                  <p style={{ color: '#64748b', fontSize: '13px', marginTop: '2px' }}>
+                  <p style={{ color: '#64748b', fontSize: 'clamp(12px, 1.1vw, 13px)', marginTop: '2px' }}>
                     {t('start_adding_items') || 'Start adding items to reach customers across Mitundu.'}
                   </p>
                   <button
@@ -1289,7 +1370,7 @@ const Dashboard = () => {
               <h3 style={{ ...styles.cardTitle, marginBottom: '4px' }}>
                 <HandZap size={20} color="#f59e0b" /> {t('ai_toolkit') || 'AI Toolkit'}
               </h3>
-              <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '12px' }}>
+              <p style={{ color: '#64748b', fontSize: 'clamp(12px, 1.1vw, 13px)', marginBottom: '12px' }}>
                 {t('ai_toolkit_sub') || 'AI-powered tools to grow your business.'}
               </p>
 
@@ -1361,15 +1442,15 @@ const Dashboard = () => {
           <div style={styles.card}>
             <div style={styles.emptyStateContainer}>
               <HandStore size={48} color="#2563eb" />
-              <p style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', marginTop: '10px' }}>
+              <p style={{ fontSize: 'clamp(16px, 1.8vw, 18px)', fontWeight: '700', color: '#1e293b', marginTop: '10px' }}>
                 {t('register_business') || 'Register Your Business'}
               </p>
-              <p style={{ color: '#64748b', maxWidth: '400px', margin: '6px auto 16px', fontSize: '13px', lineHeight: '1.5' }}>
+              <p style={{ color: '#64748b', maxWidth: '400px', margin: '6px auto 16px', fontSize: 'clamp(12px, 1.1vw, 13px)', lineHeight: '1.5' }}>
                 {t('register_business_desc') || 'Connect with buyers in Mitundu. Set up your profile and start listing products in minutes.'}
               </p>
               <button
                 onClick={() => setShowCreateForm(true)}
-                style={{ ...styles.buttonPrimary, padding: '10px 20px', fontSize: '14px' }}
+                style={{ ...styles.buttonPrimary, padding: 'clamp(8px, 1vw, 10px) clamp(16px, 2vw, 20px)', fontSize: 'clamp(13px, 1.2vw, 14px)' }}
               >
                 {t('register_now') || 'Register Now'}
               </button>
@@ -1380,20 +1461,21 @@ const Dashboard = () => {
 
       {/* Business Registration Modal */}
       {showCreateForm && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
+        <div style={styles.modalOverlay} onClick={() => setShowCreateForm(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: 'clamp(16px, 1.8vw, 18px)', fontWeight: '700', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <HandStore size={20} color="#2563eb" /> {t('register_business') || 'Register Business'}
               </h3>
               <button
                 onClick={() => setShowCreateForm(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}
+                aria-label="Close modal"
               >
                 <HandClose size={18} />
               </button>
             </div>
-            <p style={{ color: '#64748b', marginBottom: '16px', fontSize: '13px', marginTop: '4px' }}>
+            <p style={{ color: '#64748b', marginBottom: '16px', fontSize: 'clamp(12px, 1.1vw, 13px)', marginTop: '4px' }}>
               {t('fill_shop_details') || 'Fill in your shop details to begin listing products on MsikaAI.'}
             </p>
 
@@ -1403,10 +1485,11 @@ const Dashboard = () => {
               </div>
             )}
 
-            <form onSubmit={handleCreateBusiness}>
+            <form onSubmit={handleCreateBusiness} ref={formRef}>
               <div style={styles.fieldGroup}>
                 <label style={styles.label}>{t('business_name') || 'Business Name'} *</label>
                 <input
+                  ref={nameInputRef}
                   type="text"
                   name="businessName"
                   required
@@ -1414,6 +1497,7 @@ const Dashboard = () => {
                   onChange={handleChange}
                   style={styles.input}
                   placeholder="e.g., Mitundu Hardware"
+                  autoComplete="off"
                 />
               </div>
 
@@ -1463,6 +1547,7 @@ const Dashboard = () => {
                   onChange={handleChange}
                   style={styles.input}
                   placeholder="e.g., 0999123456"
+                  autoComplete="tel"
                 />
               </div>
 
@@ -1475,10 +1560,11 @@ const Dashboard = () => {
                   onChange={handleChange}
                   style={styles.input}
                   placeholder="e.g., Mitundu Trading Centre"
+                  autoComplete="address-line1"
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
                 <button
                   type="submit"
                   disabled={creating}

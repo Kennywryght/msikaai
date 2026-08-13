@@ -328,3 +328,34 @@ export const notificationsAPI = {
     return api.delete(`/notifications/${id}`, { data: { userId } });
   },
 };
+
+// Add these to your existing api.js
+
+// ============================================
+// MATCHING API
+// ============================================
+export const matchingAPI = {
+  // Post a need (someone looking for goods/services)
+  postNeed: (data) => {
+    console.log('📤 Posting need:', data);
+    return api.post('/matching/needs', data);
+  },
+  
+  // Get needs for a business (potential customers)
+  getBusinessNeeds: (businessId, params) => {
+    console.log('📤 Getting needs for business:', businessId);
+    return api.get(`/matching/business-needs/${businessId}`, { params });
+  },
+  
+  // Get all needs (public)
+  getNeeds: (params) => {
+    console.log('📤 Getting all needs:', params);
+    return api.get('/matching/needs', { params });
+  },
+  
+  // Close a need (mark as fulfilled)
+  closeNeed: (id, userId) => {
+    console.log('📤 Closing need:', id);
+    return api.put(`/matching/needs/${id}/close`, { userId });
+  },
+};
