@@ -177,7 +177,6 @@ const generalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // ✅ FIX: Disable trust proxy validation
   validate: {
     trustProxy: false,
     xForwardedForHeader: false,
@@ -203,7 +202,6 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // ✅ FIX: Disable trust proxy validation
   validate: {
     trustProxy: false,
     xForwardedForHeader: false,
@@ -229,7 +227,6 @@ const aiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // ✅ FIX: Disable trust proxy validation
   validate: {
     trustProxy: false,
     xForwardedForHeader: false,
@@ -284,16 +281,19 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================
-// API ROUTES
+// API ROUTES - ✅ FIXED: Public search, protected writes
 // ============================================
 
-// Public routes
+// Public routes (no authentication required)
 app.use('/api/auth', authRoutes);
 app.use('/api/location', locationRoutes);
 
+// ✅ FIX: Mount listings WITHOUT auth for public GET access
+// Individual routes inside listings.js will handle auth for writes
+app.use('/api/listings', listingsRoutes);
+
 // Protected routes (require authentication)
 app.use('/api/business', authenticateToken, businessRoutes);
-app.use('/api/listings', authenticateToken, listingsRoutes);
 app.use('/api/profile', authenticateToken, profileRoutes);
 app.use('/api/analytics', authenticateToken, analyticsRoutes);
 app.use('/api/notifications', authenticateToken, notificationsRoutes);
@@ -309,7 +309,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // ============================================
-// START SERVER - ✅ FIXED: Bind to 0.0.0.0
+// START SERVER - Bind to 0.0.0.0
 // ============================================
 const server = app.listen(PORT, '0.0.0.0', () => {
   const startupMessage = `
