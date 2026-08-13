@@ -31,6 +31,9 @@ const ICONS = {
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
   sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
   arrowRight: "M5 12h14M12 5l7 7-7 7",
+  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+  clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
 };
 
 const CATEGORIES = [
@@ -53,6 +56,24 @@ const LOCATIONS = [
   'Chingala',
   'Mlale',
   'Surrounding Areas'
+];
+
+const HOW_IT_WORKS = [
+  {
+    iconKey: 'search',
+    title: 'Search or Post',
+    text: 'Looking for maize, a plumber, or building supplies? Search instantly — or post what you need and let sellers find you.'
+  },
+  {
+    iconKey: 'users',
+    title: 'Connect Locally',
+    text: 'Browse verified traders and service providers right here in Mitundu. No middlemen, no long trips into town.'
+  },
+  {
+    iconKey: 'shield',
+    title: 'Trade with Confidence',
+    text: 'Every listing is tied to a real local business, so you know exactly who you\'re buying from or hiring.'
+  }
 ];
 
 const Landing = () => {
@@ -329,7 +350,7 @@ const Landing = () => {
             maxWidth: '640px',
             margin: '0 auto 36px auto'
           }}>
-            Find farmers, hardware supplies, plumbers, tailors, and fresh local produce—all in one place.
+            One trusted marketplace for farmers, tradespeople, shop owners, and everyday buyers across Mitundu — find what you need, or get discovered by customers already searching for it.
           </p>
 
           <form onSubmit={handleSearch} style={{
@@ -379,6 +400,15 @@ const Landing = () => {
               <SketchIcon d={ICONS.arrowRight} size={16} color="#ffffff" strokeWidth={2.5} />
             </button>
           </form>
+
+          <p style={{
+            marginTop: '18px',
+            fontSize: '13px',
+            color: '#64748b',
+            fontWeight: '500'
+          }}>
+            Can't find it listed yet? Post what you're looking for and local sellers will reach out to you.
+          </p>
         </div>
       </header>
 
@@ -425,8 +455,61 @@ const Landing = () => {
         </div>
       </div>
 
+      {/* How It Works */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 24px 8px 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: '800',
+            color: '#0f172a',
+            margin: '0 0 8px 0',
+            letterSpacing: '-0.01em'
+          }}>
+            How Kumsika Works
+          </h2>
+          <p style={{ fontSize: '14px', color: '#64748b', margin: 0, maxWidth: '520px', marginLeft: 'auto', marginRight: 'auto' }}>
+            Whether you're buying, hiring, or selling — getting started takes just a few minutes.
+          </p>
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '20px'
+        }}>
+          {HOW_IT_WORKS.map((step) => (
+            <div key={step.title} style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
+              padding: '22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                backgroundColor: '#eff6ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <SketchIcon d={ICONS[step.iconKey]} size={22} color="#2563eb" strokeWidth={2} />
+              </div>
+              <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
+                {step.title}
+              </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0, lineHeight: '1.6' }}>
+                {step.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Filters */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 24px 0 24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px 0 24px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Categories */}
           <div>
@@ -563,8 +646,8 @@ const Landing = () => {
           </h2>
           <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
             {filteredListings.length > 0
-              ? `Showing ${filteredListings.length} verified listings`
-              : 'No items match your selected filter.'}
+              ? `Showing ${filteredListings.length} verified listings from real local sellers and service providers`
+              : 'No items match your selected filter — try a different category or area below.'}
           </p>
         </div>
 
@@ -817,12 +900,15 @@ const Landing = () => {
               fontWeight: '700',
               color: '#0f172a',
               margin: '0 0 6px 0'
-            }}>No listings found</h3>
+            }}>No listings found yet</h3>
             <p style={{
               color: '#64748b',
               fontSize: '14px',
-              marginBottom: '24px'
-            }}>Try adjusting your filters or be the first to offer this product/service!</p>
+              marginBottom: '24px',
+              maxWidth: '420px',
+              marginLeft: 'auto',
+              marginRight: 'auto'
+            }}>Try adjusting your filters, or be the first trader to list this product or service in Mitundu — it only takes a couple of minutes.</p>
             <Link to="/login" style={{
               padding: '12px 28px',
               backgroundColor: '#2563eb',
@@ -875,8 +961,31 @@ const Landing = () => {
             fontSize: '15px',
             lineHeight: '1.6'
           }}>
-            Sell physical goods, advertise farm crops, or offer repair & trade services. Set up in less than 2 minutes for free.
+            Sell physical goods, advertise farm crops, or offer repair & trade services. Reach customers who are actively searching for what you offer — set up your listing in less than 2 minutes, completely free.
           </p>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: '20px',
+            marginBottom: '28px',
+            color: '#cbd5e1',
+            fontSize: '13px',
+            fontWeight: '600'
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <SketchIcon d={ICONS.clock} size={15} color="#94a3b8" strokeWidth={2} />
+              Free & quick to set up
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <SketchIcon d={ICONS.shield} size={15} color="#94a3b8" strokeWidth={2} />
+              Verified local trader badge
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <SketchIcon d={ICONS.users} size={15} color="#94a3b8" strokeWidth={2} />
+              Reach buyers across Mitundu
+            </span>
+          </div>
           <Link to="/login" style={{
             padding: '14px 32px',
             backgroundColor: '#ffffff',
@@ -917,6 +1026,9 @@ const Landing = () => {
           <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>Sell Goods</Link>
           <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>Offer Services</Link>
         </div>
+        <p style={{ margin: '0 0 6px 0', color: '#64748b', fontSize: '13px' }}>
+          Kumsika connects buyers, sellers, and service providers across Mitundu Trading Centre and the surrounding areas — built for the community, by the community.
+        </p>
         <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>
           © {new Date().getFullYear()} Kumsika — Dedicated to Empowering Mitundu Commerce 🇲🇼
         </p>
