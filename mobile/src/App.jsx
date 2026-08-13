@@ -25,9 +25,9 @@ const AdGenerator = lazy(() => import('./pages/AdGenerator'));
 const EditProfile = lazy(() => import('./pages/EditProfile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-const PageLoader = () => <LoadingSpinner message="Loading page..." />;
+const PageLoader = ({ message }) => <LoadingSpinner message={message || 'Loading page...'} />;
 
-// ✅ FIXED: Protected Route
+// Protected Route
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -36,9 +36,8 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   const adminCheckDone = useRef(false);
 
   useEffect(() => {
-    // Only check admin once
     if (adminCheckDone.current) return;
-    
+
     const checkAdmin = async () => {
       if (adminOnly && user) {
         try {
@@ -65,17 +64,14 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     }
   }, [user, loading, adminOnly]);
 
-  // Loading
   if (loading || checkingAdmin) {
     return <PageLoader />;
   }
 
-  // Not authenticated - redirect to login
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Admin check
   if (adminOnly && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -83,43 +79,47 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   return children;
 };
 
-// ✅ FIXED: Main App Routes - Splash only once
+// ✅ REWRITTEN: single deterministic phase state machine
+// phase progresses one-way: 'splash' -> 'bridge' -> 'ready'
+// - splash: always shown for a fixed minimum duration
+// - bridge: waits for auth to resolve, but capped so it can never hang
+// - ready: renders the real routes
 function AppRoutes() {
-  const { isAuthenticated, loading } = useAuth();
-  const location = useLocation();
-  
-  // ✅ CRITICAL FIX: Track if splash has been shown in this session
-  const [splashComplete, setSplashComplete] = useState(() => {
-    // If user is authenticated, skip splash entirely
-    if (isAuthenticated) return true;
-    // Check if splash was shown in this browser session
-    return sessionStorage.getItem('splash_shown') === 'true';
-  });
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
-  // ✅ CRITICAL FIX: Show splash only once
+  const [phase, setPhase] = useState('splash');
+  const splashStarted = useRef(false);
+
+  const SPLASH_MIN_MS = 2500;
+  const MAX_BRIDGE_MS = 4000;
+
+  // Splash phase: always runs once, guarded against StrictMode double-invoke
   useEffect(() => {
-    // If splash is already complete or user is authenticated, do nothing
-    if (splashComplete || isAuthenticated || loading) {
+    if (splashStarted.current) return;
+    splashStarted.current = true;
+
+    const splashTimer = setTimeout(() => {
+      setPhase('bridge');
+    }, SPLASH_MIN_MS);
+
+    return () => clearTimeout(splashTimer);
+  }, []);
+
+  // Bridge phase: move to 'ready' once auth resolves, or after the cap,
+  // whichever comes first.
+  useEffect(() => {
+    if (phase !== 'bridge') return;
+
+    if (!authLoading) {
+      setPhase('ready');
       return;
     }
 
-    // Only show splash on landing page
-    if (location.pathname === '/') {
-      const timer = setTimeout(() => {
-        setSplashComplete(true);
-        sessionStorage.setItem('splash_shown', 'true');
-      }, 2000); // 2 seconds splash
+    const failSafe = setTimeout(() => setPhase('ready'), MAX_BRIDGE_MS);
+    return () => clearTimeout(failSafe);
+  }, [phase, authLoading]);
 
-      return () => clearTimeout(timer);
-    } else {
-      // Not on landing page, skip splash
-      setSplashComplete(true);
-      sessionStorage.setItem('splash_shown', 'true');
-    }
-  }, [location.pathname, isAuthenticated, loading, splashComplete]);
-
-  // ✅ CRITICAL FIX: Show splash only if not complete and not authenticated
-  if (!splashComplete && !isAuthenticated && !loading && location.pathname === '/') {
+  if (phase === 'splash') {
     return (
       <Suspense fallback={<PageLoader />}>
         <SplashScreen />
@@ -127,58 +127,80 @@ function AppRoutes() {
     );
   }
 
-  // Loading state
-  if (loading) {
-    return <PageLoader />;
+  if (phase === 'bridge') {
+    return <PageLoader message="Preparing your marketplace..." />;
   }
 
-  // ✅ CRITICAL FIX: If authenticated, always show dashboard
+  // phase === 'ready'
   if (isAuthenticated) {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Redirect root to dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin" element={
-            <ProtectedRoute adminOnly>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/onboarding" element={
-            <ProtectedRoute>
-              <Onboarding />
-            </ProtectedRoute>
-          } />
-          <Route path="/create-listing" element={
-            <ProtectedRoute>
-              <CreateListing />
-            </ProtectedRoute>
-          } />
-          <Route path="/ai-search" element={
-            <ProtectedRoute>
-              <AISearch />
-            </ProtectedRoute>
-          } />
-          <Route path="/voice-listing" element={
-            <ProtectedRoute>
-              <VoiceListing />
-            </ProtectedRoute>
-          } />
-          <Route path="/ad-generator" element={
-            <ProtectedRoute>
-              <AdGenerator />
-            </ProtectedRoute>
-          } />
-          <Route path="/edit-profile" element={
-            <ProtectedRoute>
-              <EditProfile />
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-listing"
+            element={
+              <ProtectedRoute>
+                <CreateListing />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-search"
+            element={
+              <ProtectedRoute>
+                <AISearch />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/voice-listing"
+            element={
+              <ProtectedRoute>
+                <VoiceListing />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ad-generator"
+            element={
+              <ProtectedRoute>
+                <AdGenerator />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/edit-profile"
+            element={
+              <ProtectedRoute>
+                <EditProfile />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/login" element={<Navigate to="/dashboard" replace />} />
           <Route path="/register" element={<Navigate to="/dashboard" replace />} />
           <Route path="/search" element={<Search />} />
@@ -189,7 +211,6 @@ function AppRoutes() {
     );
   }
 
-  // ✅ Not authenticated - show public routes
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
