@@ -1,4 +1,4 @@
-// mobile/src/pages/Landing.jsx - COMPLETE FIX
+// mobile/src/pages/Landing.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { listingsAPI, businessAPI } from '../services/api';
@@ -31,9 +31,6 @@ const ICONS = {
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
   sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
   arrowRight: "M5 12h14M12 5l7 7-7 7",
-  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
-  users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
-  clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
 };
 
 const CATEGORIES = [
@@ -58,24 +55,6 @@ const LOCATIONS = [
   'Surrounding Areas'
 ];
 
-const HOW_IT_WORKS = [
-  {
-    iconKey: 'search',
-    title: 'Search or Post',
-    text: 'Looking for maize, a plumber, or building supplies? Search instantly — or post what you need and let sellers find you.'
-  },
-  {
-    iconKey: 'users',
-    title: 'Connect Locally',
-    text: 'Browse verified traders and service providers right here in Mitundu. No middlemen, no long trips into town.'
-  },
-  {
-    iconKey: 'shield',
-    title: 'Trade with Confidence',
-    text: 'Every listing is tied to a real local business, so you know exactly who you\'re buying from or hiring.'
-  }
-];
-
 const Landing = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -86,8 +65,8 @@ const Landing = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedLocation, setSelectedLocation] = useState('All Areas');
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // ✅ Use useMemo to prevent unnecessary re-renders
   const filteredListings = useMemo(() => {
     return allListings.filter((item) => {
       const categoryMatch = selectedCategory === 'All' || 
@@ -99,7 +78,6 @@ const Landing = () => {
     });
   }, [allListings, selectedCategory, selectedLocation]);
 
-  // ✅ Only fetch data once on mount
   useEffect(() => {
     let mounted = true;
 
@@ -107,7 +85,6 @@ const Landing = () => {
       setLoading(true);
       setError('');
       try {
-        console.log('📤 Fetching listings for landing page...');
         const listingsRes = await listingsAPI.search({ limit: 50 });
         if (!mounted) return;
         
@@ -115,7 +92,6 @@ const Landing = () => {
         setAllListings(listingsData);
 
         if (listingsData.length === 0) {
-          console.log('📤 No listings found, fetching businesses as fallback...');
           const bizResponse = await businessAPI.getAll({ limit: 20 });
           if (!mounted) return;
           
@@ -172,7 +148,6 @@ const Landing = () => {
     return `MWK ${Number(price).toLocaleString()}`;
   };
 
-  // ✅ Loading state with cleaner design
   if (loading) {
     return (
       <div style={{
@@ -208,102 +183,395 @@ const Landing = () => {
       color: '#0f172a',
       lineHeight: '1.5'
     }}>
-      {/* Navigation - Simplified */}
+      {/* ============================================
+      PROFESSIONAL NAVIGATION BAR - MOBILE RESPONSIVE
+      ============================================ */}
       <nav style={{
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        backdropFilter: 'blur(12px)',
-        padding: '12px 32px',
+        backgroundColor: '#ffffff',
+        padding: '12px 16px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         borderBottom: '1px solid #e2e8f0',
         position: 'sticky',
         top: 0,
-        zIndex: 100,
-        flexWrap: 'wrap',
-        gap: '16px'
+        zIndex: 1000,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        minHeight: '64px'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Brand / Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: '40px',
-            height: '40px',
-            backgroundColor: '#eff6ff',
-            borderRadius: '12px',
+            width: '38px',
+            height: '38px',
+            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+            borderRadius: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid #dbeafe'
+            boxShadow: '0 4px 12px rgba(37,99,235,0.2)',
+            flexShrink: 0
           }}>
-            <SketchIcon d={ICONS.store} size={22} color="#2563eb" strokeWidth={2.5} />
+            <SketchIcon d={ICONS.store} size={18} color="#ffffff" strokeWidth={2.5} />
           </div>
-          <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-            Kum<span style={{ color: '#2563eb' }}>sika</span>
-          </h1>
+          <div>
+            <h1 style={{
+              fontSize: '20px',
+              fontWeight: '800',
+              color: '#0f172a',
+              margin: 0,
+              letterSpacing: '-0.5px',
+              lineHeight: '1.1'
+            }}>
+              Kum<span style={{ color: '#2563eb' }}>sika</span>
+            </h1>
+            <p style={{
+              fontSize: '8px',
+              color: '#94a3b8',
+              margin: 0,
+              fontWeight: '600',
+              letterSpacing: '0.8px',
+              textTransform: 'uppercase'
+            }}>
+              Marketplace
+            </p>
+          </div>
           <span style={{
-            fontSize: '12px',
+            fontSize: '9px',
             backgroundColor: '#f1f5f9',
             color: '#475569',
-            padding: '5px 12px',
+            padding: '2px 10px',
             borderRadius: '20px',
             fontWeight: '600',
-            border: '1px solid #e2e8f0'
+            border: '1px solid #e2e8f0',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            whiteSpace: 'nowrap'
           }}>
-            Mitundu 🇲🇼
+            <span style={{
+              display: 'inline-block',
+              width: '5px',
+              height: '5px',
+              borderRadius: '50%',
+              backgroundColor: '#22c55e'
+            }}></span>
+            Mitundu
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <LanguageToggle />
-          <button onClick={() => navigate('/about')} style={{
-            padding: '9px 16px',
-            backgroundColor: '#f8fafc',
-            color: '#334155',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600'
+        {/* Desktop Navigation - Hidden on Mobile */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{
+            display: 'none',
+            alignItems: 'center',
+            gap: '6px',
+            '@media (min-width: 768px)': {
+              display: 'flex'
+            }
           }}>
-            About
+            <LanguageToggle />
+            
+            <button
+              onClick={() => navigate('/about')}
+              style={{
+                padding: '6px 14px',
+                backgroundColor: 'transparent',
+                color: '#475569',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '500',
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f1f5f9';
+                e.currentTarget.style.color = '#0f172a';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#475569';
+              }}
+            >
+              <SketchIcon d={ICONS.store} size={13} color="#475569" strokeWidth={2} />
+              <span>About</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/search')}
+              style={{
+                padding: '6px 14px',
+                backgroundColor: 'transparent',
+                color: '#475569',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '500',
+                transition: 'all 0.2s',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f1f5f9';
+                e.currentTarget.style.color = '#0f172a';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#475569';
+              }}
+            >
+              <SketchIcon d={ICONS.search} size={13} color="#475569" strokeWidth={2} />
+              <span>Browse</span>
+            </button>
+
+            <Link
+              to="/login"
+              style={{
+                padding: '6px 16px',
+                backgroundColor: 'transparent',
+                color: '#2563eb',
+                border: '1px solid #bfdbfe',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontSize: '13px',
+                fontWeight: '600',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#eff6ff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+            >
+              Sign In
+            </Link>
+
+            <Link
+              to="/login"
+              style={{
+                padding: '8px 18px',
+                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontSize: '13px',
+                fontWeight: '600',
+                transition: 'all 0.2s',
+                boxShadow: '0 4px 14px rgba(37,99,235,0.25)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(37,99,235,0.35)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 14px rgba(37,99,235,0.25)';
+              }}
+            >
+              <span>+ Post</span>
+            </Link>
+          </div>
+
+          {/* Hamburger Menu Button - Visible on Mobile */}
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px',
+              borderRadius: '8px',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            aria-label="Toggle menu"
+          >
+            <span style={{
+              display: 'block',
+              width: '24px',
+              height: '2px',
+              backgroundColor: '#0f172a',
+              borderRadius: '2px',
+              transition: 'all 0.3s',
+              transform: isMobileMenuOpen ? 'rotate(45deg) translate(4px, 4px)' : 'none'
+            }}></span>
+            <span style={{
+              display: 'block',
+              width: '24px',
+              height: '2px',
+              backgroundColor: '#0f172a',
+              borderRadius: '2px',
+              transition: 'all 0.3s',
+              opacity: isMobileMenuOpen ? 0 : 1
+            }}></span>
+            <span style={{
+              display: 'block',
+              width: '24px',
+              height: '2px',
+              backgroundColor: '#0f172a',
+              borderRadius: '2px',
+              transition: 'all 0.3s',
+              transform: isMobileMenuOpen ? 'rotate(-45deg) translate(4px, -4px)' : 'none'
+            }}></span>
           </button>
-          <button onClick={() => navigate('/search')} style={{
-            padding: '9px 16px',
-            backgroundColor: '#f8fafc',
-            color: '#334155',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}>
-            Browse All
-          </button>
-          <Link to="/login" style={{
-            padding: '9px 16px',
-            backgroundColor: 'transparent',
-            color: '#2563eb',
-            border: '1px solid #bfdbfe',
-            borderRadius: '10px',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}>
-            Sign In
-          </Link>
-          <Link to="/login" style={{
-            padding: '9px 18px',
-            backgroundColor: '#2563eb',
-            color: '#ffffff',
-            borderRadius: '10px',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: '600',
-            boxShadow: '0 4px 12px rgba(37,99,235,0.2)'
-          }}>
-            + Post Listing
-          </Link>
         </div>
       </nav>
+
+      {/* Mobile Menu Dropdown */}
+      {isMobileMenuOpen && (
+        <div style={{
+          position: 'fixed',
+          top: '64px',
+          left: 0,
+          right: 0,
+          backgroundColor: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
+          boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+          padding: '16px 20px',
+          zIndex: 999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          animation: 'slideDown 0.3s ease-out'
+        }}>
+          <style>{`
+            @keyframes slideDown {
+              from { opacity: 0; transform: translateY(-10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '8px', borderBottom: '1px solid #f1f5f9' }}>
+            <LanguageToggle />
+          </div>
+
+          <button
+            onClick={() => {
+              navigate('/about');
+              setIsMobileMenuOpen(false);
+            }}
+            style={{
+              padding: '10px 16px',
+              backgroundColor: 'transparent',
+              color: '#0f172a',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '15px',
+              fontWeight: '500',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              width: '100%',
+              textAlign: 'left'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <SketchIcon d={ICONS.store} size={18} color="#475569" strokeWidth={2} />
+            About
+          </button>
+
+          <button
+            onClick={() => {
+              navigate('/search');
+              setIsMobileMenuOpen(false);
+            }}
+            style={{
+              padding: '10px 16px',
+              backgroundColor: 'transparent',
+              color: '#0f172a',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '15px',
+              fontWeight: '500',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              width: '100%',
+              textAlign: 'left'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <SketchIcon d={ICONS.search} size={18} color="#475569" strokeWidth={2} />
+            Browse Listings
+          </button>
+
+          <Link
+            to="/login"
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{
+              padding: '10px 16px',
+              backgroundColor: 'transparent',
+              color: '#2563eb',
+              border: '1px solid #bfdbfe',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '15px',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%'
+            }}
+          >
+            Sign In
+          </Link>
+
+          <Link
+            to="/login"
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{
+              padding: '12px 20px',
+              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '15px',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 14px rgba(37,99,235,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              width: '100%'
+            }}
+          >
+            <span>+ Post Listing</span>
+          </Link>
+        </div>
+      )}
 
       {/* Hero Section */}
       <header style={{
@@ -350,7 +618,7 @@ const Landing = () => {
             maxWidth: '640px',
             margin: '0 auto 36px auto'
           }}>
-            One trusted marketplace for farmers, tradespeople, shop owners, and everyday buyers across Mitundu — find what you need, or get discovered by customers already searching for it.
+            Find farmers, hardware supplies, plumbers, tailors, and fresh local produce—all in one place.
           </p>
 
           <form onSubmit={handleSearch} style={{
@@ -401,14 +669,62 @@ const Landing = () => {
             </button>
           </form>
 
-          <p style={{
-            marginTop: '18px',
-            fontSize: '13px',
-            color: '#64748b',
-            fontWeight: '500'
+          <div style={{
+            marginTop: '28px',
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'center',
+            flexWrap: 'wrap'
           }}>
-            Can't find it listed yet? Post what you're looking for and local sellers will reach out to you.
-          </p>
+            <button onClick={() => navigate('/login')} style={{
+              padding: '8px 18px',
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              color: '#e2e8f0',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '30px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <SketchIcon d={ICONS.mic} size={15} color="#60a5fa" strokeWidth={2} />
+              <span>Voice Listing</span>
+            </button>
+            <button onClick={() => navigate('/login')} style={{
+              padding: '8px 18px',
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              color: '#e2e8f0',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '30px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <SketchIcon d={ICONS.bot} size={15} color="#34d399" strokeWidth={2} />
+              <span>AI Assistant</span>
+            </button>
+            <button onClick={() => navigate('/search')} style={{
+              padding: '8px 18px',
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              color: '#e2e8f0',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '30px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <SketchIcon d={ICONS.mapPin} size={15} color="#f87171" strokeWidth={2} />
+              <span>Near Me</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -455,61 +771,8 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* How It Works */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '48px 24px 8px 24px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <h2 style={{
-            fontSize: '24px',
-            fontWeight: '800',
-            color: '#0f172a',
-            margin: '0 0 8px 0',
-            letterSpacing: '-0.01em'
-          }}>
-            How Kumsika Works
-          </h2>
-          <p style={{ fontSize: '14px', color: '#64748b', margin: 0, maxWidth: '520px', marginLeft: 'auto', marginRight: 'auto' }}>
-            Whether you're buying, hiring, or selling — getting started takes just a few minutes.
-          </p>
-        </div>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '20px'
-        }}>
-          {HOW_IT_WORKS.map((step) => (
-            <div key={step.title} style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '16px',
-              padding: '22px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px'
-            }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                backgroundColor: '#eff6ff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <SketchIcon d={ICONS[step.iconKey]} size={22} color="#2563eb" strokeWidth={2} />
-              </div>
-              <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', margin: 0 }}>
-                {step.title}
-              </h3>
-              <p style={{ fontSize: '13px', color: '#64748b', margin: 0, lineHeight: '1.6' }}>
-                {step.text}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Filters */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 24px 0 24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 24px 0 24px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Categories */}
           <div>
@@ -646,8 +909,8 @@ const Landing = () => {
           </h2>
           <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>
             {filteredListings.length > 0
-              ? `Showing ${filteredListings.length} verified listings from real local sellers and service providers`
-              : 'No items match your selected filter — try a different category or area below.'}
+              ? `Showing ${filteredListings.length} verified listings`
+              : 'No items match your selected filter.'}
           </p>
         </div>
 
@@ -900,15 +1163,12 @@ const Landing = () => {
               fontWeight: '700',
               color: '#0f172a',
               margin: '0 0 6px 0'
-            }}>No listings found yet</h3>
+            }}>No listings found</h3>
             <p style={{
               color: '#64748b',
               fontSize: '14px',
-              marginBottom: '24px',
-              maxWidth: '420px',
-              marginLeft: 'auto',
-              marginRight: 'auto'
-            }}>Try adjusting your filters, or be the first trader to list this product or service in Mitundu — it only takes a couple of minutes.</p>
+              marginBottom: '24px'
+            }}>Try adjusting your filters or be the first to offer this product/service!</p>
             <Link to="/login" style={{
               padding: '12px 28px',
               backgroundColor: '#2563eb',
@@ -961,31 +1221,8 @@ const Landing = () => {
             fontSize: '15px',
             lineHeight: '1.6'
           }}>
-            Sell physical goods, advertise farm crops, or offer repair & trade services. Reach customers who are actively searching for what you offer — set up your listing in less than 2 minutes, completely free.
+            Sell physical goods, advertise farm crops, or offer repair & trade services. Set up in less than 2 minutes for free.
           </p>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: '20px',
-            marginBottom: '28px',
-            color: '#cbd5e1',
-            fontSize: '13px',
-            fontWeight: '600'
-          }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <SketchIcon d={ICONS.clock} size={15} color="#94a3b8" strokeWidth={2} />
-              Free & quick to set up
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <SketchIcon d={ICONS.shield} size={15} color="#94a3b8" strokeWidth={2} />
-              Verified local trader badge
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <SketchIcon d={ICONS.users} size={15} color="#94a3b8" strokeWidth={2} />
-              Reach buyers across Mitundu
-            </span>
-          </div>
           <Link to="/login" style={{
             padding: '14px 32px',
             backgroundColor: '#ffffff',
@@ -1026,9 +1263,6 @@ const Landing = () => {
           <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>Sell Goods</Link>
           <Link to="/login" style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>Offer Services</Link>
         </div>
-        <p style={{ margin: '0 0 6px 0', color: '#64748b', fontSize: '13px' }}>
-          Kumsika connects buyers, sellers, and service providers across Mitundu Trading Centre and the surrounding areas — built for the community, by the community.
-        </p>
         <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>
           © {new Date().getFullYear()} Kumsika — Dedicated to Empowering Mitundu Commerce 🇲🇼
         </p>
