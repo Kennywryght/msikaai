@@ -113,7 +113,10 @@ app.use(helmet({
   },
 }));
 
-// CORS configuration
+// ============================================
+// CORS CONFIGURATION
+// ============================================
+
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'http://localhost:5173',
@@ -128,12 +131,22 @@ const allowedOrigins = [
 // Remove duplicates
 const uniqueOrigins = [...new Set(allowedOrigins)];
 
-logger.info(`🌐 Allowed origins: ${uniqueOrigins.join(', ')}`);
+// ✅ FIX: Match any Vercel preview deployment for this project, e.g.
+// https://msikaai-1olj4ircp-kennedy-bandas-projects.vercel.app
+// Vercel generates a new random subdomain per preview build, so a
+// hardcoded string list alone will always miss these.
+const vercelPreviewPattern = /^https:\/\/msikaai-[a-z0-9]+-kennedy-bandas-projects\.vercel\.app$/;
+
+logger.info(`🌐 Allowed origins: ${uniqueOrigins.join(', ')} + Vercel preview deployments`);
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (uniqueOrigins.indexOf(origin) !== -1 || !isProduction) {
+
+    const isExplicitlyAllowed = uniqueOrigins.indexOf(origin) !== -1;
+    const isVercelPreview = vercelPreviewPattern.test(origin);
+
+    if (isExplicitlyAllowed || isVercelPreview || !isProduction) {
       callback(null, true);
     } else {
       logger.warn(`❌ CORS blocked for origin: ${origin}`);
@@ -164,7 +177,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(logHttpRequest);
 
 // ============================================
-// RATE LIMITING - FIXED with validate options
+// RATE LIMITING
 // ============================================
 
 // General rate limiter - 100 requests per 15 minutes
@@ -252,15 +265,15 @@ app.use('/api/ai', aiLimiter);
 // ============================================
 app.get('/health', async (req, res) => {
   const startTime = Date.now();
-  
+
   try {
     const { error } = await supabase
       .from('profiles')
       .select('count', { head: true })
       .limit(1);
-    
+
     const responseTime = Date.now() - startTime;
-    
+
     res.json({
       status: 'healthy',
       version: '1.0.0',
@@ -281,15 +294,15 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================
-// API ROUTES - ✅ FIXED: Public search, protected writes
+// API ROUTES - Public search, protected writes
 // ============================================
 
 // Public routes (no authentication required)
 app.use('/api/auth', authRoutes);
 app.use('/api/location', locationRoutes);
 
-// ✅ FIX: Mount listings WITHOUT auth for public GET access
-// Individual routes inside listings.js will handle auth for writes
+// Mount listings WITHOUT auth for public GET access
+// Individual routes inside listings.js handle auth for writes
 app.use('/api/listings', listingsRoutes);
 
 // Protected routes (require authentication)
@@ -325,7 +338,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
   `;
-  
+
   console.log(startupMessage);
   logger.info(`Server started on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV}`);
@@ -336,13 +349,13 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // ============================================
 const gracefulShutdown = (signal) => {
   logger.info(`Received ${signal}, starting graceful shutdown...`);
-  
+
   server.close(() => {
     logger.info('HTTP server closed');
     logger.info('Graceful shutdown complete');
     process.exit(0);
   });
-  
+
   setTimeout(() => {
     logger.error('Could not close connections in time, forcefully shutting down');
     process.exit(1);
