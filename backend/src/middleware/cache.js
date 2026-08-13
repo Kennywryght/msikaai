@@ -1,7 +1,6 @@
 // backend/src/middleware/cache.js
 import NodeCache from 'node-cache';
 import { logger } from '../utils/logger.js';
-import redisCache from '../services/redis.js';
 
 // Memory cache for frequent small requests
 const memoryCache = new NodeCache({
@@ -11,53 +10,14 @@ const memoryCache = new NodeCache({
   maxKeys: 500,
 });
 
-// Use Redis if available, fallback to memory cache
-const useRedis = process.env.REDIS_URL && true;
-
 /**
- * Get cache with fallback
+ * Simple memory-only cache interface
  */
-const getCache = () => {
-  if (useRedis) {
-    return {
-      get: async (key) => {
-        try {
-          const data = await redisCache.get(key);
-          return data ? JSON.parse(data) : null;
-        } catch (error) {
-          logger.warn('Redis get error, falling back to memory:', error.message);
-          return memoryCache.get(key) || null;
-        }
-      },
-      set: async (key, value, ttl = 300) => {
-        try {
-          await redisCache.set(key, JSON.stringify(value), ttl);
-          memoryCache.set(key, value, ttl); // Also store in memory
-        } catch (error) {
-          logger.warn('Redis set error, falling back to memory:', error.message);
-          memoryCache.set(key, value, ttl);
-        }
-      },
-      del: async (key) => {
-        try {
-          await redisCache.del(key);
-          memoryCache.del(key);
-        } catch (error) {
-          memoryCache.del(key);
-        }
-      },
-    };
-  }
-  
-  // Memory only cache
-  return {
-    get: (key) => memoryCache.get(key) || null,
-    set: (key, value, ttl = 300) => memoryCache.set(key, value, ttl),
-    del: (key) => memoryCache.del(key),
-  };
+const cache = {
+  get: (key) => memoryCache.get(key) || null,
+  set: (key, value, ttl = 300) => memoryCache.set(key, value, ttl),
+  del: (key) => memoryCache.del(key),
 };
-
-const cache = getCache();
 
 /**
  * Cache middleware with configurable duration
@@ -91,7 +51,7 @@ export const cacheMiddleware = (duration = 300, keyGenerator = null, options = {
 
     try {
       // Check cache
-      const cachedResponse = await cache.get(key);
+      const cachedResponse = cache.get(key);
 
       if (cachedResponse) {
         logger.debug(`Cache hit: ${key}`);
@@ -106,7 +66,7 @@ export const cacheMiddleware = (duration = 300, keyGenerator = null, options = {
       res.json = function(data) {
         // Only cache successful responses
         if (res.statusCode === 200 && data?.success !== false) {
-          cache.set(key, data, duration).catch(() => {});
+          cache.set(key, data, duration);
           logger.debug(`Cache set: ${key}`);
           res.setHeader('X-Cache', 'MISS');
         }
@@ -127,27 +87,16 @@ export const cacheMiddleware = (duration = 300, keyGenerator = null, options = {
  */
 export const invalidateCache = async (pattern) => {
   try {
-    let count = 0;
-    
-    // Invalidate memory cache
     const memKeys = memoryCache.keys();
     const memMatching = memKeys.filter(key => key.includes(pattern));
+    
     if (memMatching.length) {
       memoryCache.del(memMatching);
-      count += memMatching.length;
+      logger.debug(`Invalidated ${memMatching.length} cache keys matching pattern "${pattern}"`);
+      return memMatching.length;
     }
-
-    // Invalidate Redis cache
-    if (useRedis) {
-      const keys = await redisCache.keys(pattern);
-      if (keys.length) {
-        await redisCache.del(keys);
-        count += keys.length;
-      }
-    }
-
-    logger.debug(`Invalidated ${count} cache keys matching pattern "${pattern}"`);
-    return count;
+    
+    return 0;
   } catch (error) {
     logger.error('Cache invalidation error:', error);
     return 0;
@@ -159,10 +108,16 @@ export const invalidateCache = async (pattern) => {
  */
 export const invalidateUserCache = async (userId) => {
   try {
-    const pattern = `user:${userId}:*`;
-    const count = await invalidateCache(pattern);
-    logger.debug(`Invalidated ${count} user cache keys for user ${userId}`);
-    return count;
+    const memKeys = memoryCache.keys();
+    const matchingKeys = memKeys.filter(key => key.startsWith(`user:${userId}`));
+    
+    if (matchingKeys.length) {
+      memoryCache.del(matchingKeys);
+      logger.debug(`Invalidated ${matchingKeys.length} user cache keys for user ${userId}`);
+      return matchingKeys.length;
+    }
+    
+    return 0;
   } catch (error) {
     logger.error('User cache invalidation error:', error);
     return 0;
@@ -174,15 +129,10 @@ export const invalidateUserCache = async (userId) => {
  */
 export const clearCache = async () => {
   try {
-    const memKeyCount = memoryCache.keys().length;
+    const keyCount = memoryCache.keys().length;
     memoryCache.flushAll();
-    
-    if (useRedis) {
-      await redisCache.flushall();
-    }
-    
-    logger.debug(`Cleared ${memKeyCount} memory cache keys and Redis cache`);
-    return memKeyCount;
+    logger.debug(`Cleared ${keyCount} memory cache keys`);
+    return keyCount;
   } catch (error) {
     logger.error('Clear cache error:', error);
     return 0;
@@ -202,9 +152,6 @@ export const getCacheStats = () => {
       hits: memStats.hits,
       misses: memStats.misses,
       ttl: parseInt(process.env.MEMORY_CACHE_TTL) || 300,
-    },
-    redis: {
-      enabled: !!process.env.REDIS_URL,
     },
   };
 };
