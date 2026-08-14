@@ -53,4 +53,5 @@ export const ToastProvider = ({ children }) => {
   );
 };
 
-export default ToastContainer;
+// ✅ FIXED: Export ToastProvider as default
+export default ToastProvider;
