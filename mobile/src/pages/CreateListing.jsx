@@ -145,14 +145,9 @@ const CreateListing = () => {
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
-      // Store the actual File objects
       setImageFiles(prev => [...prev, ...files]);
-      
-      // Create preview URLs
       const newPreviews = files.map(file => URL.createObjectURL(file));
       setImagePreviews(prev => [...prev, ...newPreviews]);
-      
-      // Update form data with preview URLs (for display)
       setFormData(prev => ({
         ...prev,
         images: [...prev.images, ...newPreviews]
@@ -161,24 +156,20 @@ const CreateListing = () => {
   };
 
   const removeImage = (index) => {
-    // Remove from previews
     const newPreviews = [...imagePreviews];
-    URL.revokeObjectURL(newPreviews[index]); // Clean up memory
+    URL.revokeObjectURL(newPreviews[index]);
     newPreviews.splice(index, 1);
     setImagePreviews(newPreviews);
     
-    // Remove from files
     const newFiles = [...imageFiles];
     newFiles.splice(index, 1);
     setImageFiles(newFiles);
     
-    // Update form data
     setFormData(prev => ({
       ...prev,
       images: newPreviews
     }));
     
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -194,7 +185,12 @@ const CreateListing = () => {
     setLoading(true);
 
     try {
-      // ✅ Use FormData to send images properly
+      const token = localStorage.getItem('access_token') || '';
+      
+      console.log('📤 Token present:', token ? '✅ Yes' : '❌ No');
+      console.log('📤 Selected Business:', selectedBusiness);
+      console.log('📤 Image Files:', imageFiles.length);
+
       const formDataToSend = new FormData();
       formDataToSend.append('businessId', selectedBusiness);
       formDataToSend.append('title', formData.title);
@@ -211,18 +207,12 @@ const CreateListing = () => {
       formDataToSend.append('deliveryFee', formData.deliveryFee);
       formDataToSend.append('contactPhone', formData.contactPhone);
 
-      // ✅ Append actual image files
       if (imageFiles.length > 0) {
         for (let i = 0; i < imageFiles.length; i++) {
           formDataToSend.append('images', imageFiles[i]);
         }
       }
 
-      // ✅ Use fetch with FormData
-      const token = localStorage.getItem('access_token') || 
-                    sessionStorage.getItem('supabase.auth.token') || 
-                    '';
-      
       const response = await fetch(`${import.meta.env.VITE_API_URL}/listings/create`, {
         method: 'POST',
         headers: {
@@ -230,6 +220,17 @@ const CreateListing = () => {
         },
         body: formDataToSend
       });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
 
       const data = await response.json();
       
@@ -242,7 +243,11 @@ const CreateListing = () => {
       }
     } catch (err) {
       console.error('Error creating listing:', err);
-      const errMsg = err.message || 'Failed to create listing';
+      let errMsg = err.message || 'Failed to create listing';
+      if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+        errMsg = 'Your session has expired. Please log in again.';
+        setTimeout(() => navigate('/login'), 2000);
+      }
       showToast(errMsg, 'error');
     } finally {
       setLoading(false);
@@ -452,7 +457,6 @@ const CreateListing = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Business Selection */}
           {businesses.length > 0 && (
             <div style={styles.formGroup}>
               <label style={styles.label}>
@@ -477,7 +481,6 @@ const CreateListing = () => {
             </div>
           )}
 
-          {/* Title */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.tag} size={14} color="#64748b" strokeWidth={2} />
@@ -498,7 +501,6 @@ const CreateListing = () => {
             />
           </div>
 
-          {/* Description */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.box} size={14} color="#64748b" strokeWidth={2} />
@@ -514,7 +516,6 @@ const CreateListing = () => {
             />
           </div>
 
-          {/* Category */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.tag} size={14} color="#64748b" strokeWidth={2} />
@@ -536,7 +537,6 @@ const CreateListing = () => {
             </select>
           </div>
 
-          {/* Sub Category */}
           {formData.category && subCategories[formData.category] && (
             <div style={styles.formGroup}>
               <label style={styles.label}>Sub Category</label>
@@ -555,7 +555,6 @@ const CreateListing = () => {
             </div>
           )}
 
-          {/* Price & Price Type */}
           <div style={styles.row}>
             <div style={styles.half}>
               <div style={styles.formGroup}>
@@ -593,7 +592,6 @@ const CreateListing = () => {
             </div>
           </div>
 
-          {/* Quantity & Unit */}
           <div style={styles.row}>
             <div style={styles.half}>
               <div style={styles.formGroup}>
@@ -627,7 +625,6 @@ const CreateListing = () => {
             </div>
           </div>
 
-          {/* LOCATION */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.mapPin} size={14} color="#64748b" strokeWidth={2} />
@@ -649,7 +646,6 @@ const CreateListing = () => {
             </select>
           </div>
 
-          {/* DELIVERY OPTIONS */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.delivery} size={14} color="#64748b" strokeWidth={2} />
@@ -682,7 +678,6 @@ const CreateListing = () => {
             </div>
           </div>
 
-          {/* CONTACT PHONE */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.phone} size={14} color="#64748b" strokeWidth={2} />
@@ -702,7 +697,6 @@ const CreateListing = () => {
             />
           </div>
 
-          {/* Images */}
           <div style={styles.formGroup}>
             <label style={styles.label}>
               <SketchIcon d={ICONS.image} size={14} color="#64748b" strokeWidth={2} />
@@ -736,7 +730,6 @@ const CreateListing = () => {
             )}
           </div>
 
-          {/* Submit Button */}
           <Button
             type="submit"
             variant="primary"

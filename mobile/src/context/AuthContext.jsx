@@ -13,7 +13,6 @@ export const useAuth = () => {
   return context;
 };
 
-// How long we're willing to wait for Supabase before giving up
 const AUTH_TIMEOUT_MS = 5000;
 
 export const AuthProvider = ({ children }) => {
@@ -22,9 +21,6 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const initialized = useRef(false);
 
-  // ==========================================
-  // INIT AUTH
-  // ==========================================
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -50,14 +46,16 @@ export const AuthProvider = ({ children }) => {
         const result = await Promise.race([sessionPromise, timeoutPromise]);
 
         if (result.timedOut) {
-          console.warn(
-            `⚠️ Supabase getSession() timed out after ${AUTH_TIMEOUT_MS}ms`
-          );
+          console.warn(`⚠️ Supabase getSession() timed out after ${AUTH_TIMEOUT_MS}ms`);
         }
 
         const sessionUser = result.data?.session?.user ?? null;
         
-        // Fetch user profile if logged in
+        if (result.data?.session?.access_token) {
+          localStorage.setItem('access_token', result.data.session.access_token);
+          localStorage.setItem('refresh_token', result.data.session.refresh_token);
+        }
+        
         if (sessionUser) {
           try {
             const { data: profile } = await supabase
@@ -94,10 +92,14 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         const sessionUser = session?.user ?? null;
+        
+        if (session?.access_token) {
+          localStorage.setItem('access_token', session.access_token);
+          localStorage.setItem('refresh_token', session.refresh_token);
+        }
         
         if (sessionUser) {
           try {
@@ -117,6 +119,8 @@ export const AuthProvider = ({ children }) => {
           }
         } else {
           setUser(null);
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
         }
         
         setIsAuthenticated(!!session);
@@ -134,9 +138,6 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ==========================================
-  // LOGIN
-  // ==========================================
   const login = async (email, password) => {
     try {
       setLoading(true);
@@ -147,7 +148,11 @@ export const AuthProvider = ({ children }) => {
       
       if (error) throw error;
       
-      // Fetch user profile
+      if (data.session?.access_token) {
+        localStorage.setItem('access_token', data.session.access_token);
+        localStorage.setItem('refresh_token', data.session.refresh_token);
+      }
+      
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -176,38 +181,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ==========================================
-  // LOGOUT - FIXED: Proper redirect to landing
-  // ==========================================
   const logout = async () => {
     try {
       setLoading(true);
-      
-      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear user state
       setUser(null);
       setIsAuthenticated(false);
-      
-      // Clear any stored data
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       sessionStorage.clear();
       
       toast.success('Logged out successfully');
       console.log('✅ Logout successful');
-      
-      // ✅ FIX: Force navigation to landing page
-      // This ensures a clean reload and avoids routing issues
       window.location.href = '/';
-      
       return { success: true };
     } catch (error) {
       console.error('Logout error:', error);
       toast.error('Logout failed');
-      // Still clear user on error
       setUser(null);
       setIsAuthenticated(false);
       window.location.href = '/';
@@ -217,13 +209,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ==========================================
-  // REGISTER - Available for backward compatibility
-  // ==========================================
   const register = async (email, password, userData) => {
     try {
       setLoading(true);
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -235,7 +223,6 @@ export const AuthProvider = ({ children }) => {
       if (error) throw error;
 
       if (data.user) {
-        // Create profile
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{
@@ -248,6 +235,11 @@ export const AuthProvider = ({ children }) => {
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
+        }
+        
+        if (data.session?.access_token) {
+          localStorage.setItem('access_token', data.session.access_token);
+          localStorage.setItem('refresh_token', data.session.refresh_token);
         }
       }
 

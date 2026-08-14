@@ -8,58 +8,69 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
-/**
- * Authenticate JWT token from Authorization header
- */
 export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
     if (!authHeader) {
-      throw new AuthError('No authorization header provided');
+      logger.warn('🔒 No authorization header provided');
+      return res.status(401).json({
+        success: false,
+        error: 'Authorization header required'
+      });
     }
     
     if (!authHeader.startsWith('Bearer ')) {
-      throw new AuthError('Invalid authorization format. Use Bearer token');
+      logger.warn('🔒 Invalid authorization format');
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid authorization format. Use Bearer token'
+      });
     }
     
     const token = authHeader.split(' ')[1];
     
     if (!token) {
-      throw new AuthError('No token provided');
+      logger.warn('🔒 No token provided');
+      return res.status(401).json({
+        success: false,
+        error: 'No token provided'
+      });
     }
     
-    // Verify token with Supabase
+    logger.debug('🔍 Verifying token...');
+    
     const { data: { user }, error } = await supabase.auth.getUser(token);
     
     if (error || !user) {
-      logger.warn(`Invalid token attempt: ${error?.message || 'User not found'}`);
-      throw new AuthError('Invalid or expired token');
+      logger.warn(`🔒 Invalid token: ${error?.message || 'User not found'}`);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token. Please log in again.'
+      });
     }
     
-    // Attach user to request
     req.user = user;
     req.token = token;
     
-    // Log successful auth
-    logger.debug(`Authenticated user: ${user.id}`, { userId: user.id });
+    logger.debug(`✅ Authenticated user: ${user.email} (${user.id})`);
     
     next();
   } catch (error) {
-    next(error);
+    logger.error('❌ Auth error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Authentication failed'
+    });
   }
 };
 
-/**
- * Require admin role
- */
 export const requireAdmin = async (req, res, next) => {
   try {
     if (!req.user) {
       throw new AuthError('Authentication required');
     }
     
-    // Check user role from profiles table
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('role')
@@ -86,9 +97,6 @@ export const requireAdmin = async (req, res, next) => {
   }
 };
 
-/**
- * Check if user owns the resource
- */
 export const requireOwnership = (resourceType) => {
   return async (req, res, next) => {
     try {
@@ -104,7 +112,6 @@ export const requireOwnership = (resourceType) => {
       }
       
       let query;
-      let resourceId;
       
       switch (resourceType) {
         case 'business':
@@ -114,7 +121,6 @@ export const requireOwnership = (resourceType) => {
           query = supabase.from('listings').select('business_id').eq('id', id);
           break;
         case 'profile':
-          // Profile ownership is simpler - just check the ID
           if (id !== userId) {
             throw new ForbiddenError('You can only access your own profile');
           }
@@ -132,7 +138,6 @@ export const requireOwnership = (resourceType) => {
         throw new AppError('Resource not found', 404);
       }
       
-      // For listing, need to check business ownership
       if (resourceType === 'listing') {
         const { data: business, error: businessError } = await supabase
           .from('businesses')
@@ -158,9 +163,6 @@ export const requireOwnership = (resourceType) => {
   };
 };
 
-/**
- * Optional authentication (doesn't require token, but attaches user if present)
- */
 export const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -178,14 +180,10 @@ export const optionalAuth = async (req, res, next) => {
     
     next();
   } catch (error) {
-    // Don't fail on auth errors for optional auth
     next();
   }
 };
 
-/**
- * Rate limit by user ID
- */
 export const userRateLimit = (maxRequests, windowMs) => {
   const userRequests = new Map();
   
@@ -203,8 +201,6 @@ export const userRateLimit = (maxRequests, windowMs) => {
     }
     
     const requests = userRequests.get(userId);
-    
-    // Clean old requests
     const validRequests = requests.filter(time => time > windowStart);
     validRequests.push(now);
     userRequests.set(userId, validRequests);

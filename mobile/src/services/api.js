@@ -474,3 +474,62 @@ export const matchingAPI = {
     return api.put(`/matching/needs/${id}/close`, { userId });
   },
 };
+
+// mobile/src/services/api.js - Add this at the end of the file, before the exports
+
+// ============================================
+// FILE UPLOAD HELPER - For FormData uploads
+// ============================================
+export const uploadWithAuth = async (url, formData) => {
+  const token = localStorage.getItem('access_token') || '';
+  
+  if (!token) {
+    throw new Error('No authentication token found. Please log in.');
+  }
+  
+  const response = await fetch(`${API_URL}${url}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData
+  });
+  
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch (e) {
+      errorMessage = response.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
+  }
+  
+  return response.json();
+};
+
+export const getWithAuth = async (url) => {
+  const token = localStorage.getItem('access_token') || '';
+  
+  const response = await fetch(`${API_URL}${url}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    }
+  });
+  
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorMessage;
+    } catch (e) {
+      errorMessage = response.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
+  }
+  
+  return response.json();
+};

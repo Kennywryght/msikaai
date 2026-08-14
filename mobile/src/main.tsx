@@ -8,7 +8,6 @@ import { Toaster } from 'react-hot-toast';
 
 console.log('🚀 Kumsika app starting...');
 
-// Register service worker for PWA
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
