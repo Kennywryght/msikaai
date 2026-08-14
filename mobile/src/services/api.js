@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from '../lib/supabase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -12,10 +13,19 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor - add token to all requests
+// ✅ FIX: The old interceptor read `localStorage.getItem('auth_token')`,
+// but this app uses Supabase auth, which never stores a token under that
+// key — Supabase stores its session under `sb-<project-ref>-auth-token`
+// and manages it internally. That meant no valid token was EVER sent,
+// so every protected backend route (using authenticateToken, which
+// correctly verifies via supabase.auth.getUser(token)) rejected the
+// request with 401 AUTH_ERROR. Fix: pull the live access_token straight
+// from the current Supabase session on every request.
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth_token');
+  async (config) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
     console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
     console.log(`📤 Token present:`, token ? '✅ Yes' : '❌ No');
 
@@ -23,7 +33,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
       console.log(`📤 Authorization header set`);
     } else {
-      console.log(`📤 No token found in localStorage`);
+      console.log(`📤 No active Supabase session — request sent without token`);
     }
     return config;
   },
@@ -43,14 +53,13 @@ api.interceptors.response.use(
     console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - Error:`, error.response?.status);
     console.error(`❌ Response data:`, error.response?.data);
 
-    // ✅ FIX: Do NOT force a full page reload here. window.location.href
+    // ✅ Do NOT force a full page reload here. window.location.href
     // remounts the entire React app from scratch, resetting App.jsx's
     // splash/bridge phase state and causing an infinite splash -> loading
-    // -> landing loop whenever any request returns 401. Just clear stale
-    // tokens and let AuthContext / ProtectedRoute handle redirecting via
-    // React Router instead.
+    // -> landing loop. Just clear any stale legacy tokens and let
+    // AuthContext / ProtectedRoute handle redirecting via React Router.
     if (error.response?.status === 401) {
-      console.log('🔒 Unauthorized - clearing stale tokens');
+      console.log('🔒 Unauthorized - clearing stale legacy tokens (if any)');
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
     }
