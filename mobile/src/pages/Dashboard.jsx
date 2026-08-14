@@ -595,6 +595,7 @@ const Dashboard = () => {
       gap: 'clamp(4px, 0.8vw, 8px)',
       flexWrap: 'wrap'
     },
+    // ✅ FIXED: No blinking - static dot
     subscriptionBadge: {
       display: 'flex',
       alignItems: 'center',
@@ -603,6 +604,13 @@ const Dashboard = () => {
       padding: '4px 12px',
       borderRadius: '20px',
       border: '1px solid #e2e8f0'
+    },
+    subscriptionDot: {
+      display: 'inline-block',
+      width: '6px',
+      height: '6px',
+      borderRadius: '50%',
+      flexShrink: 0,
     },
     subscriptionPlan: {
       fontSize: '11px',
@@ -657,10 +665,11 @@ const Dashboard = () => {
       display: 'flex',
       alignItems: 'center'
     },
+    // ✅ FIXED: Responsive upgrade banner
     upgradeBanner: {
       backgroundColor: '#fef3c7',
       borderBottom: '1px solid #f59e0b',
-      padding: '12px 24px',
+      padding: 'clamp(10px, 1.2vw, 12px) clamp(16px, 2vw, 24px)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -673,9 +682,10 @@ const Dashboard = () => {
       gap: '8px',
       fontWeight: '500',
       color: '#92400e',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
     },
     upgradeBannerIcon: {
-      fontSize: '20px',
+      fontSize: 'clamp(18px, 1.8vw, 20px)',
     },
     addButtonDisabled: {
       opacity: 0.5,
@@ -1045,13 +1055,10 @@ const Dashboard = () => {
 
         {/* Right Side - Clean & Minimal */}
         <div style={styles.navActions}>
-          {/* Subscription Badge */}
+          {/* ✅ FIXED: No blinking - static dot */}
           <div style={styles.subscriptionBadge}>
             <span style={{
-              display: 'inline-block',
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
+              ...styles.subscriptionDot,
               backgroundColor: subscription.plan === 'free' ? '#94a3b8' : '#22c55e'
             }}></span>
             <span style={{
@@ -1127,17 +1134,22 @@ const Dashboard = () => {
         }
       `}</style>
 
-      {/* Upgrade Banner - NEW */}
+      {/* ✅ FIXED: Responsive Upgrade Banner */}
       {subscription.remaining_listings <= 0 && (
         <div style={styles.upgradeBanner}>
           <div style={styles.upgradeBannerText}>
             <span style={styles.upgradeBannerIcon}>⚠️</span>
-            <span>You've reached your listing limit. Upgrade to add more listings.</span>
+            <span>You've reached your listing limit. Upgrade to add more.</span>
           </div>
           <Button
             variant="warning"
             size="sm"
             onClick={() => setShowPaymentModal(true)}
+            style={{
+              padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
+              fontSize: 'clamp(12px, 1vw, 13px)',
+              whiteSpace: 'nowrap'
+            }}
           >
             Upgrade Now
           </Button>
