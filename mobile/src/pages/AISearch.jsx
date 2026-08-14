@@ -1,3 +1,4 @@
+// mobile/src/pages/AISearch.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -28,7 +29,8 @@ const ICONS = {
   sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
   clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
-  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
+  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z"
 };
 
 const AISearch = () => {
@@ -41,9 +43,12 @@ const AISearch = () => {
   const [error, setError] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [aiResponse, setAiResponse] = useState(null);
+  const [relatedSearches, setRelatedSearches] = useState([]);
+  const [suggestedCategory, setSuggestedCategory] = useState('');
   const searchRef = useRef();
 
-  // Close suggestions popover when clicking outside the component
+  // Close suggestions popover when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -66,11 +71,20 @@ const AISearch = () => {
     setLoading(true);
     setError('');
     setShowSuggestions(false);
+    setAiResponse(null);
+    setRelatedSearches([]);
 
     try {
-      const response = await aiAPI.search({ query: searchQuery });
+      const response = await aiAPI.search({ 
+        query: searchQuery,
+        location: 'Mitundu'
+      });
+      
       if (response.data.success) {
         setResults(response.data.results || []);
+        setAiResponse(response.data.ai_response || null);
+        setRelatedSearches(response.data.related_searches || []);
+        setSuggestedCategory(response.data.suggested_category || '');
       } else {
         setError(response.data.error || 'Search failed');
       }
@@ -176,6 +190,10 @@ const AISearch = () => {
       color: '#0f172a',
       fontFamily: 'inherit',
       transition: 'border-color 0.2s'
+    },
+    inputFocus: {
+      borderColor: '#2563eb',
+      boxShadow: '0 0 0 3px rgba(37,99,235,0.1)'
     },
     searchBtn: {
       padding: '12px 24px',
@@ -322,12 +340,64 @@ const AISearch = () => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start'
+    },
+    aiResponseBox: {
+      backgroundColor: '#f0fdf4',
+      padding: '16px',
+      borderRadius: '12px',
+      border: '1px solid #bbf7d0',
+      marginBottom: '16px'
+    },
+    aiResponseLabel: {
+      fontSize: '12px',
+      fontWeight: '600',
+      color: '#166534',
+      marginBottom: '4px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px'
+    },
+    aiResponseText: {
+      fontSize: '15px',
+      color: '#0f172a',
+      lineHeight: '1.6'
+    },
+    relatedSearches: {
+      display: 'flex',
+      gap: '8px',
+      flexWrap: 'wrap',
+      marginTop: '8px'
+    },
+    relatedTag: {
+      padding: '4px 12px',
+      backgroundColor: '#dbeafe',
+      color: '#1e40af',
+      borderRadius: '20px',
+      fontSize: '12px',
+      fontWeight: '500',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s'
+    },
+    categoryTag: {
+      display: 'inline-block',
+      padding: '4px 14px',
+      backgroundColor: '#fef3c7',
+      color: '#92400e',
+      borderRadius: '20px',
+      fontSize: '13px',
+      fontWeight: '600',
+      marginTop: '4px'
     }
   };
 
   return (
     <div style={styles.container}>
-      <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
+      <button 
+        onClick={() => navigate('/dashboard')} 
+        style={styles.backButton}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+      >
         <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
         Back to Dashboard
       </button>
@@ -348,11 +418,19 @@ const AISearch = () => {
               onChange={handleQueryChange}
               onFocus={() => query.length >= 2 && setShowSuggestions(true)}
               style={styles.input}
+              onFocus={(e) => e.currentTarget.style.borderColor = '#2563eb'}
+              onBlur={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
             />
             <button
               type="submit"
               disabled={loading}
               style={loading ? styles.searchBtnDisabled : styles.searchBtn}
+              onMouseEnter={(e) => {
+                if (!loading) e.currentTarget.style.backgroundColor = '#1d4ed8';
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) e.currentTarget.style.backgroundColor = '#2563eb';
+              }}
             >
               <SketchIcon d={ICONS.search} size={16} color="#ffffff" strokeWidth={2} />
               {loading ? '...' : 'Search'}
@@ -380,9 +458,51 @@ const AISearch = () => {
 
       {error && <div style={styles.error}>{error}</div>}
 
+      {/* AI Response */}
+      {aiResponse && (
+        <div style={styles.aiResponseBox}>
+          <div style={styles.aiResponseLabel}>
+            <SketchIcon d={ICONS.sparkles} size={14} color="#166534" strokeWidth={2} />
+            AI Suggestion
+          </div>
+          <p style={styles.aiResponseText}>{aiResponse}</p>
+          
+          {/* Related Searches */}
+          {relatedSearches.length > 0 && (
+            <div style={styles.relatedSearches}>
+              {relatedSearches.map((term, idx) => (
+                <button
+                  key={idx}
+                  style={styles.relatedTag}
+                  onClick={() => {
+                    setQuery(term);
+                    performSearch(term);
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#bfdbfe'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {/* Suggested Category */}
+          {suggestedCategory && (
+            <div style={{ marginTop: '8px' }}>
+              <span style={styles.categoryTag}>
+                📂 {suggestedCategory}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {results.length > 0 && (
         <div>
-          <p style={styles.resultCount}>Found {results.length} {results.length === 1 ? 'result' : 'results'}</p>
+          <p style={styles.resultCount}>
+            Found {results.length} {results.length === 1 ? 'result' : 'results'}
+          </p>
           {results.map((item) => (
             <div
               key={item.id}
@@ -401,7 +521,9 @@ const AISearch = () => {
                 <div style={{ flex: 1 }}>
                   <h3 style={styles.resultTitle}>{item.title}</h3>
                   <p style={styles.resultSummary}>{item.ai_summary || item.description}</p>
-                  <p style={styles.resultBusiness}>{item.businesses?.business_name || 'Unknown Business'}</p>
+                  <p style={styles.resultBusiness}>
+                    {item.businesses?.business_name || 'Unknown Business'}
+                  </p>
                   <div style={styles.badgeGroup}>
                     {item.category && (
                       <span style={{ ...styles.badge, backgroundColor: '#dbeafe', color: '#1e40af' }}>
@@ -413,8 +535,14 @@ const AISearch = () => {
                         {formatPrice(item.price)}
                       </span>
                     )}
-                    {item.relevance_score && item.relevance_score > 0.7 && (
+                    {item.location_area && (
                       <span style={{ ...styles.badge, backgroundColor: '#fef3c7', color: '#92400e' }}>
+                        <SketchIcon d={ICONS.mapPin} size={10} color="#92400e" strokeWidth={2} />
+                        {item.location_area}
+                      </span>
+                    )}
+                    {item.relevance_score && item.relevance_score > 0.7 && (
+                      <span style={{ ...styles.badge, backgroundColor: '#e0e7ff', color: '#3730a3' }}>
                         High Match
                       </span>
                     )}

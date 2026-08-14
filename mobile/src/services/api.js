@@ -1,5 +1,7 @@
+// mobile/src/services/api.js
 import axios from 'axios';
 import { supabase } from '../lib/supabase';
+import cacheService from './cacheService';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -13,14 +15,9 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// ✅ FIX: The old interceptor read `localStorage.getItem('auth_token')`,
-// but this app uses Supabase auth, which never stores a token under that
-// key — Supabase stores its session under `sb-<project-ref>-auth-token`
-// and manages it internally. That meant no valid token was EVER sent,
-// so every protected backend route (using authenticateToken, which
-// correctly verifies via supabase.auth.getUser(token)) rejected the
-// request with 401 AUTH_ERROR. Fix: pull the live access_token straight
-// from the current Supabase session on every request.
+// ============================================
+// REQUEST INTERCEPTOR - Auth + Cache
+// ============================================
 api.interceptors.request.use(
   async (config) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -35,6 +32,26 @@ api.interceptors.request.use(
     } else {
       console.log(`📤 No active Supabase session — request sent without token`);
     }
+
+    // ✅ Check cache for GET requests
+    if (config.method === 'get' && config.cache !== false) {
+      const cacheKey = `${config.url}${config.params ? JSON.stringify(config.params) : ''}`;
+      const cachedData = cacheService.get(cacheKey);
+      
+      if (cachedData) {
+        console.log(`📦 Cache hit for: ${config.url}`);
+        // Return cached data
+        return Promise.reject({
+          __cached: true,
+          data: cachedData,
+          config: config
+        });
+      }
+      
+      // Store cache key for later
+      config._cacheKey = cacheKey;
+    }
+
     return config;
   },
   (error) => {
@@ -43,21 +60,36 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle errors globally
+// ============================================
+// RESPONSE INTERCEPTOR - Cache + Error Handling
+// ============================================
 api.interceptors.response.use(
   (response) => {
     console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`);
+    
+    // ✅ Cache GET requests
+    if (response.config.method === 'get' && response.config._cacheKey) {
+      const cacheTTL = response.config.cacheTTL || 5 * 60 * 1000; // 5 minutes
+      cacheService.set(response.config._cacheKey, response.data, cacheTTL);
+      console.log(`📦 Cached: ${response.config._cacheKey}`);
+    }
+    
     return response;
   },
   (error) => {
+    // ✅ Handle cached responses
+    if (error.__cached) {
+      console.log(`📦 Using cached data for: ${error.config.url}`);
+      return Promise.resolve({
+        data: error.data,
+        __cached: true,
+        config: error.config
+      });
+    }
+    
     console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - Error:`, error.response?.status);
     console.error(`❌ Response data:`, error.response?.data);
 
-    // ✅ Do NOT force a full page reload here. window.location.href
-    // remounts the entire React app from scratch, resetting App.jsx's
-    // splash/bridge phase state and causing an infinite splash -> loading
-    // -> landing loop. Just clear any stale legacy tokens and let
-    // AuthContext / ProtectedRoute handle redirecting via React Router.
     if (error.response?.status === 401) {
       console.log('🔒 Unauthorized - clearing stale legacy tokens (if any)');
       localStorage.removeItem('auth_token');
@@ -67,6 +99,19 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// ============================================
+// CACHE UTILITIES
+// ============================================
+export const clearCache = () => cacheService.clear();
+export const invalidateCache = (pattern) => {
+  const keys = cacheService.keys();
+  const toRemove = keys.filter(key => key.includes(pattern));
+  toRemove.forEach(key => cacheService.delete(key));
+  return toRemove.length;
+};
+export const getCacheStats = () => cacheService.getInfo();
+export const getCacheKeys = () => cacheService.keys();
 
 // ============================================
 // AUTH API
@@ -108,11 +153,11 @@ export const businessAPI = {
   },
   getByUser: (userId) => {
     console.log('📤 Calling /business/user/' + userId);
-    return api.get(`/business/user/${userId}`);
+    return api.get(`/business/user/${userId}`, { cacheTTL: 10 * 60 * 1000 });
   },
   getById: (id) => {
     console.log('📤 Calling /business/' + id);
-    return api.get(`/business/${id}`);
+    return api.get(`/business/${id}`, { cacheTTL: 10 * 60 * 1000 });
   },
   update: (id, data) => {
     console.log('📤 Calling /business/' + id);
@@ -120,7 +165,7 @@ export const businessAPI = {
   },
   getAll: (params) => {
     console.log('📤 Calling /business with params:', params);
-    return api.get('/business', { params });
+    return api.get('/business', { params, cacheTTL: 5 * 60 * 1000 });
   },
   delete: (id) => {
     console.log('📤 Calling DELETE /business/' + id);
@@ -138,11 +183,11 @@ export const listingsAPI = {
   },
   getByBusiness: (businessId, params) => {
     console.log('📤 Calling /listings/business/' + businessId);
-    return api.get(`/listings/business/${businessId}`, { params });
+    return api.get(`/listings/business/${businessId}`, { params, cacheTTL: 5 * 60 * 1000 });
   },
   getById: (id) => {
     console.log('📤 Calling /listings/' + id);
-    return api.get(`/listings/${id}`);
+    return api.get(`/listings/${id}`, { cacheTTL: 10 * 60 * 1000 });
   },
   update: (id, data) => {
     console.log('📤 Calling PUT /listings/' + id);
@@ -154,7 +199,73 @@ export const listingsAPI = {
   },
   search: (params) => {
     console.log('📤 Calling /listings/search with params:', params);
-    return api.get('/listings/search', { params });
+    return api.get('/listings/search', { params, cacheTTL: 3 * 60 * 1000 });
+  },
+};
+
+// ============================================
+// PAYMENT API
+// ============================================
+export const paymentAPI = {
+  getPlans: async () => {
+    try {
+      console.log('📤 Calling /payment/plans');
+      const response = await api.get('/payment/plans', { cacheTTL: 60 * 60 * 1000 });
+      return response;
+    } catch (error) {
+      console.error('Get plans error:', error);
+      throw error;
+    }
+  },
+  initiatePayment: async (data) => {
+    try {
+      console.log('📤 Calling /payment/initiate');
+      const response = await api.post('/payment/initiate', data);
+      return response;
+    } catch (error) {
+      console.error('Payment initiation error:', error);
+      throw error;
+    }
+  },
+  verifyPayment: async (paymentId) => {
+    try {
+      console.log('📤 Calling /payment/verify/' + paymentId);
+      const response = await api.get(`/payment/verify/${paymentId}`);
+      return response;
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      throw error;
+    }
+  },
+  getSubscription: async (userId) => {
+    try {
+      console.log('📤 Calling /payment/subscription/' + userId);
+      const response = await api.get(`/payment/subscription/${userId}`, { cacheTTL: 5 * 60 * 1000 });
+      return response;
+    } catch (error) {
+      console.error('Get subscription error:', error);
+      throw error;
+    }
+  },
+  upgradeSubscription: async (data) => {
+    try {
+      console.log('📤 Calling /payment/upgrade');
+      const response = await api.post('/payment/upgrade', data);
+      return response;
+    } catch (error) {
+      console.error('Subscription upgrade error:', error);
+      throw error;
+    }
+  },
+  canCreateListing: async (userId) => {
+    try {
+      console.log('📤 Calling /payment/can-create-listing/' + userId);
+      const response = await api.get(`/payment/can-create-listing/${userId}`, { cacheTTL: 2 * 60 * 1000 });
+      return response;
+    } catch (error) {
+      console.error('Check listing permission error:', error);
+      throw error;
+    }
   },
 };
 
@@ -168,11 +279,11 @@ export const reviewsAPI = {
   },
   getByBusiness: (businessId) => {
     console.log('📤 Calling /reviews/business/' + businessId);
-    return api.get(`/reviews/business/${businessId}`);
+    return api.get(`/reviews/business/${businessId}`, { cacheTTL: 5 * 60 * 1000 });
   },
   getByListing: (listingId) => {
     console.log('📤 Calling /reviews/listing/' + listingId);
-    return api.get(`/reviews/listing/${listingId}`);
+    return api.get(`/reviews/listing/${listingId}`, { cacheTTL: 5 * 60 * 1000 });
   },
   update: (id, data) => {
     console.log('📤 Calling PUT /reviews/' + id);
@@ -194,7 +305,7 @@ export const aiAPI = {
   },
   getSuggestions: (q) => {
     console.log('📤 Calling /ai/suggestions with q:', q);
-    return api.get('/ai/suggestions', { params: { q } });
+    return api.get('/ai/suggestions', { params: { q }, cacheTTL: 2 * 60 * 1000 });
   },
 };
 
@@ -220,7 +331,7 @@ export const voiceAPI = {
   },
   getPrompts: (language) => {
     console.log('📤 Calling /ai/voice/prompts with language:', language);
-    return api.get('/ai/voice/prompts', { params: { language } });
+    return api.get('/ai/voice/prompts', { params: { language }, cacheTTL: 60 * 60 * 1000 });
   },
 };
 
@@ -248,7 +359,7 @@ export const adAPI = {
 export const locationAPI = {
   nearby: (params) => {
     console.log('📤 Calling /location/nearby with params:', params);
-    return api.get('/location/nearby', { params });
+    return api.get('/location/nearby', { params, cacheTTL: 10 * 60 * 1000 });
   },
   update: (data) => {
     console.log('📤 Calling /location/update');
@@ -264,7 +375,7 @@ export default api;
 export const profileAPI = {
   getByUser: (userId) => {
     console.log('📤 Calling /profile/user/' + userId);
-    return api.get(`/profile/user/${userId}`);
+    return api.get(`/profile/user/${userId}`, { cacheTTL: 10 * 60 * 1000 });
   },
   update: (data) => {
     console.log('📤 Calling /profile/update');
@@ -290,19 +401,19 @@ export const analyticsAPI = {
   },
   getListingStats: (id) => {
     console.log('📤 Getting listing stats for:', id);
-    return api.get(`/analytics/listing/${id}`);
+    return api.get(`/analytics/listing/${id}`, { cacheTTL: 5 * 60 * 1000 });
   },
   getBusinessAnalytics: (businessId, params) => {
     console.log('📤 Getting business analytics for:', businessId);
-    return api.get(`/analytics/business/${businessId}`, { params });
+    return api.get(`/analytics/business/${businessId}`, { params, cacheTTL: 5 * 60 * 1000 });
   },
   getPopularListings: (params) => {
     console.log('📤 Getting popular listings');
-    return api.get('/analytics/popular', { params });
+    return api.get('/analytics/popular', { params, cacheTTL: 5 * 60 * 1000 });
   },
   getUserActivity: (userId, params) => {
     console.log('📤 Getting user activity for:', userId);
-    return api.get(`/analytics/user/${userId}`, { params });
+    return api.get(`/analytics/user/${userId}`, { params, cacheTTL: 5 * 60 * 1000 });
   },
 };
 
@@ -326,7 +437,7 @@ export const exportAPI = {
 export const notificationsAPI = {
   getNotifications: (userId, params) => {
     console.log('📤 Getting notifications for:', userId);
-    return api.get(`/notifications/user/${userId}`, { params });
+    return api.get(`/notifications/user/${userId}`, { params, cacheTTL: 2 * 60 * 1000 });
   },
   markAsRead: (id, userId) => {
     console.log('📤 Marking notification as read:', id);
@@ -346,25 +457,18 @@ export const notificationsAPI = {
 // MATCHING API
 // ============================================
 export const matchingAPI = {
-  // Post a need (someone looking for goods/services)
   postNeed: (data) => {
     console.log('📤 Posting need:', data);
     return api.post('/matching/needs', data);
   },
-
-  // Get needs for a business (potential customers)
   getBusinessNeeds: (businessId, params) => {
     console.log('📤 Getting needs for business:', businessId);
-    return api.get(`/matching/business-needs/${businessId}`, { params });
+    return api.get(`/matching/business-needs/${businessId}`, { params, cacheTTL: 5 * 60 * 1000 });
   },
-
-  // Get all needs (public)
   getNeeds: (params) => {
     console.log('📤 Getting all needs:', params);
-    return api.get('/matching/needs', { params });
+    return api.get('/matching/needs', { params, cacheTTL: 5 * 60 * 1000 });
   },
-
-  // Close a need (mark as fulfilled)
   closeNeed: (id, userId) => {
     console.log('📤 Closing need:', id);
     return api.put(`/matching/needs/${id}/close`, { userId });

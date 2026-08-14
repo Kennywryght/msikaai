@@ -1,8 +1,12 @@
+// mobile/src/pages/EditProfile.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { profileAPI, businessAPI } from '../services/api';
+import Button from '../components/Button';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../components/ToastContainer';
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -39,13 +43,14 @@ const EditProfile = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { showToast, success, error } = useToast();
   const fileInputRef = useRef(null);
   const logoInputRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const [profile, setProfile] = useState({
     full_name: '',
@@ -83,6 +88,7 @@ const EditProfile = () => {
     'Other Services'
   ];
 
+  // Auto-focus first input on mount
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -91,9 +97,19 @@ const EditProfile = () => {
     }
   }, [user]);
 
+  // Auto-focus first input after loading
+  useEffect(() => {
+    if (!loading) {
+      const firstNameInput = document.querySelector('input[name="full_name"]');
+      if (firstNameInput) {
+        setTimeout(() => firstNameInput.focus(), 100);
+      }
+    }
+  }, [loading]);
+
   const fetchData = async () => {
     setLoading(true);
-    setError('');
+    setErrorMsg('');
 
     try {
       // Fetch profile
@@ -125,7 +141,8 @@ const EditProfile = () => {
       }
     } catch (err) {
       console.error('Error fetching data:', err);
-      setError('Failed to load profile data');
+      setErrorMsg('Failed to load profile data');
+      showToast('Failed to load profile data', 'error');
     } finally {
       setLoading(false);
     }
@@ -168,8 +185,8 @@ const EditProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setError('');
-    setSuccess('');
+    setErrorMsg('');
+    setSuccessMsg('');
 
     try {
       // Update profile
@@ -200,7 +217,8 @@ const EditProfile = () => {
         throw new Error(businessResponse.data.error || 'Failed to update business');
       }
 
-      setSuccess('✅ Profile updated successfully!');
+      setSuccessMsg('✅ Profile updated successfully!');
+      success('Profile updated successfully! 🎉');
       
       // Refresh data after 2 seconds
       setTimeout(() => {
@@ -209,26 +227,31 @@ const EditProfile = () => {
 
     } catch (err) {
       console.error('Error updating profile:', err);
-      setError(err.message || 'Failed to update profile');
+      const errMsg = err.message || 'Failed to update profile';
+      setErrorMsg(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  // Styles
+  if (loading) {
+    return <LoadingSpinner message="Loading your profile..." />;
+  }
+
   const styles = {
     container: {
       minHeight: '100vh',
       backgroundColor: '#f1f5f9',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '24px 16px'
+      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
     },
     card: {
       maxWidth: '700px',
       margin: '0 auto',
       backgroundColor: '#ffffff',
       borderRadius: '16px',
-      padding: '32px',
+      padding: 'clamp(20px, 2.5vw, 32px)',
       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
       border: '1px solid #e2e8f0'
     },
@@ -238,7 +261,7 @@ const EditProfile = () => {
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
       color: '#334155',
       display: 'inline-flex',
@@ -247,11 +270,8 @@ const EditProfile = () => {
       marginBottom: '20px',
       transition: 'background-color 0.2s'
     },
-    backButtonHover: {
-      backgroundColor: '#e2e8f0'
-    },
     title: {
-      fontSize: '24px',
+      fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '800',
       color: '#0f172a',
       margin: '0 0 4px 0',
@@ -260,7 +280,7 @@ const EditProfile = () => {
       gap: '10px'
     },
     subtitle: {
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#64748b',
       margin: '0 0 24px 0'
     },
@@ -270,7 +290,7 @@ const EditProfile = () => {
       borderBottom: '1px solid #e2e8f0'
     },
     sectionTitle: {
-      fontSize: '16px',
+      fontSize: 'clamp(14px, 1.3vw, 16px)',
       fontWeight: '700',
       color: '#0f172a',
       margin: '0 0 4px 0',
@@ -279,70 +299,70 @@ const EditProfile = () => {
       gap: '8px'
     },
     sectionSubtitle: {
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1vw, 13px)',
       color: '#64748b',
       margin: '0 0 16px 0'
     },
     formGroup: {
-      marginBottom: '16px'
+      marginBottom: 'clamp(12px, 1.2vw, 16px)'
     },
     label: {
       display: 'block',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
       color: '#334155',
       marginBottom: '4px'
     },
     input: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
       fontFamily: 'inherit',
-      transition: 'border-color 0.15s'
-    },
-    inputFocus: {
-      borderColor: '#2563eb',
-      boxShadow: '0 0 0 3px rgba(37,99,235,0.1)'
+      transition: 'border-color 0.15s, box-shadow 0.15s',
+      WebkitAppearance: 'none'
     },
     textarea: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
       fontFamily: 'inherit',
       resize: 'vertical',
-      minHeight: '80px',
-      transition: 'border-color 0.15s'
+      minHeight: 'clamp(60px, 8vw, 80px)',
+      transition: 'border-color 0.15s, box-shadow 0.15s'
     },
     select: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      WebkitAppearance: 'none'
     },
     row: {
       display: 'flex',
-      gap: '12px'
+      gap: '12px',
+      flexWrap: 'wrap'
     },
     half: {
-      flex: 1
+      flex: 1,
+      minWidth: 'clamp(130px, 35vw, 200px)'
     },
     avatarSection: {
       display: 'flex',
@@ -355,22 +375,22 @@ const EditProfile = () => {
       position: 'relative'
     },
     avatar: {
-      width: '80px',
-      height: '80px',
+      width: 'clamp(64px, 8vw, 80px)',
+      height: 'clamp(64px, 8vw, 80px)',
       borderRadius: '50%',
       objectFit: 'cover',
       backgroundColor: '#e2e8f0',
       border: '2px solid #e2e8f0'
     },
     avatarPlaceholder: {
-      width: '80px',
-      height: '80px',
+      width: 'clamp(64px, 8vw, 80px)',
+      height: 'clamp(64px, 8vw, 80px)',
       borderRadius: '50%',
       backgroundColor: '#dbeafe',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: '32px',
+      fontSize: 'clamp(28px, 3.5vw, 32px)',
       color: '#2563eb',
       border: '2px solid #e2e8f0'
     },
@@ -381,15 +401,12 @@ const EditProfile = () => {
       border: '1px solid #cbd5e1',
       borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: 'clamp(11px, 0.9vw, 12px)',
       fontWeight: '500',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
       transition: 'background-color 0.2s'
-    },
-    uploadBtnHover: {
-      backgroundColor: '#e2e8f0'
     },
     error: {
       color: '#dc2626',
@@ -400,7 +417,8 @@ const EditProfile = () => {
       marginBottom: '16px',
       display: 'flex',
       alignItems: 'center',
-      gap: '8px'
+      gap: '8px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     success: {
       color: '#16a34a',
@@ -411,83 +429,25 @@ const EditProfile = () => {
       marginBottom: '16px',
       display: 'flex',
       alignItems: 'center',
-      gap: '8px'
-    },
-    submitBtn: {
-      width: '100%',
-      padding: '12px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
       gap: '8px',
-      transition: 'background-color 0.2s'
-    },
-    submitBtnHover: {
-      backgroundColor: '#1d4ed8'
-    },
-    submitDisabled: {
-      width: '100%',
-      padding: '12px',
-      backgroundColor: '#93c5fd',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'not-allowed',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px'
-    },
-    loadingContainer: {
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '16px',
-      backgroundColor: '#f1f5f9'
-    },
-    spinner: {
-      width: '44px',
-      height: '44px',
-      border: '4px solid #cbd5e1',
-      borderTop: '4px solid #2563eb',
-      borderRadius: '50%',
-      animation: 'spin 0.8s linear infinite'
+      fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     hint: {
-      fontSize: '11px',
+      fontSize: 'clamp(10px, 0.8vw, 11px)',
       color: '#94a3b8',
       marginTop: '4px'
     }
   };
 
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={{ color: '#64748b', fontWeight: '500' }}>Loading your profile...</p>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
   return (
     <div style={styles.container}>
+      <style>{`
+        .input-focus:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+      `}</style>
+
       <div style={styles.card}>
         {/* Back Button */}
         <button 
@@ -506,16 +466,16 @@ const EditProfile = () => {
         </h1>
         <p style={styles.subtitle}>Update your business and personal information</p>
 
-        {error && (
+        {errorMsg && (
           <div style={styles.error}>
             <SketchIcon d={ICONS.close} size={16} color="#dc2626" strokeWidth={2} />
-            {error}
+            {errorMsg}
           </div>
         )}
-        {success && (
+        {successMsg && (
           <div style={styles.success}>
             <SketchIcon d={ICONS.check} size={16} color="#16a34a" strokeWidth={2.5} />
-            {success}
+            {successMsg}
           </div>
         )}
 
@@ -572,8 +532,8 @@ const EditProfile = () => {
                 onChange={handleProfileChange}
                 style={styles.input}
                 placeholder="Your full name"
-                onFocus={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                className="input-focus"
+                autoComplete="name"
               />
             </div>
 
@@ -586,8 +546,8 @@ const EditProfile = () => {
                 onChange={handleProfileChange}
                 style={styles.input}
                 placeholder="e.g., 0999123456"
-                onFocus={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                className="input-focus"
+                autoComplete="tel"
               />
             </div>
 
@@ -600,8 +560,8 @@ const EditProfile = () => {
                 onChange={handleProfileChange}
                 style={styles.input}
                 placeholder="e.g., Mitundu Trading Centre"
-                onFocus={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                className="input-focus"
+                autoComplete="address-level2"
               />
             </div>
           </div>
@@ -622,7 +582,7 @@ const EditProfile = () => {
                 {logoPreview ? (
                   <img src={logoPreview} alt="Logo" style={{ ...styles.avatar, borderRadius: '12px' }} />
                 ) : (
-                  <div style={{ ...styles.avatarPlaceholder, borderRadius: '12px', fontSize: '28px' }}>
+                  <div style={{ ...styles.avatarPlaceholder, borderRadius: '12px', fontSize: 'clamp(24px, 3vw, 28px)' }}>
                     🏪
                   </div>
                 )}
@@ -658,8 +618,8 @@ const EditProfile = () => {
                 onChange={handleBusinessChange}
                 style={styles.input}
                 placeholder="Your business name"
-                onFocus={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                className="input-focus"
+                autoComplete="organization"
               />
             </div>
 
@@ -670,6 +630,7 @@ const EditProfile = () => {
                 value={business.category}
                 onChange={handleBusinessChange}
                 style={styles.select}
+                className="input-focus"
               >
                 <option value="">Select category</option>
                 {categories.map(cat => (
@@ -686,8 +647,7 @@ const EditProfile = () => {
                 onChange={handleBusinessChange}
                 style={styles.textarea}
                 placeholder="Describe what products or services you offer..."
-                onFocus={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                className="input-focus"
               />
             </div>
 
@@ -702,8 +662,8 @@ const EditProfile = () => {
                     onChange={handleBusinessChange}
                     style={styles.input}
                     placeholder="e.g., 0999123456"
-                    onFocus={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-                    onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                    className="input-focus"
+                    autoComplete="tel"
                   />
                 </div>
               </div>
@@ -717,8 +677,8 @@ const EditProfile = () => {
                     onChange={handleBusinessChange}
                     style={styles.input}
                     placeholder="e.g., Mitundu Trading Centre"
-                    onFocus={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-                    onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                    className="input-focus"
+                    autoComplete="address-line1"
                   />
                 </div>
               </div>
@@ -726,26 +686,21 @@ const EditProfile = () => {
           </div>
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={saving}
             disabled={saving}
-            style={saving ? styles.submitDisabled : styles.submitBtn}
-            onMouseEnter={(e) => {
-              if (!saving) e.currentTarget.style.backgroundColor = '#1d4ed8';
-            }}
-            onMouseLeave={(e) => {
-              if (!saving) e.currentTarget.style.backgroundColor = '#2563eb';
-            }}
           >
-            {saving ? (
-              'Saving...'
-            ) : (
+            {saving ? 'Saving...' : (
               <>
                 <SketchIcon d={ICONS.save} size={18} color="#ffffff" strokeWidth={2} />
                 Save Changes
               </>
             )}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

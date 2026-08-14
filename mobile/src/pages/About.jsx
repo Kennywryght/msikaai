@@ -1,7 +1,9 @@
-import React from 'react';
+// mobile/src/pages/About.jsx
+import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../context/TranslationContext';
 import LanguageToggle from '../components/LanguageToggle';
+import Button from '../components/Button';
 
 // --- HAND-DRAWN ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -37,6 +39,11 @@ const About = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  // Auto-focus on page load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const styles = {
     container: {
       minHeight: '100vh',
@@ -46,7 +53,7 @@ const About = () => {
     },
     nav: {
       backgroundColor: '#ffffff',
-      padding: '14px 28px',
+      padding: 'clamp(12px, 2vw, 14px) clamp(16px, 4vw, 28px)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -63,8 +70,8 @@ const About = () => {
       gap: '10px'
     },
     logoBadge: {
-      width: '38px',
-      height: '38px',
+      width: 'clamp(34px, 4vw, 38px)',
+      height: 'clamp(34px, 4vw, 38px)',
       backgroundColor: '#eff6ff',
       borderRadius: '10px',
       display: 'flex',
@@ -73,7 +80,7 @@ const About = () => {
       border: '1px solid #dbeafe'
     },
     brandTitle: {
-      fontSize: '22px',
+      fontSize: 'clamp(18px, 2.5vw, 22px)',
       fontWeight: '800',
       color: '#0f172a',
       margin: 0,
@@ -82,43 +89,23 @@ const About = () => {
     navActions: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
+      gap: '8px',
       flexWrap: 'wrap'
-    },
-    btnPrimary: {
-      padding: '8px 18px',
-      backgroundColor: '#2563eb',
-      color: '#ffffff',
-      borderRadius: '8px',
-      textDecoration: 'none',
-      fontSize: '14px',
-      fontWeight: '600',
-      display: 'inline-block'
-    },
-    btnSecondary: {
-      padding: '8px 16px',
-      backgroundColor: '#f1f5f9',
-      color: '#334155',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '600'
     },
     hero: {
       background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%)',
-      padding: '60px 24px',
+      padding: 'clamp(40px, 8vh, 60px) clamp(16px, 4vw, 24px)',
       textAlign: 'center',
       color: '#ffffff'
     },
     heroTitle: {
-      fontSize: '36px',
+      fontSize: 'clamp(28px, 5vw, 36px)',
       fontWeight: '800',
       marginBottom: '12px',
       lineHeight: '1.2'
     },
     heroSub: {
-      fontSize: '17px',
+      fontSize: 'clamp(15px, 1.8vw, 17px)',
       opacity: 0.85,
       maxWidth: '600px',
       margin: '0 auto'
@@ -126,13 +113,13 @@ const About = () => {
     content: {
       maxWidth: '1000px',
       margin: '0 auto',
-      padding: '40px 24px'
+      padding: 'clamp(24px, 4vw, 40px) clamp(16px, 3vw, 24px)'
     },
     section: {
-      marginBottom: '48px'
+      marginBottom: 'clamp(32px, 5vw, 48px)'
     },
     sectionTitle: {
-      fontSize: '24px',
+      fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '700',
       color: '#0f172a',
       marginBottom: '16px',
@@ -143,14 +130,14 @@ const About = () => {
     card: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
-      padding: '24px',
+      padding: 'clamp(16px, 2vw, 24px)',
       border: '1px solid #e2e8f0',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
     },
     contactCard: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
-      padding: '28px',
+      padding: 'clamp(20px, 2.5vw, 28px)',
       border: '1px solid #cbd5e1',
       boxShadow: '0 4px 12px rgba(37, 99, 235, 0.06)',
       display: 'flex',
@@ -161,24 +148,26 @@ const About = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-      fontSize: '16px',
-      color: '#334155'
+      fontSize: 'clamp(14px, 1.2vw, 16px)',
+      color: '#334155',
+      flexWrap: 'wrap'
     },
     contactLink: {
       color: '#2563eb',
       textDecoration: 'none',
-      fontWeight: '600'
+      fontWeight: '600',
+      wordBreak: 'break-all'
     },
     grid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(200px, 25vw, 250px), 1fr))',
       gap: '20px',
       marginTop: '16px'
     },
     valueCard: {
       backgroundColor: '#ffffff',
       borderRadius: '12px',
-      padding: '20px',
+      padding: 'clamp(16px, 1.5vw, 20px)',
       border: '1px solid #e2e8f0',
       textAlign: 'center'
     },
@@ -193,80 +182,80 @@ const About = () => {
       margin: '0 auto 12px auto'
     },
     valueTitle: {
-      fontSize: '16px',
+      fontSize: 'clamp(14px, 1.2vw, 16px)',
       fontWeight: '700',
       color: '#0f172a',
       marginBottom: '4px'
     },
     valueDesc: {
-      fontSize: '14px',
+      fontSize: 'clamp(12px, 1vw, 14px)',
       color: '#64748b',
       margin: 0
     },
     statGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(100px, 15vw, 120px), 1fr))',
       gap: '16px',
       marginTop: '16px'
     },
     statCard: {
       textAlign: 'center',
-      padding: '16px',
+      padding: 'clamp(12px, 1.5vw, 16px)',
       backgroundColor: '#f8fafc',
       borderRadius: '12px',
       border: '1px solid #e2e8f0'
     },
     statNumber: {
-      fontSize: '28px',
+      fontSize: 'clamp(22px, 3vw, 28px)',
       fontWeight: '800',
       color: '#2563eb'
     },
     statLabel: {
-      fontSize: '13px',
+      fontSize: 'clamp(11px, 1vw, 13px)',
       color: '#64748b',
       marginTop: '2px'
     },
     teamGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(160px, 20vw, 200px), 1fr))',
       gap: '20px',
       marginTop: '16px'
     },
     teamCard: {
       textAlign: 'center',
-      padding: '20px',
+      padding: 'clamp(16px, 1.5vw, 20px)',
       backgroundColor: '#f8fafc',
       borderRadius: '12px',
       border: '1px solid #e2e8f0'
     },
     teamAvatar: {
-      width: '80px',
-      height: '80px',
+      width: 'clamp(64px, 8vw, 80px)',
+      height: 'clamp(64px, 8vw, 80px)',
       backgroundColor: '#dbeafe',
       borderRadius: '50%',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       margin: '0 auto 12px auto',
-      fontSize: '32px'
+      fontSize: 'clamp(28px, 3.5vw, 32px)'
     },
     teamName: {
-      fontSize: '16px',
+      fontSize: 'clamp(14px, 1.2vw, 16px)',
       fontWeight: '700',
       color: '#0f172a',
       marginBottom: '2px'
     },
     teamRole: {
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1vw, 13px)',
       color: '#64748b',
       margin: 0
     },
     footer: {
       backgroundColor: '#0f172a',
       color: '#94a3b8',
-      padding: '24px',
+      padding: 'clamp(20px, 3vw, 24px)',
       textAlign: 'center',
-      fontSize: '14px',
+      fontSize: 'clamp(12px, 1vw, 14px)',
       borderTop: '1px solid #1e293b'
     }
   };
@@ -285,11 +274,17 @@ const About = () => {
         </div>
         <div style={styles.navActions}>
           <LanguageToggle />
-          <button onClick={() => navigate('/')} style={styles.btnSecondary}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/')}
+          >
             Home
-          </button>
-          <Link to="/login" style={styles.btnPrimary}>
-            Sign In
+          </Button>
+          <Link to="/login">
+            <Button variant="primary" size="sm">
+              Sign In
+            </Button>
           </Link>
         </div>
       </nav>
@@ -315,12 +310,12 @@ const About = () => {
             Our Mission
           </h2>
           <div style={styles.card}>
-            <p style={{ fontSize: '16px', color: '#475569', lineHeight: '1.7', margin: 0 }}>
+            <p style={{ fontSize: 'clamp(15px, 1.4vw, 16px)', color: '#475569', lineHeight: '1.7', margin: 0 }}>
               <strong>MsikaAI</strong> exists to empower local businesses, farmers, and skilled laborers in Mitundu 
               by providing a digital platform where they can be discovered, trusted, and connected with customers 
               — all powered by AI that works in Chichewa and English.
             </p>
-            <p style={{ fontSize: '16px', color: '#475569', lineHeight: '1.7', marginTop: '16px' }}>
+            <p style={{ fontSize: 'clamp(15px, 1.4vw, 16px)', color: '#475569', lineHeight: '1.7', marginTop: '16px' }}>
               We believe that technology should serve communities, not replace them. That's why we built MsikaAI 
               to be local-first, voice-friendly, and built for the way Malawians actually trade.
             </p>
@@ -334,7 +329,7 @@ const About = () => {
             Developer & Contact Info
           </h2>
           <div style={styles.contactCard}>
-            <p style={{ margin: 0, fontSize: '15px', color: '#475569', lineHeight: '1.5' }}>
+            <p style={{ margin: 0, fontSize: 'clamp(14px, 1.2vw, 15px)', color: '#475569', lineHeight: '1.5' }}>
               Have questions, feedback, or custom development inquiries? Get in touch directly with the lead developer:
             </p>
             <div style={styles.contactRow}>

@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// mobile/src/pages/Search.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { listingsAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
+import Button from '../components/Button';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../components/ToastContainer';
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -31,6 +35,8 @@ const ICONS = {
 
 const Search = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -39,6 +45,7 @@ const Search = () => {
   const [results, setResults] = useState([]);
   const [totalResults, setTotalResults] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const searchInputRef = useRef(null);
 
   const categories = [
     'All',
@@ -55,7 +62,21 @@ const Search = () => {
     'Other'
   ];
 
-  const performSearch = async (page = 0) => {
+  // Parse URL query params on mount
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q');
+    if (q) {
+      setSearchQuery(q);
+      performSearch(0, q);
+    }
+    // Auto-focus search input
+    if (searchInputRef.current) {
+      setTimeout(() => searchInputRef.current.focus(), 100);
+    }
+  }, []);
+
+  const performSearch = async (page = 0, query = searchQuery) => {
     setLoading(true);
 
     try {
@@ -64,7 +85,7 @@ const Search = () => {
         offset: page * 20
       };
 
-      if (searchQuery.trim()) params.q = searchQuery.trim();
+      if (query?.trim()) params.q = query.trim();
       if (selectedCategory && selectedCategory !== 'All') params.category = selectedCategory;
       if (minPrice) params.minPrice = parseFloat(minPrice);
       if (maxPrice) params.maxPrice = parseFloat(maxPrice);
@@ -75,6 +96,7 @@ const Search = () => {
     } catch (err) {
       console.error('Search error:', err);
       setResults([]);
+      showToast('Search failed. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -92,6 +114,9 @@ const Search = () => {
     setMaxPrice('');
     setResults([]);
     setTotalResults(0);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
   };
 
   const formatPrice = (price) => {
@@ -99,13 +124,16 @@ const Search = () => {
     return `MWK ${price.toLocaleString()}`;
   };
 
-  // Styles
+  if (loading) {
+    return <LoadingSpinner message="Searching..." />;
+  }
+
   const styles = {
     container: {
       minHeight: '100vh',
       backgroundColor: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '24px 16px'
+      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
     },
     backButton: {
       padding: '8px 16px',
@@ -113,17 +141,18 @@ const Search = () => {
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
       color: '#334155',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
-      marginBottom: '16px'
+      marginBottom: '16px',
+      transition: 'background-color 0.2s'
     },
     searchHeader: {
       backgroundColor: 'white',
-      padding: '20px',
+      padding: 'clamp(16px, 2vw, 20px)',
       borderRadius: '12px',
       border: '1px solid #e2e8f0',
       marginBottom: '20px'
@@ -131,32 +160,21 @@ const Search = () => {
     searchRow: {
       display: 'flex',
       gap: '12px',
-      alignItems: 'center'
+      alignItems: 'center',
+      flexWrap: 'wrap'
     },
     searchInput: {
       flex: 1,
-      padding: '12px 16px',
+      padding: 'clamp(10px, 1vw, 12px) clamp(14px, 1.5vw, 16px)',
       border: '2px solid #e2e8f0',
       borderRadius: '8px',
-      fontSize: '15px',
+      fontSize: 'clamp(14px, 1.2vw, 15px)',
       outline: 'none',
       backgroundColor: '#ffffff',
       color: '#0f172a',
       fontFamily: 'inherit',
-      transition: 'border-color 0.2s'
-    },
-    searchBtn: {
-      padding: '12px 24px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '15px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px'
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+      minWidth: '180px'
     },
     filterToggle: {
       backgroundColor: '#f1f5f9',
@@ -164,7 +182,7 @@ const Search = () => {
       padding: '8px 16px',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '500',
       color: '#334155',
       marginTop: '12px',
@@ -180,10 +198,10 @@ const Search = () => {
     },
     filterGroup: {
       flex: 1,
-      minWidth: '150px'
+      minWidth: 'clamp(120px, 30vw, 150px)'
     },
     filterLabel: {
-      fontSize: '12px',
+      fontSize: 'clamp(11px, 0.9vw, 12px)',
       fontWeight: '600',
       color: '#64748b',
       display: 'block',
@@ -191,59 +209,42 @@ const Search = () => {
     },
     filterSelect: {
       width: '100%',
-      padding: '8px 12px',
+      padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
-      color: '#0f172a',
-      backgroundColor: '#ffffff',
-      fontFamily: 'inherit'
-    },
-    filterInput: {
-      width: '100%',
-      padding: '8px 12px',
-      border: '1px solid #cbd5e1',
-      borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       backgroundColor: '#ffffff',
       fontFamily: 'inherit',
-      boxSizing: 'border-box'
+      outline: 'none'
+    },
+    filterInput: {
+      width: '100%',
+      padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
+      border: '1px solid #cbd5e1',
+      borderRadius: '8px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
+      color: '#0f172a',
+      backgroundColor: '#ffffff',
+      fontFamily: 'inherit',
+      boxSizing: 'border-box',
+      outline: 'none'
     },
     filterActions: {
       display: 'flex',
       alignItems: 'flex-end',
-      gap: '8px'
-    },
-    applyBtn: {
-      padding: '8px 16px',
-      backgroundColor: '#16a34a',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '600'
-    },
-    clearBtn: {
-      padding: '8px 16px',
-      backgroundColor: '#e2e8f0',
-      color: '#334155',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '13px',
-      fontWeight: '500'
+      gap: '8px',
+      flexWrap: 'wrap'
     },
     resultCount: {
       color: '#64748b',
       marginBottom: '12px',
-      fontSize: '14px'
+      fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     resultCard: {
       backgroundColor: 'white',
       borderRadius: '12px',
-      padding: '16px',
+      padding: 'clamp(14px, 1.5vw, 16px)',
       marginBottom: '12px',
       border: '1px solid #e2e8f0',
       cursor: 'pointer',
@@ -252,16 +253,17 @@ const Search = () => {
     resultRow: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'start'
+      alignItems: 'start',
+      gap: '12px'
     },
     resultTitle: {
-      fontSize: '16px',
+      fontSize: 'clamp(15px, 1.3vw, 16px)',
       fontWeight: '600',
       color: '#0f172a',
       margin: '0 0 2px 0'
     },
     resultBusiness: {
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#64748b',
       margin: '0 0 8px 0'
     },
@@ -274,25 +276,19 @@ const Search = () => {
       display: 'inline-block',
       padding: '3px 12px',
       borderRadius: '9999px',
-      fontSize: '12px',
+      fontSize: 'clamp(11px, 0.9vw, 12px)',
       fontWeight: '500'
     },
     resultImage: {
-      width: '80px',
-      height: '80px',
+      width: 'clamp(60px, 8vw, 80px)',
+      height: 'clamp(60px, 8vw, 80px)',
       objectFit: 'cover',
       borderRadius: '8px',
-      marginLeft: '12px',
       flexShrink: 0
-    },
-    loadingContainer: {
-      textAlign: 'center',
-      padding: '40px',
-      color: '#64748b'
     },
     emptyState: {
       textAlign: 'center',
-      padding: '40px 20px',
+      padding: 'clamp(32px, 4vw, 40px) clamp(16px, 2vw, 20px)',
       color: '#64748b'
     },
     shareSection: {
@@ -304,7 +300,19 @@ const Search = () => {
 
   return (
     <div style={styles.container}>
-      <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
+      <style>{`
+        .search-input-focus:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+      `}</style>
+
+      <button 
+        onClick={() => navigate('/dashboard')} 
+        style={styles.backButton}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#cbd5e1'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+      >
         <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
         Back to Dashboard
       </button>
@@ -313,16 +321,23 @@ const Search = () => {
         <form onSubmit={handleSearch}>
           <div style={styles.searchRow}>
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Search products or services..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={styles.searchInput}
+              className="search-input-focus"
+              autoComplete="off"
             />
-            <button type="submit" style={styles.searchBtn}>
-              <SketchIcon d={ICONS.search} size={16} color="#ffffff" strokeWidth={2} />
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              iconLeft={<SketchIcon d={ICONS.search} size={16} color="#ffffff" strokeWidth={2} />}
+            >
               Search
-            </button>
+            </Button>
           </div>
         </form>
 
@@ -366,23 +381,26 @@ const Search = () => {
               />
             </div>
             <div style={styles.filterActions}>
-              <button onClick={() => performSearch(0)} style={styles.applyBtn}>
+              <Button
+                variant="success"
+                size="sm"
+                onClick={() => performSearch(0)}
+              >
                 Apply
-              </button>
-              <button onClick={clearFilters} style={styles.clearBtn}>
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={clearFilters}
+              >
                 Clear
-              </button>
+              </Button>
             </div>
           </div>
         )}
       </div>
 
-      {loading ? (
-        <div style={styles.loadingContainer}>
-          <SketchIcon d={ICONS.search} size={32} color="#94a3b8" strokeWidth={1.5} />
-          <p>Searching...</p>
-        </div>
-      ) : results.length > 0 ? (
+      {results.length > 0 ? (
         <>
           <p style={styles.resultCount}>Found {totalResults} results</p>
           {results.map((listing) => (
@@ -400,7 +418,7 @@ const Search = () => {
               }}
             >
               <div style={styles.resultRow}>
-                <div>
+                <div style={{ flex: 1 }}>
                   <h3 style={styles.resultTitle}>{listing.title}</h3>
                   <p style={styles.resultBusiness}>{listing.businesses?.business_name || 'Unknown Business'}</p>
                   <div style={styles.badgeGroup}>
@@ -420,11 +438,11 @@ const Search = () => {
                   </div>
                 </div>
                 {listing.images && listing.images.length > 0 && (
-                  <img src={listing.images[0]} alt={listing.title} style={styles.resultImage} />
+                  <img src={listing.images[0]} alt={listing.title} style={styles.resultImage} loading="lazy" />
                 )}
               </div>
 
-              {/* Share Section - New */}
+              {/* Share Section */}
               <div style={styles.shareSection}>
                 <SocialShare 
                   title={listing.title}
@@ -439,14 +457,16 @@ const Search = () => {
         </>
       ) : searchQuery || selectedCategory ? (
         <div style={styles.emptyState}>
-          <p>No results found</p>
-          <p style={{ fontSize: '14px' }}>Try adjusting your search or filters</p>
+          <p style={{ fontWeight: '600', color: '#0f172a', fontSize: 'clamp(16px, 1.6vw, 18px)' }}>No results found</p>
+          <p style={{ fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Try adjusting your search or filters</p>
         </div>
       ) : (
         <div style={styles.emptyState}>
           <SketchIcon d={ICONS.search} size={48} color="#94a3b8" strokeWidth={1.5} />
-          <p style={{ marginTop: '12px' }}>Search for products and services in Mitundu</p>
-          <p style={{ fontSize: '14px' }}>Enter a search term above to get started</p>
+          <p style={{ marginTop: '12px', fontWeight: '600', color: '#0f172a', fontSize: 'clamp(16px, 1.6vw, 18px)' }}>
+            Search for products and services in Mitundu
+          </p>
+          <p style={{ fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Enter a search term above to get started</p>
         </div>
       )}
     </div>

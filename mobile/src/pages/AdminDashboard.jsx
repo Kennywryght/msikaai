@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from '../components/LoadingSpinner';
-import Toast from '../components/Toast';
+import Button from '../components/Button';
+import { useToast } from '../components/ToastContainer';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { showToast, success, error } = useToast();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     users: 0,
@@ -16,7 +18,6 @@ const AdminDashboard = () => {
     recentOrders: [],
     recentUsers: []
   });
-  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     checkAdminAndLoadData();
@@ -44,9 +45,9 @@ const AdminDashboard = () => {
       }
 
       await loadDashboardData();
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      setToast({ message: 'Error loading dashboard', type: 'error' });
+    } catch (err) {
+      console.error('Error checking admin status:', err);
+      showToast('Error loading dashboard', 'error');
     } finally {
       setLoading(false);
     }
@@ -59,9 +60,9 @@ const AdminDashboard = () => {
         .from('profiles')
         .select('*', { count: 'exact', head: true });
 
-      // Get total projects
-      const { count: projectsCount } = await supabase
-        .from('projects')
+      // Get total listings
+      const { count: listingsCount } = await supabase
+        .from('listings')
         .select('*', { count: 'exact', head: true });
 
       // Get total orders
@@ -93,15 +94,15 @@ const AdminDashboard = () => {
 
       setStats({
         users: usersCount || 0,
-        projects: projectsCount || 0,
+        projects: listingsCount || 0,
         orders: ordersCount || 0,
         revenue: totalRevenue,
         recentOrders: recentOrders || [],
         recentUsers: recentUsers || []
       });
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      setToast({ message: 'Error loading data', type: 'error' });
+    } catch (err) {
+      console.error('Error loading dashboard data:', err);
+      showToast('Error loading data', 'error');
     }
   };
 
@@ -135,15 +136,17 @@ const AdminDashboard = () => {
     },
     header: {
       backgroundColor: '#ffffff',
-      padding: '20px 32px',
+      padding: 'clamp(16px, 2vw, 20px) clamp(16px, 4vw, 32px)',
       borderBottom: '1px solid #e2e8f0',
       boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center'
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '12px'
     },
     headerTitle: {
-      fontSize: '24px',
+      fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '800',
       color: '#0f172a',
       margin: 0,
@@ -154,34 +157,24 @@ const AdminDashboard = () => {
     headerActions: {
       display: 'flex',
       gap: '12px',
-      alignItems: 'center'
-    },
-    logoutBtn: {
-      padding: '8px 16px',
-      backgroundColor: '#ef4444',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '600',
-      transition: 'background-color 0.2s'
+      alignItems: 'center',
+      flexWrap: 'wrap'
     },
     statsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-      gap: '20px',
-      padding: '28px 32px 20px 32px'
+      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(160px, 22vw, 220px), 1fr))',
+      gap: 'clamp(12px, 1.5vw, 20px)',
+      padding: 'clamp(16px, 2vw, 28px) clamp(16px, 4vw, 32px) clamp(12px, 1.5vw, 20px) clamp(16px, 4vw, 32px)'
     },
     statCard: {
       backgroundColor: '#ffffff',
       borderRadius: '14px',
-      padding: '20px',
+      padding: 'clamp(14px, 1.5vw, 20px)',
       border: '1px solid #e2e8f0',
       boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
     },
     statLabel: {
-      fontSize: '13px',
+      fontSize: 'clamp(11px, 0.9vw, 13px)',
       fontWeight: '600',
       color: '#64748b',
       textTransform: 'uppercase',
@@ -189,36 +182,38 @@ const AdminDashboard = () => {
       margin: '0 0 8px 0'
     },
     statValue: {
-      fontSize: '28px',
+      fontSize: 'clamp(22px, 3vw, 28px)',
       fontWeight: '800',
       color: '#0f172a',
       margin: 0
     },
     contentGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-      gap: '20px',
-      padding: '0 32px 32px 32px'
+      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(280px, 40vw, 340px), 1fr))',
+      gap: 'clamp(12px, 1.5vw, 20px)',
+      padding: '0 clamp(16px, 4vw, 32px) clamp(32px, 4vw, 32px) clamp(16px, 4vw, 32px)'
     },
     section: {
       backgroundColor: '#ffffff',
       borderRadius: '14px',
-      padding: '24px',
+      padding: 'clamp(16px, 2vw, 24px)',
       border: '1px solid #e2e8f0',
       boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
     },
     sectionTitle: {
-      fontSize: '18px',
+      fontSize: 'clamp(16px, 1.6vw, 18px)',
       fontWeight: '700',
       color: '#0f172a',
       margin: '0 0 16px 0'
     },
     listItem: {
-      padding: '12px 0',
+      padding: 'clamp(10px, 1vw, 12px) 0',
       borderBottom: '1px solid #f1f5f9',
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center'
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '8px'
     },
     listItemLast: {
       borderBottom: 'none'
@@ -226,17 +221,17 @@ const AdminDashboard = () => {
     itemName: {
       fontWeight: '600',
       color: '#0f172a',
-      fontSize: '15px'
+      fontSize: 'clamp(14px, 1.2vw, 15px)'
     },
     itemSub: {
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1vw, 13px)',
       color: '#64748b',
       marginTop: '2px'
     },
     statusBadge: {
       padding: '4px 12px',
       borderRadius: '20px',
-      fontSize: '12px',
+      fontSize: 'clamp(11px, 0.9vw, 12px)',
       fontWeight: '600',
       textTransform: 'capitalize'
     }
@@ -248,25 +243,16 @@ const AdminDashboard = () => {
 
   return (
     <div style={styles.container}>
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-
       <header style={styles.header}>
         <h1 style={styles.headerTitle}>📊 Admin Dashboard</h1>
         <div style={styles.headerActions}>
-          <button 
-            style={styles.logoutBtn} 
+          <Button
+            variant="danger"
+            size="sm"
             onClick={handleLogout}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
           >
             Logout
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -276,7 +262,7 @@ const AdminDashboard = () => {
           <p style={styles.statValue}>{stats.users.toLocaleString()}</p>
         </div>
         <div style={styles.statCard}>
-          <p style={styles.statLabel}>Total Projects</p>
+          <p style={styles.statLabel}>Total Listings</p>
           <p style={styles.statValue}>{stats.projects.toLocaleString()}</p>
         </div>
         <div style={styles.statCard}>
@@ -305,7 +291,7 @@ const AdminDashboard = () => {
                   ...(index === stats.recentOrders.length - 1 ? styles.listItemLast : {})
                 }}>
                   <div>
-                    <div style={styles.itemName}>Order #{order.id.slice(0, 8)}</div>
+                    <div style={styles.itemName}>Order #{order.id?.slice(0, 8) || 'N/A'}</div>
                     <div style={styles.itemSub}>
                       {formatCurrency(order.total_amount)}
                       {order.created_at && ` • ${formatDate(order.created_at)}`}

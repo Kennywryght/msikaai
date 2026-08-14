@@ -1,9 +1,13 @@
-import React, { useState, useRef } from 'react';
+// mobile/src/pages/AdGenerator.jsx
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { adAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
+import Button from '../components/Button';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../components/ToastContainer';
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -36,6 +40,7 @@ const AdGenerator = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { showToast, success, error } = useToast();
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [productInfo, setProductInfo] = useState({
@@ -47,7 +52,7 @@ const AdGenerator = () => {
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const fileInputRef = useRef();
 
   const categories = [
@@ -64,6 +69,14 @@ const AdGenerator = () => {
     'Other'
   ];
 
+  // Auto-focus title input on mount
+  useEffect(() => {
+    const titleInput = document.querySelector('input[name="title"]');
+    if (titleInput) {
+      setTimeout(() => titleInput.focus(), 100);
+    }
+  }, []);
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -78,12 +91,13 @@ const AdGenerator = () => {
 
   const handleGenerateAd = async () => {
     if (!image) {
-      setError('Please select an image first');
+      setErrorMsg('Please select an image first');
+      showToast('Please select an image first', 'error');
       return;
     }
 
     setLoading(true);
-    setError('');
+    setErrorMsg('');
 
     try {
       const formData = new FormData();
@@ -94,11 +108,16 @@ const AdGenerator = () => {
       
       if (response.data.success) {
         setResult(response.data);
+        success('🎨 Ad generated successfully!');
       } else {
-        setError(response.data.error || 'Failed to generate ad');
+        const errMsg = response.data.error || 'Failed to generate ad';
+        setErrorMsg(errMsg);
+        showToast(errMsg, 'error');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to generate ad');
+      const errMsg = err.response?.data?.error || 'Failed to generate ad';
+      setErrorMsg(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setLoading(false);
     }
@@ -118,11 +137,16 @@ const AdGenerator = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    // Focus title input after reset
+    setTimeout(() => {
+      const titleInput = document.querySelector('input[name="title"]');
+      if (titleInput) titleInput.focus();
+    }, 100);
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    alert('📋 Copied to clipboard!');
+    success('📋 Copied to clipboard!');
   };
 
   // Styles
@@ -131,14 +155,14 @@ const AdGenerator = () => {
       minHeight: '100vh',
       backgroundColor: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '24px 16px',
+      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)',
       maxWidth: '800px',
       margin: '0 auto'
     },
     card: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
-      padding: '24px',
+      padding: 'clamp(16px, 2vw, 24px)',
       marginBottom: '20px',
       border: '1px solid #e2e8f0',
       boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
@@ -149,7 +173,7 @@ const AdGenerator = () => {
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
       color: '#334155',
       display: 'inline-flex',
@@ -159,7 +183,7 @@ const AdGenerator = () => {
       transition: 'all 0.2s'
     },
     title: {
-      fontSize: '22px',
+      fontSize: 'clamp(20px, 2.5vw, 22px)',
       fontWeight: '800',
       color: '#0f172a',
       margin: '0 0 4px 0',
@@ -168,66 +192,72 @@ const AdGenerator = () => {
       gap: '10px'
     },
     subtitle: {
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#64748b',
       margin: '0 0 20px 0'
     },
     label: {
       display: 'block',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
       color: '#334155',
       marginBottom: '6px'
     },
     input: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+      WebkitAppearance: 'none'
     },
     textarea: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
       fontFamily: 'inherit',
       resize: 'vertical',
-      minHeight: '80px'
+      minHeight: 'clamp(60px, 8vw, 80px)',
+      transition: 'border-color 0.2s, box-shadow 0.2s'
     },
     select: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      WebkitAppearance: 'none'
     },
     row: {
       display: 'flex',
-      gap: '12px'
+      gap: '12px',
+      flexWrap: 'wrap'
     },
     half: {
-      flex: 1
+      flex: 1,
+      minWidth: 'clamp(140px, 40vw, 200px)'
     },
     uploadArea: {
       border: '2px dashed #cbd5e1',
       borderRadius: '12px',
-      padding: '24px',
+      padding: 'clamp(16px, 2vw, 24px)',
       textAlign: 'center',
       cursor: 'pointer',
       backgroundColor: '#f8fafc',
@@ -235,41 +265,10 @@ const AdGenerator = () => {
     },
     previewImage: {
       maxWidth: '100%',
-      maxHeight: '220px',
+      maxHeight: 'clamp(160px, 25vw, 220px)',
       objectFit: 'contain',
       borderRadius: '8px',
       boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
-    },
-    generateBtn: {
-      width: '100%',
-      padding: '12px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      transition: 'background-color 0.2s'
-    },
-    generateDisabled: {
-      width: '100%',
-      padding: '12px',
-      backgroundColor: '#93c5fd',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'not-allowed',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px'
     },
     error: {
       color: '#dc2626',
@@ -278,17 +277,17 @@ const AdGenerator = () => {
       borderRadius: '8px',
       border: '1px solid #fecaca',
       marginTop: '12px',
-      fontSize: '14px'
+      fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     adPreview: {
       backgroundColor: '#f8fafc',
-      padding: '18px',
+      padding: 'clamp(14px, 1.5vw, 18px)',
       borderRadius: '12px',
       border: '1px solid #e2e8f0',
       marginBottom: '16px'
     },
     adTitle: {
-      fontSize: '18px',
+      fontSize: 'clamp(16px, 1.6vw, 18px)',
       fontWeight: '700',
       color: '#1e40af',
       margin: '0 0 6px 0'
@@ -296,12 +295,14 @@ const AdGenerator = () => {
     adDesc: {
       color: '#334155',
       margin: '0 0 10px 0',
-      lineHeight: '1.5'
+      lineHeight: '1.5',
+      fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     adCTA: {
       color: '#2563eb',
       fontWeight: '600',
-      margin: '0 0 8px 0'
+      margin: '0 0 8px 0',
+      fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     hashtag: {
       display: 'inline-block',
@@ -309,13 +310,13 @@ const AdGenerator = () => {
       backgroundColor: '#dbeafe',
       color: '#1e40af',
       borderRadius: '6px',
-      fontSize: '12px',
+      fontSize: 'clamp(11px, 0.9vw, 12px)',
       fontWeight: '500',
       marginRight: '6px',
       marginTop: '4px'
     },
     socialCard: {
-      padding: '14px',
+      padding: 'clamp(12px, 1.2vw, 14px)',
       borderRadius: '10px',
       marginBottom: '10px',
       border: '1px solid transparent'
@@ -324,11 +325,13 @@ const AdGenerator = () => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '6px'
+      marginBottom: '6px',
+      flexWrap: 'wrap',
+      gap: '8px'
     },
     socialLabel: {
       fontWeight: '600',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       display: 'flex',
       alignItems: 'center',
       gap: '6px'
@@ -340,34 +343,37 @@ const AdGenerator = () => {
       border: 'none',
       borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px',
+      fontSize: 'clamp(11px, 0.9vw, 12px)',
       fontWeight: '500',
       display: 'flex',
       alignItems: 'center',
-      gap: '4px'
+      gap: '4px',
+      touchAction: 'manipulation'
     },
     socialText: {
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#334155',
       margin: 0,
       whiteSpace: 'pre-wrap',
-      lineHeight: '1.4'
+      lineHeight: '1.4',
+      wordBreak: 'break-word'
     },
     resetBtn: {
       width: '100%',
-      padding: '12px',
+      padding: 'clamp(10px, 1.2vw, 12px)',
       backgroundColor: '#f1f5f9',
       color: '#334155',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '15px',
+      fontSize: 'clamp(14px, 1.2vw, 15px)',
       fontWeight: '600',
       cursor: 'pointer',
       marginTop: '16px',
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '8px'
+      gap: '8px',
+      touchAction: 'manipulation'
     },
     loadingContainer: {
       display: 'flex',
@@ -389,24 +395,36 @@ const AdGenerator = () => {
       borderTop: '1px solid #e2e8f0'
     },
     shareLabel: {
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '600',
       color: '#0f172a',
       marginBottom: '10px'
     }
   };
 
+  if (loading) {
+    return <LoadingSpinner message="Generating your ad..." />;
+  }
+
   return (
     <div style={styles.container}>
-      {/* Inject Keyframe Animation for Spinner */}
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        .input-focus:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
       `}</style>
 
-      <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
+      <button 
+        onClick={() => navigate('/dashboard')} 
+        style={styles.backButton}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+      >
         <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
         Back to Dashboard
       </button>
@@ -437,14 +455,19 @@ const AdGenerator = () => {
               accept="image/*"
               onChange={handleImageUpload}
               style={{ display: 'none' }}
+              aria-label="Upload product image"
             />
             {imagePreview ? (
               <img src={imagePreview} alt="Preview" style={styles.previewImage} />
             ) : (
               <div>
                 <SketchIcon d={ICONS.image} size={48} color="#94a3b8" strokeWidth={1.5} />
-                <p style={{ color: '#64748b', marginTop: '8px', fontWeight: '500' }}>Click to upload product image</p>
-                <p style={{ color: '#94a3b8', fontSize: '12px' }}>PNG, JPG, GIF up to 10MB</p>
+                <p style={{ color: '#64748b', marginTop: '8px', fontWeight: '500', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>
+                  Click to upload product image
+                </p>
+                <p style={{ color: '#94a3b8', fontSize: 'clamp(11px, 0.9vw, 12px)' }}>
+                  PNG, JPG, GIF up to 10MB
+                </p>
               </div>
             )}
           </div>
@@ -455,10 +478,13 @@ const AdGenerator = () => {
           <label style={styles.label}>Product Title</label>
           <input
             type="text"
+            name="title"
             value={productInfo.title}
             onChange={(e) => setProductInfo({ ...productInfo, title: e.target.value })}
             style={styles.input}
             placeholder="e.g., Fresh Tomatoes"
+            className="input-focus"
+            autoComplete="off"
           />
         </div>
 
@@ -469,6 +495,7 @@ const AdGenerator = () => {
             onChange={(e) => setProductInfo({ ...productInfo, description: e.target.value })}
             style={styles.textarea}
             placeholder="Brief description of your product..."
+            className="input-focus"
           />
         </div>
 
@@ -483,6 +510,7 @@ const AdGenerator = () => {
                 value={productInfo.category}
                 onChange={(e) => setProductInfo({ ...productInfo, category: e.target.value })}
                 style={styles.select}
+                className="input-focus"
               >
                 <option value="">Select category</option>
                 {categories.map(cat => (
@@ -503,6 +531,8 @@ const AdGenerator = () => {
                 onChange={(e) => setProductInfo({ ...productInfo, price: e.target.value })}
                 style={styles.input}
                 placeholder="e.g., 5000"
+                className="input-focus"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -516,51 +546,53 @@ const AdGenerator = () => {
             onChange={(e) => setProductInfo({ ...productInfo, unit: e.target.value })}
             style={styles.input}
             placeholder="e.g., bag, kg, piece"
+            className="input-focus"
+            autoComplete="off"
           />
         </div>
 
-        <button
+        <Button
           onClick={handleGenerateAd}
+          variant="primary"
+          size="lg"
+          fullWidth
           disabled={loading || !image}
-          style={loading || !image ? styles.generateDisabled : styles.generateBtn}
+          loading={loading}
         >
-          {loading ? (
-            <span style={styles.loadingContainer}>
-              <span style={styles.spinner}></span>
-              Generating...
-            </span>
-          ) : (
+          {loading ? 'Generating...' : (
             <>
               <SketchIcon d={ICONS.sparkles} size={18} color="#ffffff" strokeWidth={2} />
               Generate Ad
             </>
           )}
-        </button>
+        </Button>
 
-        {error && <div style={styles.error}>{error}</div>}
+        {errorMsg && <div style={styles.error}>❌ {errorMsg}</div>}
       </div>
 
       {/* Results */}
       {result && (
         <div style={styles.card}>
-          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: 'clamp(16px, 1.6vw, 18px)', fontWeight: '700', color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <SketchIcon d={ICONS.sparkles} size={20} color="#f59e0b" strokeWidth={2} />
             Your AI-Generated Ad
           </h3>
 
           <div style={styles.adPreview}>
-            <h3 style={styles.adTitle}>{result.ad?.title}</h3>
-            <p style={styles.adDesc}>{result.ad?.description}</p>
-            <p style={styles.adCTA}>{result.ad?.callToAction}</p>
+            <h3 style={styles.adTitle}>{result.ad?.headline || result.ad?.title}</h3>
+            <p style={styles.adDesc}>{result.ad?.fullCopy || result.ad?.description}</p>
+            <p style={styles.adCTA}>{result.ad?.cta || result.ad?.callToAction}</p>
             <div style={{ marginTop: '8px' }}>
-              {result.ad?.hashtags?.map((tag, index) => (
-                <span key={index} style={styles.hashtag}>#{tag}</span>
+              {result.ad?.sellingPoints?.map((point, index) => (
+                <span key={index} style={{ ...styles.hashtag, backgroundColor: '#ecfdf5', color: '#065f46' }}>
+                  ✓ {point}
+                </span>
               ))}
             </div>
           </div>
 
           <div style={{ marginTop: '12px' }}>
-            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', fontWeight: '600', color: '#0f172a', marginBottom: '8px' }}>
               📱 Social Media Posts
             </h4>
             
@@ -595,8 +627,8 @@ const AdGenerator = () => {
           <div style={styles.shareSection}>
             <p style={styles.shareLabel}>📤 Share This Ad</p>
             <SocialShare 
-              title={result.ad?.title || 'Check out this product!'}
-              description={result.ad?.description || ''}
+              title={result.ad?.headline || result.ad?.title || 'Check out this product!'}
+              description={result.ad?.fullCopy || result.ad?.description || ''}
               url={window.location.href}
             />
           </div>

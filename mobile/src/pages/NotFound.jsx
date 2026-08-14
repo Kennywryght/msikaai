@@ -1,5 +1,8 @@
+// mobile/src/pages/NotFound.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import Button from '../components/Button';
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -20,10 +23,13 @@ const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) =
 
 const ICONS = {
   arrowRight: "M5 12h14M12 5l7 7-7 7",
-  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9"
+  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+  search: "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35"
 };
 
 const NotFound = () => {
+  const { user } = useAuth();
+
   const styles = {
     container: {
       minHeight: '100vh',
@@ -36,44 +42,54 @@ const NotFound = () => {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       textAlign: 'center'
     },
-    emoji: {
-      fontSize: '80px',
+    content: {
+      maxWidth: '480px',
+      animation: 'fadeIn 0.5s ease-out',
+    },
+    number: {
+      fontSize: '120px',
+      fontWeight: '900',
+      color: '#e2e8f0',
+      lineHeight: 1,
+      marginBottom: '8px',
+      letterSpacing: '-0.05em',
+    },
+    icon: {
+      fontSize: '64px',
       marginBottom: '16px',
-      animation: 'bounce 2s ease-in-out infinite'
     },
     title: {
-      fontSize: '36px',
-      fontWeight: '800',
+      fontSize: '28px',
+      fontWeight: '700',
       color: '#0f172a',
-      margin: '0 0 8px 0'
+      marginBottom: '8px',
     },
-    subtitle: {
-      fontSize: '16px',
+    description: {
       color: '#64748b',
-      margin: '0 0 24px 0',
-      maxWidth: '400px'
+      fontSize: '16px',
+      marginBottom: '32px',
+      lineHeight: '1.6',
+    },
+    actions: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+      alignItems: 'center',
+    },
+    support: {
+      marginTop: '24px',
+      color: '#94a3b8',
+      fontSize: '14px',
     },
     link: {
-      padding: '12px 32px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      borderRadius: '8px',
+      color: '#2563eb',
       textDecoration: 'none',
-      fontSize: '16px',
-      fontWeight: '600',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      transition: 'background-color 0.2s, transform 0.2s'
-    },
-    linkHover: {
-      backgroundColor: '#1d4ed8',
-      transform: 'translateY(-2px)'
+      fontWeight: '500',
     },
     keyframes: `
-      @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-20px); }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
       }
     `
   };
@@ -82,29 +98,41 @@ const NotFound = () => {
     <div style={styles.container}>
       <style>{styles.keyframes}</style>
       
-      <div style={styles.emoji}>🔍</div>
-      
-      <h1 style={styles.title}>Page Not Found</h1>
-      
-      <p style={styles.subtitle}>
-        The page you're looking for doesn't exist or has been moved.
-      </p>
-      
-      <Link 
-        to="/" 
-        style={styles.link}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#1d4ed8';
-          e.currentTarget.style.transform = 'translateY(-2px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#2563eb';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
-      >
-        <SketchIcon d={ICONS.arrowRight} size={18} color="#ffffff" strokeWidth={2.5} />
-        Go Home
-      </Link>
+      <div style={styles.content}>
+        {/* 404 Number */}
+        <div style={styles.number}>404</div>
+        
+        {/* Icon */}
+        <div style={styles.icon}>🔍</div>
+        
+        {/* Title */}
+        <h1 style={styles.title}>Page Not Found</h1>
+        
+        {/* Description */}
+        <p style={styles.description}>
+          The page you're looking for doesn't exist or has been moved.
+        </p>
+        
+        {/* Actions */}
+        <div style={styles.actions}>
+          <Link to={user ? '/dashboard' : '/'} style={{ width: '100%' }}>
+            <Button variant="primary" size="lg" fullWidth>
+              {user ? 'Go to Dashboard' : 'Go Home'}
+            </Button>
+          </Link>
+          
+          <Link to="/search" style={{ width: '100%' }}>
+            <Button variant="secondary" size="lg" fullWidth>
+              Browse Listings
+            </Button>
+          </Link>
+        </div>
+        
+        {/* Support Link */}
+        <p style={styles.support}>
+          Need help? <a href="mailto:support@kumsika.com" style={styles.link}>Contact Support</a>
+        </p>
+      </div>
     </div>
   );
 };

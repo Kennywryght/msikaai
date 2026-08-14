@@ -1,418 +1,245 @@
-// backend/src/api/payments.js
-import express from 'express';
-import Stripe from 'stripe';
-import { createClient } from '@supabase/supabase-js';
-import { logger } from '../utils/logger.js';
-import { authenticateToken } from '../middleware/auth.js';
-
+// backend/src/api/payment.js
+const express = require('express');
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+const auth = require('../middleware/auth');
+const paymentService = require('../services/paymentService');
+const supabase = require('../lib/supabase');
+const logger = require('../utils/logger');
 
 // ============================================
-// 1. CREATE PAYMENT INTENT
+// Subscription Plans
 // ============================================
-router.post('/create-payment-intent', authenticateToken, async (req, res) => {
+const PLANS = {
+  free: {
+    id: 'free',
+    name: 'Free',
+    price: 0,
+    currency: 'MWK',
+    listings: 3,
+    features: ['Basic listing', 'Standard support']
+  },
+  basic: {
+    id: 'basic',
+    name: 'Basic',
+    price: 2000,
+    currency: 'MWK',
+    listings: 10,
+    features: ['Premium listing', 'Priority support', 'Featured placement']
+  },
+  pro: {
+    id: 'pro',
+    name: 'Professional',
+    price: 5000,
+    currency: 'MWK',
+    listings: 25,
+    features: ['Premium listing', 'Priority support', 'Featured placement', 'AI recommendations', 'Analytics dashboard']
+  },
+  business: {
+    id: 'business',
+    name: 'Business',
+    price: 10000,
+    currency: 'MWK',
+    listings: 50,
+    features: ['All features', 'Multi-user access', 'API access', 'White-label option']
+  }
+};
+
+// ============================================
+// Get available plans
+// ============================================
+router.get('/plans', async (req, res) => {
   try {
-    const { 
-      amount, 
-      currency = 'usd', 
-      metadata = {},
-      paymentMethodTypes = ['card'],
-      description = 'MsikaAI Payment'
-    } = req.body;
+    res.json({
+      success: true,
+      plans: PLANS
+    });
+  } catch (error) {
+    logger.error('Error fetching plans:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch plans'
+    });
+  }
+});
 
-    // Validate amount
-    if (!amount || amount <= 0) {
+// ============================================
+// Initiate payment
+// ============================================
+router.post('/initiate', auth, async (req, res) => {
+  try {
+    const { plan, method, amount, currency } = req.body;
+    const userId = req.user.id;
+
+    // Validate plan
+    if (!PLANS[plan]) {
       return res.status(400).json({
         success: false,
-        error: 'Valid amount is required'
+        error: 'Invalid plan selected'
+      });
+    }
+
+    // Validate payment method
+    const validMethods = ['airtel_money', 'mpamba', 'card'];
+    if (!validMethods.includes(method)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid payment method'
       });
     }
 
     // Create payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency,
-      metadata: {
-        userId: req.user.id,
-        userEmail: req.user.email,
-        ...metadata
-      },
-      payment_method_types: paymentMethodTypes,
-      description,
-      receipt_email: req.user.email,
-      statement_descriptor: 'MsikaAI Payment',
-      statement_descriptor_suffix: 'Marketplace',
+    const paymentIntent = await paymentService.createPaymentIntent({
+      userId,
+      plan,
+      amount: PLANS[plan].price,
+      currency: PLANS[plan].currency,
+      method
     });
-
-    logger.info(`Payment intent created: ${paymentIntent.id} for user ${req.user.id}`);
-
-    // Save payment intent to database
-    await supabase
-      .from('payment_intents')
-      .insert({
-        id: paymentIntent.id,
-        user_id: req.user.id,
-        amount: amount,
-        currency: currency,
-        status: 'pending',
-        metadata: metadata,
-        created_at: new Date().toISOString()
-      });
 
     res.json({
       success: true,
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
-      amount: amount,
-      currency: currency
+      paymentId: paymentIntent.id,
+      clientSecret: paymentIntent.clientSecret,
+      amount: PLANS[plan].price,
+      currency: PLANS[plan].currency
     });
+
   } catch (error) {
-    logger.error('Payment intent error:', error);
+    logger.error('Payment initiation error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create payment intent'
+      error: error.message || 'Failed to initiate payment'
     });
   }
 });
 
 // ============================================
-// 2. CONFIRM PAYMENT
+// Verify payment
 // ============================================
-router.post('/confirm-payment', authenticateToken, async (req, res) => {
+router.get('/verify/:paymentId', auth, async (req, res) => {
   try {
-    const { paymentIntentId } = req.body;
+    const { paymentId } = req.params;
+    
+    const result = await paymentService.verifyPayment(paymentId);
+    
+    if (result.success) {
+      // Update user subscription
+      await paymentService.updateSubscription({
+        userId: req.user.id,
+        plan: result.plan,
+        paymentId: paymentId
+      });
+    }
+    
+    res.json(result);
+    
+  } catch (error) {
+    logger.error('Payment verification error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to verify payment'
+    });
+  }
+});
 
-    if (!paymentIntentId) {
+// ============================================
+// Get subscription status
+// ============================================
+router.get('/subscription/:userId', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Ensure user can only view their own subscription
+    if (userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized access'
+      });
+    }
+    
+    const subscription = await paymentService.getSubscription(userId);
+    
+    res.json({
+      success: true,
+      subscription
+    });
+    
+  } catch (error) {
+    logger.error('Subscription fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch subscription'
+    });
+  }
+});
+
+// ============================================
+// Upgrade subscription
+// ============================================
+router.post('/upgrade', auth, async (req, res) => {
+  try {
+    const { plan, paymentId } = req.body;
+    const userId = req.user.id;
+    
+    // Validate plan
+    if (!PLANS[plan]) {
       return res.status(400).json({
         success: false,
-        error: 'Payment intent ID is required'
+        error: 'Invalid plan selected'
       });
     }
-
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-    if (paymentIntent.status === 'succeeded') {
-      // Update database
-      await supabase
-        .from('payment_intents')
-        .update({
-          status: 'succeeded',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', paymentIntentId);
-
-      // Create order if needed
-      if (paymentIntent.metadata?.listingId) {
-        await supabase
-          .from('orders')
-          .insert({
-            user_id: req.user.id,
-            listing_id: paymentIntent.metadata.listingId,
-            payment_intent_id: paymentIntentId,
-            amount: paymentIntent.amount / 100,
-            currency: paymentIntent.currency,
-            status: 'completed',
-            metadata: paymentIntent.metadata
-          });
-      }
-
-      logger.info(`Payment confirmed: ${paymentIntentId} for user ${req.user.id}`);
-
-      return res.json({
-        success: true,
-        status: 'succeeded',
-        paymentIntent: paymentIntent
-      });
-    }
-
-    res.json({
-      success: false,
-      status: paymentIntent.status,
-      message: `Payment is ${paymentIntent.status}`
+    
+    // Update subscription
+    const result = await paymentService.updateSubscription({
+      userId,
+      plan,
+      paymentId
     });
-  } catch (error) {
-    logger.error('Confirm payment error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to confirm payment'
-    });
-  }
-});
-
-// ============================================
-// 3. GET PAYMENT STATUS
-// ============================================
-router.get('/status/:paymentIntentId', authenticateToken, async (req, res) => {
-  try {
-    const { paymentIntentId } = req.params;
-
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
+    
     res.json({
       success: true,
-      status: paymentIntent.status,
-      amount: paymentIntent.amount / 100,
-      currency: paymentIntent.currency,
-      created: paymentIntent.created,
-      metadata: paymentIntent.metadata
+      subscription: result
     });
+    
   } catch (error) {
-    logger.error('Get payment status error:', error);
+    logger.error('Subscription upgrade error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to get payment status'
+      error: error.message || 'Failed to upgrade subscription'
     });
   }
 });
 
 // ============================================
-// 4. GET PAYMENT HISTORY
+// Check if user can create listing
 // ============================================
-router.get('/history', authenticateToken, async (req, res) => {
+router.get('/can-create-listing/:userId', auth, async (req, res) => {
   try {
-    const { limit = 10, offset = 0 } = req.query;
-
-    const { data: payments, error, count } = await supabase
-      .from('payment_intents')
-      .select('*', { count: 'exact' })
-      .eq('user_id', req.user.id)
-      .order('created_at', { ascending: false })
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
-
-    if (error) throw error;
-
-    res.json({
-      success: true,
-      payments: payments || [],
-      total: count || 0,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
-  } catch (error) {
-    logger.error('Get payment history error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to get payment history'
-    });
-  }
-});
-
-// ============================================
-// 5. STRIPE WEBHOOK
-// ============================================
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    logger.error(`Webhook signature verification failed: ${err.message}`);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  try {
-    logger.info(`Webhook event received: ${event.type}`);
-
-    switch (event.type) {
-      case 'payment_intent.succeeded':
-        await handleSuccessfulPayment(event.data.object);
-        break;
-      
-      case 'payment_intent.payment_failed':
-        await handleFailedPayment(event.data.object);
-        break;
-
-      case 'payment_intent.processing':
-        await handleProcessingPayment(event.data.object);
-        break;
-
-      case 'charge.refunded':
-        await handleRefundedPayment(event.data.object);
-        break;
-
-      default:
-        logger.info(`Unhandled webhook event: ${event.type}`);
-    }
-
-    res.json({ received: true });
-  } catch (error) {
-    logger.error('Webhook handler error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ============================================
-// 6. WEBHOOK HANDLERS
-// ============================================
-async function handleSuccessfulPayment(paymentIntent) {
-  const { metadata, id, amount, currency } = paymentIntent;
-  
-  logger.info(`Payment succeeded: ${id} for user ${metadata.userId}`);
-
-  // Update payment intent status
-  await supabase
-    .from('payment_intents')
-    .update({
-      status: 'succeeded',
-      updated_at: new Date().toISOString(),
-      payment_data: paymentIntent
-    })
-    .eq('id', id);
-
-  // Create order
-  if (metadata.listingId) {
-    const { data: order, error } = await supabase
-      .from('orders')
-      .insert({
-        user_id: metadata.userId,
-        listing_id: metadata.listingId,
-        payment_intent_id: id,
-        amount: amount / 100,
-        currency: currency,
-        status: 'completed',
-        metadata: metadata
-      })
-      .select()
-      .single();
-
-    if (error) {
-      logger.error('Error saving order:', error);
-    } else {
-      logger.info(`Order created: ${order.id}`);
-      
-      // Update listing status
-      await supabase
-        .from('listings')
-        .update({ status: 'sold' })
-        .eq('id', metadata.listingId);
-    }
-  }
-
-  // Send notification (if email service is configured)
-  try {
-    // await sendOrderConfirmationEmail(userId, order);
-  } catch (emailError) {
-    logger.error('Email notification error:', emailError);
-  }
-}
-
-async function handleFailedPayment(paymentIntent) {
-  const { metadata, id, last_payment_error } = paymentIntent;
-  
-  logger.warn(`Payment failed: ${id} - ${last_payment_error?.message || 'Unknown error'}`);
-
-  await supabase
-    .from('payment_intents')
-    .update({
-      status: 'failed',
-      updated_at: new Date().toISOString(),
-      error_message: last_payment_error?.message || 'Payment failed'
-    })
-    .eq('id', id);
-
-  // Notify user if needed
-  // await sendPaymentFailedNotification(userId, id);
-}
-
-async function handleProcessingPayment(paymentIntent) {
-  const { id } = paymentIntent;
-  
-  logger.info(`Payment processing: ${id}`);
-
-  await supabase
-    .from('payment_intents')
-    .update({
-      status: 'processing',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id);
-}
-
-async function handleRefundedPayment(charge) {
-  const { payment_intent: paymentIntentId, amount_refunded } = charge;
-  
-  logger.info(`Payment refunded: ${paymentIntentId}`);
-
-  await supabase
-    .from('payment_intents')
-    .update({
-      status: 'refunded',
-      updated_at: new Date().toISOString(),
-      refund_amount: amount_refunded / 100
-    })
-    .eq('id', paymentIntentId);
-}
-
-// ============================================
-// 7. GET PAYMENT METHODS
-// ============================================
-router.get('/methods', authenticateToken, async (req, res) => {
-  try {
-    const paymentMethods = await stripe.paymentMethods.list({
-      type: 'card',
-    });
-
-    res.json({
-      success: true,
-      paymentMethods: paymentMethods.data
-    });
-  } catch (error) {
-    logger.error('Get payment methods error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to get payment methods'
-    });
-  }
-});
-
-// ============================================
-// 8. REFUND PAYMENT
-// ============================================
-router.post('/refund', authenticateToken, async (req, res) => {
-  try {
-    const { paymentIntentId, amount, reason = 'requested_by_customer' } = req.body;
-
-    if (!paymentIntentId) {
-      return res.status(400).json({
+    const { userId } = req.params;
+    
+    if (userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
         success: false,
-        error: 'Payment intent ID is required'
+        error: 'Unauthorized access'
       });
     }
-
-    const refund = await stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      amount: amount ? Math.round(amount * 100) : undefined,
-      reason: reason,
-      metadata: {
-        userId: req.user.id,
-        userEmail: req.user.email
-      }
-    });
-
-    logger.info(`Refund created: ${refund.id} for payment ${paymentIntentId}`);
-
+    
+    const canCreate = await paymentService.canCreateListing(userId);
+    const subscription = await paymentService.getSubscription(userId);
+    
     res.json({
       success: true,
-      refund: refund
+      canCreate,
+      subscription
     });
+    
   } catch (error) {
-    logger.error('Refund error:', error);
+    logger.error('Check listing permission error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to process refund'
+      error: error.message || 'Failed to check listing permission'
     });
   }
 });
 
-export default router;
+module.exports = router;

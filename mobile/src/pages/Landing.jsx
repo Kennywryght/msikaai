@@ -4,6 +4,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { listingsAPI, businessAPI } from '../services/api';
 import LanguageToggle from '../components/LanguageToggle';
 import { useTranslation } from '../context/TranslationContext';
+import LoadingSpinner from '../components/LoadingSpinner';
+import Button from '../components/Button';
+import { useToast } from '../components/ToastContainer';
 
 // --- ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -31,6 +34,7 @@ const ICONS = {
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
   sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
   arrowRight: "M5 12h14M12 5l7 7-7 7",
+  star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
 };
 
 const CATEGORIES = [
@@ -58,6 +62,7 @@ const LOCATIONS = [
 const Landing = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [allListings, setAllListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +86,6 @@ const Landing = () => {
   }, []);
 
   const filteredListings = useMemo(() => {
-    // Also filter by search query if present
     const query = searchQuery.toLowerCase().trim();
     return allListings.filter((item) => {
       const categoryMatch = selectedCategory === 'All' || 
@@ -134,7 +138,10 @@ const Landing = () => {
         }
       } catch (err) {
         console.error('❌ Error fetching data:', err);
-        if (mounted) setError('Could not load market listings. Please refresh the page.');
+        if (mounted) {
+          setError('Could not load market listings. Please refresh the page.');
+          showToast('Could not load market listings. Please refresh the page.', 'error');
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -168,30 +175,7 @@ const Landing = () => {
   };
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#f8fafc',
-        gap: '16px'
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '3px solid #e2e8f0',
-          borderTop: '3px solid #2563eb',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite'
-        }}></div>
-        <p style={{ color: '#64748b', fontSize: '15px', fontWeight: '600' }}>
-          Discovering local products & services in Mitundu...
-        </p>
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+    return <LoadingSpinner message="Discovering local products & services in Mitundu..." />;
   }
 
   return (
@@ -279,7 +263,7 @@ const Landing = () => {
           </span>
         </div>
 
-        {/* Desktop Navigation - Hidden on Mobile */}
+        {/* Desktop Navigation */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -296,122 +280,38 @@ const Landing = () => {
           }} className="desktop-nav">
             <LanguageToggle />
             
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => navigate('/about')}
-              style={{
-                padding: '6px 14px',
-                backgroundColor: 'transparent',
-                color: '#475569',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                transition: 'all 0.2s',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f1f5f9';
-                e.currentTarget.style.color = '#0f172a';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#475569';
-              }}
+              iconLeft={<SketchIcon d={ICONS.store} size={13} color="#475569" strokeWidth={2} />}
             >
-              <SketchIcon d={ICONS.store} size={13} color="#475569" strokeWidth={2} />
-              <span>About</span>
-            </button>
+              About
+            </Button>
 
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => navigate('/search')}
-              style={{
-                padding: '6px 14px',
-                backgroundColor: 'transparent',
-                color: '#475569',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                transition: 'all 0.2s',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f1f5f9';
-                e.currentTarget.style.color = '#0f172a';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#475569';
-              }}
+              iconLeft={<SketchIcon d={ICONS.search} size={13} color="#475569" strokeWidth={2} />}
             >
-              <SketchIcon d={ICONS.search} size={13} color="#475569" strokeWidth={2} />
-              <span>Browse</span>
-            </button>
+              Browse
+            </Button>
 
-            <Link
-              to="/login"
-              style={{
-                padding: '6px 16px',
-                backgroundColor: 'transparent',
-                color: '#2563eb',
-                border: '1px solid #bfdbfe',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontSize: '13px',
-                fontWeight: '600',
-                transition: 'all 0.2s',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#eff6ff';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              Sign In
+            <Link to="/login">
+              <Button variant="outline" size="sm">
+                Sign In
+              </Button>
             </Link>
 
-            <Link
-              to="/login"
-              style={{
-                padding: '8px 18px',
-                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontSize: '13px',
-                fontWeight: '600',
-                transition: 'all 0.2s',
-                boxShadow: '0 4px 14px rgba(37,99,235,0.25)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                whiteSpace: 'nowrap'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(37,99,235,0.35)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 14px rgba(37,99,235,0.25)';
-              }}
-            >
-              <span>+ Post</span>
+            <Link to="/login">
+              <Button variant="primary" size="sm" iconLeft="+">
+                Post
+              </Button>
             </Link>
           </div>
 
-          {/* Hamburger Menu Button - Visible on Mobile */}
+          {/* Hamburger Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             style={{
@@ -492,106 +392,40 @@ const Landing = () => {
             <LanguageToggle />
           </div>
 
-          <button
+          <Button
+            variant="ghost"
+            fullWidth
             onClick={() => {
               navigate('/about');
               setIsMobileMenuOpen(false);
             }}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: 'transparent',
-              color: '#0f172a',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '15px',
-              fontWeight: '500',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              textAlign: 'left'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            iconLeft={<SketchIcon d={ICONS.store} size={18} color="#475569" strokeWidth={2} />}
           >
-            <SketchIcon d={ICONS.store} size={18} color="#475569" strokeWidth={2} />
             About
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="ghost"
+            fullWidth
             onClick={() => {
               navigate('/search');
               setIsMobileMenuOpen(false);
             }}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: 'transparent',
-              color: '#0f172a',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '15px',
-              fontWeight: '500',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              textAlign: 'left'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            iconLeft={<SketchIcon d={ICONS.search} size={18} color="#475569" strokeWidth={2} />}
           >
-            <SketchIcon d={ICONS.search} size={18} color="#475569" strokeWidth={2} />
             Browse Listings
-          </button>
+          </Button>
 
-          <Link
-            to="/login"
-            onClick={() => setIsMobileMenuOpen(false)}
-            style={{
-              padding: '10px 16px',
-              backgroundColor: 'transparent',
-              color: '#2563eb',
-              border: '1px solid #bfdbfe',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              fontSize: '15px',
-              fontWeight: '600',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%'
-            }}
-          >
-            Sign In
+          <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} style={{ width: '100%' }}>
+            <Button variant="outline" fullWidth>
+              Sign In
+            </Button>
           </Link>
 
-          <Link
-            to="/login"
-            onClick={() => setIsMobileMenuOpen(false)}
-            style={{
-              padding: '12px 20px',
-              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              textDecoration: 'none',
-              fontSize: '15px',
-              fontWeight: '600',
-              transition: 'all 0.2s',
-              boxShadow: '0 4px 14px rgba(37,99,235,0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              width: '100%'
-            }}
-          >
-            <span>+ Post Listing</span>
+          <Link to="/login" onClick={() => setIsMobileMenuOpen(false)} style={{ width: '100%' }}>
+            <Button variant="primary" fullWidth iconLeft="+">
+              Post Listing
+            </Button>
           </Link>
         </div>
       )}
@@ -677,26 +511,19 @@ const Landing = () => {
               }}
               autoComplete="off"
             />
-            <button type="submit" style={{
-              padding: '12px 26px',
-              backgroundColor: '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: 'clamp(13px, 1.2vw, 15px)',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 12px rgba(37,99,235,0.3)',
-              width: window.innerWidth < 480 ? '100%' : 'auto',
-              justifyContent: 'center',
-              marginTop: window.innerWidth < 480 ? '8px' : '0'
-            }}>
-              <span>Search</span>
-              <SketchIcon d={ICONS.arrowRight} size={16} color="#ffffff" strokeWidth={2.5} />
-            </button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              fullWidth={window.innerWidth < 480}
+              style={{
+                marginTop: window.innerWidth < 480 ? '8px' : '0',
+                borderRadius: '12px'
+              }}
+              iconRight={<SketchIcon d={ICONS.arrowRight} size={16} color="#ffffff" strokeWidth={2.5} />}
+            >
+              Search
+            </Button>
           </form>
 
           {/* Keyboard shortcut hint - Desktop only */}
@@ -728,54 +555,48 @@ const Landing = () => {
             justifyContent: 'center',
             flexWrap: 'wrap'
           }}>
-            <button onClick={() => navigate('/login')} style={{
-              padding: '8px 18px',
-              backgroundColor: 'rgba(255,255,255,0.06)',
-              color: '#e2e8f0',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '30px',
-              cursor: 'pointer',
-              fontSize: 'clamp(11px, 1.2vw, 13px)',
-              fontWeight: '500',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <SketchIcon d={ICONS.mic} size={15} color="#60a5fa" strokeWidth={2} />
-              <span>Voice Listing</span>
-            </button>
-            <button onClick={() => navigate('/login')} style={{
-              padding: '8px 18px',
-              backgroundColor: 'rgba(255,255,255,0.06)',
-              color: '#e2e8f0',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '30px',
-              cursor: 'pointer',
-              fontSize: 'clamp(11px, 1.2vw, 13px)',
-              fontWeight: '500',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <SketchIcon d={ICONS.bot} size={15} color="#34d399" strokeWidth={2} />
-              <span>AI Assistant</span>
-            </button>
-            <button onClick={() => navigate('/search')} style={{
-              padding: '8px 18px',
-              backgroundColor: 'rgba(255,255,255,0.06)',
-              color: '#e2e8f0',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '30px',
-              cursor: 'pointer',
-              fontSize: 'clamp(11px, 1.2vw, 13px)',
-              fontWeight: '500',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <SketchIcon d={ICONS.mapPin} size={15} color="#f87171" strokeWidth={2} />
-              <span>Near Me</span>
-            </button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/login')}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '30px'
+              }}
+              iconLeft={<SketchIcon d={ICONS.mic} size={15} color="#60a5fa" strokeWidth={2} />}
+            >
+              Voice Listing
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/login')}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '30px'
+              }}
+              iconLeft={<SketchIcon d={ICONS.bot} size={15} color="#34d399" strokeWidth={2} />}
+            >
+              AI Assistant
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/search')}
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                color: '#e2e8f0',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '30px'
+              }}
+              iconLeft={<SketchIcon d={ICONS.mapPin} size={15} color="#f87171" strokeWidth={2} />}
+            >
+              Near Me
+            </Button>
           </div>
         </div>
       </header>
@@ -986,16 +807,13 @@ const Landing = () => {
             gap: '10px'
           }}>
             <span>{error}</span>
-            <button onClick={() => window.location.reload()} style={{
-              backgroundColor: '#991b1b',
-              color: '#ffffff',
-              border: 'none',
-              padding: '6px 14px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '600'
-            }}>Retry</button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
           </div>
         )}
 
@@ -1014,6 +832,7 @@ const Landing = () => {
               return (
                 <div
                   key={item.id}
+                  className="card-hover"
                   style={{
                     backgroundColor: '#ffffff',
                     borderRadius: '18px',
@@ -1164,22 +983,9 @@ const Landing = () => {
                         </span>
                       </div>
                       
-                      <button 
-                        style={{
-                          backgroundColor: '#eff6ff',
-                          color: '#2563eb',
-                          border: 'none',
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          fontSize: 'clamp(11px, 1vw, 12px)',
-                          fontWeight: '700',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          touchAction: 'manipulation'
-                        }}
+                      <Button
+                        size="sm"
+                        variant="primary"
                         onClick={(e) => {
                           e.stopPropagation();
                           if (item.id && !item.is_business) {
@@ -1188,10 +994,11 @@ const Landing = () => {
                             navigate(`/search?q=${encodeURIComponent(item.title)}`);
                           }
                         }}
+                        iconRight={<SketchIcon d={ICONS.arrowRight} size={12} color="#ffffff" strokeWidth={2.5} />}
+                        style={{ borderRadius: '8px', padding: '6px 12px' }}
                       >
-                        <span>View</span>
-                        <SketchIcon d={ICONS.arrowRight} size={12} color="#2563eb" strokeWidth={2.5} />
-                      </button>
+                        View
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1230,18 +1037,10 @@ const Landing = () => {
               fontSize: 'clamp(13px, 1.2vw, 14px)',
               marginBottom: '24px'
             }}>Try adjusting your filters or be the first to offer this product/service!</p>
-            <Link to="/login" style={{
-              padding: '12px 28px',
-              backgroundColor: '#2563eb',
-              color: '#ffffff',
-              borderRadius: '12px',
-              textDecoration: 'none',
-              fontSize: 'clamp(13px, 1.2vw, 14px)',
-              fontWeight: '600',
-              display: 'inline-block',
-              boxShadow: '0 4px 14px rgba(37,99,235,0.25)'
-            }}>
-              + Post a Listing Now
+            <Link to="/login">
+              <Button variant="primary" size="lg" iconLeft="+">
+                Post a Listing Now
+              </Button>
             </Link>
           </div>
         )}
@@ -1284,21 +1083,19 @@ const Landing = () => {
           }}>
             Sell physical goods, advertise farm crops, or offer repair & trade services. Set up in less than 2 minutes for free.
           </p>
-          <Link to="/login" style={{
-            padding: 'clamp(12px, 1.2vw, 14px) clamp(24px, 3vw, 32px)',
-            backgroundColor: '#ffffff',
-            color: '#0f172a',
-            borderRadius: '12px',
-            textDecoration: 'none',
-            fontSize: 'clamp(14px, 1.2vw, 15px)',
-            fontWeight: '700',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 12px rgba(255,255,255,0.15)'
-          }}>
-            <span>Start Listing Today</span>
-            <SketchIcon d={ICONS.arrowRight} size={16} color="#0f172a" strokeWidth={2.5} />
+          <Link to="/login">
+            <Button
+              variant="secondary"
+              size="lg"
+              iconRight={<SketchIcon d={ICONS.arrowRight} size={16} color="#0f172a" strokeWidth={2.5} />}
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#0f172a',
+                boxShadow: '0 4px 12px rgba(255,255,255,0.15)'
+              }}
+            >
+              Start Listing Today
+            </Button>
           </Link>
         </div>
       </div>

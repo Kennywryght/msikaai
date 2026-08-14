@@ -1,11 +1,25 @@
 // mobile/src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';  // ✅ Remove .jsx extension
+import App from './App';
 import './index.css';
+import './styles/global.css';
 import { Toaster } from 'react-hot-toast';
 
 console.log('🚀 Kumsika app starting...');
+
+// Register service worker for PWA
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('📦 Service Worker registered:', registration);
+      })
+      .catch(error => {
+        console.error('❌ Service Worker registration failed:', error);
+      });
+  });
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

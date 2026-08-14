@@ -11,7 +11,7 @@ import compression from 'compression';
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { authenticateToken } from './middleware/auth.js';
-import { cacheMiddleware } from './middleware/cache.js';
+import { cacheMiddleware, getCacheStats, clearCache } from './middleware/cache.js';
 import { logger, logHttpRequest } from './utils/logger.js';
 
 // Import routes
@@ -129,13 +129,8 @@ const allowedOrigins = [
   'https://msikaai.onrender.com'
 ].filter(Boolean);
 
-// Remove duplicates
 const uniqueOrigins = [...new Set(allowedOrigins)];
 
-// ✅ FIX: Match any Vercel preview deployment for this project, e.g.
-// https://msikaai-1olj4ircp-kennedy-bandas-projects.vercel.app
-// Vercel generates a new random subdomain per preview build, so a
-// hardcoded string list alone will always miss these.
 const vercelPreviewPattern = /^https:\/\/msikaai-[a-z0-9]+-kennedy-bandas-projects\.vercel\.app$/;
 
 logger.info(`🌐 Allowed origins: ${uniqueOrigins.join(', ')} + Vercel preview deployments`);
@@ -181,7 +176,6 @@ app.use(logHttpRequest);
 // RATE LIMITING
 // ============================================
 
-// General rate limiter - 100 requests per 15 minutes
 const generalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
@@ -206,7 +200,6 @@ const generalLimiter = rateLimit({
   },
 });
 
-// Stricter limiter for auth routes - 20 requests per 15 minutes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -231,7 +224,6 @@ const authLimiter = rateLimit({
   },
 });
 
-// Stricter limiter for AI routes - 50 requests per 15 minutes
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
@@ -256,7 +248,6 @@ const aiLimiter = rateLimit({
   },
 });
 
-// Apply rate limiters
 app.use('/api', generalLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api/ai', aiLimiter);
@@ -295,26 +286,81 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================
-// API ROUTES - Public search, protected writes
+// CACHE MANAGEMENT ROUTES - NEW
+// ============================================
+app.get('/api/admin/cache/stats', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', req.user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Admin access required'
+      });
+    }
+
+    const stats = getCacheStats();
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    logger.error('Cache stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get cache stats'
+    });
+  }
+});
+
+app.post('/api/admin/cache/clear', authenticateToken, async (req, res) => {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', req.user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Admin access required'
+      });
+    }
+
+    const count = await clearCache();
+    res.json({
+      success: true,
+      cleared: count,
+      message: `Cleared ${count} cache entries`
+    });
+  } catch (error) {
+    logger.error('Clear cache error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear cache'
+    });
+  }
+});
+
+// ============================================
+// API ROUTES
 // ============================================
 
-// Public routes (no authentication required)
 app.use('/api/auth', authRoutes);
 app.use('/api/location', locationRoutes);
-
-// Mount listings WITHOUT auth for public GET access
-// Individual routes inside listings.js handle auth for writes
 app.use('/api/listings', listingsRoutes);
-
-// Protected routes (require authentication)
 app.use('/api/business', authenticateToken, businessRoutes);
 app.use('/api/profile', authenticateToken, profileRoutes);
 app.use('/api/analytics', authenticateToken, analyticsRoutes);
 app.use('/api/notifications', authenticateToken, notificationsRoutes);
 app.use('/api/export', authenticateToken, exportRoutes);
 app.use('/api/matching', authenticateToken, matchingRoutes);
-
-// AI routes with additional rate limiting
 app.use('/api/ai', authenticateToken, aiLimiter, aiRoutes);
 
 // ============================================
@@ -324,7 +370,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // ============================================
-// START SERVER - Bind to 0.0.0.0
+// START SERVER
 // ============================================
 const server = app.listen(PORT, '0.0.0.0', () => {
   const startupMessage = `
@@ -367,7 +413,6 @@ const gracefulShutdown = (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Unhandled errors
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', error);
 });

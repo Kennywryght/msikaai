@@ -1,7 +1,11 @@
+// mobile/src/pages/ListingDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { listingsAPI, reviewsAPI, analyticsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import Button from '../components/Button';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../components/ToastContainer';
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -42,10 +46,11 @@ const ListingDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast, success, error } = useToast();
   const [listing, setListing] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -55,14 +60,14 @@ const ListingDetails = () => {
     if (id) {
       fetchListingDetails();
     } else {
-      setError('No listing ID provided');
+      setErrorMsg('No listing ID provided');
       setLoading(false);
     }
   }, [id]);
 
   const fetchListingDetails = async () => {
     setLoading(true);
-    setError('');
+    setErrorMsg('');
     try {
       console.log('📤 Fetching listing details for ID:', id);
       const response = await listingsAPI.getById(id);
@@ -71,9 +76,7 @@ const ListingDetails = () => {
       if (response.data && response.data.listing) {
         setListing(response.data.listing);
         
-        // ============================================
-        // ANALYTICS: Track view
-        // ============================================
+        // Track view
         if (user?.id) {
           try {
             await analyticsAPI.trackView({ listingId: id });
@@ -88,7 +91,7 @@ const ListingDetails = () => {
           }
         }
       } else {
-        setError('Listing not found');
+        setErrorMsg('Listing not found');
       }
       
       try {
@@ -100,7 +103,7 @@ const ListingDetails = () => {
       }
     } catch (err) {
       console.error('❌ Error fetching listing:', err);
-      setError(err.response?.data?.error || 'Failed to load listing');
+      setErrorMsg(err.response?.data?.error || 'Failed to load listing');
     } finally {
       setLoading(false);
     }
@@ -117,9 +120,6 @@ const ListingDetails = () => {
         comment: reviewData.comment
       });
       
-      // ============================================
-      // ANALYTICS: Track review submission
-      // ============================================
       if (user?.id) {
         try {
           await analyticsAPI.trackUserActivity(user.id, 'write_review', {
@@ -131,12 +131,13 @@ const ListingDetails = () => {
         }
       }
       
-      alert('✅ Review submitted successfully!');
+      success('✅ Review submitted successfully!');
       setShowReviewForm(false);
       setReviewData({ rating: 5, comment: '' });
       fetchListingDetails();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to submit review');
+      const errMsg = err.response?.data?.error || 'Failed to submit review';
+      showToast(errMsg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -153,25 +154,17 @@ const ListingDetails = () => {
     return '⭐'.repeat(fullStars) + '☆'.repeat(emptyStars);
   };
 
-  // ============================================
-  // CONTACT FUNCTIONS - WORKS FOR EVERY SELLER
-  // ============================================
-
-  // Open WhatsApp with the SELLER'S number
+  // Contact Functions
   const openWhatsApp = () => {
-    // Get the seller's phone number from the listing
     const phone = listing.contact_phone || 
                   listing.businesses?.phone || 
                   listing.businesses?.whatsapp_number;
     
     if (!phone) {
-      alert('This seller has not provided a phone number yet.');
+      showToast('This seller has not provided a phone number yet.', 'warning');
       return;
     }
 
-    // ============================================
-    // ANALYTICS: Track contact
-    // ============================================
     if (user?.id) {
       try {
         analyticsAPI.trackContact({ listingId: id });
@@ -180,13 +173,11 @@ const ListingDetails = () => {
           businessId: listing.businesses?.id,
           method: 'whatsapp'
         });
-        console.log('📊 Analytics: Contact tracked');
       } catch (analyticsErr) {
         console.error('Analytics error:', analyticsErr);
       }
     }
 
-    // Format the phone number for WhatsApp
     const cleanPhone = phone.replace(/\D/g, '');
     const formattedPhone = cleanPhone.startsWith('0') ? cleanPhone.slice(1) : cleanPhone;
     
@@ -195,20 +186,16 @@ const ListingDetails = () => {
     window.open(whatsappUrl, '_blank');
   };
 
-  // Open Phone dialer with the SELLER'S number
   const openPhoneDialer = () => {
     const phone = listing.contact_phone || 
                   listing.businesses?.phone || 
                   listing.businesses?.whatsapp_number;
     
     if (!phone) {
-      alert('This seller has not provided a phone number yet.');
+      showToast('This seller has not provided a phone number yet.', 'warning');
       return;
     }
 
-    // ============================================
-    // ANALYTICS: Track phone call contact
-    // ============================================
     if (user?.id) {
       try {
         analyticsAPI.trackContact({ listingId: id });
@@ -225,10 +212,7 @@ const ListingDetails = () => {
     window.open(`tel:${phone}`, '_blank');
   };
 
-  // ============================================
-  // SHARE FUNCTIONS - WORKS FOR EVERYONE
-  // ============================================
-
+  // Share Functions
   const shareOnWhatsApp = () => {
     const url = `${window.location.origin}/listing/${listing.id}`;
     const message = `🛒 ${listing.title}\n🏪 ${listing.businesses?.business_name || 'Business'}\n💰 ${formatPrice(listing.price)}\n📍 ${listing.location_area || 'Mitundu'}\n\nView: ${url}`;
@@ -250,36 +234,40 @@ const ListingDetails = () => {
     const url = `${window.location.origin}/listing/${listing.id}`;
     await navigator.clipboard.writeText(url);
     setShareSuccess('Link copied to clipboard!');
+    success('Link copied to clipboard!');
     setTimeout(() => setShareSuccess(''), 3000);
   };
 
-  // ============================================
-  // STYLES
-  // ============================================
+  if (loading) {
+    return <LoadingSpinner message="Loading listing details..." />;
+  }
+
+  if (errorMsg || !listing) {
+    return (
+      <div style={styles.errorContainer}>
+        <div style={styles.errorIcon}>😕</div>
+        <h3 style={styles.errorTitle}>{errorMsg || 'Listing not found'}</h3>
+        <p style={styles.errorText}>
+          The listing you're looking for doesn't exist or has been removed.
+        </p>
+        <Button onClick={() => navigate('/search')} variant="primary">
+          <SketchIcon d={ICONS.arrowRight} size={16} color="#ffffff" strokeWidth={2.5} />
+          Back to Search
+        </Button>
+      </div>
+    );
+  }
+
+  const sellerPhone = listing.contact_phone || 
+                      listing.businesses?.phone || 
+                      listing.businesses?.whatsapp_number;
+
   const styles = {
     container: {
       minHeight: '100vh',
       backgroundColor: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '24px 16px'
-    },
-    loadingContainer: {
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '16px',
-      backgroundColor: '#f8fafc',
-      padding: '20px'
-    },
-    spinner: {
-      width: '44px',
-      height: '44px',
-      border: '4px solid #cbd5e1',
-      borderTop: '4px solid #2563eb',
-      borderRadius: '50%',
-      animation: 'spin 0.8s linear infinite'
+      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
     },
     backButton: {
       padding: '10px 20px',
@@ -287,18 +275,19 @@ const ListingDetails = () => {
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
       color: '#334155',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
-      marginBottom: '16px'
+      marginBottom: '16px',
+      transition: 'background-color 0.2s'
     },
     card: {
       backgroundColor: '#ffffff',
       borderRadius: '16px',
-      padding: '24px',
+      padding: 'clamp(16px, 2vw, 24px)',
       marginBottom: '16px',
       border: '1px solid #e2e8f0',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
@@ -308,17 +297,19 @@ const ListingDetails = () => {
       gap: '8px',
       overflowX: 'auto',
       marginBottom: '16px',
-      paddingBottom: '4px'
+      paddingBottom: '4px',
+      WebkitOverflowScrolling: 'touch'
     },
     image: {
-      width: '200px',
-      height: '150px',
+      width: 'clamp(160px, 25vw, 200px)',
+      height: 'clamp(120px, 18vw, 150px)',
       objectFit: 'cover',
       borderRadius: '12px',
-      border: '1px solid #e2e8f0'
+      border: '1px solid #e2e8f0',
+      flexShrink: 0
     },
     title: {
-      fontSize: '24px',
+      fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '800',
       color: '#0f172a',
       margin: '0 0 8px 0',
@@ -334,14 +325,15 @@ const ListingDetails = () => {
       display: 'inline-block',
       padding: '4px 12px',
       borderRadius: '9999px',
-      fontSize: '12px',
+      fontSize: 'clamp(11px, 0.9vw, 12px)',
       fontWeight: '600'
     },
     description: {
       color: '#475569',
       lineHeight: '1.6',
       marginBottom: '12px',
-      whiteSpace: 'pre-wrap'
+      whiteSpace: 'pre-wrap',
+      fontSize: 'clamp(14px, 1.2vw, 15px)'
     },
     metaRow: {
       display: 'flex',
@@ -355,11 +347,11 @@ const ListingDetails = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#64748b'
     },
     sectionTitle: {
-      fontSize: '18px',
+      fontSize: 'clamp(16px, 1.6vw, 18px)',
       fontWeight: '700',
       color: '#0f172a',
       margin: '0 0 8px 0',
@@ -373,47 +365,6 @@ const ListingDetails = () => {
       flexWrap: 'wrap',
       marginTop: '12px'
     },
-    callBtn: {
-      padding: '10px 20px',
-      backgroundColor: '#16a34a',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      textDecoration: 'none'
-    },
-    whatsappBtn: {
-      padding: '10px 20px',
-      backgroundColor: '#25D366',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    signInBtn: {
-      padding: '10px 20px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      textDecoration: 'none',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
     shareContainer: {
       display: 'flex',
       flexWrap: 'wrap',
@@ -421,11 +372,11 @@ const ListingDetails = () => {
       marginTop: '12px'
     },
     shareBtn: {
-      padding: '8px 14px',
+      padding: 'clamp(6px, 0.6vw, 8px) clamp(12px, 1.2vw, 14px)',
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
       color: '#ffffff',
       display: 'inline-flex',
@@ -435,23 +386,15 @@ const ListingDetails = () => {
     },
     shareSuccess: {
       color: '#16a34a',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       marginTop: '8px'
     },
     reviewHeader: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center'
-    },
-    writeReviewBtn: {
-      padding: '8px 16px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '13px',
-      fontWeight: '600',
-      cursor: 'pointer'
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '8px'
     },
     reviewForm: {
       marginTop: '16px'
@@ -463,76 +406,63 @@ const ListingDetails = () => {
     },
     reviewRating: {
       display: 'flex',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: '8px'
     },
     reviewComment: {
       color: '#475569',
-      marginTop: '4px'
+      marginTop: '4px',
+      fontSize: 'clamp(14px, 1.2vw, 15px)'
     },
     noReviews: {
       color: '#64748b',
-      marginTop: '12px'
+      marginTop: '12px',
+      fontSize: 'clamp(14px, 1.2vw, 15px)'
     },
     input: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      transition: 'border-color 0.15s, box-shadow 0.15s'
     },
     textarea: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
       fontFamily: 'inherit',
       resize: 'vertical',
-      minHeight: '80px'
+      minHeight: 'clamp(60px, 8vw, 80px)',
+      transition: 'border-color 0.15s, box-shadow 0.15s'
     },
     select: {
       width: '100%',
-      padding: '8px 12px',
+      padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff'
     },
-    submitBtn: {
-      padding: '8px 20px',
-      backgroundColor: '#16a34a',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '600',
-      cursor: 'pointer'
-    },
-    cancelBtn: {
-      padding: '8px 20px',
-      backgroundColor: '#e2e8f0',
-      color: '#334155',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '500',
-      cursor: 'pointer'
-    },
     row: {
       display: 'flex',
-      gap: '12px'
+      gap: '12px',
+      flexWrap: 'wrap'
     },
     half: {
       flex: 1
@@ -545,7 +475,8 @@ const ListingDetails = () => {
       justifyContent: 'center',
       gap: '16px',
       backgroundColor: '#f8fafc',
-      padding: '20px'
+      padding: '20px',
+      textAlign: 'center'
     },
     errorIcon: {
       fontSize: '48px',
@@ -553,56 +484,26 @@ const ListingDetails = () => {
     },
     errorTitle: {
       color: '#0f172a',
-      fontSize: '20px',
+      fontSize: 'clamp(18px, 2vw, 20px)',
       fontWeight: '700',
       margin: 0
     },
     errorText: {
       color: '#64748b',
-      marginBottom: '16px'
+      marginBottom: '16px',
+      fontSize: 'clamp(14px, 1.2vw, 15px)'
     }
   };
-
-  if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={{ color: '#64748b', fontWeight: '500' }}>Loading listing details...</p>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  if (error || !listing) {
-    return (
-      <div style={styles.errorContainer}>
-        <div style={styles.errorIcon}>😕</div>
-        <h3 style={styles.errorTitle}>{error || 'Listing not found'}</h3>
-        <p style={styles.errorText}>
-          The listing you're looking for doesn't exist or has been removed.
-        </p>
-        <button onClick={() => navigate('/search')} style={styles.backButton}>
-          <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
-          Back to Search
-        </button>
-      </div>
-    );
-  }
-
-  // Get the seller's phone number for display
-  const sellerPhone = listing.contact_phone || 
-                      listing.businesses?.phone || 
-                      listing.businesses?.whatsapp_number;
 
   return (
     <div style={styles.container}>
       {/* Back Button */}
-      <button onClick={() => navigate(-1)} style={styles.backButton}>
+      <button 
+        onClick={() => navigate(-1)} 
+        style={styles.backButton}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#cbd5e1'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+      >
         <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
         <span>Back</span>
       </button>
@@ -612,7 +513,7 @@ const ListingDetails = () => {
         {listing.images && listing.images.length > 0 && (
           <div style={styles.imageGrid}>
             {listing.images.map((img, index) => (
-              <img key={index} src={img} alt={listing.title} style={styles.image} />
+              <img key={index} src={img} alt={listing.title} style={styles.image} loading="lazy" />
             ))}
           </div>
         )}
@@ -674,7 +575,7 @@ const ListingDetails = () => {
         </div>
       </div>
 
-      {/* Business Info with Contact - WORKS FOR EVERY SELLER */}
+      {/* Business Info with Contact */}
       {listing.businesses && (
         <div style={styles.card}>
           <h3 style={styles.sectionTitle}>
@@ -682,69 +583,80 @@ const ListingDetails = () => {
             Contact {listing.businesses.business_name}
           </h3>
           
-          <p style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a' }}>
+          <p style={{ fontSize: 'clamp(15px, 1.3vw, 16px)', fontWeight: '600', color: '#0f172a' }}>
             {listing.businesses.business_name}
           </p>
           
           {sellerPhone && (
-            <p style={{ color: '#64748b', marginTop: '4px' }}>
+            <p style={{ color: '#64748b', marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
               <SketchIcon d={ICONS.phone} size={14} color="#64748b" strokeWidth={2} />
               <span style={{ marginLeft: '6px' }}>{sellerPhone}</span>
             </p>
           )}
           
           {listing.businesses.address && (
-            <p style={{ color: '#64748b' }}>
+            <p style={{ color: '#64748b', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
               <SketchIcon d={ICONS.mapPin} size={14} color="#64748b" strokeWidth={2} />
               <span style={{ marginLeft: '6px' }}>{listing.businesses.address}</span>
             </p>
           )}
           
           {listing.businesses.rating > 0 && (
-            <p style={{ color: '#f59e0b', marginTop: '4px' }}>
+            <p style={{ color: '#f59e0b', marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
               {renderStars(listing.businesses.rating)} ({listing.businesses.rating.toFixed(1)})
             </p>
           )}
 
-          {/* Contact Buttons - Uses SELLER'S number, not system number */}
+          {/* Contact Buttons */}
           <div style={styles.contactRow}>
             {user ? (
               <>
                 {sellerPhone && (
                   <>
-                    <button onClick={openPhoneDialer} style={styles.callBtn}>
-                      <SketchIcon d={ICONS.phone} size={16} color="#ffffff" strokeWidth={2} />
+                    <Button
+                      variant="success"
+                      size="md"
+                      onClick={openPhoneDialer}
+                      iconLeft={<SketchIcon d={ICONS.phone} size={16} color="#ffffff" strokeWidth={2} />}
+                    >
                       Call Now
-                    </button>
-                    <button onClick={openWhatsApp} style={styles.whatsappBtn}>
-                      <SketchIcon d={ICONS.whatsapp} size={16} color="#ffffff" strokeWidth={2} />
+                    </Button>
+                    <Button
+                      variant="success"
+                      size="md"
+                      onClick={openWhatsApp}
+                      style={{ backgroundColor: '#25D366' }}
+                      iconLeft={<SketchIcon d={ICONS.whatsapp} size={16} color="#ffffff" strokeWidth={2} />}
+                    >
                       WhatsApp
-                    </button>
+                    </Button>
                   </>
                 )}
                 {!sellerPhone && (
-                  <p style={{ color: '#64748b', fontSize: '14px' }}>
+                  <p style={{ color: '#64748b', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>
                     This seller hasn't provided a phone number yet.
                   </p>
                 )}
               </>
             ) : (
-              <Link to="/login" style={styles.signInBtn}>
-                <SketchIcon d={ICONS.user} size={16} color="#ffffff" strokeWidth={2} />
-                Sign in to Contact
+              <Link to="/login">
+                <Button variant="primary" size="md">
+                  <SketchIcon d={ICONS.user} size={16} color="#ffffff" strokeWidth={2} />
+                  Sign in to Contact
+                </Button>
               </Link>
             )}
           </div>
         </div>
       )}
 
-      {/* Share Section - WORKS FOR EVERYONE */}
+      {/* Share Section */}
       <div style={styles.card}>
         <h3 style={styles.sectionTitle}>
           <SketchIcon d={ICONS.share} size={20} color="#2563eb" strokeWidth={2} />
           Share This Listing
         </h3>
-        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '12px' }}>
+        <p style={{ color: '#64748b', fontSize: 'clamp(13px, 1.1vw, 14px)', marginBottom: '12px' }}>
           Share this product with friends and family
         </p>
 
@@ -797,21 +709,26 @@ const ListingDetails = () => {
             Reviews ({reviews.length})
           </h3>
           {user && (
-            <button onClick={() => setShowReviewForm(!showReviewForm)} style={styles.writeReviewBtn}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowReviewForm(!showReviewForm)}
+            >
               <SketchIcon d={ICONS.pencil} size={14} color="#ffffff" strokeWidth={2} />
               Write Review
-            </button>
+            </Button>
           )}
         </div>
 
         {showReviewForm && (
           <form onSubmit={handleReviewSubmit} style={styles.reviewForm}>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#334155' }}>Rating</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#334155', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Rating</label>
               <select
                 value={reviewData.rating}
                 onChange={(e) => setReviewData({ ...reviewData, rating: parseInt(e.target.value) })}
                 style={styles.select}
+                className="input-focus"
               >
                 {[5,4,3,2,1].map(num => (
                   <option key={num} value={num}>{num} Stars</option>
@@ -819,22 +736,34 @@ const ListingDetails = () => {
               </select>
             </div>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#334155' }}>Comment</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#334155', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Comment</label>
               <textarea
                 value={reviewData.comment}
                 onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
                 style={styles.textarea}
                 placeholder="Share your experience..."
+                className="input-focus"
                 required
               />
             </div>
             <div style={styles.row}>
-              <button type="submit" disabled={submitting} style={styles.submitBtn}>
-                {submitting ? 'Submitting...' : 'Submit Review'}
-              </button>
-              <button type="button" onClick={() => setShowReviewForm(false)} style={styles.cancelBtn}>
+              <Button
+                type="submit"
+                variant="success"
+                size="md"
+                disabled={submitting}
+                loading={submitting}
+              >
+                Submit Review
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={() => setShowReviewForm(false)}
+              >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -843,10 +772,10 @@ const ListingDetails = () => {
           reviews.map((review) => (
             <div key={review.id} style={styles.reviewItem}>
               <div style={styles.reviewRating}>
-                <span style={{ fontWeight: '600' }}>
+                <span style={{ fontWeight: '600', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
                   {renderStars(review.rating)} {review.rating}/5
                 </span>
-                <span style={{ color: '#94a3b8', fontSize: '12px' }}>
+                <span style={{ color: '#94a3b8', fontSize: 'clamp(11px, 0.9vw, 12px)' }}>
                   {new Date(review.created_at).toLocaleDateString()}
                 </span>
               </div>

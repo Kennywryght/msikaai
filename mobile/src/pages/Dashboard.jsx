@@ -1,12 +1,17 @@
+// mobile/src/pages/Dashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
-import { businessAPI, listingsAPI, analyticsAPI, notificationsAPI, exportAPI } from '../services/api';
+import { businessAPI, listingsAPI, analyticsAPI, notificationsAPI, exportAPI, paymentAPI } from '../services/api';
 import LanguageToggle from '../components/LanguageToggle';
 import NotificationBell from '../components/NotificationBell';
 import AnalyticsWidget from '../components/AnalyticsWidget';
 import NotificationsDropdown from '../components/NotificationsDropdown';
+import Button from '../components/Button';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../components/ToastContainer';
+import PaymentModal from '../components/PaymentModal';
 
 // ==========================================
 // Hand-Drawn / Pencil-Style SVG Icon Set
@@ -180,12 +185,13 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { showToast, success, error } = useToast();
 
   // State
   const [business, setBusiness] = useState(null);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [creating, setCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -203,6 +209,20 @@ const Dashboard = () => {
     totalContacts: 0,
     activeListings: 0,
   });
+
+  // ==========================================
+  // PAYMENT & SUBSCRIPTION STATE - NEW
+  // ==========================================
+  const [subscription, setSubscription] = useState({
+    plan: 'free',
+    listings_allowed: 3,
+    listings_used: 0,
+    remaining_listings: 3,
+    status: 'active'
+  });
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [plans, setPlans] = useState(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(false);
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -224,6 +244,8 @@ const Dashboard = () => {
     if (user?.id) {
       fetchBusiness();
       fetchNotifications();
+      fetchSubscription();
+      fetchPlans();
     } else {
       setLoading(false);
     }
@@ -236,6 +258,44 @@ const Dashboard = () => {
     }
   }, [showCreateForm]);
 
+  // ==========================================
+  // FETCH SUBSCRIPTION - NEW
+  // ==========================================
+  const fetchSubscription = async () => {
+    if (!user?.id) return;
+    
+    setLoadingSubscription(true);
+    try {
+      const response = await paymentAPI.getSubscription(user.id);
+      if (response.data.success) {
+        setSubscription(response.data.subscription);
+      }
+    } catch (err) {
+      console.error('Error fetching subscription:', err);
+      // Default to free plan
+      setSubscription({
+        plan: 'free',
+        listings_allowed: 3,
+        listings_used: 0,
+        remaining_listings: 3,
+        status: 'active'
+      });
+    } finally {
+      setLoadingSubscription(false);
+    }
+  };
+
+  const fetchPlans = async () => {
+    try {
+      const response = await paymentAPI.getPlans();
+      if (response.data.success) {
+        setPlans(response.data.plans);
+      }
+    } catch (err) {
+      console.error('Error fetching plans:', err);
+    }
+  };
+
   const fetchBusiness = async () => {
     if (!user?.id) {
       setLoading(false);
@@ -243,7 +303,7 @@ const Dashboard = () => {
     }
 
     setLoading(true);
-    setError('');
+    setErrorMsg('');
 
     try {
       const response = await businessAPI.getByUser(user.id);
@@ -259,8 +319,9 @@ const Dashboard = () => {
       if (err.response?.status === 404) {
         setBusiness(null);
       } else {
-        const errorMsg = err.response?.data?.error || t('failed_load_business') || 'Failed to load business data';
-        setError(errorMsg);
+        const errorMsgText = err.response?.data?.error || t('failed_load_business') || 'Failed to load business data';
+        setErrorMsg(errorMsgText);
+        showToast(errorMsgText, 'error');
       }
     } finally {
       setLoading(false);
@@ -318,6 +379,7 @@ const Dashboard = () => {
     if (id === 'all') {
       setNotifications(notifications.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
+      success('All notifications marked as read');
     } else {
       setNotifications(notifications.map(n => 
         n.id === id ? { ...n, read: true } : n
@@ -328,7 +390,7 @@ const Dashboard = () => {
 
   const handleExportCSV = async () => {
     if (!business?.id) {
-      alert(t('no_business_export') || 'No business data to export');
+      showToast('No business data to export', 'warning');
       return;
     }
 
@@ -341,16 +403,16 @@ const Dashboard = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      alert('📊 ' + (t('csv_exported') || 'CSV exported successfully!'));
+      success('📊 CSV exported successfully!');
     } catch (err) {
       console.error('Export CSV error:', err);
-      alert(t('export_failed') || 'Failed to export CSV');
+      showToast('Failed to export CSV', 'error');
     }
   };
 
   const handleExportJSON = async () => {
     if (!business?.id) {
-      alert(t('no_business_export') || 'No business data to export');
+      showToast('No business data to export', 'warning');
       return;
     }
 
@@ -362,17 +424,17 @@ const Dashboard = () => {
       a.href = url;
       a.download = `business-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
-      alert('📄 ' + (t('json_exported') || 'JSON exported successfully!'));
+      success('📄 JSON exported successfully!');
     } catch (err) {
       console.error('Export JSON error:', err);
-      alert(t('export_failed') || 'Failed to export JSON');
+      showToast('Failed to export JSON', 'error');
     }
   };
 
   const handleCreateBusiness = async (e) => {
     e.preventDefault();
     setCreating(true);
-    setError('');
+    setErrorMsg('');
 
     try {
       const response = await businessAPI.create({
@@ -382,7 +444,7 @@ const Dashboard = () => {
 
       setBusiness(response.data.business);
       setShowCreateForm(false);
-      alert('🎉 ' + (t('business_created_success') || 'Business created successfully!'));
+      success('🎉 Business created successfully!');
 
       setFormData({
         businessName: '',
@@ -395,9 +457,9 @@ const Dashboard = () => {
       fetchBusiness();
     } catch (err) {
       console.error('Business creation error:', err);
-      const errorMsg = err.response?.data?.error || t('failed_create_business') || 'Failed to create business';
-      setError(errorMsg);
-      alert('❌ ' + errorMsg);
+      const errorMsgText = err.response?.data?.error || t('failed_create_business') || 'Failed to create business';
+      setErrorMsg(errorMsgText);
+      showToast('❌ ' + errorMsgText, 'error');
     } finally {
       setCreating(false);
     }
@@ -412,8 +474,53 @@ const Dashboard = () => {
   };
 
   const formatPrice = (price) => {
-    if (!price) return t('price_on_request') || 'Price on request';
+    if (!price) return 'Price on request';
     return `MWK ${price.toLocaleString()}`;
+  };
+
+  // Handle logout with toast
+  const handleLogout = async () => {
+    try {
+      await logout();
+      success('Logged out successfully');
+    } catch (err) {
+      console.error('Logout error:', err);
+      showToast('Failed to logout', 'error');
+    }
+  };
+
+  // ==========================================
+  // PAYMENT HANDLERS - NEW
+  // ==========================================
+  const handlePaymentSuccess = async (paymentData) => {
+    try {
+      // Update subscription
+      const response = await paymentAPI.upgradeSubscription({
+        userId: user.id,
+        plan: paymentData.plan,
+        paymentId: paymentData.paymentId
+      });
+      
+      if (response.data.success) {
+        setSubscription(response.data.subscription);
+        success('🎉 Subscription upgraded successfully!');
+        // Refresh listings to show updated limits
+        if (business?.id) {
+          fetchListings(business.id);
+        }
+      }
+    } catch (err) {
+      console.error('Payment upgrade error:', err);
+      showToast('Failed to upgrade subscription', 'error');
+    }
+  };
+
+  const handleAddListingClick = () => {
+    if (subscription.remaining_listings <= 0) {
+      setShowPaymentModal(true);
+    } else {
+      navigate('/create-listing');
+    }
   };
 
   // ==========================================
@@ -431,15 +538,6 @@ const Dashboard = () => {
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: '#f1f5f9',
-    },
-    spinner: {
-      width: '44px',
-      height: '44px',
-      border: '4px solid #e2e8f0',
-      borderTop: '4px solid #2563eb',
-      borderRadius: '50%',
-      animation: 'spin 0.9s linear infinite',
-      margin: '0 auto',
     },
     nav: {
       backgroundColor: '#0f172a',
@@ -490,6 +588,48 @@ const Dashboard = () => {
       gap: 'clamp(4px, 0.8vw, 6px)',
       flexWrap: 'wrap',
     },
+    subscriptionBadge: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      padding: '4px 12px',
+      borderRadius: '20px',
+      border: '1px solid rgba(255,255,255,0.1)',
+    },
+    subscriptionPlan: {
+      fontSize: '12px',
+      fontWeight: '600',
+      color: '#94a3b8',
+    },
+    subscriptionPlanActive: {
+      color: '#60a5fa',
+    },
+    subscriptionCount: {
+      fontSize: '10px',
+      color: '#64748b',
+      marginLeft: '4px',
+    },
+    upgradeBanner: {
+      backgroundColor: '#fef3c7',
+      borderBottom: '1px solid #f59e0b',
+      padding: '12px 24px',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: '8px',
+    },
+    upgradeBannerText: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      fontWeight: '500',
+      color: '#92400e',
+    },
+    upgradeBannerIcon: {
+      fontSize: '20px',
+    },
     aiBtn: {
       padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
       border: 'none',
@@ -514,22 +654,6 @@ const Dashboard = () => {
       cursor: 'pointer',
       fontSize: 'clamp(10px, 1vw, 12px)',
       fontWeight: '500',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      transition: 'background-color 0.2s',
-      touchAction: 'manipulation',
-      whiteSpace: 'nowrap',
-    },
-    primaryNavBtn: {
-      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: 'clamp(10px, 1vw, 12px)',
-      fontWeight: '600',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '4px',
@@ -590,22 +714,6 @@ const Dashboard = () => {
       alignItems: 'center',
       gap: '8px',
       flexWrap: 'wrap',
-    },
-    headerActionBtn: {
-      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: 'clamp(12px, 1.2vw, 13px)',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      transition: 'background-color 0.2s',
-      touchAction: 'manipulation',
-      whiteSpace: 'nowrap',
     },
     statsGrid: {
       display: 'grid',
@@ -685,48 +793,6 @@ const Dashboard = () => {
       fontSize: 'clamp(9px, 0.9vw, 11px)',
       fontWeight: '600',
       whiteSpace: 'nowrap',
-    },
-    buttonPrimary: {
-      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: 'clamp(12px, 1.2vw, 13px)',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      transition: 'background-color 0.2s',
-      touchAction: 'manipulation',
-      whiteSpace: 'nowrap',
-    },
-    buttonSecondary: {
-      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
-      backgroundColor: '#ffffff',
-      color: '#1e293b',
-      border: '1px solid #cbd5e1',
-      borderRadius: '8px',
-      fontSize: 'clamp(12px, 1.2vw, 13px)',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      transition: 'background-color 0.2s',
-      touchAction: 'manipulation',
-      whiteSpace: 'nowrap',
-    },
-    buttonDisabled: {
-      padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
-      backgroundColor: '#93c5fd',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: 'clamp(12px, 1.2vw, 13px)',
-      fontWeight: '600',
-      cursor: 'not-allowed',
     },
     listingRow: {
       display: 'flex',
@@ -895,35 +961,14 @@ const Dashboard = () => {
       position: 'relative',
       display: 'inline-block',
     },
-    mobileHidden: {
-      '@media (max-width: 640px)': {
-        display: 'none',
-      },
-    },
-    mobileVisible: {
-      '@media (min-width: 641px)': {
-        display: 'none',
-      },
+    addButtonDisabled: {
+      opacity: 0.5,
+      cursor: 'not-allowed',
     },
   };
 
   if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={styles.spinner}></div>
-          <p style={{ marginTop: '16px', color: '#64748b', fontWeight: '500' }}>
-            {t('loading_dashboard') || 'Loading your business dashboard...'}
-          </p>
-        </div>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
+    return <LoadingSpinner message="Loading your business dashboard..." />;
   }
 
   return (
@@ -945,48 +990,73 @@ const Dashboard = () => {
         <div style={styles.navActions}>
           <LanguageToggle />
 
-          <button
+          {/* Subscription Badge - NEW */}
+          <div style={styles.subscriptionBadge}>
+            <span style={{ fontSize: '10px', color: '#94a3b8' }}>Plan:</span>
+            <span style={{
+              ...styles.subscriptionPlan,
+              ...(subscription.plan !== 'free' && styles.subscriptionPlanActive)
+            }}>
+              {subscription.plan.toUpperCase()}
+            </span>
+            <span style={styles.subscriptionCount}>
+              ({subscription.listings_used}/{subscription.listings_allowed})
+            </span>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate('/ai-search')}
             style={{ ...styles.aiBtn, backgroundColor: '#7c3aed' }}
             title="AI Search & Assistant"
+            iconLeft={<HandRobot size={14} />}
           >
-            <HandRobot size={14} /> 
-            <span className="btn-label">AI</span>
-          </button>
+            AI
+          </Button>
           
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate('/voice-listing')}
             style={{ ...styles.aiBtn, backgroundColor: '#db2777' }}
             title="Create listing using voice"
+            iconLeft={<HandMic size={14} />}
           >
-            <HandMic size={14} /> 
-            <span className="btn-label">Voice</span>
-          </button>
+            Voice
+          </Button>
           
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate('/ad-generator')}
             style={{ ...styles.aiBtn, backgroundColor: '#d97706' }}
             title="Generate advertisements"
+            iconLeft={<HandPalette size={14} />}
           >
-            <HandPalette size={14} /> 
-            <span className="btn-label">Ads</span>
-          </button>
+            Ads
+          </Button>
 
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate('/search')}
             style={styles.secondaryNavBtn}
+            iconLeft={<HandSearch size={14} />}
           >
-            <HandSearch size={14} /> 
-            <span className="btn-label">{t('browse') || 'Browse'}</span>
-          </button>
+            {t('browse') || 'Browse'}
+          </Button>
           
-          <button
-            onClick={() => navigate('/create-listing')}
-            style={styles.primaryNavBtn}
+          {/* Updated Add Button with Subscription Check */}
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleAddListingClick}
+            iconLeft={<HandPlus size={14} />}
+            style={subscription.remaining_listings <= 0 ? styles.addButtonDisabled : {}}
           >
-            <HandPlus size={14} /> 
-            <span className="btn-label">{t('add') || 'Add'}</span>
-          </button>
+            {subscription.remaining_listings <= 0 ? 'Upgrade to Add' : t('add') || 'Add'}
+          </Button>
 
           {/* Notification Bell */}
           <div style={styles.notificationWrapper}>
@@ -1010,10 +1080,15 @@ const Dashboard = () => {
             </span>
           </span>
 
-          <button onClick={logout} style={styles.logoutBtn}>
-            <HandLogout size={14} /> 
-            <span className="btn-label">{t('logout') || 'Logout'}</span>
-          </button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            style={styles.logoutBtn}
+            iconLeft={<HandLogout size={14} />}
+          >
+            {t('logout') || 'Logout'}
+          </Button>
         </div>
 
         <style>{`
@@ -1033,18 +1108,29 @@ const Dashboard = () => {
         `}</style>
       </nav>
 
+      {/* Upgrade Banner - NEW */}
+      {subscription.remaining_listings <= 0 && (
+        <div style={styles.upgradeBanner}>
+          <div style={styles.upgradeBannerText}>
+            <span style={styles.upgradeBannerIcon}>⚠️</span>
+            <span>You've reached your listing limit. Upgrade to add more listings.</span>
+          </div>
+          <Button
+            variant="warning"
+            size="sm"
+            onClick={() => setShowPaymentModal(true)}
+          >
+            Upgrade Now
+          </Button>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <div style={styles.content}>
         {/* Welcome Header */}
         <div style={styles.headerSection}>
           <div>
             <h2 style={styles.welcomeTitle}>
-              {/* ✅ FIXED: clamp() is a CSS function, not a JS function.
-                  Calling it directly here threw a ReferenceError on every
-                  render of the authenticated dashboard, crashing the whole
-                  component tree with no error boundary — producing the
-                  white blank screen after login. Replaced with a plain
-                  number matching the intended visual size. */}
               <HandWave size={22} color="#d97706" /> {t('welcome') || 'Welcome'}
               {business?.business_name
                 ? `, ${business.business_name}`
@@ -1060,35 +1146,29 @@ const Dashboard = () => {
             </p>
           </div>
           {business && (
-            <button
-              onClick={() => navigate('/create-listing')}
-              style={styles.headerActionBtn}
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleAddListingClick}
+              iconLeft={<HandPackage size={16} />}
+              style={subscription.remaining_listings <= 0 ? styles.addButtonDisabled : {}}
             >
-              <HandPackage size={16} /> {t('add_product') || 'Add Product'}
-            </button>
+              {subscription.remaining_listings <= 0 ? 'Upgrade to Add' : t('add_product') || 'Add Product'}
+            </Button>
           )}
         </div>
 
         {/* Error Banner */}
-        {error && (
+        {errorMsg && (
           <div style={styles.errorBanner}>
-            <span>❌ {error}</span>
-            <button
+            <span>❌ {errorMsg}</span>
+            <Button
+              variant="danger"
+              size="sm"
               onClick={fetchBusiness}
-              style={{
-                padding: '4px 12px',
-                backgroundColor: '#dc2626',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: 'clamp(11px, 1vw, 12px)',
-                fontWeight: '600',
-                touchAction: 'manipulation',
-              }}
             >
               {t('retry') || 'Retry'}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -1104,7 +1184,7 @@ const Dashboard = () => {
         {business ? (
           <>
             {/* Business Profile Card */}
-            <div style={styles.card}>
+            <div style={styles.card} className="card">
               <div style={styles.cardHeader}>
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -1162,38 +1242,24 @@ const Dashboard = () => {
                   </div>
 
                   <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{
-                      display: 'inline-block',
-                      padding: '2px 10px',
-                      borderRadius: '9999px',
-                      fontSize: 'clamp(10px, 0.9vw, 11px)',
-                      fontWeight: '500',
-                      backgroundColor: business.verified ? '#d1fae5' : '#fef3c7',
-                      color: business.verified ? '#065f46' : '#92400e'
-                    }}>
+                    <span className="badge badge-success">
                       {business.verified ? `✅ ${t('verified') || 'Verified'}` : `⏳ ${t('pending') || 'Pending'}`}
                     </span>
-                    <span style={{
-                      display: 'inline-block',
-                      padding: '2px 10px',
-                      borderRadius: '9999px',
-                      fontSize: 'clamp(10px, 0.9vw, 11px)',
-                      fontWeight: '500',
-                      backgroundColor: business.status === 'active' ? '#d1fae5' : '#fee2e2',
-                      color: business.status === 'active' ? '#065f46' : '#991b1b'
-                    }}>
+                    <span className={`badge ${business.status === 'active' ? 'badge-success' : 'badge-error'}`}>
                       {business.status === 'active' ? `🟢 ${t('active') || 'Active'}` : `🔴 ${t('inactive') || 'Inactive'}`}
                     </span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => navigate('/edit-profile')}
-                    style={styles.buttonSecondary}
+                    iconLeft={<HandPencil size={14} />}
                   >
-                    <HandPencil size={14} /> {t('edit_profile') || 'Edit Profile'}
-                  </button>
+                    {t('edit_profile') || 'Edit Profile'}
+                  </Button>
                   
                   {/* Export Buttons */}
                   <div style={styles.exportButtons}>
@@ -1220,7 +1286,7 @@ const Dashboard = () => {
 
             {/* Statistics Grid */}
             <div style={styles.statsGrid}>
-              <div style={styles.statCard}>
+              <div style={styles.statCard} className="card">
                 <div style={styles.statIconWrapper}>
                   <HandPackage size={20} color="#2563eb" />
                 </div>
@@ -1232,7 +1298,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div style={styles.statCard}>
+              <div style={styles.statCard} className="card">
                 <div style={styles.statIconWrapper}>
                   <HandDot size={18} color="#16a34a" />
                 </div>
@@ -1244,7 +1310,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div style={styles.statCard}>
+              <div style={styles.statCard} className="card">
                 <div style={styles.statIconWrapper}>
                   <HandEye size={20} color="#8b5cf6" />
                 </div>
@@ -1256,7 +1322,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div style={styles.statCard}>
+              <div style={styles.statCard} className="card">
                 <div style={styles.statIconWrapper}>
                   <HandPhone size={20} color="#f59e0b" />
                 </div>
@@ -1270,17 +1336,28 @@ const Dashboard = () => {
             </div>
 
             {/* Listings Section */}
-            <div style={styles.card}>
+            <div style={styles.card} className="card">
               <div style={styles.cardTitleRow}>
                 <h3 style={styles.cardTitle}>
                   <HandClipboard size={20} color="#1e293b" /> {t('your_listings') || 'Your Listings'} ({listings.length})
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: '400',
+                    color: '#64748b',
+                    marginLeft: '8px'
+                  }}>
+                    ({subscription.remaining_listings} remaining)
+                  </span>
                 </h3>
-                <button
-                  onClick={() => navigate('/create-listing')}
-                  style={styles.buttonPrimary}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleAddListingClick}
+                  iconLeft={<HandPlus size={14} />}
+                  style={subscription.remaining_listings <= 0 ? styles.addButtonDisabled : {}}
                 >
-                  <HandPlus size={14} /> {t('add') || 'Add'}
-                </button>
+                  {subscription.remaining_listings <= 0 ? 'Upgrade' : t('add') || 'Add'}
+                </Button>
               </div>
 
               {listings.length > 0 ? (
@@ -1289,6 +1366,7 @@ const Dashboard = () => {
                     <div
                       key={listing.id}
                       style={styles.listingRow}
+                      className="card-hover"
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor = '#f8fafc')
                       }
@@ -1303,6 +1381,7 @@ const Dashboard = () => {
                             src={listing.images[0]}
                             alt={listing.title}
                             style={styles.listingThumbnail}
+                            loading="lazy"
                           />
                         ) : (
                           <div style={styles.placeholderThumbnail}>
@@ -1358,18 +1437,22 @@ const Dashboard = () => {
                   <p style={{ color: '#64748b', fontSize: 'clamp(12px, 1.1vw, 13px)', marginTop: '2px' }}>
                     {t('start_adding_items') || 'Start adding items to reach customers across Mitundu.'}
                   </p>
-                  <button
-                    onClick={() => navigate('/create-listing')}
-                    style={{ ...styles.buttonPrimary, marginTop: '12px' }}
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={handleAddListingClick}
+                    style={{ marginTop: '12px' }}
+                    iconLeft={<HandPlus size={14} />}
+                    disabled={subscription.remaining_listings <= 0}
                   >
-                    <HandPlus size={14} /> {t('create_first_listing') || 'Create First Listing'}
-                  </button>
+                    {subscription.remaining_listings <= 0 ? 'Upgrade to Create First Listing' : t('create_first_listing') || 'Create First Listing'}
+                  </Button>
                 </div>
               )}
             </div>
 
             {/* AI Toolkit */}
-            <div style={styles.card}>
+            <div style={styles.card} className="card">
               <h3 style={{ ...styles.cardTitle, marginBottom: '4px' }}>
                 <HandZap size={20} color="#f59e0b" /> {t('ai_toolkit') || 'AI Toolkit'}
               </h3>
@@ -1380,6 +1463,7 @@ const Dashboard = () => {
               <div style={styles.quickActionsGrid}>
                 <div
                   style={styles.actionTile}
+                  className="card-hover"
                   onClick={() => navigate('/voice-listing')}
                   onMouseEnter={(e) => e.currentTarget.style.borderColor = '#ec4899'}
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
@@ -1395,6 +1479,7 @@ const Dashboard = () => {
 
                 <div
                   style={styles.actionTile}
+                  className="card-hover"
                   onClick={() => navigate('/ad-generator')}
                   onMouseEnter={(e) => e.currentTarget.style.borderColor = '#d97706'}
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
@@ -1410,6 +1495,7 @@ const Dashboard = () => {
 
                 <div
                   style={styles.actionTile}
+                  className="card-hover"
                   onClick={() => navigate('/ai-search')}
                   onMouseEnter={(e) => e.currentTarget.style.borderColor = '#7c3aed'}
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
@@ -1425,6 +1511,7 @@ const Dashboard = () => {
 
                 <div
                   style={styles.actionTile}
+                  className="card-hover"
                   onClick={() => navigate('/create-listing')}
                   onMouseEnter={(e) => e.currentTarget.style.borderColor = '#2563eb'}
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
@@ -1442,7 +1529,7 @@ const Dashboard = () => {
           </>
         ) : (
           /* Registration Prompt */
-          <div style={styles.card}>
+          <div style={styles.card} className="card">
             <div style={styles.emptyStateContainer}>
               <HandStore size={48} color="#2563eb" />
               <p style={{ fontSize: 'clamp(16px, 1.8vw, 18px)', fontWeight: '700', color: '#1e293b', marginTop: '10px' }}>
@@ -1451,12 +1538,13 @@ const Dashboard = () => {
               <p style={{ color: '#64748b', maxWidth: '400px', margin: '6px auto 16px', fontSize: 'clamp(12px, 1.1vw, 13px)', lineHeight: '1.5' }}>
                 {t('register_business_desc') || 'Connect with buyers in Mitundu. Set up your profile and start listing products in minutes.'}
               </p>
-              <button
+              <Button
+                variant="primary"
+                size="lg"
                 onClick={() => setShowCreateForm(true)}
-                style={{ ...styles.buttonPrimary, padding: 'clamp(8px, 1vw, 10px) clamp(16px, 2vw, 20px)', fontSize: 'clamp(13px, 1.2vw, 14px)' }}
               >
                 {t('register_now') || 'Register Now'}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1482,9 +1570,9 @@ const Dashboard = () => {
               {t('fill_shop_details') || 'Fill in your shop details to begin listing products on MsikaAI.'}
             </p>
 
-            {error && (
+            {errorMsg && (
               <div style={styles.errorBanner}>
-                <HandClose size={16} color="#dc2626" /> {error}
+                <HandClose size={16} color="#dc2626" /> {errorMsg}
               </div>
             )}
 
@@ -1568,27 +1656,40 @@ const Dashboard = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-                <button
+                <Button
                   type="submit"
+                  variant="primary"
+                  size="md"
                   disabled={creating}
-                  style={creating ? styles.buttonDisabled : styles.buttonPrimary}
+                  loading={creating}
                 >
                   {creating ? (t('saving') || 'Saving...') : (t('complete_setup') || 'Complete Setup')}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="md"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setError('');
+                    setErrorMsg('');
                   }}
-                  style={styles.buttonSecondary}
                 >
                   {t('cancel') || 'Cancel'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {/* Payment Modal - NEW */}
+      {showPaymentModal && plans && (
+        <PaymentModal
+          plans={plans}
+          currentPlan={subscription.plan}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
     </div>
   );

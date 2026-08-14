@@ -1,3 +1,4 @@
+// mobile/src/pages/VoiceListing.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -28,7 +29,8 @@ const ICONS = {
   store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
   check: "M20 6L9 17l-5-5",
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
-  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
+  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"
 };
 
 const VoiceListing = () => {
@@ -46,6 +48,7 @@ const VoiceListing = () => {
   const [success, setSuccess] = useState('');
   const [language, setLanguage] = useState('ny');
   const [samplePrompts, setSamplePrompts] = useState([]);
+  const [validation, setValidation] = useState(null);
   
   const mediaRecorder = useRef(null);
   const audioChunks = useRef([]);
@@ -82,7 +85,9 @@ const VoiceListing = () => {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder.current = new MediaRecorder(stream);
+      mediaRecorder.current = new MediaRecorder(stream, {
+        mimeType: 'audio/webm'
+      });
       audioChunks.current = [];
 
       mediaRecorder.current.ondataavailable = (event) => {
@@ -90,7 +95,7 @@ const VoiceListing = () => {
       };
 
       mediaRecorder.current.onstop = () => {
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/wav' });
+        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
         processAudio(audioBlob);
       };
 
@@ -115,7 +120,7 @@ const VoiceListing = () => {
   const processAudio = async (audioBlob) => {
     try {
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
+      formData.append('audio', audioBlob, 'recording.webm');
       formData.append('language', language);
 
       const response = await voiceAPI.processVoice(formData);
@@ -123,6 +128,8 @@ const VoiceListing = () => {
       if (response.data.success) {
         setTranscript(response.data.transcript);
         setListingData(response.data.listing);
+        setValidation(response.data.validation);
+        
         if (response.data.validation) {
           const validationErrors = response.data.validation.errors || [];
           if (validationErrors.length > 0) {
@@ -149,28 +156,21 @@ const VoiceListing = () => {
     setError('');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/ai/voice/create-listing`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          businessId: selectedBusiness,
-          userId: user.id,
-          language: language,
-          listingData: listingData,
-          transcript: transcript
-        })
+      const response = await voiceAPI.createListing({
+        businessId: selectedBusiness,
+        userId: user.id,
+        language: language,
+        listingData: listingData,
+        transcript: transcript
       });
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.data.success) {
         setSuccess('🎉 Listing created successfully!');
-        setCreatedListingId(data.listing?.id);
-        setListingData(data.listing || listingData);
+        setCreatedListingId(response.data.listing?.id);
+        setListingData(response.data.listing || listingData);
+        setValidation(response.data.validation);
       } else {
-        setError(data.error || 'Failed to create listing');
+        setError(response.data.error || 'Failed to create listing');
       }
     } catch (err) {
       setError(err.message || 'Failed to create listing');
@@ -185,12 +185,14 @@ const VoiceListing = () => {
       minHeight: '100vh',
       backgroundColor: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '24px 16px'
+      padding: '24px 16px',
+      maxWidth: '800px',
+      margin: '0 auto'
     },
     backButton: {
       padding: '8px 16px',
-      backgroundColor: '#e2e8f0',
-      border: 'none',
+      backgroundColor: '#ffffff',
+      border: '1px solid #cbd5e1',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
@@ -199,7 +201,8 @@ const VoiceListing = () => {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
-      marginBottom: '16px'
+      marginBottom: '16px',
+      transition: 'all 0.2s'
     },
     card: {
       backgroundColor: '#ffffff',
@@ -240,7 +243,8 @@ const VoiceListing = () => {
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      transition: 'border-color 0.2s'
     },
     recordContainer: {
       textAlign: 'center',
@@ -285,9 +289,10 @@ const VoiceListing = () => {
     recordLabel: {
       marginTop: '8px',
       color: '#64748b',
-      fontSize: '14px'
+      fontSize: '14px',
+      fontWeight: '500'
     },
-    transcript: {
+    transcriptBox: {
       padding: '12px',
       backgroundColor: '#f8fafc',
       borderRadius: '8px',
@@ -303,7 +308,8 @@ const VoiceListing = () => {
     transcriptText: {
       color: '#1e293b',
       margin: 0,
-      fontSize: '14px'
+      fontSize: '14px',
+      lineHeight: '1.6'
     },
     preview: {
       padding: '12px',
@@ -339,6 +345,24 @@ const VoiceListing = () => {
       border: '1px solid #a7f3d0',
       marginTop: '12px'
     },
+    validationBox: {
+      padding: '12px',
+      backgroundColor: '#fef3c7',
+      borderRadius: '8px',
+      marginTop: '12px',
+      border: '1px solid #fde68a'
+    },
+    validationLabel: {
+      fontWeight: '600',
+      marginBottom: '4px',
+      fontSize: '13px',
+      color: '#92400e'
+    },
+    validationItem: {
+      fontSize: '13px',
+      color: '#78350f',
+      margin: '2px 0'
+    },
     createBtn: {
       width: '100%',
       padding: '12px',
@@ -353,7 +377,8 @@ const VoiceListing = () => {
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '8px'
+      gap: '8px',
+      transition: 'background-color 0.2s'
     },
     createBtnDisabled: {
       width: '100%',
@@ -386,13 +411,17 @@ const VoiceListing = () => {
       textAlign: 'left',
       fontSize: '14px',
       color: '#334155',
-      transition: 'background-color 0.2s'
+      transition: 'background-color 0.2s',
+      fontFamily: 'inherit'
     },
     promptSectionTitle: {
       fontSize: '16px',
       fontWeight: '600',
       color: '#0f172a',
-      marginBottom: '8px'
+      marginBottom: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     },
     shareSection: {
       marginTop: '16px',
@@ -404,6 +433,19 @@ const VoiceListing = () => {
       fontWeight: '600',
       color: '#0f172a',
       marginBottom: '8px'
+    },
+    confidenceBar: {
+      width: '100%',
+      height: '4px',
+      backgroundColor: '#e2e8f0',
+      borderRadius: '2px',
+      marginTop: '8px',
+      overflow: 'hidden'
+    },
+    confidenceFill: {
+      height: '100%',
+      borderRadius: '2px',
+      transition: 'width 0.5s ease'
     }
   };
 
@@ -417,7 +459,12 @@ const VoiceListing = () => {
         }
       `}</style>
       
-      <button onClick={() => navigate('/dashboard')} style={styles.backButton}>
+      <button 
+        onClick={() => navigate('/dashboard')} 
+        style={styles.backButton}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+      >
         <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
         Back to Dashboard
       </button>
@@ -489,7 +536,7 @@ const VoiceListing = () => {
 
         {/* Transcript */}
         {transcript && (
-          <div style={styles.transcript}>
+          <div style={styles.transcriptBox}>
             <p style={styles.transcriptLabel}>📝 Transcript:</p>
             <p style={styles.transcriptText}>{transcript}</p>
           </div>
@@ -507,6 +554,35 @@ const VoiceListing = () => {
             {listingData.quantity && (
               <p style={styles.previewItem}><strong>Quantity:</strong> {listingData.quantity} {listingData.unit || 'units'}</p>
             )}
+            {listingData.deliveryAvailable && (
+              <p style={styles.previewItem}><strong>Delivery:</strong> Available</p>
+            )}
+            
+            {/* Confidence Bar */}
+            {validation && validation.confidence && (
+              <div style={{ marginTop: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '2px' }}>
+                  Confidence: {Math.round(validation.confidence * 100)}%
+                </p>
+                <div style={styles.confidenceBar}>
+                  <div style={{
+                    ...styles.confidenceFill,
+                    width: `${validation.confidence * 100}%`,
+                    backgroundColor: validation.confidence > 0.7 ? '#22c55e' : validation.confidence > 0.4 ? '#f59e0b' : '#ef4444'
+                  }} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Validation Warnings */}
+        {validation && validation.warnings && validation.warnings.length > 0 && (
+          <div style={styles.validationBox}>
+            <p style={styles.validationLabel}>⚠️ Suggestions:</p>
+            {validation.warnings.map((warning, index) => (
+              <p key={index} style={styles.validationItem}>• {warning}</p>
+            ))}
           </div>
         )}
 
@@ -520,6 +596,12 @@ const VoiceListing = () => {
             onClick={handleCreateListing}
             disabled={processing || !selectedBusiness}
             style={processing || !selectedBusiness ? styles.createBtnDisabled : styles.createBtn}
+            onMouseEnter={(e) => {
+              if (!processing && selectedBusiness) e.currentTarget.style.backgroundColor = '#15803d';
+            }}
+            onMouseLeave={(e) => {
+              if (!processing && selectedBusiness) e.currentTarget.style.backgroundColor = '#16a34a';
+            }}
           >
             <SketchIcon d={ICONS.check} size={18} color="#ffffff" strokeWidth={2} />
             {processing ? 'Processing...' : 'Create Listing'}
@@ -542,13 +624,38 @@ const VoiceListing = () => {
       {/* Sample Prompts */}
       <div style={styles.card}>
         <h3 style={styles.promptSectionTitle}>
-          💡 Sample {language === 'ny' ? 'Chichewa' : 'English'} Prompts
+          <SketchIcon d={ICONS.sparkles} size={16} color="#f59e0b" strokeWidth={2} />
+          Sample {language === 'ny' ? 'Chichewa' : 'English'} Prompts
         </h3>
         <div style={styles.prompts}>
           {samplePrompts.map((prompt, index) => (
             <button
               key={index}
-              onClick={() => setTranscript(prompt)}
+              onClick={() => {
+                setTranscript(prompt);
+                // Simulate processing
+                setProcessing(true);
+                setTimeout(() => {
+                  // Extract listing data from prompt
+                  const extracted = {
+                    title: prompt.split(' ').slice(0, 4).join(' ') + '...',
+                    category: 'Other',
+                    price: prompt.match(/\d+/) ? parseInt(prompt.match(/\d+/)[0]) : null,
+                    quantity: 1,
+                    unit: 'unit',
+                    deliveryAvailable: false,
+                    confidence: 0.6
+                  };
+                  setListingData(extracted);
+                  setValidation({
+                    isValid: true,
+                    errors: [],
+                    warnings: ['Please review the extracted data'],
+                    confidence: 0.6
+                  });
+                  setProcessing(false);
+                }, 500);
+              }}
               style={styles.promptBtn}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}

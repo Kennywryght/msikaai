@@ -4,7 +4,10 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import { ToastProvider } from './components/ToastContainer';
+import PerformanceMonitor from './components/PerformanceMonitor';
 import { supabase } from './lib/supabase';
+import './styles/global.css';
 import './index.css';
 
 // Lazy load pages
@@ -27,7 +30,32 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 
 const PageLoader = ({ message }) => <LoadingSpinner message={message || 'Loading page...'} />;
 
-// Protected Route
+// ============================================
+// PUBLIC ROUTE - Redirects to dashboard if logged in
+// ============================================
+const PublicRoute = ({ children }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  if (isAuthenticated && user) {
+    const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+    if (redirectUrl && redirectUrl !== '/login' && redirectUrl !== '/register') {
+      sessionStorage.removeItem('redirectAfterLogin');
+      return <Navigate to={redirectUrl} replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
+
+// ============================================
+// PROTECTED ROUTE - Requires authentication
+// ============================================
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
@@ -69,6 +97,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   }
 
   if (!isAuthenticated || !user) {
+    sessionStorage.setItem('redirectAfterLogin', location.pathname + location.search);
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -79,11 +108,9 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   return children;
 };
 
-// ✅ REWRITTEN: single deterministic phase state machine
-// phase progresses one-way: 'splash' -> 'bridge' -> 'ready'
-// - splash: always shown for a fixed minimum duration
-// - bridge: waits for auth to resolve, but capped so it can never hang
-// - ready: renders the real routes
+// ============================================
+// APP ROUTES
+// ============================================
 function AppRoutes() {
   const { isAuthenticated, loading: authLoading } = useAuth();
 
@@ -93,7 +120,6 @@ function AppRoutes() {
   const SPLASH_MIN_MS = 2500;
   const MAX_BRIDGE_MS = 4000;
 
-  // Splash phase: always runs once, guarded against StrictMode double-invoke
   useEffect(() => {
     if (splashStarted.current) return;
     splashStarted.current = true;
@@ -105,8 +131,6 @@ function AppRoutes() {
     return () => clearTimeout(splashTimer);
   }, []);
 
-  // Bridge phase: move to 'ready' once auth resolves, or after the cap,
-  // whichever comes first.
   useEffect(() => {
     if (phase !== 'bridge') return;
 
@@ -131,108 +155,124 @@ function AppRoutes() {
     return <PageLoader message="Preparing your marketplace..." />;
   }
 
-  // phase === 'ready'
-  if (isAuthenticated) {
-    return (
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute adminOnly>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/onboarding"
-            element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/create-listing"
-            element={
-              <ProtectedRoute>
-                <CreateListing />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/ai-search"
-            element={
-              <ProtectedRoute>
-                <AISearch />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/voice-listing"
-            element={
-              <ProtectedRoute>
-                <VoiceListing />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/ad-generator"
-            element={
-              <ProtectedRoute>
-                <AdGenerator />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/edit-profile"
-            element={
-              <ProtectedRoute>
-                <EditProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/register" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/listing/:id" element={<ListingDetails />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
-    );
-  }
-
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        {/* Public Routes */}
+        <Route 
+          path="/" 
+          element={
+            <PublicRoute>
+              <Landing />
+            </PublicRoute>
+          } 
+        />
+        <Route 
+          path="/login" 
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } 
+        />
+        <Route 
+          path="/register" 
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          } 
+        />
+        
         <Route path="/about" element={<About />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/search" element={<Search />} />
         <Route path="/listing/:id" element={<ListingDetails />} />
+        
+        {/* Protected Routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/onboarding" 
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/create-listing" 
+          element={
+            <ProtectedRoute>
+              <CreateListing />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/ai-search" 
+          element={
+            <ProtectedRoute>
+              <AISearch />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/voice-listing" 
+          element={
+            <ProtectedRoute>
+              <VoiceListing />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/ad-generator" 
+          element={
+            <ProtectedRoute>
+              <AdGenerator />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/edit-profile" 
+          element={
+            <ProtectedRoute>
+              <EditProfile />
+            </ProtectedRoute>
+          } 
+        />
+        
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
 }
 
+// ============================================
+// MAIN APP
+// ============================================
 function App() {
   return (
     <AuthProvider>
       <TranslationProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
+            <AppRoutes />
+            <PerformanceMonitor showInDev={true} />
+          </BrowserRouter>
+        </ToastProvider>
       </TranslationProvider>
     </AuthProvider>
   );

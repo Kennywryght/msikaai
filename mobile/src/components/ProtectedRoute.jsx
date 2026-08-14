@@ -1,48 +1,53 @@
 // mobile/src/components/ProtectedRoute.jsx
-import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import React, { useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-
-      if (user && adminOnly) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        setIsAdmin(profile?.role === 'admin');
-      }
-    } catch (error) {
-      console.error('Auth check error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { user, loading, isAuthenticated } = useAuth();
+  const location = useLocation();
 
   if (loading) {
-    return <LoadingSpinner message="Checking authentication..." />;
+    return <LoadingSpinner message="Verifying your session..." />;
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  if (!isAuthenticated || !user) {
+    // Save the attempted URL for redirect after login
+    sessionStorage.setItem('redirectAfterLogin', location.pathname + location.search);
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (adminOnly && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+  // Admin check would go here if needed
+  if (adminOnly) {
+    // Check if user has admin role
+    const isAdmin = user.role === 'admin';
+    if (!isAdmin) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return children;
+};
+
+// Public route - redirects to dashboard if authenticated
+export const PublicRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <LoadingSpinner message="Loading..." />;
+  }
+
+  if (user) {
+    // Check if there's a redirect URL saved
+    const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+    sessionStorage.removeItem('redirectAfterLogin');
+    
+    // If on login/register page, redirect to dashboard or saved URL
+    if (location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/') {
+      return <Navigate to={redirectUrl || '/dashboard'} replace />;
+    }
   }
 
   return children;

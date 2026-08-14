@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+// mobile/src/pages/CreateListing.jsx
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { businessAPI, listingsAPI } from '../services/api';
+import Button from '../components/Button';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../components/ToastContainer';
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -37,7 +41,6 @@ const ICONS = {
   phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"
 };
 
-// Mitundu Locations
 const LOCATIONS = [
   'Mitundu Trading Centre',
   'Mitundu Bunda',
@@ -52,6 +55,7 @@ const LOCATIONS = [
 const CreateListing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showToast, success, error } = useToast();
   const [loading, setLoading] = useState(false);
   const [businesses, setBusinesses] = useState([]);
   const [selectedBusiness, setSelectedBusiness] = useState('');
@@ -72,7 +76,6 @@ const CreateListing = () => {
     contactPhone: ''
   });
 
-  // Categories
   const categories = [
     'Products',
     'Services',
@@ -94,6 +97,15 @@ const CreateListing = () => {
     'Services': ['Repair', 'Installation', 'Consulting', 'Transport'],
     'Food & Groceries': ['Vegetables', 'Fruits', 'Grains', 'Meat', 'Beverages']
   };
+
+  const titleInputRef = useRef(null);
+
+  // Auto-focus title input on mount
+  useEffect(() => {
+    if (titleInputRef.current) {
+      setTimeout(() => titleInputRef.current.focus(), 100);
+    }
+  }, []);
 
   // Fetch user's businesses
   useEffect(() => {
@@ -146,7 +158,7 @@ const CreateListing = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedBusiness) {
-      alert('Please select a business to associate with this listing.');
+      showToast('Please select a business to associate with this listing.', 'error');
       return;
     }
 
@@ -164,33 +176,38 @@ const CreateListing = () => {
       const response = await listingsAPI.create(listingData);
       
       if (response.data?.success) {
-        alert('🎉 Listing created successfully!');
+        success('🎉 Listing created successfully!');
         navigate('/dashboard');
       } else {
-        alert(response.data?.error || 'Failed to create listing');
+        const errMsg = response.data?.error || 'Failed to create listing';
+        showToast(errMsg, 'error');
       }
     } catch (err) {
       console.error('Error creating listing:', err);
-      alert(err.response?.data?.error || 'Failed to create listing');
+      const errMsg = err.response?.data?.error || 'Failed to create listing';
+      showToast(errMsg, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Styles
+  if (loading) {
+    return <LoadingSpinner message="Creating your listing..." />;
+  }
+
   const styles = {
     container: {
       minHeight: '100vh',
       backgroundColor: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '24px 16px'
+      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
     },
     card: {
       maxWidth: '600px',
       margin: '0 auto',
       backgroundColor: '#ffffff',
       borderRadius: '16px',
-      padding: '32px',
+      padding: 'clamp(20px, 2.5vw, 32px)',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
       border: '1px solid #e2e8f0'
     },
@@ -203,7 +220,7 @@ const CreateListing = () => {
       gap: '8px',
       color: '#64748b',
       textDecoration: 'none',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
       marginBottom: '12px',
       background: 'none',
@@ -213,7 +230,7 @@ const CreateListing = () => {
       transition: 'color 0.2s'
     },
     title: {
-      fontSize: '24px',
+      fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '800',
       color: '#0f172a',
       margin: 0,
@@ -222,70 +239,72 @@ const CreateListing = () => {
       gap: '10px'
     },
     subtitle: {
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#64748b',
       marginTop: '4px',
       marginBottom: 0
     },
     formGroup: {
-      marginBottom: '18px'
+      marginBottom: 'clamp(14px, 1.5vw, 18px)'
     },
     label: {
       display: 'flex',
       alignItems: 'center',
-      fontSize: '13px',
+      fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
       color: '#334155',
       marginBottom: '6px'
     },
     input: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
       fontFamily: 'inherit',
-      transition: 'border-color 0.15s'
+      transition: 'border-color 0.15s, box-shadow 0.15s',
+      WebkitAppearance: 'none'
     },
     textarea: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
       fontFamily: 'inherit',
       resize: 'vertical',
-      minHeight: '100px',
-      transition: 'border-color 0.15s'
+      minHeight: 'clamp(80px, 10vw, 100px)',
+      transition: 'border-color 0.15s, box-shadow 0.15s'
     },
     select: {
       width: '100%',
-      padding: '10px 14px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #cbd5e1',
       borderRadius: '8px',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#0f172a',
       boxSizing: 'border-box',
       outline: 'none',
       backgroundColor: '#ffffff',
       fontFamily: 'inherit',
-      appearance: 'auto',
-      transition: 'border-color 0.15s'
+      WebkitAppearance: 'none'
     },
     row: {
       display: 'flex',
-      gap: '12px'
+      gap: '12px',
+      flexWrap: 'wrap'
     },
     half: {
-      flex: 1
+      flex: 1,
+      minWidth: 'clamp(130px, 35vw, 200px)'
     },
     imageGrid: {
       display: 'flex',
@@ -297,8 +316,8 @@ const CreateListing = () => {
       position: 'relative'
     },
     imageThumb: {
-      width: '80px',
-      height: '80px',
+      width: 'clamp(60px, 8vw, 80px)',
+      height: 'clamp(60px, 8vw, 80px)',
       objectFit: 'cover',
       borderRadius: '8px',
       border: '1px solid #e2e8f0'
@@ -326,46 +345,14 @@ const CreateListing = () => {
       borderRadius: '8px',
       width: '100%',
       boxSizing: 'border-box',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      fontSize: 'clamp(12px, 1vw, 13px)'
     },
     checkbox: {
-      width: '18px',
-      height: '18px',
+      width: 'clamp(16px, 1.5vw, 18px)',
+      height: 'clamp(16px, 1.5vw, 18px)',
       cursor: 'pointer',
       accentColor: '#2563eb'
-    },
-    submitBtn: {
-      width: '100%',
-      padding: '12px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      marginTop: '8px',
-      transition: 'background-color 0.2s'
-    },
-    submitDisabled: {
-      width: '100%',
-      padding: '12px',
-      backgroundColor: '#93c5fd',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'not-allowed',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      marginTop: '8px'
     },
     required: {
       color: '#dc2626',
@@ -375,6 +362,17 @@ const CreateListing = () => {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        .input-focus:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .select-focus:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+      `}</style>
+
       <div style={styles.card}>
         {/* Header */}
         <div style={styles.header}>
@@ -397,26 +395,29 @@ const CreateListing = () => {
 
         <form onSubmit={handleSubmit}>
           {/* Business Selection */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <SketchIcon d={ICONS.store} size={14} color="#64748b" strokeWidth={2} />
-              <span style={{ marginLeft: '4px' }}>Business</span>
-              <span style={styles.required}>*</span>
-            </label>
-            <select
-              value={selectedBusiness}
-              onChange={(e) => setSelectedBusiness(e.target.value)}
-              style={styles.select}
-              required
-            >
-              <option value="">Select a business</option>
-              {businesses.map(biz => (
-                <option key={biz.id} value={biz.id}>
-                  {biz.business_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {businesses.length > 0 && (
+            <div style={styles.formGroup}>
+              <label style={styles.label}>
+                <SketchIcon d={ICONS.store} size={14} color="#64748b" strokeWidth={2} />
+                <span style={{ marginLeft: '4px' }}>Business</span>
+                <span style={styles.required}>*</span>
+              </label>
+              <select
+                value={selectedBusiness}
+                onChange={(e) => setSelectedBusiness(e.target.value)}
+                style={styles.select}
+                className="select-focus"
+                required
+              >
+                <option value="">Select a business</option>
+                {businesses.map(biz => (
+                  <option key={biz.id} value={biz.id}>
+                    {biz.business_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Title */}
           <div style={styles.formGroup}>
@@ -426,13 +427,16 @@ const CreateListing = () => {
               <span style={styles.required}>*</span>
             </label>
             <input
+              ref={titleInputRef}
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
               style={styles.input}
               placeholder="e.g., Fresh Tomatoes, Plumbing Services"
+              className="input-focus"
               required
+              autoComplete="off"
             />
           </div>
 
@@ -448,6 +452,7 @@ const CreateListing = () => {
               onChange={handleChange}
               style={styles.textarea}
               placeholder="Describe your product or service in detail..."
+              className="input-focus"
             />
           </div>
 
@@ -463,6 +468,7 @@ const CreateListing = () => {
               value={formData.category}
               onChange={handleChange}
               style={styles.select}
+              className="select-focus"
               required
             >
               <option value="">Select category</option>
@@ -481,6 +487,7 @@ const CreateListing = () => {
                 value={formData.subCategory}
                 onChange={handleChange}
                 style={styles.select}
+                className="select-focus"
               >
                 <option value="">Select sub category</option>
                 {subCategories[formData.category].map(sub => (
@@ -505,6 +512,8 @@ const CreateListing = () => {
                   onChange={handleChange}
                   style={styles.input}
                   placeholder="e.g., 5000"
+                  className="input-focus"
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -516,6 +525,7 @@ const CreateListing = () => {
                   value={formData.priceType}
                   onChange={handleChange}
                   style={styles.select}
+                  className="select-focus"
                 >
                   <option value="fixed">Fixed</option>
                   <option value="negotiable">Negotiable</option>
@@ -537,6 +547,8 @@ const CreateListing = () => {
                   onChange={handleChange}
                   style={styles.input}
                   placeholder="e.g., 10"
+                  className="input-focus"
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -550,6 +562,8 @@ const CreateListing = () => {
                   onChange={handleChange}
                   style={styles.input}
                   placeholder="e.g., bags, kg, pieces"
+                  className="input-focus"
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -567,6 +581,7 @@ const CreateListing = () => {
               value={formData.locationArea}
               onChange={handleChange}
               style={styles.select}
+              className="select-focus"
               required
             >
               <option value="">Select location in Mitundu</option>
@@ -582,8 +597,8 @@ const CreateListing = () => {
               <SketchIcon d={ICONS.delivery} size={14} color="#64748b" strokeWidth={2} />
               <span style={{ marginLeft: '4px' }}>Delivery Options</span>
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
-              <label style={{ fontSize: '14px', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '4px' }}>
+              <label style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   name="deliveryAvailable"
@@ -594,7 +609,7 @@ const CreateListing = () => {
                 Delivery available
               </label>
               {formData.deliveryAvailable && (
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: '120px' }}>
                   <input
                     type="number"
                     name="deliveryFee"
@@ -602,6 +617,7 @@ const CreateListing = () => {
                     onChange={handleChange}
                     style={styles.input}
                     placeholder="Delivery fee (MWK)"
+                    className="input-focus"
                   />
                 </div>
               )}
@@ -622,7 +638,9 @@ const CreateListing = () => {
               onChange={handleChange}
               style={styles.input}
               placeholder="e.g., 0999123456"
+              className="input-focus"
               required
+              autoComplete="tel"
             />
           </div>
 
@@ -638,6 +656,7 @@ const CreateListing = () => {
               multiple
               onChange={handleImageUpload}
               style={styles.fileInput}
+              aria-label="Upload product images"
             />
             {formData.images.length > 0 && (
               <div style={styles.imageGrid}>
@@ -648,6 +667,7 @@ const CreateListing = () => {
                       type="button"
                       onClick={() => removeImage(index)}
                       style={styles.removeBtn}
+                      aria-label="Remove image"
                     >
                       ×
                     </button>
@@ -658,26 +678,21 @@ const CreateListing = () => {
           </div>
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={loading}
             disabled={loading || !selectedBusiness}
-            style={loading || !selectedBusiness ? styles.submitDisabled : styles.submitBtn}
-            onMouseEnter={(e) => {
-              if (!loading && selectedBusiness) e.currentTarget.style.backgroundColor = '#1d4ed8';
-            }}
-            onMouseLeave={(e) => {
-              if (!loading && selectedBusiness) e.currentTarget.style.backgroundColor = '#2563eb';
-            }}
           >
-            {loading ? (
-              'Creating...'
-            ) : (
+            {loading ? 'Creating...' : (
               <>
                 <SketchIcon d={ICONS.check} size={18} color="#ffffff" strokeWidth={2.5} />
-                <span>Create Listing</span>
+                Create Listing
               </>
             )}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -1,14 +1,16 @@
 // mobile/src/pages/Onboarding.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import Toast from '../components/Toast';
+import Button from '../components/Button';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../components/ToastContainer';
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { showToast, success, error } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState(null);
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -27,6 +29,14 @@ const Onboarding = () => {
     'Cloud Computing',
     'UI/UX Design'
   ];
+
+  // Auto-focus first input on mount
+  useEffect(() => {
+    const firstNameInput = document.querySelector('input[name="fullName"]');
+    if (firstNameInput) {
+      setTimeout(() => firstNameInput.focus(), 100);
+    }
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -68,7 +78,7 @@ const Onboarding = () => {
 
       if (error) throw error;
 
-      setToast({ message: 'Profile setup complete! 🎉', type: 'success' });
+      success('Profile setup complete! 🎉');
       
       // Redirect based on role
       setTimeout(() => {
@@ -78,9 +88,10 @@ const Onboarding = () => {
           navigate('/dashboard');
         }
       }, 1500);
-    } catch (error) {
-      console.error('Error completing onboarding:', error);
-      setToast({ message: 'Error saving profile', type: 'error' });
+    } catch (err) {
+      console.error('Error completing onboarding:', err);
+      const errMsg = err.message || 'Error saving profile';
+      showToast(errMsg, 'error');
     } finally {
       setLoading(false);
     }
@@ -99,7 +110,7 @@ const Onboarding = () => {
     card: {
       backgroundColor: 'white',
       borderRadius: '16px',
-      padding: '40px',
+      padding: 'clamp(24px, 3vw, 40px)',
       maxWidth: '500px',
       width: '100%',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
@@ -109,13 +120,13 @@ const Onboarding = () => {
       marginBottom: '32px'
     },
     title: {
-      fontSize: '28px',
+      fontSize: 'clamp(24px, 3vw, 28px)',
       fontWeight: '700',
       color: '#0f172a',
       margin: '0 0 8px 0'
     },
     subtitle: {
-      fontSize: '16px',
+      fontSize: 'clamp(14px, 1.2vw, 16px)',
       color: '#64748b',
       margin: 0
     },
@@ -140,28 +151,32 @@ const Onboarding = () => {
     },
     label: {
       display: 'block',
-      fontSize: '14px',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
       color: '#0f172a',
       marginBottom: '6px'
     },
     input: {
       width: '100%',
-      padding: '10px 12px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #e2e8f0',
       borderRadius: '8px',
-      fontSize: '15px',
-      transition: 'border-color 0.2s',
-      boxSizing: 'border-box'
+      fontSize: 'clamp(14px, 1.2vw, 15px)',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+      boxSizing: 'border-box',
+      outline: 'none',
+      fontFamily: 'inherit'
     },
     select: {
       width: '100%',
-      padding: '10px 12px',
+      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
       border: '1px solid #e2e8f0',
       borderRadius: '8px',
-      fontSize: '15px',
+      fontSize: 'clamp(14px, 1.2vw, 15px)',
       backgroundColor: 'white',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      outline: 'none'
     },
     interestsGrid: {
       display: 'grid',
@@ -170,12 +185,12 @@ const Onboarding = () => {
       marginTop: '8px'
     },
     interestChip: {
-      padding: '8px 12px',
+      padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
       borderRadius: '8px',
       border: '1px solid #e2e8f0',
       backgroundColor: 'white',
       cursor: 'pointer',
-      fontSize: '14px',
+      fontSize: 'clamp(12px, 1vw, 14px)',
       textAlign: 'center',
       transition: 'all 0.2s',
       userSelect: 'none'
@@ -184,27 +199,6 @@ const Onboarding = () => {
       backgroundColor: '#2563eb',
       color: 'white',
       borderColor: '#2563eb'
-    },
-    button: {
-      width: '100%',
-      padding: '12px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'background-color 0.2s'
-    },
-    buttonDisabled: {
-      opacity: 0.5,
-      cursor: 'not-allowed'
-    },
-    buttonSecondary: {
-      backgroundColor: '#e2e8f0',
-      color: '#0f172a',
-      marginTop: '8px'
     },
     buttonContainer: {
       display: 'flex',
@@ -216,15 +210,18 @@ const Onboarding = () => {
     }
   };
 
+  if (loading) {
+    return <LoadingSpinner message="Setting up your profile..." />;
+  }
+
   return (
     <div style={styles.container}>
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      <style>{`
+        .input-focus:focus {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+      `}</style>
 
       <div style={styles.card}>
         <div style={styles.header}>
@@ -255,7 +252,9 @@ const Onboarding = () => {
                 onChange={handleInputChange}
                 style={styles.input}
                 placeholder="John Doe"
+                className="input-focus"
                 required
+                autoComplete="name"
               />
             </div>
 
@@ -268,6 +267,8 @@ const Onboarding = () => {
                 onChange={handleInputChange}
                 style={styles.input}
                 placeholder="+1 234 567 8900"
+                className="input-focus"
+                autoComplete="tel"
               />
             </div>
 
@@ -278,6 +279,7 @@ const Onboarding = () => {
                 value={formData.role}
                 onChange={handleInputChange}
                 style={styles.select}
+                className="input-focus"
               >
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
@@ -293,19 +295,20 @@ const Onboarding = () => {
                 onChange={handleInputChange}
                 style={styles.input}
                 placeholder="Your company name"
+                className="input-focus"
+                autoComplete="organization"
               />
             </div>
 
-            <button
-              style={{
-                ...styles.button,
-                ...(!formData.fullName && styles.buttonDisabled)
-              }}
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
               onClick={() => setStep(2)}
               disabled={!formData.fullName}
             >
               Continue →
-            </button>
+            </Button>
           </>
         )}
 
@@ -313,7 +316,7 @@ const Onboarding = () => {
           <>
             <div style={styles.formGroup}>
               <label style={styles.label}>Select your interests</label>
-              <p style={{ fontSize: '14px', color: '#64748b', marginTop: '4px' }}>
+              <p style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: '#64748b', marginTop: '4px' }}>
                 Choose areas you're interested in (click to toggle)
               </p>
               <div style={styles.interestsGrid}>
@@ -335,27 +338,26 @@ const Onboarding = () => {
             </div>
 
             <div style={styles.buttonContainer}>
-              <button
-                style={{
-                  ...styles.button,
-                  ...styles.buttonHalf,
-                  ...styles.buttonSecondary
-                }}
+              <Button
+                variant="secondary"
+                size="md"
+                fullWidth
                 onClick={() => setStep(1)}
+                style={styles.buttonHalf}
               >
                 ← Back
-              </button>
-              <button
-                style={{
-                  ...styles.button,
-                  ...styles.buttonHalf,
-                  ...(loading && styles.buttonDisabled)
-                }}
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                fullWidth
                 onClick={handleSubmit}
                 disabled={loading}
+                loading={loading}
+                style={styles.buttonHalf}
               >
-                {loading ? 'Saving...' : 'Complete Setup ✨'}
-              </button>
+                Complete Setup ✨
+              </Button>
             </div>
           </>
         )}
