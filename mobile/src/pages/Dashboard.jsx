@@ -211,7 +211,7 @@ const Dashboard = () => {
   });
 
   // ==========================================
-  // PAYMENT & SUBSCRIPTION STATE - NEW
+  // PAYMENT & SUBSCRIPTION STATE
   // ==========================================
   const [subscription, setSubscription] = useState({
     plan: 'free',
@@ -259,7 +259,7 @@ const Dashboard = () => {
   }, [showCreateForm]);
 
   // ==========================================
-  // FETCH SUBSCRIPTION - NEW
+  // FETCH SUBSCRIPTION
   // ==========================================
   const fetchSubscription = async () => {
     if (!user?.id) return;
@@ -490,7 +490,7 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // PAYMENT HANDLERS - NEW
+  // PAYMENT HANDLERS
   // ==========================================
   const handlePaymentSuccess = async (paymentData) => {
     try {
@@ -539,76 +539,123 @@ const Dashboard = () => {
       justifyContent: 'center',
       backgroundColor: '#f1f5f9',
     },
+    // ==========================================
+    // PROFESSIONAL NAVIGATION STYLES
+    // ==========================================
     nav: {
-      backgroundColor: '#0f172a',
-      padding: 'clamp(8px, 1.5vw, 12px) clamp(12px, 3vw, 24px)',
+      backgroundColor: '#ffffff',
+      padding: 'clamp(8px, 1.2vw, 12px) clamp(16px, 3vw, 24px)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-      flexWrap: 'wrap',
-      gap: '8px',
+      borderBottom: '1px solid #e2e8f0',
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      borderBottom: '3px solid #2563eb',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      minHeight: 'clamp(56px, 7vh, 64px)',
+      flexWrap: 'wrap',
+      gap: '8px'
     },
     brandGroup: {
       display: 'flex',
       alignItems: 'center',
-      gap: 'clamp(8px, 1.2vw, 12px)',
-    },
-    brandTitle: {
-      fontSize: 'clamp(18px, 2.2vw, 22px)',
-      fontWeight: '800',
-      color: '#ffffff',
-      margin: 0,
-      lineHeight: '1.1',
-    },
-    brandSubtitle: {
-      fontSize: 'clamp(9px, 0.9vw, 11px)',
-      color: '#94a3b8',
-      fontWeight: '500',
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
+      gap: '10px'
     },
     brandIcon: {
-      width: 'clamp(34px, 3.5vw, 40px)',
-      height: 'clamp(34px, 3.5vw, 40px)',
-      backgroundColor: '#2563eb',
+      width: 'clamp(34px, 3.5vw, 38px)',
+      height: 'clamp(34px, 3.5vw, 38px)',
+      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
       borderRadius: '10px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      flexShrink: 0,
+      boxShadow: '0 4px 12px rgba(37,99,235,0.2)',
+      flexShrink: 0
+    },
+    brandTitle: {
+      fontSize: 'clamp(16px, 2vw, 20px)',
+      fontWeight: '800',
+      color: '#0f172a',
+      margin: 0,
+      letterSpacing: '-0.5px',
+      lineHeight: '1.1'
+    },
+    brandSubtitle: {
+      fontSize: '7px',
+      color: '#94a3b8',
+      margin: 0,
+      fontWeight: '600',
+      letterSpacing: '0.6px',
+      textTransform: 'uppercase'
     },
     navActions: {
       display: 'flex',
       alignItems: 'center',
-      gap: 'clamp(4px, 0.8vw, 6px)',
-      flexWrap: 'wrap',
+      gap: 'clamp(4px, 0.8vw, 8px)',
+      flexWrap: 'wrap'
     },
     subscriptionBadge: {
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      backgroundColor: 'rgba(255,255,255,0.08)',
+      gap: '6px',
+      backgroundColor: '#f1f5f9',
       padding: '4px 12px',
       borderRadius: '20px',
-      border: '1px solid rgba(255,255,255,0.1)',
+      border: '1px solid #e2e8f0'
     },
     subscriptionPlan: {
-      fontSize: '12px',
+      fontSize: '11px',
       fontWeight: '600',
-      color: '#94a3b8',
+      color: '#64748b'
     },
     subscriptionPlanActive: {
-      color: '#60a5fa',
+      color: '#065f46'
     },
     subscriptionCount: {
-      fontSize: '10px',
-      color: '#64748b',
-      marginLeft: '4px',
+      fontSize: '9px',
+      color: '#94a3b8'
+    },
+    userProfile: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '4px 8px 4px 12px',
+      borderRadius: '20px',
+      backgroundColor: '#f8fafc',
+      border: '1px solid #e2e8f0',
+      cursor: 'pointer'
+    },
+    userAvatar: {
+      width: '28px',
+      height: '28px',
+      borderRadius: '50%',
+      backgroundColor: '#dbeafe',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '12px',
+      fontWeight: '700',
+      color: '#2563eb'
+    },
+    userName: {
+      fontSize: '12px',
+      fontWeight: '500',
+      color: '#334155',
+      maxWidth: '100px',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
+    },
+    logoutIcon: {
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '4px',
+      color: '#94a3b8',
+      fontSize: '14px',
+      display: 'flex',
+      alignItems: 'center'
     },
     upgradeBanner: {
       backgroundColor: '#fef3c7',
@@ -630,68 +677,13 @@ const Dashboard = () => {
     upgradeBannerIcon: {
       fontSize: '20px',
     },
-    aiBtn: {
-      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: 'clamp(10px, 1vw, 12px)',
-      color: 'white',
-      fontWeight: '600',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      transition: 'opacity 0.2s, transform 0.2s',
-      touchAction: 'manipulation',
-      whiteSpace: 'nowrap',
+    addButtonDisabled: {
+      opacity: 0.5,
+      cursor: 'not-allowed',
     },
-    secondaryNavBtn: {
-      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      color: '#e2e8f0',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: 'clamp(10px, 1vw, 12px)',
-      fontWeight: '500',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      transition: 'background-color 0.2s',
-      touchAction: 'manipulation',
-      whiteSpace: 'nowrap',
-    },
-    userBadge: {
-      fontSize: 'clamp(10px, 0.9vw, 12px)',
-      color: '#e2e8f0',
-      fontWeight: '500',
-      backgroundColor: 'rgba(255, 255, 255, 0.06)',
-      padding: 'clamp(3px, 0.5vw, 4px) clamp(8px, 1vw, 12px)',
-      borderRadius: '8px',
-      maxWidth: 'clamp(100px, 15vw, 150px)',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      border: '1px solid rgba(255, 255, 255, 0.06)',
-    },
-    logoutBtn: {
-      color: '#f87171',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      fontSize: 'clamp(10px, 0.9vw, 12px)',
-      fontWeight: '500',
-      padding: 'clamp(3px, 0.5vw, 4px) clamp(6px, 0.8vw, 8px)',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      borderRadius: '6px',
-      transition: 'background-color 0.2s',
-      touchAction: 'manipulation',
-    },
+    // ==========================================
+    // CONTENT STYLES
+    // ==========================================
     content: {
       maxWidth: '1140px',
       margin: '0 auto',
@@ -961,9 +953,68 @@ const Dashboard = () => {
       position: 'relative',
       display: 'inline-block',
     },
-    addButtonDisabled: {
-      opacity: 0.5,
-      cursor: 'not-allowed',
+    // AI Button styles
+    aiBtn: {
+      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: 'clamp(10px, 1vw, 12px)',
+      color: 'white',
+      fontWeight: '600',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      transition: 'opacity 0.2s, transform 0.2s',
+      touchAction: 'manipulation',
+      whiteSpace: 'nowrap',
+    },
+    secondaryNavBtn: {
+      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      color: '#e2e8f0',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: 'clamp(10px, 1vw, 12px)',
+      fontWeight: '500',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      transition: 'background-color 0.2s',
+      touchAction: 'manipulation',
+      whiteSpace: 'nowrap',
+    },
+    userBadge: {
+      fontSize: 'clamp(10px, 0.9vw, 12px)',
+      color: '#e2e8f0',
+      fontWeight: '500',
+      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+      padding: 'clamp(3px, 0.5vw, 4px) clamp(8px, 1vw, 12px)',
+      borderRadius: '8px',
+      maxWidth: 'clamp(100px, 15vw, 150px)',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      border: '1px solid rgba(255, 255, 255, 0.06)',
+    },
+    logoutBtn: {
+      color: '#f87171',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      fontSize: 'clamp(10px, 0.9vw, 12px)',
+      fontWeight: '500',
+      padding: 'clamp(3px, 0.5vw, 4px) clamp(6px, 0.8vw, 8px)',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      borderRadius: '6px',
+      transition: 'background-color 0.2s',
+      touchAction: 'manipulation',
     },
   };
 
@@ -973,26 +1024,36 @@ const Dashboard = () => {
 
   return (
     <div style={styles.container}>
-      {/* Top Navigation Bar */}
+      {/* ============================================
+      PROFESSIONAL NAVIGATION BAR - CLEAN & MODERN
+      ============================================ */}
       <nav style={styles.nav}>
+        {/* Brand / Logo */}
         <div style={styles.brandGroup}>
           <div style={styles.brandIcon}>
-            <HandStore size={20} color="#ffffff" />
+            <HandStore size={18} color="#ffffff" />
           </div>
           <div>
             <h1 style={styles.brandTitle}>
-              Ku<span style={{ color: '#60a5fa' }}>Msika</span>
+              Ku<span style={{ color: '#2563eb' }}>Msika</span>
             </h1>
-            <span style={styles.brandSubtitle}>{t('vendor_dashboard') || 'Vendor Dashboard'}</span>
+            <p style={styles.brandSubtitle}>
+              Vendor Dashboard
+            </p>
           </div>
         </div>
 
+        {/* Right Side - Clean & Minimal */}
         <div style={styles.navActions}>
-          <LanguageToggle />
-
-          {/* Subscription Badge - NEW */}
+          {/* Subscription Badge */}
           <div style={styles.subscriptionBadge}>
-            <span style={{ fontSize: '10px', color: '#94a3b8' }}>Plan:</span>
+            <span style={{
+              display: 'inline-block',
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: subscription.plan === 'free' ? '#94a3b8' : '#22c55e'
+            }}></span>
             <span style={{
               ...styles.subscriptionPlan,
               ...(subscription.plan !== 'free' && styles.subscriptionPlanActive)
@@ -1004,109 +1065,67 @@ const Dashboard = () => {
             </span>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/ai-search')}
-            style={{ ...styles.aiBtn, backgroundColor: '#7c3aed' }}
-            title="AI Search & Assistant"
-            iconLeft={<HandRobot size={14} />}
-          >
-            AI
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/voice-listing')}
-            style={{ ...styles.aiBtn, backgroundColor: '#db2777' }}
-            title="Create listing using voice"
-            iconLeft={<HandMic size={14} />}
-          >
-            Voice
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/ad-generator')}
-            style={{ ...styles.aiBtn, backgroundColor: '#d97706' }}
-            title="Generate advertisements"
-            iconLeft={<HandPalette size={14} />}
-          >
-            Ads
-          </Button>
-
+          {/* Quick Actions */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/search')}
-            style={styles.secondaryNavBtn}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              color: '#475569'
+            }}
             iconLeft={<HandSearch size={14} />}
           >
-            {t('browse') || 'Browse'}
+            <span className="btn-label">Browse</span>
           </Button>
-          
-          {/* Updated Add Button with Subscription Check */}
+
           <Button
             variant="primary"
             size="sm"
             onClick={handleAddListingClick}
+            style={{
+              padding: '6px 14px',
+              fontSize: '12px',
+              borderRadius: '8px'
+            }}
             iconLeft={<HandPlus size={14} />}
-            style={subscription.remaining_listings <= 0 ? styles.addButtonDisabled : {}}
           >
-            {subscription.remaining_listings <= 0 ? 'Upgrade to Add' : t('add') || 'Add'}
+            <span className="btn-label">Add</span>
           </Button>
 
-          {/* Notification Bell */}
-          <div style={styles.notificationWrapper}>
-            <NotificationBell 
-              unreadCount={unreadCount} 
-              onClick={() => setShowNotifications(!showNotifications)} 
-            />
-            {showNotifications && (
-              <NotificationsDropdown 
-                notifications={notifications}
-                onClose={() => setShowNotifications(false)}
-                onMarkRead={handleMarkNotificationRead}
-              />
-            )}
-          </div>
-
-          <span style={styles.userBadge}>
-            <HandUser size={14} />
-            <span style={{ fontWeight: '500' }}>
-              {business?.business_name || user?.email?.split('@')[0] || t('vendor') || 'Vendor'}
+          {/* User Profile */}
+          <div style={styles.userProfile}>
+            <div style={styles.userAvatar}>
+              {business?.business_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <span style={styles.userName}>
+              {business?.business_name || user?.email?.split('@')[0] || 'User'}
             </span>
-          </span>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            style={styles.logoutBtn}
-            iconLeft={<HandLogout size={14} />}
-          >
-            {t('logout') || 'Logout'}
-          </Button>
+            <button
+              onClick={handleLogout}
+              style={styles.logoutIcon}
+              title="Logout"
+            >
+              <HandLogout size={14} />
+            </button>
+          </div>
         </div>
-
-        <style>{`
-          @media (max-width: 480px) {
-            .btn-label {
-              display: none;
-            }
-            .nav-actions {
-              gap: 4px;
-            }
-          }
-          @media (min-width: 481px) {
-            .btn-label {
-              display: inline;
-            }
-          }
-        `}</style>
       </nav>
+
+      {/* Mobile responsive styles */}
+      <style>{`
+        @media (max-width: 480px) {
+          .btn-label {
+            display: none;
+          }
+        }
+        @media (min-width: 481px) {
+          .btn-label {
+            display: inline;
+          }
+        }
+      `}</style>
 
       {/* Upgrade Banner - NEW */}
       {subscription.remaining_listings <= 0 && (

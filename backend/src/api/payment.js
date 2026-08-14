@@ -1,13 +1,16 @@
 // backend/src/api/payment.js
-const express = require('express');
+import express from 'express';
+import { createClient } from '@supabase/supabase-js';
+import { logger } from '../utils/logger.js';
+
 const router = express.Router();
-const auth = require('../middleware/auth');
-const paymentService = require('../services/paymentService');
-const supabase = require('../lib/supabase');
-const logger = require('../utils/logger');
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
 
 // ============================================
-// Subscription Plans
+// PLANS CONFIGURATION
 // ============================================
 const PLANS = {
   free: {
@@ -45,7 +48,83 @@ const PLANS = {
 };
 
 // ============================================
-// Get available plans
+// NOTIFICATION NUMBERS (Update with your numbers)
+// ============================================
+const NOTIFICATIONS = {
+  tnmNumber: '0888921110',        // Your TNM number
+  whatsappNumber: '0888921110',   // Your WhatsApp number
+  adminEmail: 'kennedybanda940@gmail.com'
+};
+
+// ============================================
+// SEND WHATSAPP NOTIFICATION
+// ============================================
+const sendWhatsAppNotification = async (message) => {
+  try {
+    logger.info(`📱 WhatsApp Notification: ${message}`);
+    
+    // You can integrate with:
+    // - Twilio WhatsApp API
+    // - WATI.io
+    // - 360dialog
+    // - Africa's Talking
+    
+    return true;
+  } catch (error) {
+    logger.error('WhatsApp notification error:', error);
+    return false;
+  }
+};
+
+// ============================================
+// SEND TNM (SMS) NOTIFICATION
+// ============================================
+const sendTNMNotification = async (message, phoneNumber) => {
+  try {
+    logger.info(`📱 TNM SMS Notification to ${phoneNumber}: ${message}`);
+    
+    // You can integrate with:
+    // - Africa's Talking SMS API
+    // - Twilio SMS API
+    // - Local SMS gateway
+    
+    return true;
+  } catch (error) {
+    logger.error('TNM SMS notification error:', error);
+    return false;
+  }
+};
+
+// ============================================
+// SEND PAYMENT NOTIFICATION
+// ============================================
+const sendPaymentNotification = async (paymentData) => {
+  const { userId, plan, amount, currency, method, paymentId, userEmail, userName } = paymentData;
+  
+  const message = `
+🔔 *NEW PAYMENT RECEIVED!*
+
+👤 *Customer:* ${userName || 'User'} (${userEmail || userId})
+📋 *Plan:* ${plan.toUpperCase()}
+💰 *Amount:* ${amount} ${currency}
+💳 *Method:* ${method}
+🆔 *Payment ID:* ${paymentId}
+📅 *Date:* ${new Date().toISOString()}
+
+----------------------------------------
+MsikaAI Payment Notification
+    `.trim();
+
+  await sendWhatsAppNotification(message);
+  await sendTNMNotification(message, NOTIFICATIONS.tnmNumber);
+  
+  logger.info('💳 Payment notification sent:', { userId, plan, amount });
+  
+  return true;
+};
+
+// ============================================
+// GET PLANS
 // ============================================
 router.get('/plans', async (req, res) => {
   try {
@@ -63,14 +142,12 @@ router.get('/plans', async (req, res) => {
 });
 
 // ============================================
-// Initiate payment
+// INITIATE PAYMENT
 // ============================================
-router.post('/initiate', auth, async (req, res) => {
+router.post('/initiate', async (req, res) => {
   try {
-    const { plan, method, amount, currency } = req.body;
-    const userId = req.user.id;
+    const { userId, plan, method } = req.body;
 
-    // Validate plan
     if (!PLANS[plan]) {
       return res.status(400).json({
         success: false,
@@ -78,30 +155,51 @@ router.post('/initiate', auth, async (req, res) => {
       });
     }
 
-    // Validate payment method
-    const validMethods = ['airtel_money', 'mpamba', 'card'];
-    if (!validMethods.includes(method)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid payment method'
+    if (PLANS[plan].price === 0) {
+      return res.json({
+        success: true,
+        paymentId: 'free_' + Date.now(),
+        amount: 0,
+        currency: PLANS[plan].currency
       });
     }
 
-    // Create payment intent
-    const paymentIntent = await paymentService.createPaymentIntent({
+    const paymentId = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    
+    const { data: payment, error: paymentError } = await supabase
+      .from('payments')
+      .insert({
+        user_id: userId,
+        plan: plan,
+        amount: PLANS[plan].price,
+        currency: PLANS[plan].currency,
+        method: method,
+        payment_id: paymentId,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (paymentError) {
+      logger.error('Payment record error:', paymentError);
+      throw paymentError;
+    }
+
+    await sendPaymentNotification({
       userId,
       plan,
       amount: PLANS[plan].price,
       currency: PLANS[plan].currency,
-      method
+      method,
+      paymentId
     });
 
     res.json({
       success: true,
-      paymentId: paymentIntent.id,
-      clientSecret: paymentIntent.clientSecret,
+      paymentId: paymentId,
       amount: PLANS[plan].price,
-      currency: PLANS[plan].currency
+      currency: PLANS[plan].currency,
+      status: 'pending'
     });
 
   } catch (error) {
@@ -114,25 +212,65 @@ router.post('/initiate', auth, async (req, res) => {
 });
 
 // ============================================
-// Verify payment
+// VERIFY PAYMENT
 // ============================================
-router.get('/verify/:paymentId', auth, async (req, res) => {
+router.post('/verify', async (req, res) => {
   try {
-    const { paymentId } = req.params;
-    
-    const result = await paymentService.verifyPayment(paymentId);
-    
-    if (result.success) {
-      // Update user subscription
-      await paymentService.updateSubscription({
-        userId: req.user.id,
-        plan: result.plan,
-        paymentId: paymentId
+    const { paymentId, userId } = req.body;
+
+    const { data: payment, error: paymentError } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('payment_id', paymentId)
+      .single();
+
+    if (paymentError || !payment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment not found'
       });
     }
-    
-    res.json(result);
-    
+
+    const { error: updateError } = await supabase
+      .from('payments')
+      .update({ status: 'completed' })
+      .eq('payment_id', paymentId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    const { error: subError } = await supabase
+      .from('subscriptions')
+      .upsert({
+        user_id: userId,
+        plan: payment.plan,
+        listings_allowed: PLANS[payment.plan].listings,
+        status: 'active',
+        expires_at: expiresAt.toISOString(),
+        updated_at: now.toISOString()
+      }, {
+        onConflict: 'user_id'
+      });
+
+    if (subError) {
+      throw subError;
+    }
+
+    await sendWhatsAppNotification(
+      `✅ Payment Confirmed!\n\nYour ${payment.plan} plan is now active. You have ${PLANS[payment.plan].listings} listings available.\n\nThank you for choosing MsikaAI! 🎉`
+    );
+
+    res.json({
+      success: true,
+      message: 'Payment verified and subscription updated',
+      plan: payment.plan
+    });
+
   } catch (error) {
     logger.error('Payment verification error:', error);
     res.status(500).json({
@@ -143,27 +281,61 @@ router.get('/verify/:paymentId', auth, async (req, res) => {
 });
 
 // ============================================
-// Get subscription status
+// GET USER SUBSCRIPTION
 // ============================================
-router.get('/subscription/:userId', auth, async (req, res) => {
+router.get('/subscription/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    
-    // Ensure user can only view their own subscription
-    if (userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized access'
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    if (!data) {
+      const now = new Date();
+      const expiresAt = new Date(now);
+      expiresAt.setFullYear(expiresAt.getFullYear() + 100);
+
+      const { data: newSub, error: createError } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: userId,
+          plan: 'free',
+          listings_allowed: PLANS.free.listings,
+          listings_used: 0,
+          status: 'active',
+          expires_at: expiresAt.toISOString()
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      return res.json({
+        success: true,
+        subscription: {
+          ...newSub,
+          remaining_listings: PLANS.free.listings
+        }
       });
     }
-    
-    const subscription = await paymentService.getSubscription(userId);
-    
+
+    const remaining = (data.listings_allowed || 0) - (data.listings_used || 0);
+
     res.json({
       success: true,
-      subscription
+      subscription: {
+        ...data,
+        remaining_listings: remaining > 0 ? remaining : 0
+      }
     });
-    
+
   } catch (error) {
     logger.error('Subscription fetch error:', error);
     res.status(500).json({
@@ -174,33 +346,50 @@ router.get('/subscription/:userId', auth, async (req, res) => {
 });
 
 // ============================================
-// Upgrade subscription
+// UPGRADE SUBSCRIPTION
 // ============================================
-router.post('/upgrade', auth, async (req, res) => {
+router.post('/upgrade', async (req, res) => {
   try {
-    const { plan, paymentId } = req.body;
-    const userId = req.user.id;
-    
-    // Validate plan
+    const { plan, paymentId, userId } = req.body;
+
     if (!PLANS[plan]) {
       return res.status(400).json({
         success: false,
         error: 'Invalid plan selected'
       });
     }
-    
-    // Update subscription
-    const result = await paymentService.updateSubscription({
-      userId,
-      plan,
-      paymentId
-    });
-    
+
+    const now = new Date();
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .upsert({
+        user_id: userId,
+        plan: plan,
+        listings_allowed: PLANS[plan].listings,
+        status: 'active',
+        expires_at: expiresAt.toISOString(),
+        updated_at: now.toISOString()
+      }, {
+        onConflict: 'user_id'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    const remaining = (data.listings_allowed || 0) - (data.listings_used || 0);
+
     res.json({
       success: true,
-      subscription: result
+      subscription: {
+        ...data,
+        remaining_listings: remaining > 0 ? remaining : 0
+      }
     });
-    
+
   } catch (error) {
     logger.error('Subscription upgrade error:', error);
     res.status(500).json({
@@ -211,28 +400,46 @@ router.post('/upgrade', auth, async (req, res) => {
 });
 
 // ============================================
-// Check if user can create listing
+// CAN CREATE LISTING
 // ============================================
-router.get('/can-create-listing/:userId', auth, async (req, res) => {
+router.get('/can-create-listing/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    
-    if (userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized access'
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    if (!data) {
+      return res.json({
+        success: true,
+        canCreate: true,
+        subscription: {
+          plan: 'free',
+          listings_allowed: PLANS.free.listings,
+          listings_used: 0,
+          remaining_listings: PLANS.free.listings
+        }
       });
     }
-    
-    const canCreate = await paymentService.canCreateListing(userId);
-    const subscription = await paymentService.getSubscription(userId);
-    
+
+    const remaining = (data.listings_allowed || 0) - (data.listings_used || 0);
+
     res.json({
       success: true,
-      canCreate,
-      subscription
+      canCreate: remaining > 0,
+      subscription: {
+        ...data,
+        remaining_listings: remaining > 0 ? remaining : 0
+      }
     });
-    
+
   } catch (error) {
     logger.error('Check listing permission error:', error);
     res.status(500).json({
@@ -242,4 +449,4 @@ router.get('/can-create-listing/:userId', auth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

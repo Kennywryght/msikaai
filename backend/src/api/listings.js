@@ -2,8 +2,10 @@
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import multer from 'multer';
 import { cacheMiddleware, keyGenerators, invalidateCache } from '../middleware/cache.js';
 import { authenticateToken } from '../middleware/auth.js';
+import storageService from '../services/storageService.js';
 
 dotenv.config();
 
@@ -12,6 +14,12 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
+
+// Configure multer for file uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit per file
+});
 
 // ============================================
 // PUBLIC ROUTES (No authentication required)
@@ -112,7 +120,7 @@ router.get('/business/:businessId', cacheMiddleware(300), async (req, res) => {
 });
 
 // ============================================
-// SEARCH LISTINGS - Public (✅ FIXED)
+// SEARCH LISTINGS - Public
 // ============================================
 router.get('/search', cacheMiddleware(180, keyGenerators.search), async (req, res) => {
   try {
@@ -264,8 +272,8 @@ router.get('/:id', cacheMiddleware(600), async (req, res) => {
 // PROTECTED ROUTES (Authentication required)
 // ============================================
 
-// CREATE LISTING - Protected
-router.post('/create', authenticateToken, async (req, res) => {
+// CREATE LISTING - Protected with image upload
+router.post('/create', authenticateToken, upload.array('images', 5), async (req, res) => {
   try {
     const { 
       businessId, 
@@ -277,7 +285,6 @@ router.post('/create', authenticateToken, async (req, res) => {
       priceType,
       quantity,
       unit,
-      images,
       status,
       locationArea,
       deliveryAvailable,
@@ -308,6 +315,13 @@ router.post('/create', authenticateToken, async (req, res) => {
       });
     }
 
+    // Upload images to Supabase Storage
+    let imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      imageUrls = await storageService.uploadListingImages(req.files, businessId);
+      console.log(`✅ Uploaded ${imageUrls.length} images`);
+    }
+
     const { data, error } = await supabaseAdmin
       .from('listings')
       .insert({
@@ -320,7 +334,7 @@ router.post('/create', authenticateToken, async (req, res) => {
         price_type: priceType || 'fixed',
         quantity: quantity || null,
         unit: unit || '',
-        images: images || [],
+        images: imageUrls,
         status: status || 'active',
         location_area: locationArea || '',
         delivery_available: deliveryAvailable || false,

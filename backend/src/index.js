@@ -25,6 +25,7 @@ import analyticsRoutes from './api/analytics.js';
 import exportRoutes from './api/export.js';
 import notificationsRoutes from './api/notifications.js';
 import matchingRoutes from './api/matching.js';
+import paymentRoutes from './api/payment.js';
 
 // Load environment variables FIRST
 dotenv.config();
@@ -97,7 +98,6 @@ try {
 // SECURITY & PERFORMANCE MIDDLEWARE
 // ============================================
 
-// Helmet - Security headers
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -286,11 +286,10 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================
-// CACHE MANAGEMENT ROUTES - NEW
+// CACHE MANAGEMENT ROUTES
 // ============================================
 app.get('/api/admin/cache/stats', authenticateToken, async (req, res) => {
   try {
-    // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -362,6 +361,7 @@ app.use('/api/notifications', authenticateToken, notificationsRoutes);
 app.use('/api/export', authenticateToken, exportRoutes);
 app.use('/api/matching', authenticateToken, matchingRoutes);
 app.use('/api/ai', authenticateToken, aiLimiter, aiRoutes);
+app.use('/api/payment', authenticateToken, paymentRoutes);
 
 // ============================================
 // 404 & ERROR HANDLING
