@@ -595,7 +595,7 @@ const Dashboard = () => {
       gap: 'clamp(4px, 0.8vw, 8px)',
       flexWrap: 'wrap'
     },
-    // ✅ FIXED: No blinking - static dot
+    // ✅ FIXED: No blinking - static dot with no animation
     subscriptionBadge: {
       display: 'flex',
       alignItems: 'center',
@@ -603,7 +603,8 @@ const Dashboard = () => {
       backgroundColor: '#f1f5f9',
       padding: '4px 12px',
       borderRadius: '20px',
-      border: '1px solid #e2e8f0'
+      border: '1px solid #e2e8f0',
+      flexShrink: 0,
     },
     subscriptionDot: {
       display: 'inline-block',
@@ -611,6 +612,7 @@ const Dashboard = () => {
       height: '6px',
       borderRadius: '50%',
       flexShrink: 0,
+      // ✅ NO ANIMATION - static dot
     },
     subscriptionPlan: {
       fontSize: '11px',
@@ -1055,7 +1057,7 @@ const Dashboard = () => {
 
         {/* Right Side - Clean & Minimal */}
         <div style={styles.navActions}>
-          {/* ✅ FIXED: No blinking - static dot */}
+          {/* ✅ FIXED: Static dot - NO BLINKING */}
           <div style={styles.subscriptionBadge}>
             <span style={{
               ...styles.subscriptionDot,
@@ -1134,7 +1136,7 @@ const Dashboard = () => {
         }
       `}</style>
 
-      {/* ✅ FIXED: Responsive Upgrade Banner */}
+      {/* ✅ FIXED: Responsive Upgrade Banner with proper button */}
       {subscription.remaining_listings <= 0 && (
         <div style={styles.upgradeBanner}>
           <div style={styles.upgradeBannerText}>
@@ -1148,7 +1150,9 @@ const Dashboard = () => {
             style={{
               padding: 'clamp(6px, 0.8vw, 8px) clamp(12px, 1.5vw, 16px)',
               fontSize: 'clamp(12px, 1vw, 13px)',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              minWidth: 'clamp(80px, 15vw, 120px)',
+              justifyContent: 'center'
             }}
           >
             Upgrade Now

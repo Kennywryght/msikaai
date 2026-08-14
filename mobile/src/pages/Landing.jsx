@@ -454,19 +454,25 @@ const Landing = () => {
             <SketchIcon d={ICONS.sparkles} size={15} color="#f59e0b" strokeWidth={2} />
             <span>Mitundu's Local Goods & Service Directory</span>
           </div>
+
+          {/* ✅ FIXED: Removed gradient text, using solid color for better visibility */}
           <h1 style={{
             fontSize: 'clamp(32px, 7vw, 52px)',
             fontWeight: '800',
             marginBottom: '18px',
             lineHeight: '1.15',
-            letterSpacing: '-0.02em'
+            letterSpacing: '-0.02em',
+            color: '#ffffff'
           }}>
-            Buy Goods & Hire Local Pros in <span style={{
-              background: 'linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>Mitundu</span>
+            Buy Goods & Hire Local{' '}
+            <span style={{
+              color: '#fcd34d'
+            }}>
+              Services
+            </span>
+            {' '}in Mitundu
           </h1>
+
           <p style={{
             fontSize: 'clamp(15px, 1.8vw, 18px)',
             marginBottom: '36px',
