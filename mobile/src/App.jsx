@@ -40,11 +40,22 @@ const PublicRoute = ({ children }) => {
     return <PageLoader />;
   }
 
+  // ✅ FIX: Only redirect to dashboard if user is authenticated
+  // and NOT on login/register pages
   if (isAuthenticated && user) {
     const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+    // Don't redirect to login or register pages
     if (redirectUrl && redirectUrl !== '/login' && redirectUrl !== '/register') {
       sessionStorage.removeItem('redirectAfterLogin');
       return <Navigate to={redirectUrl} replace />;
+    }
+    // If on landing page, redirect to dashboard
+    if (location.pathname === '/') {
+      return <Navigate to="/dashboard" replace />;
+    }
+    // If on login or register, don't redirect (allow the page to show)
+    if (location.pathname === '/login' || location.pathname === '/register') {
+      return children;
     }
     return <Navigate to="/dashboard" replace />;
   }
@@ -119,6 +130,7 @@ function AppRoutes() {
   const SPLASH_MIN_MS = 2500;
   const MAX_BRIDGE_MS = 4000;
 
+  // Splash phase - always runs once
   useEffect(() => {
     if (splashStarted.current) return;
     splashStarted.current = true;
@@ -130,6 +142,7 @@ function AppRoutes() {
     return () => clearTimeout(splashTimer);
   }, []);
 
+  // Bridge phase - wait for auth to resolve
   useEffect(() => {
     if (phase !== 'bridge') return;
 
@@ -142,6 +155,7 @@ function AppRoutes() {
     return () => clearTimeout(failSafe);
   }, [phase, authLoading]);
 
+  // Show splash screen
   if (phase === 'splash') {
     return (
       <Suspense fallback={<PageLoader />}>
@@ -150,14 +164,16 @@ function AppRoutes() {
     );
   }
 
+  // Show bridge loading
   if (phase === 'bridge') {
     return <PageLoader message="Preparing your marketplace..." />;
   }
 
+  // phase === 'ready' - Show actual routes
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public Routes */}
+        {/* Public Routes - Always accessible */}
         <Route 
           path="/" 
           element={
@@ -187,7 +203,7 @@ function AppRoutes() {
         <Route path="/search" element={<Search />} />
         <Route path="/listing/:id" element={<ListingDetails />} />
         
-        {/* Protected Routes */}
+        {/* Protected Routes - Require Authentication */}
         <Route 
           path="/dashboard" 
           element={
@@ -253,6 +269,7 @@ function AppRoutes() {
           } 
         />
         
+        {/* 404 - Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
