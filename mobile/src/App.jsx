@@ -5,7 +5,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import { ToastProvider } from './components/ToastContainer';
-import PerformanceMonitor from './components/PerformanceMonitor';
 import { supabase } from './lib/supabase';
 import './styles/global.css';
 import './index.css';
@@ -270,7 +269,6 @@ function App() {
         <ToastProvider>
           <BrowserRouter>
             <AppRoutes />
-            <PerformanceMonitor showInDev={true} />
           </BrowserRouter>
         </ToastProvider>
       </TranslationProvider>
