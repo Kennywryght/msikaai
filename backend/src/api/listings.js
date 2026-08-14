@@ -318,12 +318,25 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
     // ✅ Upload images to Supabase Storage
     let imageUrls = [];
     if (req.files && req.files.length > 0) {
-      imageUrls = await storageService.uploadListingImages(req.files, businessId);
-      console.log(`✅ Uploaded ${imageUrls.length} images to bucket: listing-images`);
+      try {
+        imageUrls = await storageService.uploadListingImages(req.files, businessId);
+        console.log(`✅ Uploaded ${imageUrls.length} images to bucket: listing-images`);
+      } catch (uploadError) {
+        console.error('⚠️ Image upload warning:', uploadError.message);
+        // Continue without images if upload fails
+      }
+    } else {
+      console.log('⚠️ No images to upload');
     }
 
-    // ✅ Ensure we always have an array (even if empty)
-    const finalImages = imageUrls.length > 0 ? imageUrls : [];
+    // ✅ Fix: Parse numeric values carefully to prevent overflow
+    const parsedPrice = price !== undefined && price !== '' && price !== null ? parseFloat(price) : null;
+    const parsedDeliveryFee = deliveryFee !== undefined && deliveryFee !== '' && deliveryFee !== null ? parseFloat(deliveryFee) : null;
+    const parsedQuantity = quantity !== undefined && quantity !== '' && quantity !== null ? parseInt(quantity, 10) : null;
+
+    // ✅ Validate price range to prevent database overflow (max 99,999,999.99)
+    const finalPrice = parsedPrice !== null && parsedPrice <= 99999999.99 ? parsedPrice : null;
+    const finalDeliveryFee = parsedDeliveryFee !== null && parsedDeliveryFee <= 99999999.99 ? parsedDeliveryFee : null;
 
     const { data, error } = await supabaseAdmin
       .from('listings')
@@ -333,15 +346,15 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
         description: description || '',
         category: category || 'Other',
         sub_category: subCategory || '',
-        price: price || null,
+        price: finalPrice,
         price_type: priceType || 'fixed',
-        quantity: quantity || null,
+        quantity: parsedQuantity,
         unit: unit || '',
-        images: finalImages,
+        images: imageUrls,
         status: status || 'active',
         location_area: locationArea || '',
-        delivery_available: deliveryAvailable || false,
-        delivery_fee: deliveryFee || null,
+        delivery_available: deliveryAvailable === true || deliveryAvailable === 'true',
+        delivery_fee: finalDeliveryFee,
         contact_phone: contactPhone || ''
       })
       .select()
@@ -351,14 +364,14 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
       console.error('❌ Listing creation error:', error);
       return res.status(400).json({
         success: false,
-        error: error.message
+        error: error.message || 'Failed to create listing'
       });
     }
 
     await invalidateCache('listings:');
     await invalidateCache(`business:${businessId}`);
 
-    console.log('✅ Listing created with images:', data.id, 'Images:', finalImages.length);
+    console.log('✅ Listing created:', data.id, 'Images:', imageUrls.length);
 
     return res.status(201).json({
       success: true,
@@ -387,6 +400,19 @@ router.put('/:id', authenticateToken, async (req, res) => {
     delete updates.created_at;
     delete updates.view_count;
     delete updates.contact_count;
+
+    // ✅ Fix: Parse numeric values for update
+    if (updates.price !== undefined) {
+      const parsedPrice = updates.price !== '' && updates.price !== null ? parseFloat(updates.price) : null;
+      updates.price = parsedPrice !== null && parsedPrice <= 99999999.99 ? parsedPrice : null;
+    }
+    if (updates.delivery_fee !== undefined) {
+      const parsedFee = updates.delivery_fee !== '' && updates.delivery_fee !== null ? parseFloat(updates.delivery_fee) : null;
+      updates.delivery_fee = parsedFee !== null && parsedFee <= 99999999.99 ? parsedFee : null;
+    }
+    if (updates.quantity !== undefined) {
+      updates.quantity = updates.quantity !== '' && updates.quantity !== null ? parseInt(updates.quantity, 10) : null;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('listings')
