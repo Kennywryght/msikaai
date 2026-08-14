@@ -194,6 +194,7 @@ const Dashboard = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [creating, setCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Analytics & Notifications
   const [analytics, setAnalytics] = useState(null);
@@ -544,7 +545,7 @@ const Dashboard = () => {
     // ==========================================
     nav: {
       backgroundColor: '#ffffff',
-      padding: 'clamp(8px, 1.2vw, 12px) clamp(16px, 3vw, 24px)',
+      padding: 'clamp(10px, 1.5vw, 14px) clamp(12px, 2vw, 20px)',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -552,19 +553,19 @@ const Dashboard = () => {
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-      minHeight: 'clamp(56px, 7vh, 64px)',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      minHeight: 'clamp(60px, 8vh, 72px)',
       flexWrap: 'wrap',
       gap: '8px'
     },
     brandGroup: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px'
+      gap: '8px'
     },
     brandIcon: {
-      width: 'clamp(34px, 3.5vw, 38px)',
-      height: 'clamp(34px, 3.5vw, 38px)',
+      width: 'clamp(32px, 4vw, 38px)',
+      height: 'clamp(32px, 4vw, 38px)',
       background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
       borderRadius: '10px',
       display: 'flex',
@@ -574,7 +575,7 @@ const Dashboard = () => {
       flexShrink: 0
     },
     brandTitle: {
-      fontSize: 'clamp(16px, 2vw, 20px)',
+      fontSize: 'clamp(16px, 2.2vw, 20px)',
       fontWeight: '800',
       color: '#0f172a',
       margin: 0,
@@ -582,11 +583,10 @@ const Dashboard = () => {
       lineHeight: '1.1'
     },
     brandSubtitle: {
-      fontSize: '7px',
+      fontSize: 'clamp(6px, 0.6vw, 8px)',
       color: '#94a3b8',
-      margin: 0,
       fontWeight: '600',
-      letterSpacing: '0.6px',
+      letterSpacing: '0.5px',
       textTransform: 'uppercase'
     },
     navActions: {
@@ -595,7 +595,24 @@ const Dashboard = () => {
       gap: 'clamp(4px, 0.8vw, 8px)',
       flexWrap: 'wrap'
     },
-    // ✅ FIXED: No blinking - static dot with no animation
+    mobileMenuToggle: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '6px',
+      borderRadius: '6px',
+    },
+    hamburgerLine: {
+      display: 'block',
+      width: '22px',
+      height: '2px',
+      backgroundColor: '#0f172a',
+      borderRadius: '2px',
+      transition: 'all 0.3s',
+    },
     subscriptionBadge: {
       display: 'flex',
       alignItems: 'center',
@@ -612,7 +629,6 @@ const Dashboard = () => {
       height: '6px',
       borderRadius: '50%',
       flexShrink: 0,
-      // ✅ NO ANIMATION - static dot
     },
     subscriptionPlan: {
       fontSize: '11px',
@@ -630,11 +646,11 @@ const Dashboard = () => {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
-      padding: '4px 8px 4px 12px',
+      padding: '4px 6px 4px 10px',
       borderRadius: '20px',
       backgroundColor: '#f8fafc',
       border: '1px solid #e2e8f0',
-      cursor: 'pointer'
+      flexShrink: 0,
     },
     userAvatar: {
       width: '28px',
@@ -652,22 +668,71 @@ const Dashboard = () => {
       fontSize: '12px',
       fontWeight: '500',
       color: '#334155',
-      maxWidth: '100px',
+      maxWidth: '80px',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap'
     },
-    logoutIcon: {
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      padding: '4px',
-      color: '#94a3b8',
-      fontSize: '14px',
+    // ✅ Clear Logout Button Styles
+    logoutBtn: {
       display: 'flex',
-      alignItems: 'center'
+      alignItems: 'center',
+      gap: '4px',
+      padding: '4px 10px',
+      backgroundColor: '#fee2e2',
+      color: '#dc2626',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '11px',
+      fontWeight: '600',
+      transition: 'all 0.2s',
+      whiteSpace: 'nowrap'
     },
-    // ✅ FIXED: Responsive upgrade banner
+    logoutBtnHover: {
+      backgroundColor: '#fecaca',
+    },
+    // Mobile Menu Styles
+    mobileMenu: {
+      position: 'fixed',
+      top: 'clamp(60px, 8vh, 72px)',
+      left: 0,
+      right: 0,
+      backgroundColor: '#ffffff',
+      borderBottom: '1px solid #e2e8f0',
+      boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+      padding: '16px 20px',
+      zIndex: 999,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+      animation: 'slideDown 0.3s ease-out'
+    },
+    mobileMenuBadge: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '8px 12px',
+      backgroundColor: '#f1f5f9',
+      borderRadius: '10px',
+      border: '1px solid #e2e8f0'
+    },
+    mobileLogoutBtn: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      padding: '10px 16px',
+      backgroundColor: '#fee2e2',
+      color: '#dc2626',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '600',
+      width: '100%',
+      transition: 'all 0.2s'
+    },
     upgradeBanner: {
       backgroundColor: '#fef3c7',
       borderBottom: '1px solid #f59e0b',
@@ -965,7 +1030,6 @@ const Dashboard = () => {
       position: 'relative',
       display: 'inline-block',
     },
-    // AI Button styles
     aiBtn: {
       padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
       border: 'none',
@@ -1013,22 +1077,11 @@ const Dashboard = () => {
       gap: '4px',
       border: '1px solid rgba(255, 255, 255, 0.06)',
     },
-    logoutBtn: {
-      color: '#f87171',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      fontSize: 'clamp(10px, 0.9vw, 12px)',
-      fontWeight: '500',
-      padding: 'clamp(3px, 0.5vw, 4px) clamp(6px, 0.8vw, 8px)',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      borderRadius: '6px',
-      transition: 'background-color 0.2s',
-      touchAction: 'manipulation',
-    },
   };
+
+  // ==========================================
+  // RENDER
+  // ==========================================
 
   if (loading) {
     return <LoadingSpinner message="Loading your business dashboard..." />;
@@ -1037,7 +1090,7 @@ const Dashboard = () => {
   return (
     <div style={styles.container}>
       {/* ============================================
-      PROFESSIONAL NAVIGATION BAR - CLEAN & MODERN
+      PROFESSIONAL NAVIGATION BAR - FULLY RESPONSIVE
       ============================================ */}
       <nav style={styles.nav}>
         {/* Brand / Logo */}
@@ -1049,15 +1102,44 @@ const Dashboard = () => {
             <h1 style={styles.brandTitle}>
               Ku<span style={{ color: '#2563eb' }}>Msika</span>
             </h1>
-            <p style={styles.brandSubtitle}>
+            <span style={styles.brandSubtitle}>
               Vendor Dashboard
-            </p>
+            </span>
           </div>
         </div>
 
-        {/* Right Side - Clean & Minimal */}
-        <div style={styles.navActions}>
-          {/* ✅ FIXED: Static dot - NO BLINKING */}
+        {/* Mobile Menu Toggle - Visible on small screens */}
+        <button
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+          style={styles.mobileMenuToggle}
+          className="mobile-toggle"
+          aria-label="Toggle menu"
+        >
+          <span style={{
+            ...styles.hamburgerLine,
+            transform: showMobileMenu ? 'rotate(45deg) translate(4px, 4px)' : 'none'
+          }}></span>
+          <span style={{
+            ...styles.hamburgerLine,
+            opacity: showMobileMenu ? 0 : 1
+          }}></span>
+          <span style={{
+            ...styles.hamburgerLine,
+            transform: showMobileMenu ? 'rotate(-45deg) translate(4px, -4px)' : 'none'
+          }}></span>
+        </button>
+
+        {/* Desktop Navigation - Hidden on mobile */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'clamp(4px, 0.8vw, 8px)',
+          flexWrap: 'wrap',
+          '@media (max-width: 768px)': {
+            display: 'none'
+          }
+        }} className="desktop-nav">
+          {/* Plan Badge */}
           <div style={styles.subscriptionBadge}>
             <span style={{
               ...styles.subscriptionDot,
@@ -1074,19 +1156,14 @@ const Dashboard = () => {
             </span>
           </div>
 
-          {/* Quick Actions */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/search')}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              color: '#475569'
-            }}
+            style={{ padding: '6px 10px', fontSize: '12px', color: '#475569' }}
             iconLeft={<HandSearch size={14} />}
           >
-            <span className="btn-label">Browse</span>
+            Browse
           </Button>
 
           <Button
@@ -1100,10 +1177,10 @@ const Dashboard = () => {
             }}
             iconLeft={<HandPlus size={14} />}
           >
-            <span className="btn-label">Add</span>
+            Add
           </Button>
 
-          {/* User Profile */}
+          {/* User Profile with Clear Logout Button */}
           <div style={styles.userProfile}>
             <div style={styles.userAvatar}>
               {business?.business_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
@@ -1111,12 +1188,21 @@ const Dashboard = () => {
             <span style={styles.userName}>
               {business?.business_name || user?.email?.split('@')[0] || 'User'}
             </span>
+            
+            {/* ✅ Clear, visible Logout button */}
             <button
               onClick={handleLogout}
-              style={styles.logoutIcon}
+              style={styles.logoutBtn}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#fecaca';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#fee2e2';
+              }}
               title="Logout"
             >
-              <HandLogout size={14} />
+              <HandLogout size={12} color="#dc2626" />
+              Logout
             </button>
           </div>
         </div>
@@ -1134,9 +1220,98 @@ const Dashboard = () => {
             display: inline;
           }
         }
+        @media (max-width: 768px) {
+          .desktop-nav {
+            display: none !important;
+          }
+          .mobile-toggle {
+            display: flex !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .desktop-nav {
+            display: flex !important;
+          }
+          .mobile-toggle {
+            display: none !important;
+          }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
-      {/* ✅ FIXED: Responsive Upgrade Banner with proper button */}
+      {/* Mobile Menu Dropdown */}
+      {showMobileMenu && (
+        <div style={styles.mobileMenu}>
+          <div style={styles.mobileMenuBadge}>
+            <span style={{
+              display: 'inline-block',
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: subscription.plan === 'free' ? '#94a3b8' : '#22c55e'
+            }}></span>
+            <span style={{
+              fontSize: '13px',
+              fontWeight: '600',
+              color: subscription.plan === 'free' ? '#64748b' : '#065f46'
+            }}>
+              Plan: {subscription.plan.toUpperCase()}
+            </span>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+              ({subscription.listings_used}/{subscription.listings_allowed})
+            </span>
+          </div>
+
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={() => {
+              navigate('/search');
+              setShowMobileMenu(false);
+            }}
+            iconLeft={<HandSearch size={16} color="#475569" />}
+            style={{ justifyContent: 'flex-start', padding: '10px 14px' }}
+          >
+            Browse Listings
+          </Button>
+
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={() => {
+              handleAddListingClick();
+              setShowMobileMenu(false);
+            }}
+            iconLeft={<HandPlus size={16} color="#ffffff" />}
+            style={{ justifyContent: 'center' }}
+          >
+            {subscription.remaining_listings <= 0 ? 'Upgrade to Add' : 'Add Listing'}
+          </Button>
+
+          {/* ✅ Clear Logout Button in Mobile Menu */}
+          <button
+            onClick={() => {
+              handleLogout();
+              setShowMobileMenu(false);
+            }}
+            style={styles.mobileLogoutBtn}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#fecaca';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#fee2e2';
+            }}
+          >
+            <HandLogout size={16} color="#dc2626" />
+            Logout
+          </button>
+        </div>
+      )}
+
+      {/* Upgrade Banner */}
       {subscription.remaining_listings <= 0 && (
         <div style={styles.upgradeBanner}>
           <div style={styles.upgradeBannerText}>

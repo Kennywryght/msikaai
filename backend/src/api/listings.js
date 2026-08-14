@@ -18,7 +18,7 @@ const supabaseAdmin = createClient(
 // Configure multer for file uploads
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit per file
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit per file
 });
 
 // ============================================
@@ -315,12 +315,15 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
       });
     }
 
-    // Upload images to Supabase Storage
+    // ✅ Upload images to Supabase Storage
     let imageUrls = [];
     if (req.files && req.files.length > 0) {
       imageUrls = await storageService.uploadListingImages(req.files, businessId);
-      console.log(`✅ Uploaded ${imageUrls.length} images`);
+      console.log(`✅ Uploaded ${imageUrls.length} images to bucket: listing-images`);
     }
+
+    // ✅ Ensure we always have an array (even if empty)
+    const finalImages = imageUrls.length > 0 ? imageUrls : [];
 
     const { data, error } = await supabaseAdmin
       .from('listings')
@@ -334,7 +337,7 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
         price_type: priceType || 'fixed',
         quantity: quantity || null,
         unit: unit || '',
-        images: imageUrls,
+        images: finalImages,
         status: status || 'active',
         location_area: locationArea || '',
         delivery_available: deliveryAvailable || false,
@@ -355,7 +358,7 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
     await invalidateCache('listings:');
     await invalidateCache(`business:${businessId}`);
 
-    console.log('✅ Listing created:', data.id);
+    console.log('✅ Listing created with images:', data.id, 'Images:', finalImages.length);
 
     return res.status(201).json({
       success: true,

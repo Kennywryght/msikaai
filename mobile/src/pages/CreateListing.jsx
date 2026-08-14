@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { businessAPI, listingsAPI } from '../services/api';
+import { businessAPI } from '../services/api';
 import Button from '../components/Button';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
@@ -75,6 +75,9 @@ const CreateListing = () => {
     deliveryFee: '',
     contactPhone: ''
   });
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const fileInputRef = useRef(null);
 
   const categories = [
     'Products',
@@ -141,18 +144,44 @@ const CreateListing = () => {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    const imageUrls = files.map(file => URL.createObjectURL(file));
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...imageUrls]
-    }));
+    if (files.length > 0) {
+      // Store the actual File objects
+      setImageFiles(prev => [...prev, ...files]);
+      
+      // Create preview URLs
+      const newPreviews = files.map(file => URL.createObjectURL(file));
+      setImagePreviews(prev => [...prev, ...newPreviews]);
+      
+      // Update form data with preview URLs (for display)
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newPreviews]
+      }));
+    }
   };
 
   const removeImage = (index) => {
+    // Remove from previews
+    const newPreviews = [...imagePreviews];
+    URL.revokeObjectURL(newPreviews[index]); // Clean up memory
+    newPreviews.splice(index, 1);
+    setImagePreviews(newPreviews);
+    
+    // Remove from files
+    const newFiles = [...imageFiles];
+    newFiles.splice(index, 1);
+    setImageFiles(newFiles);
+    
+    // Update form data
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: newPreviews
     }));
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -165,26 +194,55 @@ const CreateListing = () => {
     setLoading(true);
 
     try {
-      const listingData = {
-        businessId: selectedBusiness,
-        ...formData,
-        price: formData.price !== '' ? parseFloat(formData.price) : null,
-        quantity: formData.quantity !== '' ? parseInt(formData.quantity, 10) : null,
-        deliveryFee: formData.deliveryAvailable && formData.deliveryFee !== '' ? parseFloat(formData.deliveryFee) : null
-      };
+      // ✅ Use FormData to send images properly
+      const formDataToSend = new FormData();
+      formDataToSend.append('businessId', selectedBusiness);
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('subCategory', formData.subCategory);
+      formDataToSend.append('price', formData.price);
+      formDataToSend.append('priceType', formData.priceType);
+      formDataToSend.append('quantity', formData.quantity);
+      formDataToSend.append('unit', formData.unit);
+      formDataToSend.append('status', 'active');
+      formDataToSend.append('locationArea', formData.locationArea);
+      formDataToSend.append('deliveryAvailable', formData.deliveryAvailable);
+      formDataToSend.append('deliveryFee', formData.deliveryFee);
+      formDataToSend.append('contactPhone', formData.contactPhone);
 
-      const response = await listingsAPI.create(listingData);
+      // ✅ Append actual image files
+      if (imageFiles.length > 0) {
+        for (let i = 0; i < imageFiles.length; i++) {
+          formDataToSend.append('images', imageFiles[i]);
+        }
+      }
+
+      // ✅ Use fetch with FormData
+      const token = localStorage.getItem('access_token') || 
+                    sessionStorage.getItem('supabase.auth.token') || 
+                    '';
       
-      if (response.data?.success) {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/listings/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formDataToSend
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
         success('🎉 Listing created successfully!');
         navigate('/dashboard');
       } else {
-        const errMsg = response.data?.error || 'Failed to create listing';
+        const errMsg = data.error || 'Failed to create listing';
         showToast(errMsg, 'error');
       }
     } catch (err) {
       console.error('Error creating listing:', err);
-      const errMsg = err.response?.data?.error || 'Failed to create listing';
+      const errMsg = err.message || 'Failed to create listing';
       showToast(errMsg, 'error');
     } finally {
       setLoading(false);
@@ -651,6 +709,7 @@ const CreateListing = () => {
               <span style={{ marginLeft: '4px' }}>Images</span>
             </label>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               multiple
@@ -658,9 +717,9 @@ const CreateListing = () => {
               style={styles.fileInput}
               aria-label="Upload product images"
             />
-            {formData.images.length > 0 && (
+            {imagePreviews.length > 0 && (
               <div style={styles.imageGrid}>
-                {formData.images.map((url, index) => (
+                {imagePreviews.map((url, index) => (
                   <div key={index} style={styles.imageWrapper}>
                     <img src={url} alt={`Upload ${index}`} style={styles.imageThumb} />
                     <button

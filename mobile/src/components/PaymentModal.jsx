@@ -14,6 +14,9 @@ const PaymentModal = ({ plans, currentPlan, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // If no plans, don't render
+  if (!plans) return null;
+
   const handlePayment = async () => {
     if (!selectedPlan || selectedPlan === currentPlan) return;
 
@@ -34,13 +37,11 @@ const PaymentModal = ({ plans, currentPlan, onClose, onSuccess }) => {
 
       if (response.data.success) {
         // Simulate payment verification
-        // In production, this would redirect to payment gateway
         const verifyResponse = await paymentAPI.verifyPayment(response.data.paymentId);
         
         if (verifyResponse.data.success) {
           success(`🎉 Successfully upgraded to ${planData.name} plan!`);
           
-          // Call success callback
           await onSuccess({
             plan: selectedPlan,
             paymentId: response.data.paymentId
@@ -376,6 +377,7 @@ const styles = {
     display: 'flex',
     gap: '12px',
     justifyContent: 'flex-end',
+    flexWrap: 'wrap',
   },
 };
 

@@ -510,11 +510,36 @@ const ListingDetails = () => {
 
       {/* Listing Details */}
       <div style={styles.card}>
-        {listing.images && listing.images.length > 0 && (
+        {listing.images && listing.images.length > 0 ? (
           <div style={styles.imageGrid}>
             {listing.images.map((img, index) => (
-              <img key={index} src={img} alt={listing.title} style={styles.image} loading="lazy" />
+              <img 
+                key={index} 
+                src={img} 
+                alt={listing.title} 
+                style={styles.image} 
+                loading="lazy"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
             ))}
+          </div>
+        ) : (
+          <div style={{
+            ...styles.imageGrid,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: '#f1f5f9',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '16px',
+            minHeight: '120px'
+          }}>
+            <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+              <SketchIcon d={ICONS.image} size={48} color="#94a3b8" strokeWidth={1.5} />
+              <p style={{ marginTop: '8px', fontSize: '14px' }}>No image available</p>
+            </div>
           </div>
         )}
 
