@@ -895,7 +895,6 @@ const Dashboard = () => {
       position: 'relative',
       display: 'inline-block',
     },
-    // Mobile responsive overrides
     mobileHidden: {
       '@media (max-width: 640px)': {
         display: 'none',
@@ -946,7 +945,6 @@ const Dashboard = () => {
         <div style={styles.navActions}>
           <LanguageToggle />
 
-          {/* Hide some buttons on very small screens */}
           <button
             onClick={() => navigate('/ai-search')}
             style={{ ...styles.aiBtn, backgroundColor: '#7c3aed' }}
@@ -1018,7 +1016,6 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* Add responsive styles for button labels */}
         <style>{`
           @media (max-width: 480px) {
             .btn-label {
@@ -1042,7 +1039,13 @@ const Dashboard = () => {
         <div style={styles.headerSection}>
           <div>
             <h2 style={styles.welcomeTitle}>
-              <HandWave size={clamp(20, 2.5, 24)} color="#d97706" /> {t('welcome') || 'Welcome'}
+              {/* ✅ FIXED: clamp() is a CSS function, not a JS function.
+                  Calling it directly here threw a ReferenceError on every
+                  render of the authenticated dashboard, crashing the whole
+                  component tree with no error boundary — producing the
+                  white blank screen after login. Replaced with a plain
+                  number matching the intended visual size. */}
+              <HandWave size={22} color="#d97706" /> {t('welcome') || 'Welcome'}
               {business?.business_name
                 ? `, ${business.business_name}`
                 : user?.email
