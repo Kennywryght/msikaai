@@ -24,7 +24,7 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -65,7 +65,7 @@ const Register = () => {
           ]);
 
         // Navigate to onboarding
-        navigate('/onboarding');
+        navigate('/onboarding', { replace: true });
       }
     } catch (error) {
       setError(error.message);
@@ -118,7 +118,7 @@ const Register = () => {
     input: {
       width: '100%',
       padding: '10px 12px',
-      border: '1px solid #e2e8f0',  // ✅ FIXED: Removed extra quotes
+      border: '1px solid #e2e8f0',
       borderRadius: '8px',
       fontSize: '15px',
       boxSizing: 'border-box',

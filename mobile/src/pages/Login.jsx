@@ -2,14 +2,16 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 const Login = () => {
-  const { login, signup, error } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
-  
+
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -26,24 +28,44 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
 
-    let result;
-    if (isLogin) {
-      result = await login(formData.email, formData.password);
-    } else {
-      result = await signup(
-        formData.email,
-        formData.password,
-        formData.fullName,
-        formData.phone
-      );
-    }
+    try {
+      let result;
 
-    setLoading(false);
+      if (isLogin) {
+        result = await login(formData.email, formData.password);
+      } else {
+        // Sign up directly via Supabase since AuthContext doesn't expose signup
+        const { data, error: signupError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.fullName,
+              phone: formData.phone,
+            },
+          },
+        });
 
-    if (result.success) {
-      navigate('/dashboard');
+        if (signupError) {
+          result = { success: false, error: signupError };
+        } else {
+          result = { success: true, user: data.user };
+        }
+      }
+
+      if (result.success) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        setError(result.error?.message || 'Something went wrong. Please try again.');
+      }
+    } catch (err) {
+      console.error('Auth submit error:', err);
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -313,7 +335,10 @@ const Login = () => {
         }}>
           <button
             type="button"
-            onClick={() => setIsLogin(!isLogin)}
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError('');
+            }}
             style={{
               background: 'none',
               border: 'none',

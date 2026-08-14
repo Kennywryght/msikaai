@@ -18,7 +18,7 @@ api.interceptors.request.use(
     const token = localStorage.getItem('auth_token');
     console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
     console.log(`📤 Token present:`, token ? '✅ Yes' : '❌ No');
-    
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log(`📤 Authorization header set`);
@@ -42,15 +42,19 @@ api.interceptors.response.use(
   (error) => {
     console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - Error:`, error.response?.status);
     console.error(`❌ Response data:`, error.response?.data);
-    
-    // If 401 Unauthorized, clear token and redirect to login
+
+    // ✅ FIX: Do NOT force a full page reload here. window.location.href
+    // remounts the entire React app from scratch, resetting App.jsx's
+    // splash/bridge phase state and causing an infinite splash -> loading
+    // -> landing loop whenever any request returns 401. Just clear stale
+    // tokens and let AuthContext / ProtectedRoute handle redirecting via
+    // React Router instead.
     if (error.response?.status === 401) {
-      console.log('🔒 Unauthorized - clearing token and redirecting to login');
+      console.log('🔒 Unauthorized - clearing stale tokens');
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
-      window.location.href = '/';
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -329,8 +333,6 @@ export const notificationsAPI = {
   },
 };
 
-// Add these to your existing api.js
-
 // ============================================
 // MATCHING API
 // ============================================
@@ -340,19 +342,19 @@ export const matchingAPI = {
     console.log('📤 Posting need:', data);
     return api.post('/matching/needs', data);
   },
-  
+
   // Get needs for a business (potential customers)
   getBusinessNeeds: (businessId, params) => {
     console.log('📤 Getting needs for business:', businessId);
     return api.get(`/matching/business-needs/${businessId}`, { params });
   },
-  
+
   // Get all needs (public)
   getNeeds: (params) => {
     console.log('📤 Getting all needs:', params);
     return api.get('/matching/needs', { params });
   },
-  
+
   // Close a need (mark as fulfilled)
   closeNeed: (id, userId) => {
     console.log('📤 Closing need:', id);
