@@ -27,7 +27,7 @@ const AdGenerator = lazy(() => import('./pages/AdGenerator'));
 const EditProfile = lazy(() => import('./pages/EditProfile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-const PageLoader = ({ message }) => <LoadingSpinner message={message || 'Loading page...'} />;
+const PageLoader = ({ message }) => <LoadingSpinner fullScreen message={message || 'Loading page...'} />;
 
 // ============================================
 // PUBLIC ROUTE - Redirects to dashboard if logged in
@@ -40,8 +40,7 @@ const PublicRoute = ({ children }) => {
     return <PageLoader />;
   }
 
-  // ✅ FIX: Only redirect to dashboard if user is authenticated
-  // and NOT on login/register pages
+  // If user is authenticated, redirect to dashboard (except for login/register pages)
   if (isAuthenticated && user) {
     const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
     // Don't redirect to login or register pages
@@ -123,23 +122,32 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 // ============================================
 function AppRoutes() {
   const { isAuthenticated, loading: authLoading } = useAuth();
-
   const [phase, setPhase] = useState('splash');
   const splashStarted = useRef(false);
+  const splashComplete = useRef(false);
 
   const SPLASH_MIN_MS = 2500;
   const MAX_BRIDGE_MS = 4000;
+
+  // Handle splash screen completion
+  const handleSplashComplete = () => {
+    splashComplete.current = true;
+    setPhase('bridge');
+  };
 
   // Splash phase - always runs once
   useEffect(() => {
     if (splashStarted.current) return;
     splashStarted.current = true;
 
-    const splashTimer = setTimeout(() => {
-      setPhase('bridge');
-    }, SPLASH_MIN_MS);
+    // Set a fallback timer in case splash doesn't complete
+    const fallbackTimer = setTimeout(() => {
+      if (!splashComplete.current) {
+        setPhase('bridge');
+      }
+    }, SPLASH_MIN_MS + 2000);
 
-    return () => clearTimeout(splashTimer);
+    return () => clearTimeout(fallbackTimer);
   }, []);
 
   // Bridge phase - wait for auth to resolve
@@ -159,7 +167,7 @@ function AppRoutes() {
   if (phase === 'splash') {
     return (
       <Suspense fallback={<PageLoader />}>
-        <SplashScreen />
+        <SplashScreen onComplete={handleSplashComplete} />
       </Suspense>
     );
   }

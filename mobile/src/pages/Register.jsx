@@ -4,8 +4,33 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+};
 
 const Register = () => {
   const { login } = useAuth();
@@ -28,11 +53,11 @@ const Register = () => {
   });
 
   const emailInputRef = useRef(null);
+  const nameInputRef = useRef(null);
 
-  // Auto-focus email input on mount
   useEffect(() => {
-    if (emailInputRef.current) {
-      emailInputRef.current.focus();
+    if (nameInputRef.current) {
+      nameInputRef.current.focus();
     }
   }, []);
 
@@ -91,7 +116,6 @@ const Register = () => {
     setErrorMsg('');
 
     try {
-      // Register user with Supabase
       const { data, error: signupError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -107,7 +131,6 @@ const Register = () => {
       if (signupError) throw signupError;
 
       if (data.user) {
-        // Create profile in profiles table
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
@@ -127,14 +150,11 @@ const Register = () => {
 
         success('🎉 Account created successfully!');
 
-        // Auto-login the user
         const loginResult = await login(formData.email, formData.password);
         
         if (loginResult.success) {
-          // Navigate to onboarding
           navigate('/onboarding', { replace: true });
         } else {
-          // If auto-login fails, redirect to login page
           navigate('/login', { 
             replace: true,
             state: { message: 'Account created! Please log in.' }
@@ -162,26 +182,28 @@ const Register = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Creating your account..." />;
+    return <LoadingSpinner fullScreen message="Creating your account..." />;
   }
 
   return (
     <div style={styles.container}>
-      <div style={styles.card} className="animate-fade-in-up">
-        {/* Header */}
-        <div style={styles.header}>
+      <div style={styles.card}>
+        {/* Logo */}
+        <div style={styles.logoContainer}>
           <div style={styles.logoWrapper}>
-            <span style={styles.logoIcon}>🏪</span>
+            <span style={styles.logoEmoji}>🛒</span>
           </div>
-          <h1 style={styles.title}>
-            Create <span style={{ color: '#2563eb' }}>Account</span>
+          <h1 style={styles.brandName}>
+            Msika<span style={{ color: COLORS.lavenderTonic }}>AI</span>
           </h1>
-          <p style={styles.subtitle}>
-            Join Kumsika Marketplace and start growing your business
-          </p>
+          <p style={styles.brandTagline}>Malawi's Smart Marketplace</p>
         </div>
 
-        {/* Error Alert */}
+        <div style={styles.header}>
+          <h2 style={styles.title}>Create Account</h2>
+          <p style={styles.subtitle}>Join the MsikaAI community today</p>
+        </div>
+
         {errorMsg && (
           <div style={styles.errorAlert}>
             <span style={styles.errorIcon}>⚠️</span>
@@ -196,16 +218,13 @@ const Register = () => {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} style={styles.form}>
-          {/* Full Name */}
           <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Full Name <span style={styles.required}>*</span>
-            </label>
+            <label style={styles.label}>Full Name <span style={styles.required}>*</span></label>
             <div style={styles.inputWrapper}>
               <span style={styles.inputIcon}>👤</span>
               <input
+                ref={nameInputRef}
                 type="text"
                 name="fullName"
                 value={formData.fullName}
@@ -218,11 +237,8 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Email */}
           <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Email Address <span style={styles.required}>*</span>
-            </label>
+            <label style={styles.label}>Email Address <span style={styles.required}>*</span></label>
             <div style={styles.inputWrapper}>
               <span style={styles.inputIcon}>✉️</span>
               <input
@@ -240,7 +256,6 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Phone */}
           <div style={styles.formGroup}>
             <label style={styles.label}>Phone Number</label>
             <div style={styles.inputWrapper}>
@@ -258,11 +273,8 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Password */}
           <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Password <span style={styles.required}>*</span>
-            </label>
+            <label style={styles.label}>Password <span style={styles.required}>*</span></label>
             <div style={styles.inputWrapper}>
               <span style={styles.inputIcon}>🔒</span>
               <input
@@ -285,16 +297,11 @@ const Register = () => {
                 {showPassword ? '👁️‍🗨️' : '👁️'}
               </button>
             </div>
-            <p style={styles.hintText}>
-              Must be at least 6 characters
-            </p>
+            <p style={styles.hintText}>Must be at least 6 characters</p>
           </div>
 
-          {/* Confirm Password */}
           <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Confirm Password <span style={styles.required}>*</span>
-            </label>
+            <label style={styles.label}>Confirm Password <span style={styles.required}>*</span></label>
             <div style={styles.inputWrapper}>
               <span style={styles.inputIcon}>🔐</span>
               <input
@@ -329,7 +336,6 @@ const Register = () => {
             )}
           </div>
 
-          {/* Role Selection */}
           <div style={styles.formGroup}>
             <label style={styles.label}>I am a...</label>
             <div style={styles.radioGroup}>
@@ -360,7 +366,6 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Terms & Conditions */}
           <div style={styles.termsGroup}>
             <label style={styles.checkboxLabel}>
               <input
@@ -384,8 +389,7 @@ const Register = () => {
             </label>
           </div>
 
-          {/* Submit Button */}
-          <Button
+          <PrimaryButton
             type="submit"
             variant="primary"
             size="lg"
@@ -395,16 +399,14 @@ const Register = () => {
             style={styles.submitButton}
           >
             {loading ? 'Creating Account...' : 'Create Account'}
-          </Button>
+          </PrimaryButton>
 
-          {/* Divider */}
           <div style={styles.divider}>
             <span style={styles.dividerLine}></span>
             <span style={styles.dividerText}>or</span>
             <span style={styles.dividerLine}></span>
           </div>
 
-          {/* Login Link */}
           <p style={styles.footerText}>
             Already have an account?{' '}
             <Link to="/login" style={styles.footerLink}>
@@ -428,55 +430,74 @@ const styles = {
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.gray50,
     padding: '24px 16px',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   card: {
     width: '100%',
     maxWidth: '460px',
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.white,
     padding: '36px 32px',
     borderRadius: '20px',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)',
+    border: '1px solid COLORS.gray200',
+    boxShadow: '0 20px 60px rgba(21, 17, 48, 0.06)',
+    position: 'relative',
+    overflow: 'hidden',
   },
-  header: {
+  logoContainer: {
     textAlign: 'center',
     marginBottom: '28px',
   },
   logoWrapper: {
-    width: '56px',
-    height: '56px',
-    backgroundColor: '#eff6ff',
-    borderRadius: '14px',
+    width: '64px',
+    height: '64px',
+    backgroundColor: COLORS.lavenderLight,
+    borderRadius: '16px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     margin: '0 auto 12px auto',
-    border: '1px solid #dbeafe',
+    border: '1px solid COLORS.lavenderTonic',
   },
-  logoIcon: {
-    fontSize: '28px',
+  logoEmoji: {
+    fontSize: '32px',
   },
-  title: {
+  brandName: {
     fontSize: '28px',
     fontWeight: '800',
-    color: '#0f172a',
-    margin: '0 0 6px 0',
+    color: COLORS.gray900,
+    margin: 0,
     letterSpacing: '-0.5px',
+  },
+  brandTagline: {
+    fontSize: '11px',
+    color: COLORS.gray400,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginTop: '2px',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: '24px',
+  },
+  title: {
+    fontSize: '22px',
+    fontWeight: '700',
+    color: COLORS.gray900,
+    margin: 0,
   },
   subtitle: {
     fontSize: '14px',
-    color: '#64748b',
-    margin: 0,
+    color: COLORS.gray500,
+    margin: '4px 0 0 0',
   },
   errorAlert: {
-    backgroundColor: '#fef2f2',
-    color: '#991b1b',
+    backgroundColor: '#FEF2F2',
     padding: '12px 14px',
     borderRadius: '10px',
-    border: '1px solid #fecaca',
+    border: '1px solid #FECACA',
     marginBottom: '20px',
     fontSize: '13px',
     display: 'flex',
@@ -489,11 +510,12 @@ const styles = {
   },
   errorText: {
     flex: 1,
+    color: '#991B1B',
   },
   errorClose: {
     background: 'none',
     border: 'none',
-    color: '#991b1b',
+    color: '#991B1B',
     fontSize: '18px',
     cursor: 'pointer',
     padding: '4px',
@@ -512,10 +534,10 @@ const styles = {
   label: {
     fontSize: '13px',
     fontWeight: '600',
-    color: '#334155',
+    color: COLORS.gray700,
   },
   required: {
-    color: '#ef4444',
+    color: COLORS.championBlue,
   },
   inputWrapper: {
     position: 'relative',
@@ -528,26 +550,26 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     pointerEvents: 'none',
-    color: '#94a3b8',
+    color: COLORS.gray400,
     fontSize: '16px',
   },
   input: {
     width: '100%',
     padding: '11px 14px 11px 40px',
-    border: '1px solid #cbd5e1',
+    border: `2px solid ${COLORS.gray200}`,
     borderRadius: '10px',
     fontSize: '14px',
-    color: '#0f172a',
+    color: COLORS.gray900,
     outline: 'none',
     boxSizing: 'border-box',
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.white,
     transition: 'border-color 0.2s, box-shadow 0.2s',
   },
   inputError: {
-    borderColor: '#ef4444',
+    borderColor: COLORS.error,
   },
   inputSuccess: {
-    borderColor: '#22c55e',
+    borderColor: COLORS.success,
   },
   eyeButton: {
     position: 'absolute',
@@ -557,23 +579,23 @@ const styles = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#94a3b8',
+    color: COLORS.gray400,
     fontSize: '18px',
     padding: '4px',
   },
   hintText: {
     fontSize: '12px',
-    color: '#94a3b8',
+    color: COLORS.gray400,
     marginTop: '2px',
   },
   errorHint: {
     fontSize: '12px',
-    color: '#ef4444',
+    color: COLORS.error,
     marginTop: '2px',
   },
   successHint: {
     fontSize: '12px',
-    color: '#22c55e',
+    color: COLORS.success,
     marginTop: '2px',
   },
   radioGroup: {
@@ -587,13 +609,13 @@ const styles = {
     gap: '8px',
     cursor: 'pointer',
     fontSize: '14px',
-    color: '#334155',
+    color: COLORS.gray700,
   },
   radioInput: {
     width: '18px',
     height: '18px',
     cursor: 'pointer',
-    accentColor: '#2563eb',
+    accentColor: COLORS.championBlue,
   },
   radioText: {
     fontSize: '14px',
@@ -608,7 +630,7 @@ const styles = {
     gap: '10px',
     cursor: 'pointer',
     fontSize: '13px',
-    color: '#475569',
+    color: COLORS.gray600,
   },
   checkboxInput: {
     width: '18px',
@@ -616,13 +638,13 @@ const styles = {
     marginTop: '2px',
     flexShrink: 0,
     cursor: 'pointer',
-    accentColor: '#2563eb',
+    accentColor: COLORS.championBlue,
   },
   checkboxText: {
     lineHeight: '1.5',
   },
   termsLink: {
-    color: '#2563eb',
+    color: COLORS.lavenderTonic,
     textDecoration: 'none',
     fontWeight: '500',
   },
@@ -639,21 +661,21 @@ const styles = {
   dividerLine: {
     flex: 1,
     height: '1px',
-    backgroundColor: '#e2e8f0',
+    backgroundColor: COLORS.gray200,
   },
   dividerText: {
     fontSize: '12px',
-    color: '#94a3b8',
+    color: COLORS.gray400,
     fontWeight: '500',
   },
   footerText: {
     textAlign: 'center',
     fontSize: '14px',
-    color: '#64748b',
+    color: COLORS.gray500,
     margin: 0,
   },
   footerLink: {
-    color: '#2563eb',
+    color: COLORS.lavenderTonic,
     textDecoration: 'none',
     fontWeight: '600',
   },

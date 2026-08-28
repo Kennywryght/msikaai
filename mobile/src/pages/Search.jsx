@@ -3,9 +3,35 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { listingsAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -30,7 +56,8 @@ const ICONS = {
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
   dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
   filter: "M3 6h18M6 12h12M10 18h4",
-  clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2"
+  clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
+  mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
 };
 
 const Search = () => {
@@ -62,7 +89,6 @@ const Search = () => {
     'Other'
   ];
 
-  // Parse URL query params on mount
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const q = params.get('q');
@@ -70,7 +96,6 @@ const Search = () => {
       setSearchQuery(q);
       performSearch(0, q);
     }
-    // Auto-focus search input
     if (searchInputRef.current) {
       setTimeout(() => searchInputRef.current.focus(), 100);
     }
@@ -125,25 +150,25 @@ const Search = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Searching..." />;
+    return <LoadingSpinner fullScreen message="Searching..." />;
   }
 
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
     },
     backButton: {
       padding: '8px 16px',
-      backgroundColor: '#e2e8f0',
+      backgroundColor: COLORS.gray200,
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
-      color: '#334155',
+      color: COLORS.gray700,
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
@@ -151,10 +176,10 @@ const Search = () => {
       transition: 'background-color 0.2s'
     },
     searchHeader: {
-      backgroundColor: 'white',
+      backgroundColor: COLORS.white,
       padding: 'clamp(16px, 2vw, 20px)',
       borderRadius: '12px',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       marginBottom: '20px'
     },
     searchRow: {
@@ -166,25 +191,25 @@ const Search = () => {
     searchInput: {
       flex: 1,
       padding: 'clamp(10px, 1vw, 12px) clamp(14px, 1.5vw, 16px)',
-      border: '2px solid #e2e8f0',
+      border: '2px solid ' + COLORS.gray200,
       borderRadius: '8px',
       fontSize: 'clamp(14px, 1.2vw, 15px)',
       outline: 'none',
-      backgroundColor: '#ffffff',
-      color: '#0f172a',
+      backgroundColor: COLORS.white,
+      color: COLORS.gray900,
       fontFamily: 'inherit',
       transition: 'border-color 0.2s, box-shadow 0.2s',
       minWidth: '180px'
     },
     filterToggle: {
-      backgroundColor: '#f1f5f9',
+      backgroundColor: COLORS.gray100,
       border: 'none',
       padding: '8px 16px',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '500',
-      color: '#334155',
+      color: COLORS.gray700,
       marginTop: '12px',
       display: 'inline-flex',
       alignItems: 'center',
@@ -203,29 +228,29 @@ const Search = () => {
     filterLabel: {
       fontSize: 'clamp(11px, 0.9vw, 12px)',
       fontWeight: '600',
-      color: '#64748b',
+      color: COLORS.gray500,
       display: 'block',
       marginBottom: '4px'
     },
     filterSelect: {
       width: '100%',
       padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
-      backgroundColor: '#ffffff',
+      color: COLORS.gray900,
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       outline: 'none'
     },
     filterInput: {
       width: '100%',
       padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
-      backgroundColor: '#ffffff',
+      color: COLORS.gray900,
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       boxSizing: 'border-box',
       outline: 'none'
@@ -237,16 +262,16 @@ const Search = () => {
       flexWrap: 'wrap'
     },
     resultCount: {
-      color: '#64748b',
+      color: COLORS.gray500,
       marginBottom: '12px',
       fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     resultCard: {
-      backgroundColor: 'white',
+      backgroundColor: COLORS.white,
       borderRadius: '12px',
       padding: 'clamp(14px, 1.5vw, 16px)',
       marginBottom: '12px',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       cursor: 'pointer',
       transition: 'all 0.2s'
     },
@@ -259,12 +284,12 @@ const Search = () => {
     resultTitle: {
       fontSize: 'clamp(15px, 1.3vw, 16px)',
       fontWeight: '600',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 2px 0'
     },
     resultBusiness: {
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#64748b',
+      color: COLORS.gray500,
       margin: '0 0 8px 0'
     },
     badgeGroup: {
@@ -289,12 +314,12 @@ const Search = () => {
     emptyState: {
       textAlign: 'center',
       padding: 'clamp(32px, 4vw, 40px) clamp(16px, 2vw, 20px)',
-      color: '#64748b'
+      color: COLORS.gray500
     },
     shareSection: {
       marginTop: '8px',
       paddingTop: '8px',
-      borderTop: '1px solid #f1f5f9'
+      borderTop: '1px solid ' + COLORS.gray100
     }
   };
 
@@ -302,18 +327,18 @@ const Search = () => {
     <div style={styles.container}>
       <style>{`
         .search-input-focus:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+          border-color: ${COLORS.lavenderTonic};
+          box-shadow: 0 0 0 3px rgba(200, 190, 250, 0.2);
         }
       `}</style>
 
       <button 
         onClick={() => navigate('/dashboard')} 
         style={styles.backButton}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#cbd5e1'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray300}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray200}
       >
-        <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
+        <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray600} strokeWidth={2.5} />
         Back to Dashboard
       </button>
 
@@ -330,19 +355,19 @@ const Search = () => {
               className="search-input-focus"
               autoComplete="off"
             />
-            <Button
+            <PrimaryButton
               type="submit"
               variant="primary"
               size="md"
-              iconLeft={<SketchIcon d={ICONS.search} size={16} color="#ffffff" strokeWidth={2} />}
             >
+              <SketchIcon d={ICONS.search} size={16} color={COLORS.championBlue} strokeWidth={2} />
               Search
-            </Button>
+            </PrimaryButton>
           </div>
         </form>
 
         <button onClick={() => setShowFilters(!showFilters)} style={styles.filterToggle}>
-          <SketchIcon d={ICONS.filter} size={14} color="#64748b" strokeWidth={2} />
+          <SketchIcon d={ICONS.filter} size={14} color={COLORS.gray500} strokeWidth={2} />
           {showFilters ? 'Hide Filters' : 'Show Filters'}
         </button>
 
@@ -381,20 +406,12 @@ const Search = () => {
               />
             </div>
             <div style={styles.filterActions}>
-              <Button
-                variant="success"
-                size="sm"
-                onClick={() => performSearch(0)}
-              >
+              <PrimaryButton variant="success" size="sm" onClick={() => performSearch(0)}>
                 Apply
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={clearFilters}
-              >
+              </PrimaryButton>
+              <PrimaryButton variant="outline" size="sm" onClick={clearFilters}>
                 Clear
-              </Button>
+              </PrimaryButton>
             </div>
           </div>
         )}
@@ -409,7 +426,7 @@ const Search = () => {
               style={styles.resultCard}
               onClick={() => navigate(`/listing/${listing.id}`)}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(21, 17, 48, 0.08)';
                 e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
@@ -422,7 +439,7 @@ const Search = () => {
                   <h3 style={styles.resultTitle}>{listing.title}</h3>
                   <p style={styles.resultBusiness}>{listing.businesses?.business_name || 'Unknown Business'}</p>
                   <div style={styles.badgeGroup}>
-                    <span style={{ ...styles.badge, backgroundColor: '#dbeafe', color: '#1e40af' }}>
+                    <span style={{ ...styles.badge, backgroundColor: '#EEECF5', color: COLORS.championBlue }}>
                       {listing.category}
                     </span>
                     {listing.price && (
@@ -435,6 +452,12 @@ const Search = () => {
                         Negotiable
                       </span>
                     )}
+                    {listing.location_area && (
+                      <span style={{ ...styles.badge, backgroundColor: '#dbeafe', color: '#1e40af' }}>
+                        <SketchIcon d={ICONS.mapPin} size={10} color="#1e40af" strokeWidth={2} />
+                        {listing.location_area}
+                      </span>
+                    )}
                   </div>
                 </div>
                 {listing.images && listing.images.length > 0 && (
@@ -442,7 +465,6 @@ const Search = () => {
                 )}
               </div>
 
-              {/* Share Section */}
               <div style={styles.shareSection}>
                 <SocialShare 
                   title={listing.title}
@@ -457,14 +479,14 @@ const Search = () => {
         </>
       ) : searchQuery || selectedCategory ? (
         <div style={styles.emptyState}>
-          <p style={{ fontWeight: '600', color: '#0f172a', fontSize: 'clamp(16px, 1.6vw, 18px)' }}>No results found</p>
+          <p style={{ fontWeight: '600', color: COLORS.gray900, fontSize: 'clamp(16px, 1.6vw, 18px)' }}>No results found</p>
           <p style={{ fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Try adjusting your search or filters</p>
         </div>
       ) : (
         <div style={styles.emptyState}>
-          <SketchIcon d={ICONS.search} size={48} color="#94a3b8" strokeWidth={1.5} />
-          <p style={{ marginTop: '12px', fontWeight: '600', color: '#0f172a', fontSize: 'clamp(16px, 1.6vw, 18px)' }}>
-            Search for products and services in Mitundu
+          <SketchIcon d={ICONS.search} size={48} color={COLORS.gray400} strokeWidth={1.5} />
+          <p style={{ marginTop: '12px', fontWeight: '600', color: COLORS.gray900, fontSize: 'clamp(16px, 1.6vw, 18px)' }}>
+            Search for products and services
           </p>
           <p style={{ fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Enter a search term above to get started</p>
         </div>

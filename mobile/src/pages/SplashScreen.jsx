@@ -1,8 +1,8 @@
 // mobile/src/pages/SplashScreen.jsx
 import React, { useState, useEffect, memo } from 'react';
 
-// --- HAND-DRAWN ICONS ---
-const SketchIcon = ({ d, size = 24, color = 'currentColor', strokeWidth = 2 }) => (
+// --- PREMIUM FEATHER ICONS ---
+const Icon = ({ d, size = 24, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
     height={size}
@@ -22,22 +22,22 @@ const ICONS = {
   store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
   sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
   mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
-  mic: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
+  mic: "M19 10v2a7 7 0 01-14 0v-2M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM8 21h8",
   bot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
-  arrowRight: "M5 12h14M12 5l7 7-7 7"
+  arrowRight: "M5 12h14m-7-7l7 7-7 7",
 };
 
-const SplashScreen = memo(() => {
+const SplashScreen = memo(({ onComplete }) => {
   const [progress, setProgress] = useState(0);
-  const [loadingText, setLoadingText] = useState('🌾 Loading Mitundu Marketplace...');
+  const [loadingText, setLoadingText] = useState('Loading Marketplace...');
 
   useEffect(() => {
     const messages = [
-      '🌾 Loading Mitundu Marketplace...',
-      '🔍 Finding local businesses...',
-      '🤖 Preparing AI assistant...',
-      '📍 Mapping your location...',
-      '✅ Almost ready...'
+      'Loading Marketplace...',
+      'Discovering local businesses...',
+      'Preparing AI assistant...',
+      'Mapping your location...',
+      'Almost ready...'
     ];
 
     let step = 0;
@@ -51,18 +51,22 @@ const SplashScreen = memo(() => {
         step++;
         setLoadingText(messages[step]);
       }
+
+      if (progressValue >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          if (onComplete) onComplete();
+        }, 300);
+      }
     }, 50);
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
+    return () => clearInterval(interval);
+  }, [onComplete]);
 
-  // ✅ Memoized styles to prevent re-renders
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#0f172a',
+      background: `linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%)`,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -72,66 +76,87 @@ const SplashScreen = memo(() => {
       position: 'relative',
       overflow: 'hidden'
     },
-    bgOrbs: {
+    bgOrb1: {
       position: 'absolute',
+      width: '400px',
+      height: '400px',
+      background: 'radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)',
       borderRadius: '50%',
-      opacity: 0.08,
+      top: '-150px',
+      right: '-150px',
+      pointerEvents: 'none'
+    },
+    bgOrb2: {
+      position: 'absolute',
+      width: '300px',
+      height: '300px',
+      background: 'radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%)',
+      borderRadius: '50%',
+      bottom: '-100px',
+      left: '-100px',
       pointerEvents: 'none'
     },
     logoContainer: {
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       gap: '16px',
       marginBottom: '24px',
+      zIndex: 1,
       animation: 'fadeIn 0.8s ease-out'
     },
     logoBadge: {
-      width: '72px',
-      height: '72px',
-      backgroundColor: '#2563eb',
-      borderRadius: '20px',
+      width: '80px',
+      height: '80px',
+      background: `linear-gradient(135deg, #F59E0B, #D97706)`,
+      borderRadius: '24px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      boxShadow: '0 8px 32px rgba(37,99,235,0.35)',
+      boxShadow: '0 8px 40px rgba(245,158,11,0.3)',
       animation: 'pulse 2s ease-in-out infinite'
     },
     title: {
-      fontSize: '42px',
+      fontSize: '44px',
       fontWeight: '800',
-      color: '#ffffff',
+      color: '#FFFFFF',
       margin: 0,
-      lineHeight: '1.1'
+      lineHeight: '1.1',
+      letterSpacing: '-0.02em'
     },
     titleAccent: {
-      color: '#60a5fa'
+      color: '#F59E0B'
     },
     subtitle: {
-      color: '#94a3b8',
+      color: '#94A3B8',
       fontSize: '16px',
-      marginTop: '4px',
+      marginTop: '2px',
       textAlign: 'center',
       animation: 'fadeIn 0.8s ease-out 0.3s both'
     },
     tagline: {
-      color: '#60a5fa',
-      fontSize: '18px',
+      color: '#F59E0B',
+      fontSize: '14px',
       fontWeight: '600',
-      marginTop: '8px',
+      marginTop: '4px',
       textAlign: 'center',
-      backgroundColor: 'rgba(37,99,235,0.15)',
+      backgroundColor: 'rgba(245,158,11,0.12)',
       padding: '6px 20px',
       borderRadius: '20px',
-      border: '1px solid rgba(37,99,235,0.2)',
-      animation: 'fadeIn 0.8s ease-out 0.6s both'
+      border: '1px solid rgba(245,158,11,0.15)',
+      animation: 'fadeIn 0.8s ease-out 0.6s both',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px'
     },
     features: {
       display: 'grid',
       gridTemplateColumns: 'repeat(3, 1fr)',
-      gap: '16px',
+      gap: '12px',
       marginTop: '32px',
-      maxWidth: '420px',
+      maxWidth: '380px',
       width: '100%',
+      zIndex: 1,
       animation: 'fadeIn 0.8s ease-out 0.9s both'
     },
     featureItem: {
@@ -139,50 +164,53 @@ const SplashScreen = memo(() => {
       flexDirection: 'column',
       alignItems: 'center',
       gap: '8px',
-      color: '#94a3b8',
-      fontSize: '13px',
+      color: '#94A3B8',
+      fontSize: '12px',
       fontWeight: '500',
       textAlign: 'center',
-      padding: '12px',
+      padding: '14px 12px',
       backgroundColor: 'rgba(255,255,255,0.04)',
       borderRadius: '12px',
-      border: '1px solid rgba(255,255,255,0.06)'
+      border: '1px solid rgba(255,255,255,0.06)',
+      backdropFilter: 'blur(4px)'
     },
     featureIcon: {
-      width: '40px',
-      height: '40px',
-      backgroundColor: 'rgba(37,99,235,0.15)',
-      borderRadius: '10px',
+      width: '44px',
+      height: '44px',
+      backgroundColor: 'rgba(245,158,11,0.12)',
+      borderRadius: '12px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
     },
     featureLabel: {
-      fontSize: '12px',
-      color: '#94a3b8',
+      fontSize: '11px',
+      color: '#94A3B8',
       fontWeight: '500'
     },
     progressContainer: {
       width: '100%',
       maxWidth: '360px',
-      marginTop: '40px',
+      marginTop: '36px',
+      zIndex: 1,
       animation: 'fadeIn 0.8s ease-out 1.2s both'
     },
     progressBar: {
       width: '100%',
       height: '6px',
-      backgroundColor: '#1e293b',
+      backgroundColor: 'rgba(255,255,255,0.08)',
       borderRadius: '6px',
       overflow: 'hidden',
       position: 'relative'
     },
     progressFill: {
       height: '100%',
-      backgroundColor: '#2563eb',
+      background: `linear-gradient(90deg, #F59E0B, #D97706)`,
       borderRadius: '6px',
       transition: 'width 0.1s ease',
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      boxShadow: '0 0 20px rgba(245,158,11,0.3)'
     },
     progressGlow: {
       position: 'absolute',
@@ -194,42 +222,47 @@ const SplashScreen = memo(() => {
       animation: 'shimmer 1.5s infinite'
     },
     progressText: {
-      color: '#64748b',
+      color: '#64748B',
       fontSize: '13px',
       marginTop: '12px',
       textAlign: 'center',
       fontFamily: 'monospace',
-      letterSpacing: '0.5px'
+      letterSpacing: '0.3px'
     },
     percentage: {
-      color: '#60a5fa',
-      fontWeight: '600'
+      color: '#F59E0B',
+      fontWeight: '700'
     },
     footer: {
       position: 'absolute',
       bottom: '30px',
-      color: '#334155',
-      fontSize: '12px',
-      animation: 'fadeIn 0.8s ease-out 1.5s both'
+      color: '#475569',
+      fontSize: '13px',
+      zIndex: 1,
+      animation: 'fadeIn 0.8s ease-out 1.5s both',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px'
     },
     version: {
       position: 'absolute',
       top: '20px',
       right: '24px',
-      color: '#1e293b',
+      color: '#475569',
       fontSize: '11px',
       fontWeight: '500',
-      fontFamily: 'monospace'
+      fontFamily: 'monospace',
+      zIndex: 1
     },
     keyframes: `
       @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
+        from { opacity: 0; transform: translateY(12px); }
         to { opacity: 1; transform: translateY(0); }
       }
       @keyframes pulse {
-        0% { transform: scale(1); box-shadow: 0 8px 32px rgba(37,99,235,0.35); }
-        50% { transform: scale(1.05); box-shadow: 0 8px 48px rgba(37,99,235,0.5); }
-        100% { transform: scale(1); box-shadow: 0 8px 32px rgba(37,99,235,0.35); }
+        0% { transform: scale(1); box-shadow: 0 8px 40px rgba(245,158,11,0.3); }
+        50% { transform: scale(1.05); box-shadow: 0 8px 60px rgba(245,158,11,0.5); }
+        100% { transform: scale(1); box-shadow: 0 8px 40px rgba(245,158,11,0.3); }
       }
       @keyframes shimmer {
         0% { transform: translateX(-100%); }
@@ -242,55 +275,49 @@ const SplashScreen = memo(() => {
     <div style={styles.container}>
       <style>{styles.keyframes}</style>
 
-      {/* Background Orbs */}
-      <div style={{ ...styles.bgOrbs, width: '350px', height: '350px', backgroundColor: '#2563eb', top: '-150px', right: '-150px' }}></div>
-      <div style={{ ...styles.bgOrbs, width: '250px', height: '250px', backgroundColor: '#8b5cf6', bottom: '-100px', left: '-100px' }}></div>
-      <div style={{ ...styles.bgOrbs, width: '150px', height: '150px', backgroundColor: '#f59e0b', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.03 }}></div>
+      <div style={styles.bgOrb1} />
+      <div style={styles.bgOrb2} />
 
-      {/* Version */}
-      <div style={styles.version}>v1.0.0</div>
+      <div style={styles.version}>v2.0.0</div>
 
-      {/* Logo */}
       <div style={styles.logoContainer}>
         <div style={styles.logoBadge}>
-          <SketchIcon d={ICONS.store} size={34} color="#ffffff" strokeWidth={2.5} />
+          <Icon d={ICONS.store} size={34} color="#1E293B" strokeWidth={2.5} />
         </div>
         <div>
           <h1 style={styles.title}>
-            <span style={styles.titleAccent}>Kum</span>sika
+            Msika<span style={styles.titleAccent}>AI</span>
           </h1>
         </div>
       </div>
 
-      <p style={styles.subtitle}>Mitundu's Smart Local Marketplace</p>
+      <p style={styles.subtitle}>Malawi's Smart Local Marketplace</p>
       <div style={styles.tagline}>
-        <SketchIcon d={ICONS.sparkles} size={16} color="#60a5fa" strokeWidth={2} />
-        <span style={{ marginLeft: '6px' }}>Trade, Buy & Hire Locally</span>
+        <Icon d={ICONS.sparkles} size={14} color="#F59E0B" strokeWidth={1.75} />
+        <span>AI-Powered Local Commerce</span>
       </div>
 
-      {/* Features Preview */}
       <div style={styles.features}>
         <div style={styles.featureItem}>
           <div style={styles.featureIcon}>
-            <SketchIcon d={ICONS.mapPin} size={20} color="#60a5fa" strokeWidth={2} />
+            <Icon d={ICONS.mapPin} size={20} color="#F59E0B" strokeWidth={1.75} />
           </div>
           <span style={styles.featureLabel}>Find Nearby</span>
         </div>
         <div style={styles.featureItem}>
           <div style={styles.featureIcon}>
-            <SketchIcon d={ICONS.mic} size={20} color="#60a5fa" strokeWidth={2} />
+            <Icon d={ICONS.mic} size={20} color="#F59E0B" strokeWidth={1.75} />
           </div>
           <span style={styles.featureLabel}>Voice Listing</span>
         </div>
         <div style={styles.featureItem}>
           <div style={styles.featureIcon}>
-            <SketchIcon d={ICONS.bot} size={20} color="#60a5fa" strokeWidth={2} />
+            <Icon d={ICONS.bot} size={20} color="#F59E0B" strokeWidth={1.75} />
           </div>
           <span style={styles.featureLabel}>AI Assistant</span>
         </div>
       </div>
 
-      {/* Progress */}
       <div style={styles.progressContainer}>
         <div style={styles.progressBar}>
           <div style={{ ...styles.progressFill, width: `${Math.min(progress, 100)}%` }}>
@@ -303,7 +330,9 @@ const SplashScreen = memo(() => {
         </p>
       </div>
 
-      <p style={styles.footer}>Built for Mitundu, Malawi 🇲🇼</p>
+      <p style={styles.footer}>
+        <span>🇲🇼</span> Built for Malawi
+      </p>
     </div>
   );
 });

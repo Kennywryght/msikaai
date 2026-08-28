@@ -4,6 +4,34 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { aiAPI } from '../services/api';
+import PrimaryButton from '../components/PrimaryButton';
+import LoadingSpinner from '../components/LoadingSpinner';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -48,7 +76,6 @@ const AISearch = () => {
   const [suggestedCategory, setSuggestedCategory] = useState('');
   const searchRef = useRef();
 
-  // Close suggestions popover when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -77,7 +104,7 @@ const AISearch = () => {
     try {
       const response = await aiAPI.search({ 
         query: searchQuery,
-        location: 'Mitundu'
+        location: 'Malawi'
       });
       
       if (response.data.success) {
@@ -127,11 +154,14 @@ const AISearch = () => {
     return `MWK ${Number(price).toLocaleString()}`;
   };
 
-  // Styles
+  if (loading) {
+    return <LoadingSpinner fullScreen message="AI is searching..." />;
+  }
+
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: '24px 16px',
       maxWidth: '800px',
@@ -139,13 +169,13 @@ const AISearch = () => {
     },
     backButton: {
       padding: '8px 16px',
-      backgroundColor: '#ffffff',
-      border: '1px solid #cbd5e1',
+      backgroundColor: COLORS.white,
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: '500',
-      color: '#334155',
+      color: COLORS.gray700,
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
@@ -153,17 +183,17 @@ const AISearch = () => {
       transition: 'all 0.2s'
     },
     card: {
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       borderRadius: '16px',
       padding: '24px',
       marginBottom: '16px',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
     },
     title: {
       fontSize: '22px',
       fontWeight: '800',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 4px 0',
       display: 'flex',
       alignItems: 'center',
@@ -171,7 +201,7 @@ const AISearch = () => {
     },
     subtitle: {
       fontSize: '14px',
-      color: '#64748b',
+      color: COLORS.gray500,
       margin: '0 0 16px 0'
     },
     searchRow: {
@@ -182,73 +212,42 @@ const AISearch = () => {
     input: {
       flex: 1,
       padding: '12px 16px',
-      border: '2px solid #e2e8f0',
+      border: '2px solid ' + COLORS.gray200,
       borderRadius: '8px',
       fontSize: '15px',
       outline: 'none',
-      backgroundColor: '#ffffff',
-      color: '#0f172a',
+      backgroundColor: COLORS.white,
+      color: COLORS.gray900,
       fontFamily: 'inherit',
       transition: 'border-color 0.2s'
-    },
-    inputFocus: {
-      borderColor: '#2563eb',
-      boxShadow: '0 0 0 3px rgba(37,99,235,0.1)'
-    },
-    searchBtn: {
-      padding: '12px 24px',
-      backgroundColor: '#2563eb',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '15px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      transition: 'background-color 0.2s'
-    },
-    searchBtnDisabled: {
-      padding: '12px 24px',
-      backgroundColor: '#93c5fd',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '15px',
-      fontWeight: '600',
-      cursor: 'not-allowed',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px'
     },
     suggestions: {
       position: 'absolute',
       top: '100%',
       left: 0,
       right: 0,
-      backgroundColor: 'white',
+      backgroundColor: COLORS.white,
       borderRadius: '8px',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+      boxShadow: '0 4px 16px rgba(21, 17, 48, 0.12)',
       zIndex: 1000,
       marginTop: '6px',
       maxHeight: '220px',
       overflowY: 'auto',
-      border: '1px solid #e2e8f0'
+      border: '1px solid ' + COLORS.gray200
     },
     suggestionItem: {
       padding: '12px 16px',
       cursor: 'pointer',
-      borderBottom: '1px solid #f1f5f9',
+      borderBottom: '1px solid ' + COLORS.gray100,
       fontSize: '14px',
-      color: '#334155',
+      color: COLORS.gray700,
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
       transition: 'background-color 0.15s'
     },
     error: {
-      color: '#dc2626',
+      color: COLORS.error,
       padding: '12px',
       backgroundColor: '#fef2f2',
       borderRadius: '8px',
@@ -257,35 +256,35 @@ const AISearch = () => {
       fontSize: '14px'
     },
     resultCount: {
-      color: '#64748b',
+      color: COLORS.gray500,
       marginBottom: '12px',
       fontSize: '14px',
       fontWeight: '500'
     },
     resultCard: {
-      backgroundColor: 'white',
+      backgroundColor: COLORS.white,
       borderRadius: '12px',
       padding: '16px',
       marginBottom: '12px',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       cursor: 'pointer',
       transition: 'all 0.2s ease-in-out'
     },
     resultTitle: {
       fontSize: '16px',
       fontWeight: '700',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 4px 0'
     },
     resultSummary: {
       fontSize: '14px',
-      color: '#475569',
+      color: COLORS.gray600,
       margin: '0 0 6px 0',
       lineHeight: '1.4'
     },
     resultBusiness: {
       fontSize: '13px',
-      color: '#64748b',
+      color: COLORS.gray500,
       margin: '0 0 8px 0',
       fontWeight: '500'
     },
@@ -312,10 +311,10 @@ const AISearch = () => {
     emptyState: {
       textAlign: 'center',
       padding: '40px 20px',
-      color: '#64748b',
-      backgroundColor: '#ffffff',
+      color: COLORS.gray500,
+      backgroundColor: COLORS.white,
       borderRadius: '12px',
-      border: '1px solid #e2e8f0'
+      border: '1px solid ' + COLORS.gray200
     },
     examples: {
       display: 'flex',
@@ -324,13 +323,13 @@ const AISearch = () => {
     },
     exampleBtn: {
       padding: '12px 14px',
-      backgroundColor: '#f8fafc',
-      border: '1px solid #e2e8f0',
+      backgroundColor: COLORS.gray50,
+      border: '1px solid ' + COLORS.gray200,
       borderRadius: '8px',
       textAlign: 'left',
       cursor: 'pointer',
       fontSize: '14px',
-      color: '#334155',
+      color: COLORS.gray700,
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
@@ -359,7 +358,7 @@ const AISearch = () => {
     },
     aiResponseText: {
       fontSize: '15px',
-      color: '#0f172a',
+      color: COLORS.gray900,
       lineHeight: '1.6'
     },
     relatedSearches: {
@@ -370,8 +369,8 @@ const AISearch = () => {
     },
     relatedTag: {
       padding: '4px 12px',
-      backgroundColor: '#dbeafe',
-      color: '#1e40af',
+      backgroundColor: '#EEECF5',
+      color: COLORS.championBlue,
       borderRadius: '20px',
       fontSize: '12px',
       fontWeight: '500',
@@ -395,16 +394,16 @@ const AISearch = () => {
       <button 
         onClick={() => navigate('/dashboard')} 
         style={styles.backButton}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.white}
       >
-        <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
+        <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray600} strokeWidth={2.5} />
         Back to Dashboard
       </button>
 
       <div style={styles.card} ref={searchRef}>
         <h2 style={styles.title}>
-          <SketchIcon d={ICONS.bot} size={24} color="#8b5cf6" strokeWidth={2} />
+          <SketchIcon d={ICONS.bot} size={24} color={COLORS.lavenderTonic} strokeWidth={2} />
           AI Assistant
         </h2>
         <p style={styles.subtitle}>Ask in English or Chichewa. Example: "Ndikufuna plumber pafupi"</p>
@@ -418,23 +417,18 @@ const AISearch = () => {
               onChange={handleQueryChange}
               onFocus={() => query.length >= 2 && setShowSuggestions(true)}
               style={styles.input}
-              onFocus={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-              onBlur={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+              onFocus={(e) => e.currentTarget.style.borderColor = COLORS.lavenderTonic}
+              onBlur={(e) => e.currentTarget.style.borderColor = COLORS.gray200}
             />
-            <button
+            <PrimaryButton
               type="submit"
+              variant="primary"
+              size="md"
               disabled={loading}
-              style={loading ? styles.searchBtnDisabled : styles.searchBtn}
-              onMouseEnter={(e) => {
-                if (!loading) e.currentTarget.style.backgroundColor = '#1d4ed8';
-              }}
-              onMouseLeave={(e) => {
-                if (!loading) e.currentTarget.style.backgroundColor = '#2563eb';
-              }}
             >
-              <SketchIcon d={ICONS.search} size={16} color="#ffffff" strokeWidth={2} />
+              <SketchIcon d={ICONS.search} size={16} color={COLORS.championBlue} strokeWidth={2} />
               {loading ? '...' : 'Search'}
-            </button>
+            </PrimaryButton>
           </div>
 
           {showSuggestions && suggestions.length > 0 && (
@@ -444,10 +438,10 @@ const AISearch = () => {
                   key={index}
                   style={styles.suggestionItem}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray50}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <SketchIcon d={ICONS.search} size={14} color="#64748b" strokeWidth={2} />
+                  <SketchIcon d={ICONS.search} size={14} color={COLORS.gray500} strokeWidth={2} />
                   {suggestion}
                 </div>
               ))}
@@ -458,7 +452,6 @@ const AISearch = () => {
 
       {error && <div style={styles.error}>{error}</div>}
 
-      {/* AI Response */}
       {aiResponse && (
         <div style={styles.aiResponseBox}>
           <div style={styles.aiResponseLabel}>
@@ -467,7 +460,6 @@ const AISearch = () => {
           </div>
           <p style={styles.aiResponseText}>{aiResponse}</p>
           
-          {/* Related Searches */}
           {relatedSearches.length > 0 && (
             <div style={styles.relatedSearches}>
               {relatedSearches.map((term, idx) => (
@@ -478,8 +470,8 @@ const AISearch = () => {
                     setQuery(term);
                     performSearch(term);
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#bfdbfe'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray200}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#EEECF5'}
                 >
                   {term}
                 </button>
@@ -487,7 +479,6 @@ const AISearch = () => {
             </div>
           )}
           
-          {/* Suggested Category */}
           {suggestedCategory && (
             <div style={{ marginTop: '8px' }}>
               <span style={styles.categoryTag}>
@@ -509,7 +500,7 @@ const AISearch = () => {
               style={styles.resultCard}
               onClick={() => navigate(`/listing/${item.id}`)}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(21, 17, 48, 0.08)';
                 e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
@@ -526,7 +517,7 @@ const AISearch = () => {
                   </p>
                   <div style={styles.badgeGroup}>
                     {item.category && (
-                      <span style={{ ...styles.badge, backgroundColor: '#dbeafe', color: '#1e40af' }}>
+                      <span style={{ ...styles.badge, backgroundColor: '#EEECF5', color: COLORS.championBlue }}>
                         {item.category}
                       </span>
                     )}
@@ -549,7 +540,7 @@ const AISearch = () => {
                   </div>
                 </div>
                 {item.images && item.images.length > 0 && (
-                  <img src={item.images[0]} alt={item.title} style={styles.resultImage} />
+                  <img src={item.images[0]} alt={item.title} style={styles.resultImage} loading="lazy" />
                 )}
               </div>
             </div>
@@ -559,46 +550,46 @@ const AISearch = () => {
 
       {!loading && results.length === 0 && query && !error && (
         <div style={styles.emptyState}>
-          <p style={{ fontWeight: '600', color: '#0f172a', margin: '0 0 4px 0' }}>No results found for "{query}"</p>
+          <p style={{ fontWeight: '600', color: COLORS.gray900, margin: '0 0 4px 0' }}>No results found for "{query}"</p>
           <p style={{ fontSize: '14px', margin: 0 }}>Try using different keywords or check your spelling</p>
         </div>
       )}
 
       {!query && !loading && results.length === 0 && (
         <div style={styles.card}>
-          <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', marginBottom: '12px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '600', color: COLORS.gray900, marginBottom: '12px' }}>
             💡 Try These Examples:
           </h3>
           <div style={styles.examples}>
             <button 
               onClick={() => performSearch('Ndikufuna plumber pafupi')} 
               style={styles.exampleBtn}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray50}
             >
               🔧 "Ndikufuna plumber pafupi" - Find nearby plumbers
             </button>
             <button 
               onClick={() => performSearch('chimanga chogulitsa')} 
               style={styles.exampleBtn}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray50}
             >
               🌾 "chimanga chogulitsa" - Find maize sellers
             </button>
             <button 
               onClick={() => performSearch('zomanga nyumba')} 
               style={styles.exampleBtn}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray50}
             >
               🏗️ "zomanga nyumba" - Building services
             </button>
             <button 
               onClick={() => performSearch('salon yatsitsi')} 
               style={styles.exampleBtn}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray50}
             >
               💇 "salon yatsitsi" - Hair salons
             </button>

@@ -8,178 +8,79 @@ import LanguageToggle from '../components/LanguageToggle';
 import NotificationBell from '../components/NotificationBell';
 import AnalyticsWidget from '../components/AnalyticsWidget';
 import NotificationsDropdown from '../components/NotificationsDropdown';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 import PaymentModal from '../components/PaymentModal';
 
 // ==========================================
-// Hand-Drawn / Pencil-Style SVG Icon Set
+// BRAND COLORS
 // ==========================================
-
-const iconStyle = {
-  display: 'inline-block',
-  verticalAlign: 'middle',
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  flexShrink: 0,
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
 };
 
-const HandStore = ({ size = 22, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M3 9l1.5-5h15L21 9" />
-    <path d="M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9" />
-    <path d="M3 9a3 3 0 016 0a3 3 0 016 0a3 3 0 016 0" />
-    <path d="M9 21v-6a2 2 0 012-2h2a2 2 0 012 2v6" />
+// --- HAND-DRAWN STYLE INLINE SVG ICONS ---
+const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+  >
+    <path d={d} />
   </svg>
 );
 
-const HandRobot = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M12 2v3" />
-    <circle cx="12" cy="14" r="7" />
-    <path d="M9 13v1" />
-    <path d="M15 13v1" />
-    <path d="M10 17s1 1 2 1 2-1 2-1" />
-    <path d="M4 14h1" />
-    <path d="M19 14h1" />
-  </svg>
-);
-
-const HandMic = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <rect x="9" y="2" width="6" height="11" rx="3" />
-    <path d="M5 10a7 7 0 0014 0" />
-    <path d="M12 17v4" />
-    <path d="M8 21h8" />
-  </svg>
-);
-
-const HandPalette = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M12 21a9 9 0 100-18c2 0 4 .8 5.2 2.1a9 9 0 012.8 6.4c0 2.5-2 4.5-4.5 4.5h-1.5a2 2 0 00-2 2v.5a2.5 2.5 0 01-2.5 2.5z" />
-    <circle cx="7.5" cy="10.5" r=".5" fill="currentColor" />
-    <circle cx="12" cy="7.5" r=".5" fill="currentColor" />
-    <circle cx="16.5" cy="10.5" r=".5" fill="currentColor" />
-  </svg>
-);
-
-const HandSearch = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <circle cx="11" cy="11" r="7" />
-    <path d="M21 21l-4.35-4.35" />
-  </svg>
-);
-
-const HandPlus = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" style={iconStyle}>
-    <path d="M12 5v14" />
-    <path d="M5 12h14" />
-  </svg>
-);
-
-const HandUser = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-
-const HandLogout = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
-    <path d="M16 17l5-5-5-5" />
-    <path d="M21 12H9" />
-  </svg>
-);
-
-const HandWave = ({ size = 22, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M18 11V6a2 2 0 00-4 0v5" />
-    <path d="M14 10V4a2 2 0 00-4 0v6" />
-    <path d="M10 10.5V2.5a2 2 0 00-4 0V14" />
-    <path d="M6 14v-1.5a1.5 1.5 0 00-3 0V16a7 7 0 007 7h3a7 7 0 007-7v-5a2 2 0 00-4 0" />
-  </svg>
-);
-
-const HandPackage = ({ size = 20, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M12.89 1.45l8 4A2 2 0 0122 7.24v9.53a2 2 0 01-1.11 1.79l-8 4a2 2 0 01-1.79 0l-8-4a2 2 0 01-1.1-1.8V7.24a2 2 0 011.11-1.79l8-4a2 2 0 011.78 0z" />
-    <path d="M2.32 6.16L12 11l9.68-4.84" />
-    <path d="M12 22.76V11" />
-  </svg>
-);
-
-const HandEye = ({ size = 20, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
-);
-
-const HandPhone = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-  </svg>
-);
-
-const HandTag = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-    <line x1="7" y1="7" x2="7.01" y2="7" strokeWidth="3" />
-  </svg>
-);
-
-const HandPin = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-    <circle cx="12" cy="10" r="3" />
-  </svg>
-);
-
-const HandPencil = ({ size = 16, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-  </svg>
-);
-
-const HandClipboard = ({ size = 20, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" />
-    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-  </svg>
-);
-
-const HandZap = ({ size = 20, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-  </svg>
-);
-
-const HandDot = ({ size = 12, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={iconStyle}>
-    <circle cx="12" cy="12" r="8" />
-  </svg>
-);
-
-const HandClose = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" style={iconStyle}>
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-);
-
-const HandExport = ({ size = 18, color = 'currentColor' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" style={iconStyle}>
-    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-    <polyline points="7 10 12 15 17 10" />
-    <line x1="12" y1="15" x2="12" y2="3" />
-  </svg>
-);
-
-// ==========================================
-// Dashboard Component
-// ==========================================
+const ICONS = {
+  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+  plus: "M12 4v16M4 12h16",
+  box: "M12.89 1.45l8 4A2 2 0 0122 7.24v9.53a2 2 0 01-1.11 1.79l-8 4a2 2 0 01-1.79 0l-8-4a2 2 0 01-1.1-1.8V7.24a2 2 0 011.11-1.79l8-4a2 2 0 011.78 0zM2.32 6.16L12 11l9.68-4.84M12 22.76V11",
+  tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+  image: "M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
+  close: "M18 6L6 18M6 6l12 12",
+  check: "M20 6L9 17l-5-5",
+  arrowRight: "M5 12h14M12 5l7 7-7 7",
+  clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
+  user: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 7a4 4 0 100-8 4 4 0 000 8z",
+  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+  mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
+  delivery: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8M9 16h6",
+  phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z",
+  wave: "M18 11V6a2 2 0 00-4 0v5M14 10V4a2 2 0 00-4 0v6M10 10.5V2.5a2 2 0 00-4 0V14M6 14v-1.5a1.5 1.5 0 00-3 0V16a7 7 0 007 7h3a7 7 0 007-7v-5a2 2 0 00-4 0",
+  eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 12a3 3 0 100-6 3 3 0 000 6z",
+  dot: "M12 12a4 4 0 100-8 4 4 0 000 8z",
+  pencil: "M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z",
+  export: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5-5 5 5M12 15V3",
+  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+  robot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
+  mic: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
+  palette: "M12 21a9 9 0 100-18c2 0 4 .8 5.2 2.1a9 9 0 012.8 6.4c0 2.5-2 4.5-4.5 4.5h-1.5a2 2 0 00-2 2v.5a2.5 2.5 0 01-2.5 2.5zM7.5 10.5a.5.5 0 100-1 .5.5 0 000 1zM12 7.5a.5.5 0 100-1 .5.5 0 000 1zM16.5 10.5a.5.5 0 100-1 .5.5 0 000 1z",
+};
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -273,7 +174,6 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error('Error fetching subscription:', err);
-      // Default to free plan
       setSubscription({
         plan: 'free',
         listings_allowed: 3,
@@ -484,6 +384,7 @@ const Dashboard = () => {
     try {
       await logout();
       success('Logged out successfully');
+      navigate('/');
     } catch (err) {
       console.error('Logout error:', err);
       showToast('Failed to logout', 'error');
@@ -495,7 +396,6 @@ const Dashboard = () => {
   // ==========================================
   const handlePaymentSuccess = async (paymentData) => {
     try {
-      // Update subscription
       const response = await paymentAPI.upgradeSubscription({
         userId: user.id,
         plan: paymentData.plan,
@@ -505,7 +405,6 @@ const Dashboard = () => {
       if (response.data.success) {
         setSubscription(response.data.subscription);
         success('🎉 Subscription upgraded successfully!');
-        // Refresh listings to show updated limits
         if (business?.id) {
           fetchListings(business.id);
         }
@@ -525,582 +424,26 @@ const Dashboard = () => {
   };
 
   // ==========================================
-  // STYLES
-  // ==========================================
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#f1f5f9',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    },
-    loadingContainer: {
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: '#f1f5f9',
-    },
-    // ==========================================
-    // PROFESSIONAL NAVIGATION STYLES
-    // ==========================================
-    nav: {
-      backgroundColor: '#ffffff',
-      padding: 'clamp(10px, 1.5vw, 14px) clamp(12px, 2vw, 20px)',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      borderBottom: '1px solid #e2e8f0',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-      minHeight: 'clamp(60px, 8vh, 72px)',
-      flexWrap: 'wrap',
-      gap: '8px'
-    },
-    brandGroup: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    brandIcon: {
-      width: 'clamp(32px, 4vw, 38px)',
-      height: 'clamp(32px, 4vw, 38px)',
-      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-      borderRadius: '10px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 4px 12px rgba(37,99,235,0.2)',
-      flexShrink: 0
-    },
-    brandTitle: {
-      fontSize: 'clamp(16px, 2.2vw, 20px)',
-      fontWeight: '800',
-      color: '#0f172a',
-      margin: 0,
-      letterSpacing: '-0.5px',
-      lineHeight: '1.1'
-    },
-    brandSubtitle: {
-      fontSize: 'clamp(6px, 0.6vw, 8px)',
-      color: '#94a3b8',
-      fontWeight: '600',
-      letterSpacing: '0.5px',
-      textTransform: 'uppercase'
-    },
-    navActions: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 'clamp(4px, 0.8vw, 8px)',
-      flexWrap: 'wrap'
-    },
-    mobileMenuToggle: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      padding: '6px',
-      borderRadius: '6px',
-    },
-    hamburgerLine: {
-      display: 'block',
-      width: '22px',
-      height: '2px',
-      backgroundColor: '#0f172a',
-      borderRadius: '2px',
-      transition: 'all 0.3s',
-    },
-    subscriptionBadge: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      backgroundColor: '#f1f5f9',
-      padding: '4px 12px',
-      borderRadius: '20px',
-      border: '1px solid #e2e8f0',
-      flexShrink: 0,
-    },
-    subscriptionDot: {
-      display: 'inline-block',
-      width: '6px',
-      height: '6px',
-      borderRadius: '50%',
-      flexShrink: 0,
-    },
-    subscriptionPlan: {
-      fontSize: '11px',
-      fontWeight: '600',
-      color: '#64748b'
-    },
-    subscriptionPlanActive: {
-      color: '#065f46'
-    },
-    subscriptionCount: {
-      fontSize: '9px',
-      color: '#94a3b8'
-    },
-    userProfile: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '4px 6px 4px 10px',
-      borderRadius: '20px',
-      backgroundColor: '#f8fafc',
-      border: '1px solid #e2e8f0',
-      flexShrink: 0,
-    },
-    userAvatar: {
-      width: '28px',
-      height: '28px',
-      borderRadius: '50%',
-      backgroundColor: '#dbeafe',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '12px',
-      fontWeight: '700',
-      color: '#2563eb'
-    },
-    userName: {
-      fontSize: '12px',
-      fontWeight: '500',
-      color: '#334155',
-      maxWidth: '80px',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    },
-    // ✅ Clear Logout Button Styles
-    logoutBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      padding: '4px 10px',
-      backgroundColor: '#fee2e2',
-      color: '#dc2626',
-      border: 'none',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '11px',
-      fontWeight: '600',
-      transition: 'all 0.2s',
-      whiteSpace: 'nowrap'
-    },
-    logoutBtnHover: {
-      backgroundColor: '#fecaca',
-    },
-    // Mobile Menu Styles
-    mobileMenu: {
-      position: 'fixed',
-      top: 'clamp(60px, 8vh, 72px)',
-      left: 0,
-      right: 0,
-      backgroundColor: '#ffffff',
-      borderBottom: '1px solid #e2e8f0',
-      boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
-      padding: '16px 20px',
-      zIndex: 999,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '10px',
-      animation: 'slideDown 0.3s ease-out'
-    },
-    mobileMenuBadge: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '8px 12px',
-      backgroundColor: '#f1f5f9',
-      borderRadius: '10px',
-      border: '1px solid #e2e8f0'
-    },
-    mobileLogoutBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      padding: '10px 16px',
-      backgroundColor: '#fee2e2',
-      color: '#dc2626',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '600',
-      width: '100%',
-      transition: 'all 0.2s'
-    },
-    upgradeBanner: {
-      backgroundColor: '#fef3c7',
-      borderBottom: '1px solid #f59e0b',
-      padding: 'clamp(10px, 1.2vw, 12px) clamp(16px, 2vw, 24px)',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      gap: '8px',
-    },
-    upgradeBannerText: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontWeight: '500',
-      color: '#92400e',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-    },
-    upgradeBannerIcon: {
-      fontSize: 'clamp(18px, 1.8vw, 20px)',
-    },
-    addButtonDisabled: {
-      opacity: 0.5,
-      cursor: 'not-allowed',
-    },
-    // ==========================================
-    // CONTENT STYLES
-    // ==========================================
-    content: {
-      maxWidth: '1140px',
-      margin: '0 auto',
-      padding: 'clamp(16px, 3vw, 24px) clamp(12px, 3vw, 16px)',
-    },
-    headerSection: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 'clamp(16px, 2vw, 20px)',
-      flexWrap: 'wrap',
-      gap: '12px',
-    },
-    welcomeTitle: {
-      fontSize: 'clamp(20px, 2.5vw, 24px)',
-      fontWeight: '800',
-      color: '#0f172a',
-      margin: 0,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      flexWrap: 'wrap',
-    },
-    statsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 20vw, 180px), 1fr))',
-      gap: 'clamp(8px, 1.2vw, 12px)',
-      marginBottom: 'clamp(16px, 2vw, 20px)',
-    },
-    statCard: {
-      backgroundColor: '#ffffff',
-      padding: 'clamp(10px, 1.2vw, 14px) clamp(12px, 1.5vw, 16px)',
-      borderRadius: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 'clamp(8px, 1vw, 12px)',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-      border: '1px solid #e2e8f0',
-    },
-    statIconWrapper: {
-      width: 'clamp(34px, 3.5vw, 40px)',
-      height: 'clamp(34px, 3.5vw, 40px)',
-      borderRadius: '10px',
-      backgroundColor: '#eff6ff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    statNumber: {
-      fontSize: 'clamp(18px, 2.2vw, 20px)',
-      fontWeight: '800',
-      lineHeight: '1.2',
-    },
-    statLabel: {
-      fontSize: 'clamp(10px, 1vw, 12px)',
-      color: '#64748b',
-      fontWeight: '500',
-      marginTop: '2px',
-    },
-    card: {
-      backgroundColor: '#ffffff',
-      borderRadius: '12px',
-      padding: 'clamp(14px, 1.8vw, 20px)',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
-      marginBottom: 'clamp(12px, 1.5vw, 16px)',
-      border: '1px solid #e2e8f0',
-    },
-    cardHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      flexWrap: 'wrap',
-      gap: '12px',
-    },
-    cardTitleRow: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 'clamp(10px, 1.2vw, 12px)',
-      flexWrap: 'wrap',
-      gap: '8px',
-    },
-    cardTitle: {
-      fontSize: 'clamp(14px, 1.6vw, 16px)',
-      fontWeight: '700',
-      color: '#0f172a',
-      margin: 0,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-    },
-    badge: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      padding: 'clamp(3px, 0.4vw, 4px) clamp(8px, 0.8vw, 10px)',
-      borderRadius: '9999px',
-      fontSize: 'clamp(9px, 0.9vw, 11px)',
-      fontWeight: '600',
-      whiteSpace: 'nowrap',
-    },
-    listingRow: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(8px, 1vw, 12px)',
-      border: '1px solid #e2e8f0',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      transition: 'all 0.15s ease-in-out',
-      gap: '8px',
-      flexWrap: 'wrap',
-    },
-    listingThumbnail: {
-      width: 'clamp(38px, 4vw, 44px)',
-      height: 'clamp(38px, 4vw, 44px)',
-      objectFit: 'cover',
-      borderRadius: '8px',
-      border: '1px solid #cbd5e1',
-      flexShrink: 0,
-    },
-    placeholderThumbnail: {
-      width: 'clamp(38px, 4vw, 44px)',
-      height: 'clamp(38px, 4vw, 44px)',
-      backgroundColor: '#f1f5f9',
-      borderRadius: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      border: '1px solid #e2e8f0',
-      flexShrink: 0,
-    },
-    listingMeta: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'flex-end',
-      gap: '2px',
-      fontSize: 'clamp(10px, 0.9vw, 11px)',
-      color: '#64748b',
-      fontWeight: '500',
-    },
-    emptyStateContainer: {
-      textAlign: 'center',
-      padding: 'clamp(20px, 3vw, 30px) clamp(12px, 2vw, 16px)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-    },
-    quickActionsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 20vw, 180px), 1fr))',
-      gap: 'clamp(8px, 1vw, 12px)',
-    },
-    actionTile: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 'clamp(8px, 1vw, 12px)',
-      padding: 'clamp(10px, 1.2vw, 14px)',
-      border: '1px solid #e2e8f0',
-      borderRadius: '10px',
-      backgroundColor: '#f8fafc',
-      cursor: 'pointer',
-      transition: 'transform 0.15s, border-color 0.15s',
-      touchAction: 'manipulation',
-    },
-    tileIconWrapper: {
-      width: 'clamp(38px, 4vw, 44px)',
-      height: 'clamp(38px, 4vw, 44px)',
-      borderRadius: '10px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    actionTileTitle: {
-      fontWeight: '700',
-      color: '#0f172a',
-      fontSize: 'clamp(12px, 1.2vw, 13px)',
-    },
-    actionTileSub: {
-      fontSize: 'clamp(10px, 0.9vw, 11px)',
-      color: '#64748b',
-      marginTop: '2px',
-      lineHeight: '1.3',
-    },
-    modalOverlay: {
-      position: 'fixed',
-      inset: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.6)',
-      backdropFilter: 'blur(3px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '16px',
-      zIndex: 1000,
-    },
-    modalContent: {
-      backgroundColor: '#ffffff',
-      borderRadius: '16px',
-      maxWidth: 'clamp(340px, 50vw, 520px)',
-      width: '100%',
-      padding: 'clamp(16px, 2vw, 24px)',
-      maxHeight: '90vh',
-      overflowY: 'auto',
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-    },
-    fieldGroup: {
-      marginBottom: 'clamp(10px, 1.2vw, 14px)',
-    },
-    label: {
-      display: 'block',
-      fontSize: 'clamp(12px, 1.1vw, 13px)',
-      fontWeight: '600',
-      color: '#334155',
-      marginBottom: '4px',
-    },
-    input: {
-      width: '100%',
-      padding: 'clamp(6px, 0.8vw, 8px) clamp(10px, 1vw, 12px)',
-      border: '1px solid #cbd5e1',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.2vw, 14px)',
-      color: '#0f172a',
-      marginTop: '2px',
-      boxSizing: 'border-box',
-      outline: 'none',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-      WebkitAppearance: 'none',
-      backgroundColor: '#ffffff',
-    },
-    errorBanner: {
-      color: '#dc2626',
-      fontSize: 'clamp(13px, 1.2vw, 14px)',
-      marginBottom: 'clamp(12px, 1.5vw, 16px)',
-      padding: 'clamp(8px, 1vw, 10px) clamp(12px, 1.5vw, 14px)',
-      backgroundColor: '#fef2f2',
-      borderRadius: '8px',
-      border: '1px solid #fecaca',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      flexWrap: 'wrap',
-    },
-    exportButtons: {
-      display: 'flex',
-      gap: '8px',
-      marginTop: '12px',
-      flexWrap: 'wrap',
-    },
-    exportBtn: {
-      padding: 'clamp(4px, 0.6vw, 6px) clamp(10px, 1.2vw, 14px)',
-      backgroundColor: '#f1f5f9',
-      color: '#334155',
-      border: '1px solid #cbd5e1',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: 'clamp(11px, 1vw, 12px)',
-      fontWeight: '500',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      transition: 'background-color 0.2s',
-      touchAction: 'manipulation',
-    },
-    notificationWrapper: {
-      position: 'relative',
-      display: 'inline-block',
-    },
-    aiBtn: {
-      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: 'clamp(10px, 1vw, 12px)',
-      color: 'white',
-      fontWeight: '600',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      transition: 'opacity 0.2s, transform 0.2s',
-      touchAction: 'manipulation',
-      whiteSpace: 'nowrap',
-    },
-    secondaryNavBtn: {
-      padding: 'clamp(4px, 0.6vw, 6px) clamp(8px, 1.2vw, 12px)',
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      color: '#e2e8f0',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: 'clamp(10px, 1vw, 12px)',
-      fontWeight: '500',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      transition: 'background-color 0.2s',
-      touchAction: 'manipulation',
-      whiteSpace: 'nowrap',
-    },
-    userBadge: {
-      fontSize: 'clamp(10px, 0.9vw, 12px)',
-      color: '#e2e8f0',
-      fontWeight: '500',
-      backgroundColor: 'rgba(255, 255, 255, 0.06)',
-      padding: 'clamp(3px, 0.5vw, 4px) clamp(8px, 1vw, 12px)',
-      borderRadius: '8px',
-      maxWidth: 'clamp(100px, 15vw, 150px)',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '4px',
-      border: '1px solid rgba(255, 255, 255, 0.06)',
-    },
-  };
-
-  // ==========================================
   // RENDER
   // ==========================================
 
   if (loading) {
-    return <LoadingSpinner message="Loading your business dashboard..." />;
+    return <LoadingSpinner fullScreen message="Loading your business dashboard..." />;
   }
 
   return (
     <div style={styles.container}>
       {/* ============================================
-      PROFESSIONAL NAVIGATION BAR - FULLY RESPONSIVE
+      PROFESSIONAL NAVIGATION BAR
       ============================================ */}
       <nav style={styles.nav}>
-        {/* Brand / Logo */}
         <div style={styles.brandGroup}>
           <div style={styles.brandIcon}>
-            <HandStore size={18} color="#ffffff" />
+            <SketchIcon d={ICONS.store} size={18} color="#ffffff" strokeWidth={2.5} />
           </div>
           <div>
             <h1 style={styles.brandTitle}>
-              Ku<span style={{ color: '#2563eb' }}>Msika</span>
+              Msika<span style={{ color: COLORS.lavenderTonic }}>AI</span>
             </h1>
             <span style={styles.brandSubtitle}>
               Vendor Dashboard
@@ -1108,7 +451,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Mobile Menu Toggle - Visible on small screens */}
         <button
           onClick={() => setShowMobileMenu(!showMobileMenu)}
           style={styles.mobileMenuToggle}
@@ -1129,21 +471,11 @@ const Dashboard = () => {
           }}></span>
         </button>
 
-        {/* Desktop Navigation - Hidden on mobile */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'clamp(4px, 0.8vw, 8px)',
-          flexWrap: 'wrap',
-          '@media (max-width: 768px)': {
-            display: 'none'
-          }
-        }} className="desktop-nav">
-          {/* Plan Badge */}
+        <div style={styles.desktopNav}>
           <div style={styles.subscriptionBadge}>
             <span style={{
               ...styles.subscriptionDot,
-              backgroundColor: subscription.plan === 'free' ? '#94a3b8' : '#22c55e'
+              backgroundColor: subscription.plan === 'free' ? COLORS.gray400 : COLORS.success
             }}></span>
             <span style={{
               ...styles.subscriptionPlan,
@@ -1156,17 +488,17 @@ const Dashboard = () => {
             </span>
           </div>
 
-          <Button
+          <PrimaryButton
             variant="ghost"
             size="sm"
             onClick={() => navigate('/search')}
-            style={{ padding: '6px 10px', fontSize: '12px', color: '#475569' }}
-            iconLeft={<HandSearch size={14} />}
+            style={{ padding: '6px 10px', fontSize: '12px', color: COLORS.gray600 }}
           >
+            <SketchIcon d={ICONS.tag} size={14} color={COLORS.gray600} strokeWidth={2} />
             Browse
-          </Button>
+          </PrimaryButton>
 
-          <Button
+          <PrimaryButton
             variant="primary"
             size="sm"
             onClick={handleAddListingClick}
@@ -1175,12 +507,11 @@ const Dashboard = () => {
               fontSize: '12px',
               borderRadius: '8px'
             }}
-            iconLeft={<HandPlus size={14} />}
           >
+            <SketchIcon d={ICONS.plus} size={14} color={COLORS.championBlue} strokeWidth={2.5} />
             Add
-          </Button>
+          </PrimaryButton>
 
-          {/* User Profile with Clear Logout Button */}
           <div style={styles.userProfile}>
             <div style={styles.userAvatar}>
               {business?.business_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
@@ -1189,52 +520,34 @@ const Dashboard = () => {
               {business?.business_name || user?.email?.split('@')[0] || 'User'}
             </span>
             
-            {/* ✅ Clear, visible Logout button */}
             <button
               onClick={handleLogout}
               style={styles.logoutBtn}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#fecaca';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#fee2e2';
-              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fecaca'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
               title="Logout"
             >
-              <HandLogout size={12} color="#dc2626" />
+              <SketchIcon d={ICONS.logout} size={12} color={COLORS.error} strokeWidth={2} />
               Logout
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Mobile responsive styles */}
       <style>{`
         @media (max-width: 480px) {
-          .btn-label {
-            display: none;
-          }
+          .btn-label { display: none; }
         }
         @media (min-width: 481px) {
-          .btn-label {
-            display: inline;
-          }
+          .btn-label { display: inline; }
         }
         @media (max-width: 768px) {
-          .desktop-nav {
-            display: none !important;
-          }
-          .mobile-toggle {
-            display: flex !important;
-          }
+          .desktop-nav { display: none !important; }
+          .mobile-toggle { display: flex !important; }
         }
         @media (min-width: 769px) {
-          .desktop-nav {
-            display: flex !important;
-          }
-          .mobile-toggle {
-            display: none !important;
-          }
+          .desktop-nav { display: flex !important; }
+          .mobile-toggle { display: none !important; }
         }
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-10px); }
@@ -1242,7 +555,7 @@ const Dashboard = () => {
         }
       `}</style>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Menu */}
       {showMobileMenu && (
         <div style={styles.mobileMenu}>
           <div style={styles.mobileMenuBadge}>
@@ -1251,61 +564,46 @@ const Dashboard = () => {
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: subscription.plan === 'free' ? '#94a3b8' : '#22c55e'
+              backgroundColor: subscription.plan === 'free' ? COLORS.gray400 : COLORS.success
             }}></span>
             <span style={{
               fontSize: '13px',
               fontWeight: '600',
-              color: subscription.plan === 'free' ? '#64748b' : '#065f46'
+              color: subscription.plan === 'free' ? COLORS.gray600 : '#065f46'
             }}>
               Plan: {subscription.plan.toUpperCase()}
             </span>
-            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+            <span style={{ fontSize: '11px', color: COLORS.gray400 }}>
               ({subscription.listings_used}/{subscription.listings_allowed})
             </span>
           </div>
 
-          <Button
+          <PrimaryButton
             variant="ghost"
             fullWidth
-            onClick={() => {
-              navigate('/search');
-              setShowMobileMenu(false);
-            }}
-            iconLeft={<HandSearch size={16} color="#475569" />}
+            onClick={() => { navigate('/search'); setShowMobileMenu(false); }}
             style={{ justifyContent: 'flex-start', padding: '10px 14px' }}
           >
+            <SketchIcon d={ICONS.tag} size={16} color={COLORS.gray600} strokeWidth={2} />
             Browse Listings
-          </Button>
+          </PrimaryButton>
 
-          <Button
+          <PrimaryButton
             variant="primary"
             fullWidth
-            onClick={() => {
-              handleAddListingClick();
-              setShowMobileMenu(false);
-            }}
-            iconLeft={<HandPlus size={16} color="#ffffff" />}
+            onClick={() => { handleAddListingClick(); setShowMobileMenu(false); }}
             style={{ justifyContent: 'center' }}
           >
             {subscription.remaining_listings <= 0 ? 'Upgrade to Add' : 'Add Listing'}
-          </Button>
+          </PrimaryButton>
 
-          {/* ✅ Clear Logout Button in Mobile Menu */}
           <button
-            onClick={() => {
-              handleLogout();
-              setShowMobileMenu(false);
-            }}
+            onClick={() => { handleLogout(); setShowMobileMenu(false); }}
             style={styles.mobileLogoutBtn}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#fecaca';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#fee2e2';
-            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fecaca'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
           >
-            <HandLogout size={16} color="#dc2626" />
+            <SketchIcon d={ICONS.logout} size={16} color={COLORS.error} strokeWidth={2} />
             Logout
           </button>
         </div>
@@ -1318,7 +616,7 @@ const Dashboard = () => {
             <span style={styles.upgradeBannerIcon}>⚠️</span>
             <span>You've reached your listing limit. Upgrade to add more.</span>
           </div>
-          <Button
+          <PrimaryButton
             variant="warning"
             size="sm"
             onClick={() => setShowPaymentModal(true)}
@@ -1331,17 +629,18 @@ const Dashboard = () => {
             }}
           >
             Upgrade Now
-          </Button>
+          </PrimaryButton>
         </div>
       )}
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <div style={styles.content}>
         {/* Welcome Header */}
         <div style={styles.headerSection}>
           <div>
             <h2 style={styles.welcomeTitle}>
-              <HandWave size={22} color="#d97706" /> {t('welcome') || 'Welcome'}
+              <SketchIcon d={ICONS.wave} size={22} color={COLORS.warning} strokeWidth={2} />
+              {t('welcome') || 'Welcome'}
               {business?.business_name
                 ? `, ${business.business_name}`
                 : user?.email
@@ -1349,22 +648,22 @@ const Dashboard = () => {
                 : ''}
               !
             </h2>
-            <p style={{ color: '#64748b', marginTop: '2px', fontSize: 'clamp(13px, 1.2vw, 14px)' }}>
+            <p style={{ color: COLORS.gray500, marginTop: '2px', fontSize: 'clamp(13px, 1.2vw, 14px)' }}>
               {business
                 ? (t('dashboard_subtitle') || 'Track your market presence, manage listings, and attract customer inquiries.')
                 : (t('register_prompt_subtitle') || 'Register your business to get discovered by customers.')}
             </p>
           </div>
           {business && (
-            <Button
+            <PrimaryButton
               variant="primary"
               size="md"
               onClick={handleAddListingClick}
-              iconLeft={<HandPackage size={16} />}
               style={subscription.remaining_listings <= 0 ? styles.addButtonDisabled : {}}
             >
+              <SketchIcon d={ICONS.box} size={16} color={COLORS.championBlue} strokeWidth={2} />
               {subscription.remaining_listings <= 0 ? 'Upgrade to Add' : t('add_product') || 'Add Product'}
-            </Button>
+            </PrimaryButton>
           )}
         </div>
 
@@ -1372,13 +671,9 @@ const Dashboard = () => {
         {errorMsg && (
           <div style={styles.errorBanner}>
             <span>❌ {errorMsg}</span>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={fetchBusiness}
-            >
+            <PrimaryButton variant="danger" size="sm" onClick={fetchBusiness}>
               {t('retry') || 'Retry'}
-            </Button>
+            </PrimaryButton>
           </div>
         )}
 
@@ -1394,23 +689,11 @@ const Dashboard = () => {
         {business ? (
           <>
             {/* Business Profile Card */}
-            <div style={styles.card} className="card">
+            <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    <div style={{
-                      width: 'clamp(48px, 5vw, 60px)',
-                      height: 'clamp(48px, 5vw, 60px)',
-                      borderRadius: '50%',
-                      backgroundColor: '#dbeafe',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 'clamp(20px, 2.5vw, 24px)',
-                      overflow: 'hidden',
-                      border: '2px solid #e2e8f0',
-                      flexShrink: 0,
-                    }}>
+                    <div style={styles.businessAvatar}>
                       {business.logo_url ? (
                         <img src={business.logo_url} alt={business.business_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
@@ -1418,40 +701,36 @@ const Dashboard = () => {
                       )}
                     </div>
                     <div>
-                      <h2 style={{ fontSize: 'clamp(16px, 1.8vw, 18px)', fontWeight: '700', color: '#0f172a', margin: 0 }}>
-                        {business.business_name}
-                      </h2>
-                      <p style={{ fontSize: 'clamp(12px, 1.1vw, 13px)', color: '#64748b', margin: 0, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <HandTag size={14} color="#64748b" />
+                      <h2 style={styles.businessName}>{business.business_name}</h2>
+                      <p style={styles.businessCategory}>
+                        <SketchIcon d={ICONS.tag} size={14} color={COLORS.gray500} strokeWidth={2} />
                         <span>{business.category}</span>
                       </p>
                     </div>
                   </div>
 
                   {business.description && (
-                    <p style={{ marginTop: '10px', color: '#475569', fontSize: 'clamp(12px, 1.1vw, 13px)', lineHeight: '1.5' }}>
-                      {business.description}
-                    </p>
+                    <p style={styles.businessDescription}>{business.description}</p>
                   )}
 
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'clamp(8px, 1vw, 12px)', marginTop: '6px' }}>
+                  <div style={styles.businessMeta}>
                     {business.phone && (
-                      <span style={{ fontSize: 'clamp(12px, 1.1vw, 13px)', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <HandPhone size={14} color="#64748b" />
-                        <a href={`tel:${business.phone}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
+                      <span style={styles.businessMetaItem}>
+                        <SketchIcon d={ICONS.phone} size={14} color={COLORS.gray500} strokeWidth={2} />
+                        <a href={`tel:${business.phone}`} style={{ color: COLORS.lavenderTonic, textDecoration: 'none' }}>
                           {business.phone}
                         </a>
                       </span>
                     )}
                     {business.address && (
-                      <span style={{ fontSize: 'clamp(12px, 1.1vw, 13px)', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <HandPin size={14} color="#64748b" />
+                      <span style={styles.businessMetaItem}>
+                        <SketchIcon d={ICONS.mapPin} size={14} color={COLORS.gray500} strokeWidth={2} />
                         {business.address}
                       </span>
                     )}
                   </div>
 
-                  <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <div style={styles.businessBadges}>
                     <span className="badge badge-success">
                       {business.verified ? `✅ ${t('verified') || 'Verified'}` : `⏳ ${t('pending') || 'Pending'}`}
                     </span>
@@ -1461,33 +740,34 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                  <Button
+                <div style={styles.businessActions}>
+                  <PrimaryButton
                     variant="secondary"
                     size="sm"
                     onClick={() => navigate('/edit-profile')}
-                    iconLeft={<HandPencil size={14} />}
                   >
+                    <SketchIcon d={ICONS.pencil} size={14} color={COLORS.white} strokeWidth={2} />
                     {t('edit_profile') || 'Edit Profile'}
-                  </Button>
+                  </PrimaryButton>
                   
-                  {/* Export Buttons */}
                   <div style={styles.exportButtons}>
                     <button
                       onClick={handleExportCSV}
                       style={styles.exportBtn}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray200}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
                     >
-                      <HandExport size={14} /> CSV
+                      <SketchIcon d={ICONS.export} size={14} color={COLORS.gray600} strokeWidth={2} />
+                      CSV
                     </button>
                     <button
                       onClick={handleExportJSON}
                       style={styles.exportBtn}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray200}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
                     >
-                      <HandExport size={14} /> JSON
+                      <SketchIcon d={ICONS.export} size={14} color={COLORS.gray600} strokeWidth={2} />
+                      JSON
                     </button>
                   </div>
                 </div>
@@ -1496,48 +776,48 @@ const Dashboard = () => {
 
             {/* Statistics Grid */}
             <div style={styles.statsGrid}>
-              <div style={styles.statCard} className="card">
+              <div style={styles.statCard}>
                 <div style={styles.statIconWrapper}>
-                  <HandPackage size={20} color="#2563eb" />
+                  <SketchIcon d={ICONS.box} size={20} color={COLORS.lavenderTonic} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ ...styles.statNumber, color: '#2563eb' }}>
+                  <div style={{ ...styles.statNumber, color: COLORS.lavenderTonic }}>
                     {stats.totalListings}
                   </div>
                   <div style={styles.statLabel}>{t('total_products') || 'Total Products'}</div>
                 </div>
               </div>
 
-              <div style={styles.statCard} className="card">
+              <div style={styles.statCard}>
                 <div style={styles.statIconWrapper}>
-                  <HandDot size={18} color="#16a34a" />
+                  <SketchIcon d={ICONS.dot} size={18} color={COLORS.success} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ ...styles.statNumber, color: '#16a34a' }}>
+                  <div style={{ ...styles.statNumber, color: COLORS.success }}>
                     {stats.activeListings}
                   </div>
                   <div style={styles.statLabel}>{t('active_products') || 'Active Products'}</div>
                 </div>
               </div>
 
-              <div style={styles.statCard} className="card">
+              <div style={styles.statCard}>
                 <div style={styles.statIconWrapper}>
-                  <HandEye size={20} color="#8b5cf6" />
+                  <SketchIcon d={ICONS.eye} size={20} color={COLORS.lavenderTonic} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ ...styles.statNumber, color: '#8b5cf6' }}>
+                  <div style={{ ...styles.statNumber, color: COLORS.lavenderTonic }}>
                     {stats.totalViews}
                   </div>
                   <div style={styles.statLabel}>{t('views') || 'Views'}</div>
                 </div>
               </div>
 
-              <div style={styles.statCard} className="card">
+              <div style={styles.statCard}>
                 <div style={styles.statIconWrapper}>
-                  <HandPhone size={20} color="#f59e0b" />
+                  <SketchIcon d={ICONS.phone} size={20} color={COLORS.warning} strokeWidth={2} />
                 </div>
                 <div>
-                  <div style={{ ...styles.statNumber, color: '#f59e0b' }}>
+                  <div style={{ ...styles.statNumber, color: COLORS.warning }}>
                     {stats.totalContacts}
                   </div>
                   <div style={styles.statLabel}>{t('contacts') || 'Contacts'}</div>
@@ -1546,28 +826,24 @@ const Dashboard = () => {
             </div>
 
             {/* Listings Section */}
-            <div style={styles.card} className="card">
+            <div style={styles.card}>
               <div style={styles.cardTitleRow}>
                 <h3 style={styles.cardTitle}>
-                  <HandClipboard size={20} color="#1e293b" /> {t('your_listings') || 'Your Listings'} ({listings.length})
-                  <span style={{
-                    fontSize: '12px',
-                    fontWeight: '400',
-                    color: '#64748b',
-                    marginLeft: '8px'
-                  }}>
+                  <SketchIcon d={ICONS.box} size={20} color={COLORS.gray900} strokeWidth={2} />
+                  {t('your_listings') || 'Your Listings'} ({listings.length})
+                  <span style={styles.cardTitleSub}>
                     ({subscription.remaining_listings} remaining)
                   </span>
                 </h3>
-                <Button
+                <PrimaryButton
                   variant="primary"
                   size="sm"
                   onClick={handleAddListingClick}
-                  iconLeft={<HandPlus size={14} />}
                   style={subscription.remaining_listings <= 0 ? styles.addButtonDisabled : {}}
                 >
+                  <SketchIcon d={ICONS.plus} size={14} color={COLORS.championBlue} strokeWidth={2.5} />
                   {subscription.remaining_listings <= 0 ? 'Upgrade' : t('add') || 'Add'}
-                </Button>
+                </PrimaryButton>
               </div>
 
               {listings.length > 0 ? (
@@ -1577,15 +853,11 @@ const Dashboard = () => {
                       key={listing.id}
                       style={styles.listingRow}
                       className="card-hover"
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = '#f8fafc')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'transparent')
-                      }
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray50}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                       onClick={() => navigate(`/listing/${listing.id}`)}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '150px' }}>
+                      <div style={styles.listingInfo}>
                         {listing.images && listing.images.length > 0 ? (
                           <img
                             src={listing.images[0]}
@@ -1595,43 +867,40 @@ const Dashboard = () => {
                           />
                         ) : (
                           <div style={styles.placeholderThumbnail}>
-                            <HandPackage size={20} color="#64748b" />
+                            <SketchIcon d={ICONS.box} size={20} color={COLORS.gray400} strokeWidth={2} />
                           </div>
                         )}
 
                         <div>
-                          <div style={{ fontWeight: '600', color: '#1e293b', fontSize: 'clamp(13px, 1.2vw, 14px)' }}>
-                            {listing.title}
-                          </div>
-                          <div style={{ fontSize: 'clamp(11px, 1vw, 12px)', color: '#64748b', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                            <HandTag size={12} /> {listing.category || 'General'} &bull;{' '}
-                            <span style={{ fontWeight: '700', color: '#059669' }}>
+                          <div style={styles.listingTitle}>{listing.title}</div>
+                          <div style={styles.listingMetaInfo}>
+                            <SketchIcon d={ICONS.tag} size={12} color={COLORS.gray400} strokeWidth={2} />
+                            {listing.category || 'General'} &bull;{' '}
+                            <span style={styles.listingPrice}>
                               {formatPrice(listing.price)}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(8px, 1vw, 12px)', flexWrap: 'wrap' }}>
-                        <div style={styles.listingMeta}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <HandEye size={12} /> {listing.view_count || 0}
-                          </span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <HandPhone size={12} /> {listing.contact_count || 0}
-                          </span>
+                      <div style={styles.listingStats}>
+                        <div style={styles.listingStatItem}>
+                          <SketchIcon d={ICONS.eye} size={12} color={COLORS.gray400} strokeWidth={2} />
+                          {listing.view_count || 0}
+                        </div>
+                        <div style={styles.listingStatItem}>
+                          <SketchIcon d={ICONS.phone} size={12} color={COLORS.gray400} strokeWidth={2} />
+                          {listing.contact_count || 0}
                         </div>
 
                         <span
                           style={{
                             ...styles.badge,
-                            backgroundColor:
-                              listing.status === 'active' ? '#d1fae5' : '#fee2e2',
+                            backgroundColor: listing.status === 'active' ? '#d1fae5' : '#fee2e2',
                             color: listing.status === 'active' ? '#065f46' : '#991b1b',
-                            fontSize: 'clamp(9px, 0.8vw, 10px)',
                           }}
                         >
-                          <HandDot size={8} color={listing.status === 'active' ? '#16a34a' : '#dc2626'} />{' '}
+                          <SketchIcon d={ICONS.dot} size={8} color={listing.status === 'active' ? COLORS.success : COLORS.error} strokeWidth={2} />
                           {listing.status === 'active' ? (t('active') || 'Active') : (t('inactive') || 'Inactive')}
                         </span>
                       </div>
@@ -1640,33 +909,33 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div style={styles.emptyStateContainer}>
-                  <HandPackage size={40} color="#94a3b8" />
-                  <p style={{ fontWeight: '600', color: '#334155', fontSize: 'clamp(14px, 1.4vw, 15px)', marginTop: '8px' }}>
+                  <SketchIcon d={ICONS.box} size={40} color={COLORS.gray400} strokeWidth={1.5} />
+                  <p style={styles.emptyStateTitle}>
                     {t('no_products_yet') || 'No products or services listed yet'}
                   </p>
-                  <p style={{ color: '#64748b', fontSize: 'clamp(12px, 1.1vw, 13px)', marginTop: '2px' }}>
-                    {t('start_adding_items') || 'Start adding items to reach customers across Mitundu.'}
+                  <p style={styles.emptyStateText}>
+                    {t('start_adding_items') || 'Start adding items to reach customers across Malawi.'}
                   </p>
-                  <Button
+                  <PrimaryButton
                     variant="primary"
                     size="md"
                     onClick={handleAddListingClick}
                     style={{ marginTop: '12px' }}
-                    iconLeft={<HandPlus size={14} />}
                     disabled={subscription.remaining_listings <= 0}
                   >
                     {subscription.remaining_listings <= 0 ? 'Upgrade to Create First Listing' : t('create_first_listing') || 'Create First Listing'}
-                  </Button>
+                  </PrimaryButton>
                 </div>
               )}
             </div>
 
             {/* AI Toolkit */}
-            <div style={styles.card} className="card">
+            <div style={styles.card}>
               <h3 style={{ ...styles.cardTitle, marginBottom: '4px' }}>
-                <HandZap size={20} color="#f59e0b" /> {t('ai_toolkit') || 'AI Toolkit'}
+                <SketchIcon d={ICONS.robot} size={20} color={COLORS.warning} strokeWidth={2} />
+                {t('ai_toolkit') || 'AI Toolkit'}
               </h3>
-              <p style={{ color: '#64748b', fontSize: 'clamp(12px, 1.1vw, 13px)', marginBottom: '12px' }}>
+              <p style={styles.aiToolkitSub}>
                 {t('ai_toolkit_sub') || 'AI-powered tools to grow your business.'}
               </p>
 
@@ -1676,10 +945,10 @@ const Dashboard = () => {
                   className="card-hover"
                   onClick={() => navigate('/voice-listing')}
                   onMouseEnter={(e) => e.currentTarget.style.borderColor = '#ec4899'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = COLORS.gray200}
                 >
                   <div style={{ ...styles.tileIconWrapper, backgroundColor: '#fce7f3' }}>
-                    <HandMic size={22} color="#ec4899" />
+                    <SketchIcon d={ICONS.mic} size={22} color="#ec4899" strokeWidth={2} />
                   </div>
                   <div>
                     <div style={styles.actionTileTitle}>{t('voice_listing') || 'Voice Listing'}</div>
@@ -1692,10 +961,10 @@ const Dashboard = () => {
                   className="card-hover"
                   onClick={() => navigate('/ad-generator')}
                   onMouseEnter={(e) => e.currentTarget.style.borderColor = '#d97706'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = COLORS.gray200}
                 >
                   <div style={{ ...styles.tileIconWrapper, backgroundColor: '#fef3c7' }}>
-                    <HandPalette size={22} color="#d97706" />
+                    <SketchIcon d={ICONS.palette} size={22} color="#d97706" strokeWidth={2} />
                   </div>
                   <div>
                     <div style={styles.actionTileTitle}>{t('ad_generator') || 'Ad Generator'}</div>
@@ -1708,10 +977,10 @@ const Dashboard = () => {
                   className="card-hover"
                   onClick={() => navigate('/ai-search')}
                   onMouseEnter={(e) => e.currentTarget.style.borderColor = '#7c3aed'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = COLORS.gray200}
                 >
                   <div style={{ ...styles.tileIconWrapper, backgroundColor: '#f3e8ff' }}>
-                    <HandRobot size={22} color="#7c3aed" />
+                    <SketchIcon d={ICONS.robot} size={22} color="#7c3aed" strokeWidth={2} />
                   </div>
                   <div>
                     <div style={styles.actionTileTitle}>{t('ai_assistant') || 'AI Assistant'}</div>
@@ -1723,11 +992,11 @@ const Dashboard = () => {
                   style={styles.actionTile}
                   className="card-hover"
                   onClick={() => navigate('/create-listing')}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = COLORS.lavenderTonic}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = COLORS.gray200}
                 >
                   <div style={{ ...styles.tileIconWrapper, backgroundColor: '#dbeafe' }}>
-                    <HandPackage size={22} color="#2563eb" />
+                    <SketchIcon d={ICONS.box} size={22} color={COLORS.championBlue} strokeWidth={2} />
                   </div>
                   <div>
                     <div style={styles.actionTileTitle}>{t('manual_entry') || 'Manual Entry'}</div>
@@ -1739,22 +1008,22 @@ const Dashboard = () => {
           </>
         ) : (
           /* Registration Prompt */
-          <div style={styles.card} className="card">
+          <div style={styles.card}>
             <div style={styles.emptyStateContainer}>
-              <HandStore size={48} color="#2563eb" />
-              <p style={{ fontSize: 'clamp(16px, 1.8vw, 18px)', fontWeight: '700', color: '#1e293b', marginTop: '10px' }}>
+              <SketchIcon d={ICONS.store} size={48} color={COLORS.lavenderTonic} strokeWidth={1.5} />
+              <p style={styles.registerPromptTitle}>
                 {t('register_business') || 'Register Your Business'}
               </p>
-              <p style={{ color: '#64748b', maxWidth: '400px', margin: '6px auto 16px', fontSize: 'clamp(12px, 1.1vw, 13px)', lineHeight: '1.5' }}>
-                {t('register_business_desc') || 'Connect with buyers in Mitundu. Set up your profile and start listing products in minutes.'}
+              <p style={styles.registerPromptText}>
+                {t('register_business_desc') || 'Connect with buyers across Malawi. Set up your profile and start listing products in minutes.'}
               </p>
-              <Button
+              <PrimaryButton
                 variant="primary"
                 size="lg"
                 onClick={() => setShowCreateForm(true)}
               >
                 {t('register_now') || 'Register Now'}
-              </Button>
+              </PrimaryButton>
             </div>
           </div>
         )}
@@ -1764,25 +1033,27 @@ const Dashboard = () => {
       {showCreateForm && (
         <div style={styles.modalOverlay} onClick={() => setShowCreateForm(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ fontSize: 'clamp(16px, 1.8vw, 18px)', fontWeight: '700', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <HandStore size={20} color="#2563eb" /> {t('register_business') || 'Register Business'}
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>
+                <SketchIcon d={ICONS.store} size={20} color={COLORS.lavenderTonic} strokeWidth={2} />
+                {t('register_business') || 'Register Business'}
               </h3>
               <button
                 onClick={() => setShowCreateForm(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: '4px' }}
+                style={styles.modalClose}
                 aria-label="Close modal"
               >
-                <HandClose size={18} />
+                <SketchIcon d={ICONS.close} size={18} color={COLORS.gray400} strokeWidth={2} />
               </button>
             </div>
-            <p style={{ color: '#64748b', marginBottom: '16px', fontSize: 'clamp(12px, 1.1vw, 13px)', marginTop: '4px' }}>
+            <p style={styles.modalSubtitle}>
               {t('fill_shop_details') || 'Fill in your shop details to begin listing products on MsikaAI.'}
             </p>
 
             {errorMsg && (
               <div style={styles.errorBanner}>
-                <HandClose size={16} color="#dc2626" /> {errorMsg}
+                <SketchIcon d={ICONS.close} size={16} color={COLORS.error} strokeWidth={2} />
+                {errorMsg}
               </div>
             )}
 
@@ -1865,8 +1136,8 @@ const Dashboard = () => {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
-                <Button
+              <div style={styles.modalActions}>
+                <PrimaryButton
                   type="submit"
                   variant="primary"
                   size="md"
@@ -1874,25 +1145,22 @@ const Dashboard = () => {
                   loading={creating}
                 >
                   {creating ? (t('saving') || 'Saving...') : (t('complete_setup') || 'Complete Setup')}
-                </Button>
-                <Button
+                </PrimaryButton>
+                <PrimaryButton
                   type="button"
-                  variant="secondary"
+                  variant="outline"
                   size="md"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setErrorMsg('');
-                  }}
+                  onClick={() => { setShowCreateForm(false); setErrorMsg(''); }}
                 >
                   {t('cancel') || 'Cancel'}
-                </Button>
+                </PrimaryButton>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Payment Modal - NEW */}
+      {/* Payment Modal */}
       {showPaymentModal && plans && (
         <PaymentModal
           plans={plans}
@@ -1903,6 +1171,650 @@ const Dashboard = () => {
       )}
     </div>
   );
+};
+
+// ==========================================
+// STYLES
+// ==========================================
+
+const styles = {
+  container: {
+    minHeight: '100vh',
+    backgroundColor: COLORS.gray50,
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  },
+  nav: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    padding: 'clamp(10px, 1.5vw, 14px) clamp(12px, 2vw, 20px)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid ' + COLORS.gray100,
+    position: 'sticky',
+    top: 0,
+    zIndex: 100,
+    minHeight: 'clamp(60px, 8vh, 72px)',
+    flexWrap: 'wrap',
+    gap: '8px'
+  },
+  brandGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  brandIcon: {
+    width: 'clamp(32px, 4vw, 38px)',
+    height: 'clamp(32px, 4vw, 38px)',
+    background: 'linear-gradient(135deg, #C8BEFA 0%, #B8A8F0 50%, #A898E6 100%)',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 12px rgba(200, 190, 250, 0.3)',
+    flexShrink: 0
+  },
+  brandTitle: {
+    fontSize: 'clamp(16px, 2.2vw, 20px)',
+    fontWeight: '800',
+    color: COLORS.gray900,
+    margin: 0,
+    letterSpacing: '-0.5px',
+    lineHeight: '1.1'
+  },
+  brandSubtitle: {
+    fontSize: 'clamp(6px, 0.6vw, 8px)',
+    color: COLORS.gray400,
+    fontWeight: '600',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  },
+  desktopNav: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'clamp(4px, 0.8vw, 8px)',
+    flexWrap: 'wrap',
+  },
+  mobileMenuToggle: {
+    display: 'none',
+    flexDirection: 'column',
+    gap: '4px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '6px',
+    borderRadius: '6px',
+  },
+  hamburgerLine: {
+    display: 'block',
+    width: '22px',
+    height: '2px',
+    backgroundColor: COLORS.gray900,
+    borderRadius: '2px',
+    transition: 'all 0.3s',
+  },
+  subscriptionBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    backgroundColor: COLORS.gray100,
+    padding: '4px 12px',
+    borderRadius: '20px',
+    border: '1px solid ' + COLORS.gray200,
+    flexShrink: 0,
+  },
+  subscriptionDot: {
+    display: 'inline-block',
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  subscriptionPlan: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: COLORS.gray500,
+  },
+  subscriptionPlanActive: {
+    color: '#065f46',
+  },
+  subscriptionCount: {
+    fontSize: '9px',
+    color: COLORS.gray400,
+  },
+  userProfile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '4px 6px 4px 10px',
+    borderRadius: '20px',
+    backgroundColor: COLORS.gray50,
+    border: '1px solid ' + COLORS.gray200,
+    flexShrink: 0,
+  },
+  userAvatar: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    backgroundColor: '#dbeafe',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '12px',
+    fontWeight: '700',
+    color: COLORS.championBlue,
+  },
+  userName: {
+    fontSize: '12px',
+    fontWeight: '500',
+    color: COLORS.gray700,
+    maxWidth: '80px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  logoutBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '4px 10px',
+    backgroundColor: '#fee2e2',
+    color: COLORS.error,
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: '600',
+    transition: 'all 0.2s',
+    whiteSpace: 'nowrap',
+  },
+  mobileMenu: {
+    position: 'fixed',
+    top: 'clamp(60px, 8vh, 72px)',
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.white,
+    borderBottom: '1px solid ' + COLORS.gray200,
+    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+    padding: '16px 20px',
+    zIndex: 999,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    animation: 'slideDown 0.3s ease-out',
+  },
+  mobileMenuBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 12px',
+    backgroundColor: COLORS.gray100,
+    borderRadius: '10px',
+    border: '1px solid ' + COLORS.gray200,
+  },
+  mobileLogoutBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '10px 16px',
+    backgroundColor: '#fee2e2',
+    color: COLORS.error,
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600',
+    width: '100%',
+    transition: 'all 0.2s',
+  },
+  upgradeBanner: {
+    backgroundColor: '#fef3c7',
+    borderBottom: '1px solid ' + COLORS.warning,
+    padding: 'clamp(10px, 1.2vw, 12px) clamp(16px, 2vw, 24px)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  upgradeBannerText: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontWeight: '500',
+    color: '#92400e',
+    fontSize: 'clamp(13px, 1.1vw, 14px)',
+  },
+  upgradeBannerIcon: {
+    fontSize: 'clamp(18px, 1.8vw, 20px)',
+  },
+  addButtonDisabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+  },
+  content: {
+    maxWidth: '1140px',
+    margin: '0 auto',
+    padding: 'clamp(16px, 3vw, 24px) clamp(12px, 3vw, 16px)',
+  },
+  headerSection: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 'clamp(16px, 2vw, 20px)',
+    flexWrap: 'wrap',
+    gap: '12px',
+  },
+  welcomeTitle: {
+    fontSize: 'clamp(20px, 2.5vw, 24px)',
+    fontWeight: '800',
+    color: COLORS.gray900,
+    margin: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 20vw, 180px), 1fr))',
+    gap: 'clamp(8px, 1.2vw, 12px)',
+    marginBottom: 'clamp(16px, 2vw, 20px)',
+  },
+  statCard: {
+    backgroundColor: COLORS.white,
+    padding: 'clamp(10px, 1.2vw, 14px) clamp(12px, 1.5vw, 16px)',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'clamp(8px, 1vw, 12px)',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
+    border: '1px solid ' + COLORS.gray200,
+  },
+  statIconWrapper: {
+    width: 'clamp(34px, 3.5vw, 40px)',
+    height: 'clamp(34px, 3.5vw, 40px)',
+    borderRadius: '10px',
+    backgroundColor: COLORS.gray100,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  statNumber: {
+    fontSize: 'clamp(18px, 2.2vw, 20px)',
+    fontWeight: '800',
+    lineHeight: '1.2',
+  },
+  statLabel: {
+    fontSize: 'clamp(10px, 1vw, 12px)',
+    color: COLORS.gray500,
+    fontWeight: '500',
+    marginTop: '2px',
+  },
+  card: {
+    backgroundColor: COLORS.white,
+    borderRadius: '12px',
+    padding: 'clamp(14px, 1.8vw, 20px)',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
+    marginBottom: 'clamp(12px, 1.5vw, 16px)',
+    border: '1px solid ' + COLORS.gray200,
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    gap: '12px',
+  },
+  cardTitleRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 'clamp(10px, 1.2vw, 12px)',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  cardTitle: {
+    fontSize: 'clamp(14px, 1.6vw, 16px)',
+    fontWeight: '700',
+    color: COLORS.gray900,
+    margin: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  cardTitleSub: {
+    fontSize: '12px',
+    fontWeight: '400',
+    color: COLORS.gray500,
+    marginLeft: '8px',
+  },
+  badge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: 'clamp(3px, 0.4vw, 4px) clamp(8px, 0.8vw, 10px)',
+    borderRadius: '9999px',
+    fontSize: 'clamp(9px, 0.9vw, 11px)',
+    fontWeight: '600',
+    whiteSpace: 'nowrap',
+  },
+  businessAvatar: {
+    width: 'clamp(48px, 5vw, 60px)',
+    height: 'clamp(48px, 5vw, 60px)',
+    borderRadius: '50%',
+    backgroundColor: COLORS.gray100,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 'clamp(20px, 2.5vw, 24px)',
+    overflow: 'hidden',
+    border: '2px solid ' + COLORS.gray200,
+    flexShrink: 0,
+  },
+  businessName: {
+    fontSize: 'clamp(16px, 1.8vw, 18px)',
+    fontWeight: '700',
+    color: COLORS.gray900,
+    margin: 0,
+  },
+  businessCategory: {
+    fontSize: 'clamp(12px, 1.1vw, 13px)',
+    color: COLORS.gray500,
+    margin: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    flexWrap: 'wrap',
+  },
+  businessDescription: {
+    marginTop: '10px',
+    color: COLORS.gray600,
+    fontSize: 'clamp(12px, 1.1vw, 13px)',
+    lineHeight: '1.5',
+  },
+  businessMeta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 'clamp(8px, 1vw, 12px)',
+    marginTop: '6px',
+  },
+  businessMetaItem: {
+    fontSize: 'clamp(12px, 1.1vw, 13px)',
+    color: COLORS.gray500,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  businessBadges: {
+    marginTop: '6px',
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap',
+  },
+  businessActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    alignItems: 'flex-end',
+  },
+  exportButtons: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  exportBtn: {
+    padding: 'clamp(4px, 0.6vw, 6px) clamp(10px, 1.2vw, 14px)',
+    backgroundColor: COLORS.gray100,
+    color: COLORS.gray700,
+    border: '1px solid ' + COLORS.gray300,
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: 'clamp(11px, 1vw, 12px)',
+    fontWeight: '500',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    transition: 'background-color 0.2s',
+    touchAction: 'manipulation',
+  },
+  listingRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 'clamp(8px, 0.8vw, 10px) clamp(8px, 1vw, 12px)',
+    border: '1px solid ' + COLORS.gray200,
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease-in-out',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  listingInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flex: 1,
+    minWidth: '150px',
+  },
+  listingThumbnail: {
+    width: 'clamp(38px, 4vw, 44px)',
+    height: 'clamp(38px, 4vw, 44px)',
+    objectFit: 'cover',
+    borderRadius: '8px',
+    border: '1px solid ' + COLORS.gray300,
+    flexShrink: 0,
+  },
+  placeholderThumbnail: {
+    width: 'clamp(38px, 4vw, 44px)',
+    height: 'clamp(38px, 4vw, 44px)',
+    backgroundColor: COLORS.gray100,
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid ' + COLORS.gray200,
+    flexShrink: 0,
+  },
+  listingTitle: {
+    fontWeight: '600',
+    color: COLORS.gray800,
+    fontSize: 'clamp(13px, 1.2vw, 14px)',
+  },
+  listingMetaInfo: {
+    fontSize: 'clamp(11px, 1vw, 12px)',
+    color: COLORS.gray500,
+    marginTop: '2px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    flexWrap: 'wrap',
+  },
+  listingPrice: {
+    fontWeight: '700',
+    color: COLORS.success,
+  },
+  listingStats: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'clamp(8px, 1vw, 12px)',
+    flexWrap: 'wrap',
+  },
+  listingStatItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: 'clamp(10px, 0.9vw, 11px)',
+    color: COLORS.gray500,
+    fontWeight: '500',
+  },
+  emptyStateContainer: {
+    textAlign: 'center',
+    padding: 'clamp(20px, 3vw, 30px) clamp(12px, 2vw, 16px)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  emptyStateTitle: {
+    fontWeight: '600',
+    color: COLORS.gray700,
+    fontSize: 'clamp(14px, 1.4vw, 15px)',
+    marginTop: '8px',
+  },
+  emptyStateText: {
+    color: COLORS.gray500,
+    fontSize: 'clamp(12px, 1.1vw, 13px)',
+    marginTop: '2px',
+  },
+  registerPromptTitle: {
+    fontSize: 'clamp(16px, 1.8vw, 18px)',
+    fontWeight: '700',
+    color: COLORS.gray800,
+    marginTop: '10px',
+  },
+  registerPromptText: {
+    color: COLORS.gray500,
+    maxWidth: '400px',
+    margin: '6px auto 16px',
+    fontSize: 'clamp(12px, 1.1vw, 13px)',
+    lineHeight: '1.5',
+  },
+  quickActionsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(140px, 20vw, 180px), 1fr))',
+    gap: 'clamp(8px, 1vw, 12px)',
+  },
+  actionTile: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'clamp(8px, 1vw, 12px)',
+    padding: 'clamp(10px, 1.2vw, 14px)',
+    border: '1px solid ' + COLORS.gray200,
+    borderRadius: '10px',
+    backgroundColor: COLORS.gray50,
+    cursor: 'pointer',
+    transition: 'transform 0.15s, border-color 0.15s',
+    touchAction: 'manipulation',
+  },
+  tileIconWrapper: {
+    width: 'clamp(38px, 4vw, 44px)',
+    height: 'clamp(38px, 4vw, 44px)',
+    borderRadius: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  actionTileTitle: {
+    fontWeight: '700',
+    color: COLORS.gray900,
+    fontSize: 'clamp(12px, 1.2vw, 13px)',
+  },
+  actionTileSub: {
+    fontSize: 'clamp(10px, 0.9vw, 11px)',
+    color: COLORS.gray500,
+    marginTop: '2px',
+    lineHeight: '1.3',
+  },
+  aiToolkitSub: {
+    color: COLORS.gray500,
+    fontSize: 'clamp(12px, 1.1vw, 13px)',
+    marginBottom: '12px',
+  },
+  errorBanner: {
+    color: COLORS.error,
+    fontSize: 'clamp(13px, 1.2vw, 14px)',
+    marginBottom: 'clamp(12px, 1.5vw, 16px)',
+    padding: 'clamp(8px, 1vw, 10px) clamp(12px, 1.5vw, 14px)',
+    backgroundColor: '#fef2f2',
+    borderRadius: '8px',
+    border: '1px solid #fecaca',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  modalOverlay: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backdropFilter: 'blur(3px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '16px',
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: '16px',
+    maxWidth: 'clamp(340px, 50vw, 520px)',
+    width: '100%',
+    padding: 'clamp(16px, 2vw, 24px)',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 'clamp(16px, 1.8vw, 18px)',
+    fontWeight: '700',
+    color: COLORS.gray900,
+    margin: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  modalClose: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: COLORS.gray400,
+    padding: '4px',
+  },
+  modalSubtitle: {
+    color: COLORS.gray500,
+    marginBottom: '16px',
+    fontSize: 'clamp(12px, 1.1vw, 13px)',
+    marginTop: '4px',
+  },
+  modalActions: {
+    display: 'flex',
+    gap: '12px',
+    marginTop: '16px',
+    flexWrap: 'wrap',
+  },
+  fieldGroup: {
+    marginBottom: 'clamp(10px, 1.2vw, 14px)',
+  },
+  label: {
+    display: 'block',
+    fontSize: 'clamp(12px, 1.1vw, 13px)',
+    fontWeight: '600',
+    color: COLORS.gray700,
+    marginBottom: '4px',
+  },
+  input: {
+    width: '100%',
+    padding: 'clamp(6px, 0.8vw, 8px) clamp(10px, 1vw, 12px)',
+    border: '1px solid ' + COLORS.gray300,
+    borderRadius: '8px',
+    fontSize: 'clamp(13px, 1.2vw, 14px)',
+    color: COLORS.gray900,
+    marginTop: '2px',
+    boxSizing: 'border-box',
+    outline: 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    WebkitAppearance: 'none',
+    backgroundColor: COLORS.white,
+  },
 };
 
 export default Dashboard;

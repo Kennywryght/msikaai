@@ -475,10 +475,8 @@ export const matchingAPI = {
   },
 };
 
-// mobile/src/services/api.js - Add this at the end of the file, before the exports
-
 // ============================================
-// FILE UPLOAD HELPER - For FormData uploads
+// FILE UPLOAD HELPERS
 // ============================================
 export const uploadWithAuth = async (url, formData) => {
   const token = localStorage.getItem('access_token') || '';

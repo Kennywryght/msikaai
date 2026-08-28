@@ -3,9 +3,35 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { listingsAPI, reviewsAPI, analyticsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -39,7 +65,8 @@ const ICONS = {
   close: "M18 6L6 18M6 6l12 12",
   delivery: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8M9 16h6",
   copy: "M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M15 2H9a1 1 0 00-1 1v2a1 1 0 001 1h6a1 1 0 001-1V3a1 1 0 00-1-1z",
-  share: "M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"
+  share: "M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13",
+  image: "M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
 };
 
 const ListingDetails = () => {
@@ -69,14 +96,11 @@ const ListingDetails = () => {
     setLoading(true);
     setErrorMsg('');
     try {
-      console.log('📤 Fetching listing details for ID:', id);
       const response = await listingsAPI.getById(id);
-      console.log('✅ Listing fetched:', response.data);
       
       if (response.data && response.data.listing) {
         setListing(response.data.listing);
         
-        // Track view
         if (user?.id) {
           try {
             await analyticsAPI.trackView({ listingId: id });
@@ -85,7 +109,6 @@ const ListingDetails = () => {
               title: response.data.listing.title,
               category: response.data.listing.category
             });
-            console.log('📊 Analytics: View tracked');
           } catch (analyticsErr) {
             console.error('Analytics error:', analyticsErr);
           }
@@ -98,11 +121,10 @@ const ListingDetails = () => {
         const reviewsResponse = await reviewsAPI.getByListing(id);
         setReviews(reviewsResponse.data.reviews || []);
       } catch (err) {
-        console.log('No reviews yet');
         setReviews([]);
       }
     } catch (err) {
-      console.error('❌ Error fetching listing:', err);
+      console.error('Error fetching listing:', err);
       setErrorMsg(err.response?.data?.error || 'Failed to load listing');
     } finally {
       setLoading(false);
@@ -154,7 +176,6 @@ const ListingDetails = () => {
     return '⭐'.repeat(fullStars) + '☆'.repeat(emptyStars);
   };
 
-  // Contact Functions
   const openWhatsApp = () => {
     const phone = listing.contact_phone || 
                   listing.businesses?.phone || 
@@ -212,10 +233,9 @@ const ListingDetails = () => {
     window.open(`tel:${phone}`, '_blank');
   };
 
-  // Share Functions
   const shareOnWhatsApp = () => {
     const url = `${window.location.origin}/listing/${listing.id}`;
-    const message = `🛒 ${listing.title}\n🏪 ${listing.businesses?.business_name || 'Business'}\n💰 ${formatPrice(listing.price)}\n📍 ${listing.location_area || 'Mitundu'}\n\nView: ${url}`;
+    const message = `🛒 ${listing.title}\n🏪 ${listing.businesses?.business_name || 'Business'}\n💰 ${formatPrice(listing.price)}\n📍 ${listing.location_area || 'Malawi'}\n\nView: ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -239,7 +259,7 @@ const ListingDetails = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading listing details..." />;
+    return <LoadingSpinner fullScreen message="Loading listing details..." />;
   }
 
   if (errorMsg || !listing) {
@@ -250,10 +270,10 @@ const ListingDetails = () => {
         <p style={styles.errorText}>
           The listing you're looking for doesn't exist or has been removed.
         </p>
-        <Button onClick={() => navigate('/search')} variant="primary">
-          <SketchIcon d={ICONS.arrowRight} size={16} color="#ffffff" strokeWidth={2.5} />
+        <PrimaryButton onClick={() => navigate('/search')} variant="primary">
+          <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.championBlue} strokeWidth={2.5} />
           Back to Search
-        </Button>
+        </PrimaryButton>
       </div>
     );
   }
@@ -265,19 +285,19 @@ const ListingDetails = () => {
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
     },
     backButton: {
       padding: '10px 20px',
-      backgroundColor: '#e2e8f0',
+      backgroundColor: COLORS.gray200,
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
-      color: '#334155',
+      color: COLORS.gray700,
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
@@ -285,11 +305,11 @@ const ListingDetails = () => {
       transition: 'background-color 0.2s'
     },
     card: {
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       borderRadius: '16px',
       padding: 'clamp(16px, 2vw, 24px)',
       marginBottom: '16px',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
     },
     imageGrid: {
@@ -305,13 +325,13 @@ const ListingDetails = () => {
       height: 'clamp(120px, 18vw, 150px)',
       objectFit: 'cover',
       borderRadius: '12px',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       flexShrink: 0
     },
     title: {
       fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '800',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 8px 0',
       lineHeight: '1.2'
     },
@@ -329,7 +349,7 @@ const ListingDetails = () => {
       fontWeight: '600'
     },
     description: {
-      color: '#475569',
+      color: COLORS.gray600,
       lineHeight: '1.6',
       marginBottom: '12px',
       whiteSpace: 'pre-wrap',
@@ -341,19 +361,19 @@ const ListingDetails = () => {
       gap: '16px',
       marginTop: '12px',
       paddingTop: '12px',
-      borderTop: '1px solid #f1f5f9'
+      borderTop: '1px solid ' + COLORS.gray100
     },
     metaItem: {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#64748b'
+      color: COLORS.gray500
     },
     sectionTitle: {
       fontSize: 'clamp(16px, 1.6vw, 18px)',
       fontWeight: '700',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 8px 0',
       display: 'flex',
       alignItems: 'center',
@@ -378,14 +398,14 @@ const ListingDetails = () => {
       cursor: 'pointer',
       fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
-      color: '#ffffff',
+      color: COLORS.white,
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
       transition: 'transform 0.2s, opacity 0.2s'
     },
     shareSuccess: {
-      color: '#16a34a',
+      color: COLORS.success,
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       marginTop: '8px'
     },
@@ -400,7 +420,7 @@ const ListingDetails = () => {
       marginTop: '16px'
     },
     reviewItem: {
-      borderTop: '1px solid #e2e8f0',
+      borderTop: '1px solid ' + COLORS.gray200,
       paddingTop: '12px',
       marginTop: '12px'
     },
@@ -411,38 +431,38 @@ const ListingDetails = () => {
       gap: '8px'
     },
     reviewComment: {
-      color: '#475569',
+      color: COLORS.gray600,
       marginTop: '4px',
       fontSize: 'clamp(14px, 1.2vw, 15px)'
     },
     noReviews: {
-      color: '#64748b',
+      color: COLORS.gray500,
       marginTop: '12px',
       fontSize: 'clamp(14px, 1.2vw, 15px)'
     },
     input: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       transition: 'border-color 0.15s, box-shadow 0.15s'
     },
     textarea: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       resize: 'vertical',
       minHeight: 'clamp(60px, 8vw, 80px)',
@@ -451,13 +471,13 @@ const ListingDetails = () => {
     select: {
       width: '100%',
       padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff'
+      backgroundColor: COLORS.white
     },
     row: {
       display: 'flex',
@@ -474,7 +494,7 @@ const ListingDetails = () => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '16px',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       padding: '20px',
       textAlign: 'center'
     },
@@ -483,13 +503,13 @@ const ListingDetails = () => {
       marginBottom: '16px'
     },
     errorTitle: {
-      color: '#0f172a',
+      color: COLORS.gray900,
       fontSize: 'clamp(18px, 2vw, 20px)',
       fontWeight: '700',
       margin: 0
     },
     errorText: {
-      color: '#64748b',
+      color: COLORS.gray500,
       marginBottom: '16px',
       fontSize: 'clamp(14px, 1.2vw, 15px)'
     }
@@ -497,18 +517,16 @@ const ListingDetails = () => {
 
   return (
     <div style={styles.container}>
-      {/* Back Button */}
       <button 
         onClick={() => navigate(-1)} 
         style={styles.backButton}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#cbd5e1'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray300}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray200}
       >
-        <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
+        <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray600} strokeWidth={2.5} />
         <span>Back</span>
       </button>
 
-      {/* Listing Details */}
       <div style={styles.card}>
         {listing.images && listing.images.length > 0 ? (
           <div style={styles.imageGrid}>
@@ -519,9 +537,7 @@ const ListingDetails = () => {
                 alt={listing.title} 
                 style={styles.image} 
                 loading="lazy"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
+                onError={(e) => { e.target.style.display = 'none'; }}
               />
             ))}
           </div>
@@ -530,14 +546,14 @@ const ListingDetails = () => {
             ...styles.imageGrid,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: '#f1f5f9',
+            backgroundColor: COLORS.gray100,
             borderRadius: '12px',
             padding: '20px',
             marginBottom: '16px',
             minHeight: '120px'
           }}>
-            <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-              <SketchIcon d={ICONS.image} size={48} color="#94a3b8" strokeWidth={1.5} />
+            <div style={{ textAlign: 'center', color: COLORS.gray400 }}>
+              <SketchIcon d={ICONS.image} size={48} color={COLORS.gray400} strokeWidth={1.5} />
               <p style={{ marginTop: '8px', fontSize: '14px' }}>No image available</p>
             </div>
           </div>
@@ -546,11 +562,11 @@ const ListingDetails = () => {
         <h1 style={styles.title}>{listing.title}</h1>
 
         <div style={styles.badgeGroup}>
-          <span style={{ ...styles.badge, backgroundColor: '#dbeafe', color: '#1e40af' }}>
+          <span style={{ ...styles.badge, backgroundColor: '#EEECF5', color: COLORS.championBlue }}>
             {listing.category || 'General'}
           </span>
           {listing.sub_category && (
-            <span style={{ ...styles.badge, backgroundColor: '#e2e8f0', color: '#475569' }}>
+            <span style={{ ...styles.badge, backgroundColor: COLORS.gray200, color: COLORS.gray600 }}>
               {listing.sub_category}
             </span>
           )}
@@ -577,111 +593,108 @@ const ListingDetails = () => {
         <div style={styles.metaRow}>
           {listing.location_area && (
             <span style={styles.metaItem}>
-              <SketchIcon d={ICONS.mapPin} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.mapPin} size={14} color={COLORS.gray500} strokeWidth={2} />
               {listing.location_area}
             </span>
           )}
           {listing.quantity && (
             <span style={styles.metaItem}>
-              <SketchIcon d={ICONS.tag} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.tag} size={14} color={COLORS.gray500} strokeWidth={2} />
               {listing.quantity} {listing.unit || 'units'}
             </span>
           )}
           {listing.delivery_fee && (
             <span style={styles.metaItem}>
-              <SketchIcon d={ICONS.delivery} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.delivery} size={14} color={COLORS.gray500} strokeWidth={2} />
               Delivery: MWK {listing.delivery_fee}
             </span>
           )}
           <span style={styles.metaItem}>
-            <SketchIcon d={ICONS.clock} size={14} color="#64748b" strokeWidth={2} />
+            <SketchIcon d={ICONS.clock} size={14} color={COLORS.gray500} strokeWidth={2} />
             {new Date(listing.created_at).toLocaleDateString()}
           </span>
         </div>
       </div>
 
-      {/* Business Info with Contact */}
       {listing.businesses && (
         <div style={styles.card}>
           <h3 style={styles.sectionTitle}>
-            <SketchIcon d={ICONS.store} size={20} color="#2563eb" strokeWidth={2} />
+            <SketchIcon d={ICONS.store} size={20} color={COLORS.lavenderTonic} strokeWidth={2} />
             Contact {listing.businesses.business_name}
           </h3>
           
-          <p style={{ fontSize: 'clamp(15px, 1.3vw, 16px)', fontWeight: '600', color: '#0f172a' }}>
+          <p style={{ fontSize: 'clamp(15px, 1.3vw, 16px)', fontWeight: '600', color: COLORS.gray900 }}>
             {listing.businesses.business_name}
           </p>
           
           {sellerPhone && (
-            <p style={{ color: '#64748b', marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
-              <SketchIcon d={ICONS.phone} size={14} color="#64748b" strokeWidth={2} />
+            <p style={{ color: COLORS.gray500, marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
+              <SketchIcon d={ICONS.phone} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '6px' }}>{sellerPhone}</span>
             </p>
           )}
           
           {listing.businesses.address && (
-            <p style={{ color: '#64748b', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
-              <SketchIcon d={ICONS.mapPin} size={14} color="#64748b" strokeWidth={2} />
+            <p style={{ color: COLORS.gray500, fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
+              <SketchIcon d={ICONS.mapPin} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '6px' }}>{listing.businesses.address}</span>
             </p>
           )}
           
           {listing.businesses.rating > 0 && (
-            <p style={{ color: '#f59e0b', marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
+            <p style={{ color: COLORS.warning, marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
               {renderStars(listing.businesses.rating)} ({listing.businesses.rating.toFixed(1)})
             </p>
           )}
 
-          {/* Contact Buttons */}
           <div style={styles.contactRow}>
             {user ? (
               <>
                 {sellerPhone && (
                   <>
-                    <Button
+                    <PrimaryButton
                       variant="success"
                       size="md"
                       onClick={openPhoneDialer}
-                      iconLeft={<SketchIcon d={ICONS.phone} size={16} color="#ffffff" strokeWidth={2} />}
                     >
+                      <SketchIcon d={ICONS.phone} size={16} color={COLORS.white} strokeWidth={2} />
                       Call Now
-                    </Button>
-                    <Button
+                    </PrimaryButton>
+                    <PrimaryButton
                       variant="success"
                       size="md"
                       onClick={openWhatsApp}
                       style={{ backgroundColor: '#25D366' }}
-                      iconLeft={<SketchIcon d={ICONS.whatsapp} size={16} color="#ffffff" strokeWidth={2} />}
                     >
+                      <SketchIcon d={ICONS.whatsapp} size={16} color={COLORS.white} strokeWidth={2} />
                       WhatsApp
-                    </Button>
+                    </PrimaryButton>
                   </>
                 )}
                 {!sellerPhone && (
-                  <p style={{ color: '#64748b', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>
+                  <p style={{ color: COLORS.gray500, fontSize: 'clamp(13px, 1.1vw, 14px)' }}>
                     This seller hasn't provided a phone number yet.
                   </p>
                 )}
               </>
             ) : (
               <Link to="/login">
-                <Button variant="primary" size="md">
-                  <SketchIcon d={ICONS.user} size={16} color="#ffffff" strokeWidth={2} />
+                <PrimaryButton variant="primary" size="md">
+                  <SketchIcon d={ICONS.user} size={16} color={COLORS.championBlue} strokeWidth={2} />
                   Sign in to Contact
-                </Button>
+                </PrimaryButton>
               </Link>
             )}
           </div>
         </div>
       )}
 
-      {/* Share Section */}
       <div style={styles.card}>
         <h3 style={styles.sectionTitle}>
-          <SketchIcon d={ICONS.share} size={20} color="#2563eb" strokeWidth={2} />
+          <SketchIcon d={ICONS.share} size={20} color={COLORS.lavenderTonic} strokeWidth={2} />
           Share This Listing
         </h3>
-        <p style={{ color: '#64748b', fontSize: 'clamp(13px, 1.1vw, 14px)', marginBottom: '12px' }}>
+        <p style={{ color: COLORS.gray500, fontSize: 'clamp(13px, 1.1vw, 14px)', marginBottom: '12px' }}>
           Share this product with friends and family
         </p>
 
@@ -692,7 +705,7 @@ const ListingDetails = () => {
             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
-            <SketchIcon d={ICONS.whatsapp} size={16} color="#ffffff" strokeWidth={2} />
+            <SketchIcon d={ICONS.whatsapp} size={16} color={COLORS.white} strokeWidth={2} />
             WhatsApp
           </button>
           <button
@@ -701,7 +714,7 @@ const ListingDetails = () => {
             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
-            <SketchIcon d={ICONS.share} size={16} color="#ffffff" strokeWidth={2} />
+            <SketchIcon d={ICONS.share} size={16} color={COLORS.white} strokeWidth={2} />
             Facebook
           </button>
           <button
@@ -710,45 +723,44 @@ const ListingDetails = () => {
             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
-            <SketchIcon d={ICONS.share} size={16} color="#ffffff" strokeWidth={2} />
+            <SketchIcon d={ICONS.share} size={16} color={COLORS.white} strokeWidth={2} />
             Twitter
           </button>
           <button
             onClick={copyLink}
-            style={{ ...styles.shareBtn, backgroundColor: '#64748b' }}
+            style={{ ...styles.shareBtn, backgroundColor: COLORS.gray500 }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
-            <SketchIcon d={ICONS.copy} size={16} color="#ffffff" strokeWidth={2} />
+            <SketchIcon d={ICONS.copy} size={16} color={COLORS.white} strokeWidth={2} />
             Copy Link
           </button>
         </div>
         {shareSuccess && <p style={styles.shareSuccess}>{shareSuccess}</p>}
       </div>
 
-      {/* Reviews Section */}
       <div style={styles.card}>
         <div style={styles.reviewHeader}>
           <h3 style={styles.sectionTitle}>
-            <SketchIcon d={ICONS.star} size={20} color="#f59e0b" strokeWidth={2} />
+            <SketchIcon d={ICONS.star} size={20} color={COLORS.warning} strokeWidth={2} />
             Reviews ({reviews.length})
           </h3>
           {user && (
-            <Button
+            <PrimaryButton
               variant="primary"
               size="sm"
               onClick={() => setShowReviewForm(!showReviewForm)}
             >
-              <SketchIcon d={ICONS.pencil} size={14} color="#ffffff" strokeWidth={2} />
+              <SketchIcon d={ICONS.pencil} size={14} color={COLORS.championBlue} strokeWidth={2} />
               Write Review
-            </Button>
+            </PrimaryButton>
           )}
         </div>
 
         {showReviewForm && (
           <form onSubmit={handleReviewSubmit} style={styles.reviewForm}>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#334155', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Rating</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: COLORS.gray700, fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Rating</label>
               <select
                 value={reviewData.rating}
                 onChange={(e) => setReviewData({ ...reviewData, rating: parseInt(e.target.value) })}
@@ -761,7 +773,7 @@ const ListingDetails = () => {
               </select>
             </div>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#334155', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Comment</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: COLORS.gray700, fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Comment</label>
               <textarea
                 value={reviewData.comment}
                 onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
@@ -772,23 +784,12 @@ const ListingDetails = () => {
               />
             </div>
             <div style={styles.row}>
-              <Button
-                type="submit"
-                variant="success"
-                size="md"
-                disabled={submitting}
-                loading={submitting}
-              >
+              <PrimaryButton type="submit" variant="success" size="md" disabled={submitting} loading={submitting}>
                 Submit Review
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="md"
-                onClick={() => setShowReviewForm(false)}
-              >
+              </PrimaryButton>
+              <PrimaryButton type="button" variant="outline" size="md" onClick={() => setShowReviewForm(false)}>
                 Cancel
-              </Button>
+              </PrimaryButton>
             </div>
           </form>
         )}
@@ -800,7 +801,7 @@ const ListingDetails = () => {
                 <span style={{ fontWeight: '600', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
                   {renderStars(review.rating)} {review.rating}/5
                 </span>
-                <span style={{ color: '#94a3b8', fontSize: 'clamp(11px, 0.9vw, 12px)' }}>
+                <span style={{ color: COLORS.gray400, fontSize: 'clamp(11px, 0.9vw, 12px)' }}>
                   {new Date(review.created_at).toLocaleDateString()}
                 </span>
               </div>

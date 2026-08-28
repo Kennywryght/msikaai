@@ -1,3 +1,4 @@
+// mobile/src/components/LanguageToggle.jsx
 import React, { useState } from 'react';
 import { useTranslation } from '../context/TranslationContext';
 
@@ -6,87 +7,37 @@ const LanguageToggle = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   
   const languages = [
-    { code: 'en', name: 'English' },
-    { code: 'ny', name: 'Chichewa' }
+    { code: 'en', name: 'English', flag: '🇬🇧' },
+    { code: 'ny', name: 'Chichewa', flag: '🇲🇼' }
   ];
   
   const currentLanguage = languages.find(l => l.code === language) || languages[0];
 
-  const containerStyle = {
-    position: 'relative',
-    display: 'inline-block'
-  };
-
-  const buttonStyle = {
-    padding: '6px 12px',
-    backgroundColor: 'transparent',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    color: '#374151'
-  };
-
-  const dropdownStyle = {
-    position: 'absolute',
-    top: '100%',
-    right: 0,
-    marginTop: '4px',
-    backgroundColor: 'white',
-    borderRadius: '6px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-    border: '1px solid #e5e7eb',
-    zIndex: 1000,
-    minWidth: '140px'
-  };
-
-  const itemStyle = {
-    padding: '10px 16px',
-    cursor: 'pointer',
-    border: 'none',
-    background: 'none',
-    width: '100%',
-    textAlign: 'left',
-    fontSize: '14px',
-    color: '#374151',
-    borderBottom: '1px solid #f3f4f6'
-  };
-
-  const itemActiveStyle = {
-    ...itemStyle,
-    backgroundColor: '#dbeafe',
-    fontWeight: '600',
-    color: '#1e40af'
-  };
-
   return (
-    <div style={containerStyle}>
+    <div className="relative inline-block">
       <button 
         onClick={() => setShowDropdown(!showDropdown)}
-        style={buttonStyle}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-lavender-tonic hover:bg-gray-50 transition-all text-sm font-medium text-gray-600"
       >
-        🌐 {currentLanguage.name}
-        <span style={{ fontSize: '10px', color: '#6b7280' }}>
-          {showDropdown ? '▲' : '▼'}
-        </span>
+        <span>{currentLanguage.flag}</span>
+        <span>{currentLanguage.name}</span>
+        <svg 
+          className={`w-3 h-3 text-gray-400 transition-transform ${showDropdown ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
 
       {showDropdown && (
         <>
           <div 
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 999
-            }}
+            className="fixed inset-0 z-40"
             onClick={() => setShowDropdown(false)}
           />
-          <div style={dropdownStyle}>
+          <div className="absolute right-0 mt-2 z-50 bg-white rounded-xl shadow-xl border border-gray-100 min-w-[160px] py-1 animate-slide-down origin-top-right">
             {languages.map((lang) => (
               <button
                 key={lang.code}
@@ -94,19 +45,19 @@ const LanguageToggle = () => {
                   changeLanguage(lang.code);
                   setShowDropdown(false);
                 }}
-                style={language === lang.code ? itemActiveStyle : itemStyle}
-                onMouseEnter={(e) => {
-                  if (language !== lang.code) {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (language !== lang.code) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
-                }}
+                className={`
+                  w-full text-left px-4 py-2.5 text-sm transition-colors
+                  ${language === lang.code 
+                    ? 'bg-lavender-tonic/20 text-champion-blue font-semibold' 
+                    : 'text-gray-600 hover:bg-gray-50'}
+                  flex items-center gap-2
+                `}
               >
-                {lang.name} {language === lang.code && '✅'}
+                <span>{lang.flag}</span>
+                <span>{lang.name}</span>
+                {language === lang.code && (
+                  <span className="ml-auto text-lavender-tonic">✓</span>
+                )}
               </button>
             ))}
           </div>

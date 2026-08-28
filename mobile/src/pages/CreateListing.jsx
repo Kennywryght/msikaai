@@ -3,9 +3,35 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { businessAPI } from '../services/api';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -103,14 +129,12 @@ const CreateListing = () => {
 
   const titleInputRef = useRef(null);
 
-  // Auto-focus title input on mount
   useEffect(() => {
     if (titleInputRef.current) {
       setTimeout(() => titleInputRef.current.focus(), 100);
     }
   }, []);
 
-  // Fetch user's businesses
   useEffect(() => {
     fetchBusinesses();
   }, [user]);
@@ -187,10 +211,6 @@ const CreateListing = () => {
     try {
       const token = localStorage.getItem('access_token') || '';
       
-      console.log('📤 Token present:', token ? '✅ Yes' : '❌ No');
-      console.log('📤 Selected Business:', selectedBusiness);
-      console.log('📤 Image Files:', imageFiles.length);
-
       const formDataToSend = new FormData();
       formDataToSend.append('businessId', selectedBusiness);
       formDataToSend.append('title', formData.title);
@@ -255,24 +275,24 @@ const CreateListing = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Creating your listing..." />;
+    return <LoadingSpinner fullScreen message="Creating your listing..." />;
   }
 
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
     },
     card: {
       maxWidth: '600px',
       margin: '0 auto',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       borderRadius: '16px',
       padding: 'clamp(20px, 2.5vw, 32px)',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      border: '1px solid #e2e8f0'
+      border: '1px solid ' + COLORS.gray200
     },
     header: {
       marginBottom: '24px'
@@ -281,7 +301,7 @@ const CreateListing = () => {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '8px',
-      color: '#64748b',
+      color: COLORS.gray500,
       textDecoration: 'none',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
@@ -295,7 +315,7 @@ const CreateListing = () => {
     title: {
       fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '800',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: 0,
       display: 'flex',
       alignItems: 'center',
@@ -303,7 +323,7 @@ const CreateListing = () => {
     },
     subtitle: {
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#64748b',
+      color: COLORS.gray500,
       marginTop: '4px',
       marginBottom: 0
     },
@@ -315,19 +335,19 @@ const CreateListing = () => {
       alignItems: 'center',
       fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
-      color: '#334155',
+      color: COLORS.gray700,
       marginBottom: '6px'
     },
     input: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       transition: 'border-color 0.15s, box-shadow 0.15s',
       WebkitAppearance: 'none'
@@ -335,13 +355,13 @@ const CreateListing = () => {
     textarea: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       resize: 'vertical',
       minHeight: 'clamp(80px, 10vw, 100px)',
@@ -350,13 +370,13 @@ const CreateListing = () => {
     select: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       WebkitAppearance: 'none'
     },
@@ -383,13 +403,13 @@ const CreateListing = () => {
       height: 'clamp(60px, 8vw, 80px)',
       objectFit: 'cover',
       borderRadius: '8px',
-      border: '1px solid #e2e8f0'
+      border: '1px solid ' + COLORS.gray200
     },
     removeBtn: {
       position: 'absolute',
       top: '-6px',
       right: '-6px',
-      backgroundColor: '#dc2626',
+      backgroundColor: COLORS.error,
       color: 'white',
       border: 'none',
       borderRadius: '50%',
@@ -404,7 +424,7 @@ const CreateListing = () => {
     },
     fileInput: {
       padding: '8px',
-      border: '1px dashed #cbd5e1',
+      border: '1px dashed ' + COLORS.gray300,
       borderRadius: '8px',
       width: '100%',
       boxSizing: 'border-box',
@@ -415,11 +435,14 @@ const CreateListing = () => {
       width: 'clamp(16px, 1.5vw, 18px)',
       height: 'clamp(16px, 1.5vw, 18px)',
       cursor: 'pointer',
-      accentColor: '#2563eb'
+      accentColor: COLORS.championBlue
     },
     required: {
-      color: '#dc2626',
+      color: COLORS.error,
       marginLeft: '2px'
+    },
+    submitBtn: {
+      marginTop: '8px'
     }
   };
 
@@ -427,30 +450,25 @@ const CreateListing = () => {
     <div style={styles.container}>
       <style>{`
         .input-focus:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-        }
-        .select-focus:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+          border-color: ${COLORS.lavenderTonic};
+          box-shadow: 0 0 0 3px rgba(200, 190, 250, 0.2);
         }
       `}</style>
 
       <div style={styles.card}>
-        {/* Header */}
         <div style={styles.header}>
           <button 
             onClick={() => navigate('/dashboard')} 
             style={styles.backLink}
-            onMouseEnter={(e) => e.currentTarget.style.color = '#0f172a'}
-            onMouseLeave={(e) => e.currentTarget.style.color = '#64748b'}
+            onMouseEnter={(e) => e.currentTarget.style.color = COLORS.gray900}
+            onMouseLeave={(e) => e.currentTarget.style.color = COLORS.gray500}
           >
-            <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
+            <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray500} strokeWidth={2.5} />
             <span>Back to Dashboard</span>
           </button>
           
           <h1 style={styles.title}>
-            <SketchIcon d={ICONS.box} size={24} color="#2563eb" strokeWidth={2} />
+            <SketchIcon d={ICONS.box} size={24} color={COLORS.lavenderTonic} strokeWidth={2} />
             Create New Listing
           </h1>
           <p style={styles.subtitle}>Add a product or service to your storefront</p>
@@ -460,7 +478,7 @@ const CreateListing = () => {
           {businesses.length > 0 && (
             <div style={styles.formGroup}>
               <label style={styles.label}>
-                <SketchIcon d={ICONS.store} size={14} color="#64748b" strokeWidth={2} />
+                <SketchIcon d={ICONS.store} size={14} color={COLORS.gray500} strokeWidth={2} />
                 <span style={{ marginLeft: '4px' }}>Business</span>
                 <span style={styles.required}>*</span>
               </label>
@@ -468,7 +486,7 @@ const CreateListing = () => {
                 value={selectedBusiness}
                 onChange={(e) => setSelectedBusiness(e.target.value)}
                 style={styles.select}
-                className="select-focus"
+                className="input-focus"
                 required
               >
                 <option value="">Select a business</option>
@@ -483,7 +501,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.tag} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.tag} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '4px' }}>Listing Title</span>
               <span style={styles.required}>*</span>
             </label>
@@ -503,7 +521,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.box} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.box} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '4px' }}>Description</span>
             </label>
             <textarea
@@ -518,7 +536,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.tag} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.tag} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '4px' }}>Category</span>
               <span style={styles.required}>*</span>
             </label>
@@ -527,7 +545,7 @@ const CreateListing = () => {
               value={formData.category}
               onChange={handleChange}
               style={styles.select}
-              className="select-focus"
+              className="input-focus"
               required
             >
               <option value="">Select category</option>
@@ -545,7 +563,7 @@ const CreateListing = () => {
                 value={formData.subCategory}
                 onChange={handleChange}
                 style={styles.select}
-                className="select-focus"
+                className="input-focus"
               >
                 <option value="">Select sub category</option>
                 {subCategories[formData.category].map(sub => (
@@ -559,7 +577,7 @@ const CreateListing = () => {
             <div style={styles.half}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>
-                  <SketchIcon d={ICONS.dollar} size={14} color="#64748b" strokeWidth={2} />
+                  <SketchIcon d={ICONS.dollar} size={14} color={COLORS.gray500} strokeWidth={2} />
                   <span style={{ marginLeft: '4px' }}>Price (MWK)</span>
                 </label>
                 <input
@@ -582,7 +600,7 @@ const CreateListing = () => {
                   value={formData.priceType}
                   onChange={handleChange}
                   style={styles.select}
-                  className="select-focus"
+                  className="input-focus"
                 >
                   <option value="fixed">Fixed</option>
                   <option value="negotiable">Negotiable</option>
@@ -627,7 +645,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.mapPin} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.mapPin} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '4px' }}>Specific Location</span>
               <span style={styles.required}>*</span>
             </label>
@@ -636,7 +654,7 @@ const CreateListing = () => {
               value={formData.locationArea}
               onChange={handleChange}
               style={styles.select}
-              className="select-focus"
+              className="input-focus"
               required
             >
               <option value="">Select location in Mitundu</option>
@@ -648,11 +666,11 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.delivery} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.delivery} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '4px' }}>Delivery Options</span>
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '4px' }}>
-              <label style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: '#334155', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+              <label style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: COLORS.gray700, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   name="deliveryAvailable"
@@ -680,7 +698,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.phone} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.phone} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '4px' }}>Contact Phone</span>
               <span style={styles.required}>*</span>
             </label>
@@ -699,7 +717,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.image} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.image} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '4px' }}>Images</span>
             </label>
             <input
@@ -730,21 +748,22 @@ const CreateListing = () => {
             )}
           </div>
 
-          <Button
+          <PrimaryButton
             type="submit"
             variant="primary"
             size="lg"
             fullWidth
             loading={loading}
             disabled={loading || !selectedBusiness}
+            style={styles.submitBtn}
           >
             {loading ? 'Creating...' : (
               <>
-                <SketchIcon d={ICONS.check} size={18} color="#ffffff" strokeWidth={2.5} />
+                <SketchIcon d={ICONS.check} size={18} color={COLORS.championBlue} strokeWidth={2.5} />
                 Create Listing
               </>
             )}
-          </Button>
+          </PrimaryButton>
         </form>
       </div>
     </div>

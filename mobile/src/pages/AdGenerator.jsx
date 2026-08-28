@@ -5,9 +5,35 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { adAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -69,7 +95,6 @@ const AdGenerator = () => {
     'Other'
   ];
 
-  // Auto-focus title input on mount
   useEffect(() => {
     const titleInput = document.querySelector('input[name="title"]');
     if (titleInput) {
@@ -137,7 +162,6 @@ const AdGenerator = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    // Focus title input after reset
     setTimeout(() => {
       const titleInput = document.querySelector('input[name="title"]');
       if (titleInput) titleInput.focus();
@@ -149,33 +173,36 @@ const AdGenerator = () => {
     success('📋 Copied to clipboard!');
   };
 
-  // Styles
+  if (loading) {
+    return <LoadingSpinner fullScreen message="Generating your ad..." />;
+  }
+
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)',
       maxWidth: '800px',
       margin: '0 auto'
     },
     card: {
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       borderRadius: '16px',
       padding: 'clamp(16px, 2vw, 24px)',
       marginBottom: '20px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+      border: '1px solid ' + COLORS.gray200,
+      boxShadow: '0 4px 12px rgba(21, 17, 48, 0.03)'
     },
     backButton: {
       padding: '8px 16px',
-      backgroundColor: '#ffffff',
-      border: '1px solid #cbd5e1',
+      backgroundColor: COLORS.white,
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
-      color: '#334155',
+      color: COLORS.gray700,
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
@@ -185,7 +212,7 @@ const AdGenerator = () => {
     title: {
       fontSize: 'clamp(20px, 2.5vw, 22px)',
       fontWeight: '800',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 4px 0',
       display: 'flex',
       alignItems: 'center',
@@ -193,26 +220,26 @@ const AdGenerator = () => {
     },
     subtitle: {
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#64748b',
+      color: COLORS.gray500,
       margin: '0 0 20px 0'
     },
     label: {
       display: 'block',
       fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
-      color: '#334155',
+      color: COLORS.gray700,
       marginBottom: '6px'
     },
     input: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       transition: 'border-color 0.2s, box-shadow 0.2s',
       WebkitAppearance: 'none'
@@ -220,13 +247,13 @@ const AdGenerator = () => {
     textarea: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       resize: 'vertical',
       minHeight: 'clamp(60px, 8vw, 80px)',
@@ -235,13 +262,13 @@ const AdGenerator = () => {
     select: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       WebkitAppearance: 'none'
     },
@@ -255,12 +282,12 @@ const AdGenerator = () => {
       minWidth: 'clamp(140px, 40vw, 200px)'
     },
     uploadArea: {
-      border: '2px dashed #cbd5e1',
+      border: '2px dashed ' + COLORS.gray300,
       borderRadius: '12px',
       padding: 'clamp(16px, 2vw, 24px)',
       textAlign: 'center',
       cursor: 'pointer',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       transition: 'all 0.2s ease-in-out'
     },
     previewImage: {
@@ -268,10 +295,10 @@ const AdGenerator = () => {
       maxHeight: 'clamp(160px, 25vw, 220px)',
       objectFit: 'contain',
       borderRadius: '8px',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+      boxShadow: '0 2px 6px rgba(21, 17, 48, 0.1)'
     },
     error: {
-      color: '#dc2626',
+      color: COLORS.error,
       padding: '12px',
       backgroundColor: '#fef2f2',
       borderRadius: '8px',
@@ -280,26 +307,26 @@ const AdGenerator = () => {
       fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     adPreview: {
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       padding: 'clamp(14px, 1.5vw, 18px)',
       borderRadius: '12px',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       marginBottom: '16px'
     },
     adTitle: {
       fontSize: 'clamp(16px, 1.6vw, 18px)',
       fontWeight: '700',
-      color: '#1e40af',
+      color: COLORS.championBlue,
       margin: '0 0 6px 0'
     },
     adDesc: {
-      color: '#334155',
+      color: COLORS.gray700,
       margin: '0 0 10px 0',
       lineHeight: '1.5',
       fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     adCTA: {
-      color: '#2563eb',
+      color: COLORS.lavenderTonic,
       fontWeight: '600',
       margin: '0 0 8px 0',
       fontSize: 'clamp(13px, 1.1vw, 14px)'
@@ -307,8 +334,8 @@ const AdGenerator = () => {
     hashtag: {
       display: 'inline-block',
       padding: '3px 10px',
-      backgroundColor: '#dbeafe',
-      color: '#1e40af',
+      backgroundColor: '#EEECF5',
+      color: COLORS.championBlue,
       borderRadius: '6px',
       fontSize: 'clamp(11px, 0.9vw, 12px)',
       fontWeight: '500',
@@ -338,8 +365,8 @@ const AdGenerator = () => {
     },
     copyBtn: {
       padding: '4px 12px',
-      backgroundColor: '#2563eb',
-      color: 'white',
+      backgroundColor: COLORS.lavenderTonic,
+      color: COLORS.championBlue,
       border: 'none',
       borderRadius: '6px',
       cursor: 'pointer',
@@ -352,7 +379,7 @@ const AdGenerator = () => {
     },
     socialText: {
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#334155',
+      color: COLORS.gray700,
       margin: 0,
       whiteSpace: 'pre-wrap',
       lineHeight: '1.4',
@@ -361,9 +388,9 @@ const AdGenerator = () => {
     resetBtn: {
       width: '100%',
       padding: 'clamp(10px, 1.2vw, 12px)',
-      backgroundColor: '#f1f5f9',
-      color: '#334155',
-      border: '1px solid #cbd5e1',
+      backgroundColor: COLORS.gray100,
+      color: COLORS.gray700,
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(14px, 1.2vw, 15px)',
       fontWeight: '600',
@@ -375,63 +402,41 @@ const AdGenerator = () => {
       gap: '8px',
       touchAction: 'manipulation'
     },
-    loadingContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '10px'
-    },
-    spinner: {
-      width: '18px',
-      height: '18px',
-      border: '2px solid #ffffff',
-      borderTop: '2px solid transparent',
-      borderRadius: '50%',
-      animation: 'spin 0.8s linear infinite'
-    },
     shareSection: {
       marginTop: '20px',
       paddingTop: '16px',
-      borderTop: '1px solid #e2e8f0'
+      borderTop: '1px solid ' + COLORS.gray200
     },
     shareLabel: {
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '600',
-      color: '#0f172a',
+      color: COLORS.gray900,
       marginBottom: '10px'
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner message="Generating your ad..." />;
-  }
-
   return (
     <div style={styles.container}>
       <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
         .input-focus:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+          border-color: ${COLORS.lavenderTonic};
+          box-shadow: 0 0 0 3px rgba(200, 190, 250, 0.2);
         }
       `}</style>
 
       <button 
         onClick={() => navigate('/dashboard')} 
         style={styles.backButton}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.white}
       >
-        <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
+        <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray600} strokeWidth={2.5} />
         Back to Dashboard
       </button>
 
       <div style={styles.card}>
         <h2 style={styles.title}>
-          <SketchIcon d={ICONS.sparkles} size={24} color="#f59e0b" strokeWidth={2} />
+          <SketchIcon d={ICONS.sparkles} size={24} color={COLORS.warning} strokeWidth={2} />
           AI Ad Generator
         </h2>
         <p style={styles.subtitle}>Upload a product image and let AI create a professional ad</p>
@@ -439,15 +444,15 @@ const AdGenerator = () => {
         {/* Image Upload */}
         <div style={{ marginBottom: '16px' }}>
           <label style={styles.label}>
-            <SketchIcon d={ICONS.image} size={14} color="#64748b" strokeWidth={2} />
+            <SketchIcon d={ICONS.image} size={14} color={COLORS.gray500} strokeWidth={2} />
             <span style={{ marginLeft: '4px' }}>Product Image</span>
-            <span style={{ color: '#dc2626' }}> *</span>
+            <span style={{ color: COLORS.error }}> *</span>
           </label>
           <div
             style={styles.uploadArea}
             onClick={() => fileInputRef.current?.click()}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#2563eb'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = COLORS.lavenderTonic}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = COLORS.gray300}
           >
             <input
               ref={fileInputRef}
@@ -461,11 +466,11 @@ const AdGenerator = () => {
               <img src={imagePreview} alt="Preview" style={styles.previewImage} />
             ) : (
               <div>
-                <SketchIcon d={ICONS.image} size={48} color="#94a3b8" strokeWidth={1.5} />
-                <p style={{ color: '#64748b', marginTop: '8px', fontWeight: '500', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>
+                <SketchIcon d={ICONS.image} size={48} color={COLORS.gray400} strokeWidth={1.5} />
+                <p style={{ color: COLORS.gray500, marginTop: '8px', fontWeight: '500', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>
                   Click to upload product image
                 </p>
-                <p style={{ color: '#94a3b8', fontSize: 'clamp(11px, 0.9vw, 12px)' }}>
+                <p style={{ color: COLORS.gray400, fontSize: 'clamp(11px, 0.9vw, 12px)' }}>
                   PNG, JPG, GIF up to 10MB
                 </p>
               </div>
@@ -503,7 +508,7 @@ const AdGenerator = () => {
           <div style={styles.half}>
             <div style={{ marginBottom: '16px' }}>
               <label style={styles.label}>
-                <SketchIcon d={ICONS.tag} size={14} color="#64748b" strokeWidth={2} />
+                <SketchIcon d={ICONS.tag} size={14} color={COLORS.gray500} strokeWidth={2} />
                 <span style={{ marginLeft: '4px' }}>Category</span>
               </label>
               <select
@@ -522,7 +527,7 @@ const AdGenerator = () => {
           <div style={styles.half}>
             <div style={{ marginBottom: '16px' }}>
               <label style={styles.label}>
-                <SketchIcon d={ICONS.dollar} size={14} color="#64748b" strokeWidth={2} />
+                <SketchIcon d={ICONS.dollar} size={14} color={COLORS.gray500} strokeWidth={2} />
                 <span style={{ marginLeft: '4px' }}>Price (MWK)</span>
               </label>
               <input
@@ -551,7 +556,7 @@ const AdGenerator = () => {
           />
         </div>
 
-        <Button
+        <PrimaryButton
           onClick={handleGenerateAd}
           variant="primary"
           size="lg"
@@ -561,11 +566,11 @@ const AdGenerator = () => {
         >
           {loading ? 'Generating...' : (
             <>
-              <SketchIcon d={ICONS.sparkles} size={18} color="#ffffff" strokeWidth={2} />
+              <SketchIcon d={ICONS.sparkles} size={18} color={COLORS.championBlue} strokeWidth={2} />
               Generate Ad
             </>
           )}
-        </Button>
+        </PrimaryButton>
 
         {errorMsg && <div style={styles.error}>❌ {errorMsg}</div>}
       </div>
@@ -573,8 +578,8 @@ const AdGenerator = () => {
       {/* Results */}
       {result && (
         <div style={styles.card}>
-          <h3 style={{ fontSize: 'clamp(16px, 1.6vw, 18px)', fontWeight: '700', color: '#0f172a', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <SketchIcon d={ICONS.sparkles} size={20} color="#f59e0b" strokeWidth={2} />
+          <h3 style={{ fontSize: 'clamp(16px, 1.6vw, 18px)', fontWeight: '700', color: COLORS.gray900, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SketchIcon d={ICONS.sparkles} size={20} color={COLORS.warning} strokeWidth={2} />
             Your AI-Generated Ad
           </h3>
 
@@ -592,16 +597,16 @@ const AdGenerator = () => {
           </div>
 
           <div style={{ marginTop: '12px' }}>
-            <h4 style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', fontWeight: '600', color: '#0f172a', marginBottom: '8px' }}>
+            <h4 style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', fontWeight: '600', color: COLORS.gray900, marginBottom: '8px' }}>
               📱 Social Media Posts
             </h4>
             
             {result.socialPosts?.facebook && (
-              <div style={{ ...styles.socialCard, backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }}>
+              <div style={{ ...styles.socialCard, backgroundColor: '#EEECF5', borderColor: COLORS.lavenderTonic }}>
                 <div style={styles.socialHeader}>
-                  <span style={{ ...styles.socialLabel, color: '#1e40af' }}>📘 Facebook</span>
+                  <span style={{ ...styles.socialLabel, color: COLORS.championBlue }}>📘 Facebook</span>
                   <button onClick={() => copyToClipboard(result.socialPosts.facebook)} style={styles.copyBtn}>
-                    <SketchIcon d={ICONS.copy} size={12} color="#ffffff" strokeWidth={2} />
+                    <SketchIcon d={ICONS.copy} size={12} color={COLORS.championBlue} strokeWidth={2} />
                     Copy
                   </button>
                 </div>
@@ -614,7 +619,7 @@ const AdGenerator = () => {
                 <div style={styles.socialHeader}>
                   <span style={{ ...styles.socialLabel, color: '#065f46' }}>💬 WhatsApp</span>
                   <button onClick={() => copyToClipboard(result.socialPosts.whatsapp)} style={styles.copyBtn}>
-                    <SketchIcon d={ICONS.copy} size={12} color="#ffffff" strokeWidth={2} />
+                    <SketchIcon d={ICONS.copy} size={12} color={COLORS.championBlue} strokeWidth={2} />
                     Copy
                   </button>
                 </div>
@@ -623,7 +628,6 @@ const AdGenerator = () => {
             )}
           </div>
 
-          {/* Share Section */}
           <div style={styles.shareSection}>
             <p style={styles.shareLabel}>📤 Share This Ad</p>
             <SocialShare 
@@ -634,7 +638,7 @@ const AdGenerator = () => {
           </div>
 
           <button onClick={handleReset} style={styles.resetBtn}>
-            <SketchIcon d={ICONS.close} size={16} color="#334155" strokeWidth={2} />
+            <SketchIcon d={ICONS.close} size={16} color={COLORS.gray600} strokeWidth={2} />
             Start Over
           </button>
         </div>

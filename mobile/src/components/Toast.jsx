@@ -5,7 +5,7 @@ const Toast = ({
   message, 
   title,
   type = 'info', 
-  duration = 3000, 
+  duration = 4000, 
   onClose,
   position = 'bottom-right'
 }) => {
@@ -27,102 +27,51 @@ const Toast = ({
   const typeConfig = {
     success: { 
       icon: '✅', 
-      borderColor: '#22c55e',
+      borderColor: '#10B981',
       bgColor: '#f0fdf4',
-      titleColor: '#065f46'
+      titleColor: '#065f46',
+      border: 'border-green-500',
+      bg: 'bg-green-50',
+      text: 'text-green-700',
     },
     error: { 
       icon: '❌', 
-      borderColor: '#ef4444',
+      borderColor: '#EF4444',
       bgColor: '#fef2f2',
-      titleColor: '#991b1b'
+      titleColor: '#991b1b',
+      border: 'border-red-500',
+      bg: 'bg-red-50',
+      text: 'text-red-700',
     },
     warning: { 
       icon: '⚠️', 
-      borderColor: '#f59e0b',
+      borderColor: '#F59E0B',
       bgColor: '#fffbeb',
-      titleColor: '#92400e'
+      titleColor: '#92400e',
+      border: 'border-yellow-500',
+      bg: 'bg-yellow-50',
+      text: 'text-yellow-700',
     },
     info: { 
       icon: 'ℹ️', 
-      borderColor: '#3b82f6',
-      bgColor: '#eff6ff',
-      titleColor: '#1e40af'
+      borderColor: '#C8BEFA',
+      bgColor: '#EEECF5',
+      titleColor: '#151130',
+      border: 'border-lavender-tonic',
+      bg: 'bg-lavender-tonic/10',
+      text: 'text-champion-blue',
     },
   };
 
   const config = typeConfig[type] || typeConfig.info;
 
-  const styles = {
-    container: {
-      position: 'fixed',
-      zIndex: 9999,
-      padding: '16px',
-      ...(position === 'top-right' && { top: '16px', right: '16px' }),
-      ...(position === 'top-left' && { top: '16px', left: '16px' }),
-      ...(position === 'top-center' && { top: '16px', left: '50%', transform: 'translateX(-50%)' }),
-      ...(position === 'bottom-right' && { bottom: '16px', right: '16px' }),
-      ...(position === 'bottom-left' && { bottom: '16px', left: '16px' }),
-      ...(position === 'bottom-center' && { bottom: '16px', left: '50%', transform: 'translateX(-50%)' }),
-      animation: isLeaving 
-        ? 'toastOut 0.3s ease-out forwards'
-        : 'toastIn 0.3s ease-out',
-    },
-    toast: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '12px',
-      padding: '14px 20px',
-      borderRadius: '12px',
-      backgroundColor: '#ffffff',
-      boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-      border: '1px solid rgba(0,0,0,0.05)',
-      minWidth: '280px',
-      maxWidth: '460px',
-      position: 'relative',
-    },
-    border: {
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: '4px',
-      borderTopLeftRadius: '12px',
-      borderBottomLeftRadius: '12px',
-      backgroundColor: config.borderColor,
-    },
-    icon: {
-      fontSize: '20px',
-      flexShrink: 0,
-      marginTop: '2px',
-    },
-    content: {
-      flex: 1,
-      minWidth: 0,
-    },
-    titleText: {
-      fontWeight: '600',
-      color: config.titleColor,
-      fontSize: '14px',
-      marginBottom: '2px',
-    },
-    messageText: {
-      color: '#64748b',
-      fontSize: '13px',
-      lineHeight: '1.5',
-    },
-    close: {
-      background: 'none',
-      border: 'none',
-      color: '#94a3b8',
-      cursor: 'pointer',
-      fontSize: '18px',
-      padding: '4px',
-      lineHeight: 1,
-      transition: 'color 0.2s',
-      flexShrink: 0,
-      marginTop: '-2px',
-    },
+  const positionStyles = {
+    'top-right': 'top-4 right-4',
+    'top-left': 'top-4 left-4',
+    'top-center': 'top-4 left-1/2 -translate-x-1/2',
+    'bottom-right': 'bottom-4 right-4',
+    'bottom-left': 'bottom-4 left-4',
+    'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2',
   };
 
   if (!isVisible) return null;
@@ -130,16 +79,18 @@ const Toast = ({
   const defaultTitle = type.charAt(0).toUpperCase() + type.slice(1);
 
   return (
-    <div style={styles.container}>
-      <div style={styles.toast}>
-        <div style={styles.border}></div>
-        <span style={styles.icon}>{config.icon}</span>
-        <div style={styles.content}>
-          <div style={styles.titleText}>{title || defaultTitle}</div>
-          <div style={styles.messageText}>{message}</div>
+    <div className={`fixed z-[9999] ${positionStyles[position]} animate-slide-down`}>
+      <div className={`flex items-start gap-3 px-4 py-3 rounded-xl border-2 shadow-lg ${config.bg} ${config.border} max-w-md min-w-[280px]`}>
+        <span className="text-xl flex-shrink-0 mt-0.5">{config.icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className={`font-semibold text-sm ${config.text}`}>
+            {title || defaultTitle}
+          </div>
+          <div className="text-gray-600 text-sm leading-relaxed">
+            {message}
+          </div>
         </div>
         <button
-          style={styles.close}
           onClick={() => {
             setIsLeaving(true);
             setTimeout(() => {
@@ -147,32 +98,13 @@ const Toast = ({
               if (onClose) onClose();
             }, 300);
           }}
+          className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 -mt-0.5"
         >
-          ×
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
       </div>
-      <style>{`
-        @keyframes toastIn {
-          from { 
-            opacity: 0; 
-            transform: ${position.includes('bottom') ? 'translateY(20px)' : 'translateY(-20px)'};
-          }
-          to { 
-            opacity: 1; 
-            transform: ${position.includes('bottom') ? 'translateY(0)' : 'translateY(0)'};
-          }
-        }
-        @keyframes toastOut {
-          from { 
-            opacity: 1; 
-            transform: ${position.includes('bottom') ? 'translateY(0)' : 'translateY(0)'};
-          }
-          to { 
-            opacity: 0; 
-            transform: ${position.includes('bottom') ? 'translateY(20px)' : 'translateY(-20px)'};
-          }
-        }
-      `}</style>
     </div>
   );
 };

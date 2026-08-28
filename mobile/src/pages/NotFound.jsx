@@ -2,7 +2,23 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  lavenderTonic: '#C8BEFA',
+  gray50: '#F8F7FA',
+  gray200: '#DDD9EB',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray900: '#151130',
+  white: '#FFFFFF',
+};
 
 const NotFound = () => {
   const { user } = useAuth();
@@ -14,7 +30,7 @@ const NotFound = () => {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       padding: '20px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       textAlign: 'center'
@@ -26,7 +42,7 @@ const NotFound = () => {
     number: {
       fontSize: '120px',
       fontWeight: '900',
-      color: '#e2e8f0',
+      color: COLORS.gray200,
       lineHeight: 1,
       marginBottom: '8px',
       letterSpacing: '-0.05em',
@@ -38,11 +54,11 @@ const NotFound = () => {
     title: {
       fontSize: '28px',
       fontWeight: '700',
-      color: '#0f172a',
+      color: COLORS.gray900,
       marginBottom: '8px',
     },
     description: {
-      color: '#64748b',
+      color: COLORS.gray500,
       fontSize: '16px',
       marginBottom: '32px',
       lineHeight: '1.6',
@@ -52,14 +68,15 @@ const NotFound = () => {
       flexDirection: 'column',
       gap: '12px',
       alignItems: 'center',
+      width: '100%',
     },
     support: {
       marginTop: '24px',
-      color: '#94a3b8',
+      color: COLORS.gray400,
       fontSize: '14px',
     },
     link: {
-      color: '#2563eb',
+      color: COLORS.lavenderTonic,
       textDecoration: 'none',
       fontWeight: '500',
     }
@@ -84,20 +101,20 @@ const NotFound = () => {
         
         <div style={styles.actions}>
           <Link to={user ? '/dashboard' : '/'} style={{ width: '100%' }}>
-            <Button variant="primary" size="lg" fullWidth>
+            <PrimaryButton variant="primary" size="lg" fullWidth>
               {user ? 'Go to Dashboard' : 'Go Home'}
-            </Button>
+            </PrimaryButton>
           </Link>
           
           <Link to="/search" style={{ width: '100%' }}>
-            <Button variant="secondary" size="lg" fullWidth>
+            <PrimaryButton variant="outline" size="lg" fullWidth>
               Browse Listings
-            </Button>
+            </PrimaryButton>
           </Link>
         </div>
         
         <p style={styles.support}>
-          Need help? <a href="mailto:support@kumsika.com" style={styles.link}>Contact Support</a>
+          Need help? <a href="mailto:support@msikaai.com" style={styles.link}>Contact Support</a>
         </p>
       </div>
     </div>

@@ -6,9 +6,8 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // ✅ Explicitly disable PostCSS to avoid looking for tailwindcss
   css: {
-    postcss: false,
+    postcss: false, // This should disable PostCSS
   },
   resolve: {
     alias: {

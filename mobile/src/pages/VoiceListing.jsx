@@ -5,6 +5,34 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { voiceAPI, businessAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
+import PrimaryButton from '../components/PrimaryButton';
+import LoadingSpinner from '../components/LoadingSpinner';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -179,11 +207,14 @@ const VoiceListing = () => {
     }
   };
 
-  // Styles
+  if (processing && !transcript) {
+    return <LoadingSpinner fullScreen message="Processing your voice..." />;
+  }
+
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: '24px 16px',
       maxWidth: '800px',
@@ -191,13 +222,13 @@ const VoiceListing = () => {
     },
     backButton: {
       padding: '8px 16px',
-      backgroundColor: '#ffffff',
-      border: '1px solid #cbd5e1',
+      backgroundColor: COLORS.white,
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: '500',
-      color: '#334155',
+      color: COLORS.gray700,
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
@@ -205,17 +236,17 @@ const VoiceListing = () => {
       transition: 'all 0.2s'
     },
     card: {
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       borderRadius: '16px',
       padding: '24px',
       marginBottom: '16px',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
     },
     title: {
       fontSize: '22px',
       fontWeight: '800',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 4px 0',
       display: 'flex',
       alignItems: 'center',
@@ -223,26 +254,26 @@ const VoiceListing = () => {
     },
     subtitle: {
       fontSize: '14px',
-      color: '#64748b',
+      color: COLORS.gray500,
       margin: '0 0 20px 0'
     },
     label: {
       display: 'block',
       fontSize: '13px',
       fontWeight: '600',
-      color: '#334155',
+      color: COLORS.gray700,
       marginBottom: '4px'
     },
     select: {
       width: '100%',
       padding: '10px 14px',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: '14px',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       transition: 'border-color 0.2s'
     },
@@ -258,8 +289,8 @@ const VoiceListing = () => {
       cursor: 'pointer',
       width: '80px',
       height: '80px',
-      backgroundColor: '#2563eb',
-      color: 'white',
+      backgroundColor: COLORS.lavenderTonic,
+      color: COLORS.championBlue,
       transition: 'all 0.2s'
     },
     recordBtnRecording: {
@@ -270,8 +301,8 @@ const VoiceListing = () => {
       cursor: 'pointer',
       width: '80px',
       height: '80px',
-      backgroundColor: '#dc2626',
-      color: 'white',
+      backgroundColor: COLORS.error,
+      color: COLORS.white,
       animation: 'pulse 1s infinite'
     },
     recordBtnDisabled: {
@@ -282,55 +313,55 @@ const VoiceListing = () => {
       cursor: 'not-allowed',
       width: '80px',
       height: '80px',
-      backgroundColor: '#93c5fd',
-      color: 'white',
+      backgroundColor: COLORS.gray300,
+      color: COLORS.gray500,
       opacity: 0.5
     },
     recordLabel: {
       marginTop: '8px',
-      color: '#64748b',
+      color: COLORS.gray500,
       fontSize: '14px',
       fontWeight: '500'
     },
     transcriptBox: {
       padding: '12px',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       borderRadius: '8px',
       marginTop: '12px',
-      border: '1px solid #e2e8f0'
+      border: '1px solid ' + COLORS.gray200
     },
     transcriptLabel: {
       fontWeight: '600',
       marginBottom: '4px',
       fontSize: '13px',
-      color: '#334155'
+      color: COLORS.gray700
     },
     transcriptText: {
-      color: '#1e293b',
+      color: COLORS.gray800,
       margin: 0,
       fontSize: '14px',
       lineHeight: '1.6'
     },
     preview: {
       padding: '12px',
-      backgroundColor: '#dbeafe',
+      backgroundColor: '#EEECF5',
       borderRadius: '8px',
       marginTop: '12px',
-      border: '1px solid #bfdbfe'
+      border: '1px solid ' + COLORS.lavenderTonic
     },
     previewLabel: {
       fontWeight: '600',
       marginBottom: '4px',
       fontSize: '13px',
-      color: '#1e40af'
+      color: COLORS.championBlue
     },
     previewItem: {
       fontSize: '14px',
-      color: '#1e293b',
+      color: COLORS.gray800,
       margin: '2px 0'
     },
     error: {
-      color: '#dc2626',
+      color: COLORS.error,
       padding: '12px',
       backgroundColor: '#fef2f2',
       borderRadius: '8px',
@@ -338,7 +369,7 @@ const VoiceListing = () => {
       marginTop: '12px'
     },
     success: {
-      color: '#16a34a',
+      color: COLORS.success,
       padding: '12px',
       backgroundColor: '#ecfdf5',
       borderRadius: '8px',
@@ -366,8 +397,8 @@ const VoiceListing = () => {
     createBtn: {
       width: '100%',
       padding: '12px',
-      backgroundColor: '#16a34a',
-      color: 'white',
+      backgroundColor: COLORS.success,
+      color: COLORS.white,
       border: 'none',
       borderRadius: '8px',
       fontSize: '16px',
@@ -384,7 +415,7 @@ const VoiceListing = () => {
       width: '100%',
       padding: '12px',
       backgroundColor: '#86efac',
-      color: 'white',
+      color: COLORS.white,
       border: 'none',
       borderRadius: '8px',
       fontSize: '16px',
@@ -404,20 +435,20 @@ const VoiceListing = () => {
     },
     promptBtn: {
       padding: '10px 14px',
-      backgroundColor: '#f8fafc',
-      border: '1px solid #e2e8f0',
+      backgroundColor: COLORS.gray50,
+      border: '1px solid ' + COLORS.gray200,
       borderRadius: '8px',
       cursor: 'pointer',
       textAlign: 'left',
       fontSize: '14px',
-      color: '#334155',
+      color: COLORS.gray700,
       transition: 'background-color 0.2s',
       fontFamily: 'inherit'
     },
     promptSectionTitle: {
       fontSize: '16px',
       fontWeight: '600',
-      color: '#0f172a',
+      color: COLORS.gray900,
       marginBottom: '8px',
       display: 'flex',
       alignItems: 'center',
@@ -426,18 +457,18 @@ const VoiceListing = () => {
     shareSection: {
       marginTop: '16px',
       paddingTop: '16px',
-      borderTop: '1px solid #e2e8f0'
+      borderTop: '1px solid ' + COLORS.gray200
     },
     shareLabel: {
       fontSize: '14px',
       fontWeight: '600',
-      color: '#0f172a',
+      color: COLORS.gray900,
       marginBottom: '8px'
     },
     confidenceBar: {
       width: '100%',
       height: '4px',
-      backgroundColor: '#e2e8f0',
+      backgroundColor: COLORS.gray200,
       borderRadius: '2px',
       marginTop: '8px',
       overflow: 'hidden'
@@ -457,21 +488,25 @@ const VoiceListing = () => {
           50% { opacity: 0.7; transform: scale(1.05); }
           100% { opacity: 1; transform: scale(1); }
         }
+        .input-focus:focus {
+          border-color: ${COLORS.lavenderTonic};
+          box-shadow: 0 0 0 3px rgba(200, 190, 250, 0.2);
+        }
       `}</style>
       
       <button 
         onClick={() => navigate('/dashboard')} 
         style={styles.backButton}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.white}
       >
-        <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
+        <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray600} strokeWidth={2.5} />
         Back to Dashboard
       </button>
 
       <div style={styles.card}>
         <h2 style={styles.title}>
-          <SketchIcon d={ICONS.mic} size={24} color="#ec4899" strokeWidth={2} />
+          <SketchIcon d={ICONS.mic} size={24} color={COLORS.lavenderTonic} strokeWidth={2} />
           Voice Listing
         </h2>
         <p style={styles.subtitle}>Speak to create a listing in Chichewa or English</p>
@@ -486,6 +521,7 @@ const VoiceListing = () => {
               fetchSamplePrompts();
             }}
             style={styles.select}
+            className="input-focus"
           >
             <option value="ny">Chichewa</option>
             <option value="en">English</option>
@@ -496,14 +532,15 @@ const VoiceListing = () => {
         {businesses.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.store} size={14} color="#64748b" strokeWidth={2} />
+              <SketchIcon d={ICONS.store} size={14} color={COLORS.gray500} strokeWidth={2} />
               <span style={{ marginLeft: '4px' }}>Business</span>
-              <span style={{ color: '#dc2626' }}> *</span>
+              <span style={{ color: COLORS.error }}> *</span>
             </label>
             <select
               value={selectedBusiness}
               onChange={(e) => setSelectedBusiness(e.target.value)}
               style={styles.select}
+              className="input-focus"
             >
               {businesses.map(biz => (
                 <option key={biz.id} value={biz.id}>
@@ -561,14 +598,14 @@ const VoiceListing = () => {
             {/* Confidence Bar */}
             {validation && validation.confidence && (
               <div style={{ marginTop: '8px' }}>
-                <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '2px' }}>
+                <p style={{ fontSize: '12px', color: COLORS.gray500, marginBottom: '2px' }}>
                   Confidence: {Math.round(validation.confidence * 100)}%
                 </p>
                 <div style={styles.confidenceBar}>
                   <div style={{
                     ...styles.confidenceFill,
                     width: `${validation.confidence * 100}%`,
-                    backgroundColor: validation.confidence > 0.7 ? '#22c55e' : validation.confidence > 0.4 ? '#f59e0b' : '#ef4444'
+                    backgroundColor: validation.confidence > 0.7 ? COLORS.success : validation.confidence > 0.4 ? COLORS.warning : COLORS.error
                   }} />
                 </div>
               </div>
@@ -600,10 +637,10 @@ const VoiceListing = () => {
               if (!processing && selectedBusiness) e.currentTarget.style.backgroundColor = '#15803d';
             }}
             onMouseLeave={(e) => {
-              if (!processing && selectedBusiness) e.currentTarget.style.backgroundColor = '#16a34a';
+              if (!processing && selectedBusiness) e.currentTarget.style.backgroundColor = COLORS.success;
             }}
           >
-            <SketchIcon d={ICONS.check} size={18} color="#ffffff" strokeWidth={2} />
+            <SketchIcon d={ICONS.check} size={18} color={COLORS.white} strokeWidth={2} />
             {processing ? 'Processing...' : 'Create Listing'}
           </button>
         )}
@@ -624,7 +661,7 @@ const VoiceListing = () => {
       {/* Sample Prompts */}
       <div style={styles.card}>
         <h3 style={styles.promptSectionTitle}>
-          <SketchIcon d={ICONS.sparkles} size={16} color="#f59e0b" strokeWidth={2} />
+          <SketchIcon d={ICONS.sparkles} size={16} color={COLORS.warning} strokeWidth={2} />
           Sample {language === 'ny' ? 'Chichewa' : 'English'} Prompts
         </h3>
         <div style={styles.prompts}>
@@ -633,10 +670,8 @@ const VoiceListing = () => {
               key={index}
               onClick={() => {
                 setTranscript(prompt);
-                // Simulate processing
                 setProcessing(true);
                 setTimeout(() => {
-                  // Extract listing data from prompt
                   const extracted = {
                     title: prompt.split(' ').slice(0, 4).join(' ') + '...',
                     category: 'Other',
@@ -657,8 +692,8 @@ const VoiceListing = () => {
                 }, 500);
               }}
               style={styles.promptBtn}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray50}
             >
               {prompt}
             </button>

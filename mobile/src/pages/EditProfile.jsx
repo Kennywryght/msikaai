@@ -4,9 +4,35 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { profileAPI, businessAPI } from '../services/api';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 // --- HAND-DRAWN STYLE INLINE SVG ICONS ---
 const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
@@ -36,7 +62,6 @@ const ICONS = {
   check: "M20 6L9 17l-5-5",
   close: "M18 6L6 18M6 6l12 12",
   save: "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8",
-  building: "M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"
 };
 
 const EditProfile = () => {
@@ -88,7 +113,6 @@ const EditProfile = () => {
     'Other Services'
   ];
 
-  // Auto-focus first input on mount
   useEffect(() => {
     if (user?.id) {
       fetchData();
@@ -97,7 +121,6 @@ const EditProfile = () => {
     }
   }, [user]);
 
-  // Auto-focus first input after loading
   useEffect(() => {
     if (!loading) {
       const firstNameInput = document.querySelector('input[name="full_name"]');
@@ -112,7 +135,6 @@ const EditProfile = () => {
     setErrorMsg('');
 
     try {
-      // Fetch profile
       const profileRes = await profileAPI.getByUser(user.id);
       if (profileRes.data.success && profileRes.data.profile) {
         const p = profileRes.data.profile;
@@ -125,7 +147,6 @@ const EditProfile = () => {
         if (p.avatar_url) setAvatarPreview(p.avatar_url);
       }
 
-      // Fetch business
       const businessRes = await businessAPI.getByUser(user.id);
       if (businessRes.data.success && businessRes.data.business) {
         const b = businessRes.data.business;
@@ -189,7 +210,6 @@ const EditProfile = () => {
     setSuccessMsg('');
 
     try {
-      // Update profile
       const profileData = {
         userId: user.id,
         fullName: profile.full_name,
@@ -202,7 +222,6 @@ const EditProfile = () => {
         throw new Error(profileResponse.data.error || 'Failed to update profile');
       }
 
-      // Update business
       const businessData = {
         userId: user.id,
         businessName: business.business_name,
@@ -220,7 +239,6 @@ const EditProfile = () => {
       setSuccessMsg('✅ Profile updated successfully!');
       success('Profile updated successfully! 🎉');
       
-      // Refresh data after 2 seconds
       setTimeout(() => {
         fetchData();
       }, 2000);
@@ -236,34 +254,34 @@ const EditProfile = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading your profile..." />;
+    return <LoadingSpinner fullScreen message="Loading your profile..." />;
   }
 
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f1f5f9',
+      backgroundColor: COLORS.gray50,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
     },
     card: {
       maxWidth: '700px',
       margin: '0 auto',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       borderRadius: '16px',
       padding: 'clamp(20px, 2.5vw, 32px)',
       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-      border: '1px solid #e2e8f0'
+      border: '1px solid ' + COLORS.gray200
     },
     backButton: {
       padding: '8px 16px',
-      backgroundColor: '#f1f5f9',
+      backgroundColor: COLORS.gray100,
       border: 'none',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
-      color: '#334155',
+      color: COLORS.gray700,
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
@@ -273,7 +291,7 @@ const EditProfile = () => {
     title: {
       fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '800',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 4px 0',
       display: 'flex',
       alignItems: 'center',
@@ -281,18 +299,18 @@ const EditProfile = () => {
     },
     subtitle: {
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#64748b',
+      color: COLORS.gray500,
       margin: '0 0 24px 0'
     },
     section: {
       marginBottom: '24px',
       paddingBottom: '24px',
-      borderBottom: '1px solid #e2e8f0'
+      borderBottom: '1px solid ' + COLORS.gray200
     },
     sectionTitle: {
       fontSize: 'clamp(14px, 1.3vw, 16px)',
       fontWeight: '700',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 4px 0',
       display: 'flex',
       alignItems: 'center',
@@ -300,7 +318,7 @@ const EditProfile = () => {
     },
     sectionSubtitle: {
       fontSize: 'clamp(12px, 1vw, 13px)',
-      color: '#64748b',
+      color: COLORS.gray500,
       margin: '0 0 16px 0'
     },
     formGroup: {
@@ -310,19 +328,19 @@ const EditProfile = () => {
       display: 'block',
       fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
-      color: '#334155',
+      color: COLORS.gray700,
       marginBottom: '4px'
     },
     input: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       transition: 'border-color 0.15s, box-shadow 0.15s',
       WebkitAppearance: 'none'
@@ -330,13 +348,13 @@ const EditProfile = () => {
     textarea: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       resize: 'vertical',
       minHeight: 'clamp(60px, 8vw, 80px)',
@@ -345,13 +363,13 @@ const EditProfile = () => {
     select: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #cbd5e1',
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#0f172a',
+      color: COLORS.gray900,
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       fontFamily: 'inherit',
       WebkitAppearance: 'none'
     },
@@ -379,26 +397,26 @@ const EditProfile = () => {
       height: 'clamp(64px, 8vw, 80px)',
       borderRadius: '50%',
       objectFit: 'cover',
-      backgroundColor: '#e2e8f0',
-      border: '2px solid #e2e8f0'
+      backgroundColor: COLORS.gray200,
+      border: '2px solid ' + COLORS.gray200
     },
     avatarPlaceholder: {
       width: 'clamp(64px, 8vw, 80px)',
       height: 'clamp(64px, 8vw, 80px)',
       borderRadius: '50%',
-      backgroundColor: '#dbeafe',
+      backgroundColor: '#EEECF5',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: 'clamp(28px, 3.5vw, 32px)',
-      color: '#2563eb',
-      border: '2px solid #e2e8f0'
+      color: COLORS.lavenderTonic,
+      border: '2px solid ' + COLORS.gray200
     },
     uploadBtn: {
       padding: '6px 14px',
-      backgroundColor: '#f1f5f9',
-      color: '#334155',
-      border: '1px solid #cbd5e1',
+      backgroundColor: COLORS.gray100,
+      color: COLORS.gray700,
+      border: '1px solid ' + COLORS.gray300,
       borderRadius: '6px',
       cursor: 'pointer',
       fontSize: 'clamp(11px, 0.9vw, 12px)',
@@ -409,7 +427,7 @@ const EditProfile = () => {
       transition: 'background-color 0.2s'
     },
     error: {
-      color: '#dc2626',
+      color: COLORS.error,
       padding: '12px',
       backgroundColor: '#fef2f2',
       borderRadius: '8px',
@@ -421,7 +439,7 @@ const EditProfile = () => {
       fontSize: 'clamp(13px, 1.1vw, 14px)'
     },
     success: {
-      color: '#16a34a',
+      color: COLORS.success,
       padding: '12px',
       backgroundColor: '#ecfdf5',
       borderRadius: '8px',
@@ -434,7 +452,7 @@ const EditProfile = () => {
     },
     hint: {
       fontSize: 'clamp(10px, 0.8vw, 11px)',
-      color: '#94a3b8',
+      color: COLORS.gray400,
       marginTop: '4px'
     }
   };
@@ -443,54 +461,50 @@ const EditProfile = () => {
     <div style={styles.container}>
       <style>{`
         .input-focus:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+          border-color: ${COLORS.lavenderTonic};
+          box-shadow: 0 0 0 3px rgba(200, 190, 250, 0.2);
         }
       `}</style>
 
       <div style={styles.card}>
-        {/* Back Button */}
         <button 
           onClick={() => navigate('/dashboard')} 
           style={styles.backButton}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray200}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
         >
-          <SketchIcon d={ICONS.arrowRight} size={16} color="#64748b" strokeWidth={2.5} />
+          <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray600} strokeWidth={2.5} />
           Back to Dashboard
         </button>
 
         <h1 style={styles.title}>
-          <SketchIcon d={ICONS.user} size={24} color="#2563eb" strokeWidth={2} />
+          <SketchIcon d={ICONS.user} size={24} color={COLORS.lavenderTonic} strokeWidth={2} />
           Edit Profile
         </h1>
         <p style={styles.subtitle}>Update your business and personal information</p>
 
         {errorMsg && (
           <div style={styles.error}>
-            <SketchIcon d={ICONS.close} size={16} color="#dc2626" strokeWidth={2} />
+            <SketchIcon d={ICONS.close} size={16} color={COLORS.error} strokeWidth={2} />
             {errorMsg}
           </div>
         )}
         {successMsg && (
           <div style={styles.success}>
-            <SketchIcon d={ICONS.check} size={16} color="#16a34a" strokeWidth={2.5} />
+            <SketchIcon d={ICONS.check} size={16} color={COLORS.success} strokeWidth={2.5} />
             {successMsg}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* ========================================== */}
-          {/* PERSONAL INFORMATION */}
-          {/* ========================================== */}
+          {/* Personal Information */}
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>
-              <SketchIcon d={ICONS.user} size={18} color="#2563eb" strokeWidth={2} />
+              <SketchIcon d={ICONS.user} size={18} color={COLORS.lavenderTonic} strokeWidth={2} />
               Personal Information
             </h3>
             <p style={styles.sectionSubtitle}>Update your personal details</p>
 
-            {/* Avatar Upload */}
             <div style={styles.avatarSection}>
               <div style={styles.avatarWrapper}>
                 {avatarPreview ? (
@@ -513,10 +527,10 @@ const EditProfile = () => {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   style={styles.uploadBtn}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray200}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
                 >
-                  <SketchIcon d={ICONS.camera} size={14} color="#64748b" strokeWidth={2} />
+                  <SketchIcon d={ICONS.camera} size={14} color={COLORS.gray500} strokeWidth={2} />
                   Upload Photo
                 </button>
                 <p style={styles.hint}>JPG, PNG or GIF. Max 2MB.</p>
@@ -566,17 +580,14 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* ========================================== */}
-          {/* BUSINESS INFORMATION */}
-          {/* ========================================== */}
+          {/* Business Information */}
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>
-              <SketchIcon d={ICONS.store} size={18} color="#2563eb" strokeWidth={2} />
+              <SketchIcon d={ICONS.store} size={18} color={COLORS.lavenderTonic} strokeWidth={2} />
               Business Information
             </h3>
             <p style={styles.sectionSubtitle}>Update your business details</p>
 
-            {/* Logo Upload */}
             <div style={styles.avatarSection}>
               <div style={styles.avatarWrapper}>
                 {logoPreview ? (
@@ -599,10 +610,10 @@ const EditProfile = () => {
                   type="button"
                   onClick={() => logoInputRef.current?.click()}
                   style={styles.uploadBtn}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray200}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
                 >
-                  <SketchIcon d={ICONS.camera} size={14} color="#64748b" strokeWidth={2} />
+                  <SketchIcon d={ICONS.camera} size={14} color={COLORS.gray500} strokeWidth={2} />
                   Upload Logo
                 </button>
                 <p style={styles.hint}>JPG, PNG or GIF. Max 2MB.</p>
@@ -685,8 +696,7 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
-          <Button
+          <PrimaryButton
             type="submit"
             variant="primary"
             size="lg"
@@ -696,11 +706,11 @@ const EditProfile = () => {
           >
             {saving ? 'Saving...' : (
               <>
-                <SketchIcon d={ICONS.save} size={18} color="#ffffff" strokeWidth={2} />
+                <SketchIcon d={ICONS.save} size={18} color={COLORS.championBlue} strokeWidth={2} />
                 Save Changes
               </>
             )}
-          </Button>
+          </PrimaryButton>
         </form>
       </div>
     </div>

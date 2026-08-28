@@ -2,9 +2,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  lavenderTonic: '#C8BEFA',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+};
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -30,7 +50,6 @@ const Onboarding = () => {
     'UI/UX Design'
   ];
 
-  // Auto-focus first input on mount
   useEffect(() => {
     const firstNameInput = document.querySelector('input[name="fullName"]');
     if (firstNameInput) {
@@ -62,7 +81,6 @@ const Onboarding = () => {
         return;
       }
 
-      // Update profile
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -80,7 +98,6 @@ const Onboarding = () => {
 
       success('Profile setup complete! 🎉');
       
-      // Redirect based on role
       setTimeout(() => {
         if (formData.role === 'admin') {
           navigate('/admin');
@@ -97,23 +114,28 @@ const Onboarding = () => {
     }
   };
 
+  if (loading) {
+    return <LoadingSpinner fullScreen message="Setting up your profile..." />;
+  }
+
   const styles = {
     container: {
       minHeight: '100vh',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: '20px'
     },
     card: {
-      backgroundColor: 'white',
+      backgroundColor: COLORS.white,
       borderRadius: '16px',
       padding: 'clamp(24px, 3vw, 40px)',
       maxWidth: '500px',
       width: '100%',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+      boxShadow: '0 4px 12px rgba(21, 17, 48, 0.08)',
+      border: '1px solid ' + COLORS.gray200
     },
     header: {
       textAlign: 'center',
@@ -122,12 +144,12 @@ const Onboarding = () => {
     title: {
       fontSize: 'clamp(24px, 3vw, 28px)',
       fontWeight: '700',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 8px 0'
     },
     subtitle: {
       fontSize: 'clamp(14px, 1.2vw, 16px)',
-      color: '#64748b',
+      color: COLORS.gray500,
       margin: 0
     },
     stepIndicator: {
@@ -140,11 +162,11 @@ const Onboarding = () => {
       width: '8px',
       height: '8px',
       borderRadius: '50%',
-      backgroundColor: '#e2e8f0',
+      backgroundColor: COLORS.gray200,
       transition: 'background-color 0.3s'
     },
     stepDotActive: {
-      backgroundColor: '#2563eb'
+      backgroundColor: COLORS.lavenderTonic
     },
     formGroup: {
       marginBottom: '20px'
@@ -153,30 +175,33 @@ const Onboarding = () => {
       display: 'block',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
-      color: '#0f172a',
+      color: COLORS.gray900,
       marginBottom: '6px'
     },
     input: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       borderRadius: '8px',
       fontSize: 'clamp(14px, 1.2vw, 15px)',
       transition: 'border-color 0.2s, box-shadow 0.2s',
       boxSizing: 'border-box',
       outline: 'none',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      backgroundColor: COLORS.white,
+      color: COLORS.gray900
     },
     select: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       borderRadius: '8px',
       fontSize: 'clamp(14px, 1.2vw, 15px)',
-      backgroundColor: 'white',
+      backgroundColor: COLORS.white,
       cursor: 'pointer',
       fontFamily: 'inherit',
-      outline: 'none'
+      outline: 'none',
+      color: COLORS.gray900
     },
     interestsGrid: {
       display: 'grid',
@@ -187,18 +212,19 @@ const Onboarding = () => {
     interestChip: {
       padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
       borderRadius: '8px',
-      border: '1px solid #e2e8f0',
-      backgroundColor: 'white',
+      border: '1px solid ' + COLORS.gray200,
+      backgroundColor: COLORS.white,
       cursor: 'pointer',
       fontSize: 'clamp(12px, 1vw, 14px)',
       textAlign: 'center',
       transition: 'all 0.2s',
-      userSelect: 'none'
+      userSelect: 'none',
+      color: COLORS.gray700
     },
     interestChipActive: {
-      backgroundColor: '#2563eb',
-      color: 'white',
-      borderColor: '#2563eb'
+      backgroundColor: COLORS.lavenderTonic,
+      color: COLORS.championBlue,
+      borderColor: COLORS.lavenderTonic
     },
     buttonContainer: {
       display: 'flex',
@@ -210,16 +236,12 @@ const Onboarding = () => {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner message="Setting up your profile..." />;
-  }
-
   return (
     <div style={styles.container}>
       <style>{`
         .input-focus:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+          border-color: ${COLORS.lavenderTonic};
+          box-shadow: 0 0 0 3px rgba(200, 190, 250, 0.2);
         }
       `}</style>
 
@@ -300,7 +322,7 @@ const Onboarding = () => {
               />
             </div>
 
-            <Button
+            <PrimaryButton
               variant="primary"
               size="lg"
               fullWidth
@@ -308,7 +330,7 @@ const Onboarding = () => {
               disabled={!formData.fullName}
             >
               Continue →
-            </Button>
+            </PrimaryButton>
           </>
         )}
 
@@ -316,7 +338,7 @@ const Onboarding = () => {
           <>
             <div style={styles.formGroup}>
               <label style={styles.label}>Select your interests</label>
-              <p style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: '#64748b', marginTop: '4px' }}>
+              <p style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: COLORS.gray500, marginTop: '4px' }}>
                 Choose areas you're interested in (click to toggle)
               </p>
               <div style={styles.interestsGrid}>
@@ -338,16 +360,16 @@ const Onboarding = () => {
             </div>
 
             <div style={styles.buttonContainer}>
-              <Button
-                variant="secondary"
+              <PrimaryButton
+                variant="outline"
                 size="md"
                 fullWidth
                 onClick={() => setStep(1)}
                 style={styles.buttonHalf}
               >
                 ← Back
-              </Button>
-              <Button
+              </PrimaryButton>
+              <PrimaryButton
                 variant="primary"
                 size="md"
                 fullWidth
@@ -357,7 +379,7 @@ const Onboarding = () => {
                 style={styles.buttonHalf}
               >
                 Complete Setup ✨
-              </Button>
+              </PrimaryButton>
             </div>
           </>
         )}

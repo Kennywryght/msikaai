@@ -9,7 +9,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   const location = useLocation();
 
   if (loading) {
-    return <LoadingSpinner message="Verifying your session..." />;
+    return <LoadingSpinner fullScreen message="Verifying your session..." />;
   }
 
   if (!isAuthenticated || !user) {
@@ -18,10 +18,10 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Admin check would go here if needed
+  // Admin check
   if (adminOnly) {
-    // Check if user has admin role
-    const isAdmin = user.role === 'admin';
+    // Check if user has admin role from user metadata or profile
+    const isAdmin = user.role === 'admin' || user.user_metadata?.role === 'admin';
     if (!isAdmin) {
       return <Navigate to="/dashboard" replace />;
     }
@@ -36,7 +36,7 @@ export const PublicRoute = ({ children }) => {
   const location = useLocation();
 
   if (loading) {
-    return <LoadingSpinner message="Loading..." />;
+    return <LoadingSpinner fullScreen message="Loading..." />;
   }
 
   if (user) {

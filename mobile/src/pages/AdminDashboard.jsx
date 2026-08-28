@@ -3,8 +3,34 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import LoadingSpinner from '../components/LoadingSpinner';
-import Button from '../components/Button';
+import PrimaryButton from '../components/PrimaryButton';
 import { useToast } from '../components/ToastContainer';
+
+// ==========================================
+// BRAND COLORS
+// ==========================================
+const COLORS = {
+  championBlue: '#151130',
+  championBlueLight: '#2A2438',
+  championBlueDark: '#0A081F',
+  lavenderTonic: '#C8BEFA',
+  lavenderLight: '#D8CFFF',
+  lavenderDark: '#B8A8F0',
+  white: '#FFFFFF',
+  gray50: '#F8F7FA',
+  gray100: '#EEECF5',
+  gray200: '#DDD9EB',
+  gray300: '#C5C0D6',
+  gray400: '#9E97B3',
+  gray500: '#787090',
+  gray600: '#5C5470',
+  gray700: '#3F384F',
+  gray800: '#2A2438',
+  gray900: '#151130',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+};
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -32,7 +58,6 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Check if user is admin
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -55,22 +80,18 @@ const AdminDashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      // Get total users
       const { count: usersCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
 
-      // Get total listings
       const { count: listingsCount } = await supabase
         .from('listings')
         .select('*', { count: 'exact', head: true });
 
-      // Get total orders
       const { count: ordersCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true });
 
-      // Get revenue
       const { data: ordersData } = await supabase
         .from('orders')
         .select('total_amount')
@@ -78,14 +99,12 @@ const AdminDashboard = () => {
 
       const totalRevenue = ordersData?.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0) || 0;
 
-      // Get recent orders
       const { data: recentOrders } = await supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
 
-      // Get recent users
       const { data: recentUsers } = await supabase
         .from('profiles')
         .select('*')
@@ -128,16 +147,20 @@ const AdminDashboard = () => {
     });
   };
 
+  if (loading) {
+    return <LoadingSpinner fullScreen message="Loading dashboard..." />;
+  }
+
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: '#f8fafc',
+      backgroundColor: COLORS.gray50,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     },
     header: {
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       padding: 'clamp(16px, 2vw, 20px) clamp(16px, 4vw, 32px)',
-      borderBottom: '1px solid #e2e8f0',
+      borderBottom: '1px solid ' + COLORS.gray200,
       boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
       display: 'flex',
       justifyContent: 'space-between',
@@ -148,7 +171,7 @@ const AdminDashboard = () => {
     headerTitle: {
       fontSize: 'clamp(20px, 2.5vw, 24px)',
       fontWeight: '800',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: 0,
       display: 'flex',
       alignItems: 'center',
@@ -167,16 +190,16 @@ const AdminDashboard = () => {
       padding: 'clamp(16px, 2vw, 28px) clamp(16px, 4vw, 32px) clamp(12px, 1.5vw, 20px) clamp(16px, 4vw, 32px)'
     },
     statCard: {
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       borderRadius: '14px',
       padding: 'clamp(14px, 1.5vw, 20px)',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
     },
     statLabel: {
       fontSize: 'clamp(11px, 0.9vw, 13px)',
       fontWeight: '600',
-      color: '#64748b',
+      color: COLORS.gray500,
       textTransform: 'uppercase',
       letterSpacing: '0.05em',
       margin: '0 0 8px 0'
@@ -184,7 +207,7 @@ const AdminDashboard = () => {
     statValue: {
       fontSize: 'clamp(22px, 3vw, 28px)',
       fontWeight: '800',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: 0
     },
     contentGrid: {
@@ -194,21 +217,21 @@ const AdminDashboard = () => {
       padding: '0 clamp(16px, 4vw, 32px) clamp(32px, 4vw, 32px) clamp(16px, 4vw, 32px)'
     },
     section: {
-      backgroundColor: '#ffffff',
+      backgroundColor: COLORS.white,
       borderRadius: '14px',
       padding: 'clamp(16px, 2vw, 24px)',
-      border: '1px solid #e2e8f0',
+      border: '1px solid ' + COLORS.gray200,
       boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
     },
     sectionTitle: {
       fontSize: 'clamp(16px, 1.6vw, 18px)',
       fontWeight: '700',
-      color: '#0f172a',
+      color: COLORS.gray900,
       margin: '0 0 16px 0'
     },
     listItem: {
       padding: 'clamp(10px, 1vw, 12px) 0',
-      borderBottom: '1px solid #f1f5f9',
+      borderBottom: '1px solid ' + COLORS.gray100,
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -220,12 +243,12 @@ const AdminDashboard = () => {
     },
     itemName: {
       fontWeight: '600',
-      color: '#0f172a',
+      color: COLORS.gray900,
       fontSize: 'clamp(14px, 1.2vw, 15px)'
     },
     itemSub: {
       fontSize: 'clamp(12px, 1vw, 13px)',
-      color: '#64748b',
+      color: COLORS.gray500,
       marginTop: '2px'
     },
     statusBadge: {
@@ -237,22 +260,18 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner message="Loading dashboard..." />;
-  }
-
   return (
     <div style={styles.container}>
       <header style={styles.header}>
         <h1 style={styles.headerTitle}>📊 Admin Dashboard</h1>
         <div style={styles.headerActions}>
-          <Button
+          <PrimaryButton
             variant="danger"
             size="sm"
             onClick={handleLogout}
           >
             Logout
-          </Button>
+          </PrimaryButton>
         </div>
       </header>
 
@@ -271,7 +290,7 @@ const AdminDashboard = () => {
         </div>
         <div style={styles.statCard}>
           <p style={styles.statLabel}>Total Revenue</p>
-          <p style={{ ...styles.statValue, color: '#16a34a' }}>{formatCurrency(stats.revenue)}</p>
+          <p style={{ ...styles.statValue, color: COLORS.success }}>{formatCurrency(stats.revenue)}</p>
         </div>
       </div>
 
@@ -329,8 +348,8 @@ const AdminDashboard = () => {
                 </div>
                 <span style={{
                   ...styles.statusBadge,
-                  backgroundColor: user.role === 'admin' ? '#dbeafe' : '#f1f5f9',
-                  color: user.role === 'admin' ? '#1e40af' : '#475569'
+                  backgroundColor: user.role === 'admin' ? '#EEECF5' : COLORS.gray100,
+                  color: user.role === 'admin' ? COLORS.championBlue : COLORS.gray600
                 }}>
                   {user.role || 'user'}
                 </span>
