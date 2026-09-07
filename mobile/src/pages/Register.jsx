@@ -4,32 +4,37 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
-import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-// ==========================================
-// BRAND COLORS
-// ==========================================
-const COLORS = {
-  championBlue: '#151130',
-  championBlueLight: '#2A2438',
-  championBlueDark: '#0A081F',
-  lavenderTonic: '#C8BEFA',
-  lavenderLight: '#D8CFFF',
-  lavenderDark: '#B8A8F0',
-  white: '#FFFFFF',
-  gray50: '#F8F7FA',
-  gray100: '#EEECF5',
-  gray200: '#DDD9EB',
-  gray300: '#C5C0D6',
-  gray400: '#9E97B3',
-  gray500: '#787090',
-  gray600: '#5C5470',
-  gray700: '#3F384F',
-  gray800: '#2A2438',
-  gray900: '#151130',
-  success: '#10B981',
-  error: '#EF4444',
+// ============================================================
+// PREMIUM FEATHER ICONS
+// ============================================================
+const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+  >
+    <path d={d} />
+  </svg>
+);
+
+const ICONS = {
+  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+  mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6",
+  lock: "M12 2a4 4 0 00-4 4v4H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-2V6a4 4 0 00-4-4zM12 14v4M9 12h6",
+  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z",
+  eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z",
+  eyeOff: "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22",
+  check: "M20 6L9 17l-5-5",
+  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
 };
 
 const Register = () => {
@@ -49,10 +54,9 @@ const Register = () => {
     confirmPassword: '',
     fullName: '',
     phone: '',
-    role: 'user',
+    role: 'buyer',
   });
 
-  const emailInputRef = useRef(null);
   const nameInputRef = useRef(null);
 
   useEffect(() => {
@@ -185,28 +189,297 @@ const Register = () => {
     return <LoadingSpinner fullScreen message="Creating your account..." />;
   }
 
+  const styles = {
+    container: {
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: '#F8FAFC',
+      padding: '24px 16px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    },
+    card: {
+      width: '100%',
+      maxWidth: '460px',
+      background: '#FFFFFF',
+      padding: '36px 32px',
+      borderRadius: '20px',
+      border: '1px solid #E2E8F0',
+      boxShadow: '0 20px 60px rgba(30,41,59,0.06)',
+    },
+    logoContainer: {
+      textAlign: 'center',
+      marginBottom: '28px',
+    },
+    logoWrapper: {
+      width: '64px',
+      height: '64px',
+      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+      borderRadius: '18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      margin: '0 auto 12px auto',
+      boxShadow: '0 4px 20px rgba(245,158,11,0.25)',
+    },
+    brandName: {
+      fontSize: '28px',
+      fontWeight: '800',
+      color: '#1E293B',
+      margin: 0,
+      letterSpacing: '-0.5px',
+      fontFamily: '"Fraunces", Georgia, serif',
+    },
+    brandAccent: {
+      color: '#F59E0B',
+    },
+    brandTagline: {
+      fontSize: '11px',
+      color: '#94A3B8',
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      marginTop: '2px',
+    },
+    header: {
+      textAlign: 'center',
+      marginBottom: '24px',
+    },
+    title: {
+      fontSize: '22px',
+      fontWeight: '700',
+      color: '#1E293B',
+      margin: 0,
+    },
+    subtitle: {
+      fontSize: '14px',
+      color: '#94A3B8',
+      margin: '4px 0 0 0',
+    },
+    errorAlert: {
+      background: '#FEF2F2',
+      padding: '12px 14px',
+      borderRadius: '10px',
+      border: '1px solid #FECACA',
+      marginBottom: '20px',
+      fontSize: '13px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+    },
+    errorText: {
+      flex: 1,
+      color: '#991B1B',
+    },
+    errorClose: {
+      background: 'none',
+      border: 'none',
+      color: '#991B1B',
+      fontSize: '18px',
+      cursor: 'pointer',
+      padding: '4px',
+      lineHeight: 1,
+    },
+    form: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '18px',
+    },
+    formGroup: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '6px',
+    },
+    label: {
+      fontSize: '13px',
+      fontWeight: '600',
+      color: '#475569',
+    },
+    required: {
+      color: '#EF4444',
+    },
+    inputWrapper: {
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+    },
+    inputIcon: {
+      position: 'absolute',
+      left: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      pointerEvents: 'none',
+      color: '#94A3B8',
+    },
+    input: {
+      width: '100%',
+      padding: '11px 14px 11px 40px',
+      border: '2px solid #E2E8F0',
+      borderRadius: '10px',
+      fontSize: '14px',
+      color: '#1E293B',
+      outline: 'none',
+      boxSizing: 'border-box',
+      background: '#FFFFFF',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+      fontFamily: 'inherit',
+    },
+    inputError: {
+      borderColor: '#EF4444',
+    },
+    inputSuccess: {
+      borderColor: '#10B981',
+    },
+    eyeButton: {
+      position: 'absolute',
+      right: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      color: '#94A3B8',
+      padding: '4px',
+    },
+    hintText: {
+      fontSize: '12px',
+      color: '#94A3B8',
+      marginTop: '2px',
+    },
+    errorHint: {
+      fontSize: '12px',
+      color: '#EF4444',
+      marginTop: '2px',
+    },
+    successHint: {
+      fontSize: '12px',
+      color: '#10B981',
+      marginTop: '2px',
+    },
+    radioGroup: {
+      display: 'flex',
+      gap: '16px',
+      marginTop: '4px',
+    },
+    radioLabel: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      color: '#64748B',
+    },
+    radioInput: {
+      width: '18px',
+      height: '18px',
+      cursor: 'pointer',
+      accentColor: '#F59E0B',
+    },
+    radioText: {
+      fontSize: '14px',
+      fontWeight: '500',
+    },
+    termsGroup: {
+      marginTop: '4px',
+    },
+    checkboxLabel: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '10px',
+      cursor: 'pointer',
+      fontSize: '13px',
+      color: '#64748B',
+    },
+    checkboxInput: {
+      width: '18px',
+      height: '18px',
+      marginTop: '2px',
+      flexShrink: 0,
+      cursor: 'pointer',
+      accentColor: '#F59E0B',
+    },
+    checkboxText: {
+      lineHeight: '1.5',
+    },
+    termsLink: {
+      color: '#F59E0B',
+      textDecoration: 'none',
+      fontWeight: '500',
+      transition: 'color 0.2s',
+    },
+    submitButton: {
+      marginTop: '4px',
+      height: '48px',
+      width: '100%',
+      padding: '14px',
+      background: '#1E293B',
+      border: 'none',
+      borderRadius: '10px',
+      fontSize: '16px',
+      fontWeight: '700',
+      color: '#FFFFFF',
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 2px 12px rgba(30,41,59,0.15)',
+    },
+    submitButtonDisabled: {
+      opacity: 0.6,
+      cursor: 'not-allowed',
+    },
+    divider: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px',
+      margin: '8px 0 4px 0',
+    },
+    dividerLine: {
+      flex: 1,
+      height: '1px',
+      background: '#E2E8F0',
+    },
+    dividerText: {
+      fontSize: '12px',
+      color: '#94A3B8',
+      fontWeight: '500',
+    },
+    footerText: {
+      textAlign: 'center',
+      fontSize: '14px',
+      color: '#94A3B8',
+      margin: 0,
+    },
+    footerLink: {
+      color: '#F59E0B',
+      textDecoration: 'none',
+      fontWeight: '600',
+      transition: 'color 0.2s',
+    },
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        {/* Logo */}
         <div style={styles.logoContainer}>
           <div style={styles.logoWrapper}>
-            <span style={styles.logoEmoji}>🛒</span>
+            <Icon d={ICONS.store} size={28} color="#1E293B" strokeWidth={2.5} />
           </div>
           <h1 style={styles.brandName}>
-            Msika<span style={{ color: COLORS.lavenderTonic }}>AI</span>
+            Kum<span style={styles.brandAccent}>sika</span>
           </h1>
           <p style={styles.brandTagline}>Malawi's Smart Marketplace</p>
         </div>
 
         <div style={styles.header}>
           <h2 style={styles.title}>Create Account</h2>
-          <p style={styles.subtitle}>Join the MsikaAI community today</p>
+          <p style={styles.subtitle}>Join the Kumsika community today</p>
         </div>
 
         {errorMsg && (
           <div style={styles.errorAlert}>
-            <span style={styles.errorIcon}>⚠️</span>
+            <span>⚠️</span>
             <span style={styles.errorText}>{errorMsg}</span>
             <button
               style={styles.errorClose}
@@ -222,7 +495,9 @@ const Register = () => {
           <div style={styles.formGroup}>
             <label style={styles.label}>Full Name <span style={styles.required}>*</span></label>
             <div style={styles.inputWrapper}>
-              <span style={styles.inputIcon}>👤</span>
+              <span style={styles.inputIcon}>
+                <Icon d={ICONS.user} size={18} color="#94A3B8" strokeWidth={1.75} />
+              </span>
               <input
                 ref={nameInputRef}
                 type="text"
@@ -240,9 +515,10 @@ const Register = () => {
           <div style={styles.formGroup}>
             <label style={styles.label}>Email Address <span style={styles.required}>*</span></label>
             <div style={styles.inputWrapper}>
-              <span style={styles.inputIcon}>✉️</span>
+              <span style={styles.inputIcon}>
+                <Icon d={ICONS.mail} size={18} color="#94A3B8" strokeWidth={1.75} />
+              </span>
               <input
-                ref={emailInputRef}
                 type="email"
                 name="email"
                 value={formData.email}
@@ -259,7 +535,9 @@ const Register = () => {
           <div style={styles.formGroup}>
             <label style={styles.label}>Phone Number</label>
             <div style={styles.inputWrapper}>
-              <span style={styles.inputIcon}>📱</span>
+              <span style={styles.inputIcon}>
+                <Icon d={ICONS.phone} size={18} color="#94A3B8" strokeWidth={1.75} />
+              </span>
               <input
                 type="tel"
                 name="phone"
@@ -276,7 +554,9 @@ const Register = () => {
           <div style={styles.formGroup}>
             <label style={styles.label}>Password <span style={styles.required}>*</span></label>
             <div style={styles.inputWrapper}>
-              <span style={styles.inputIcon}>🔒</span>
+              <span style={styles.inputIcon}>
+                <Icon d={ICONS.lock} size={18} color="#94A3B8" strokeWidth={1.75} />
+              </span>
               <input
                 type={showPassword ? 'text' : 'password'}
                 name="password"
@@ -294,7 +574,7 @@ const Register = () => {
                 style={styles.eyeButton}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? '👁️‍🗨️' : '👁️'}
+                <Icon d={showPassword ? ICONS.eyeOff : ICONS.eye} size={18} color="#94A3B8" strokeWidth={1.75} />
               </button>
             </div>
             <p style={styles.hintText}>Must be at least 6 characters</p>
@@ -303,7 +583,9 @@ const Register = () => {
           <div style={styles.formGroup}>
             <label style={styles.label}>Confirm Password <span style={styles.required}>*</span></label>
             <div style={styles.inputWrapper}>
-              <span style={styles.inputIcon}>🔐</span>
+              <span style={styles.inputIcon}>
+                <Icon d={ICONS.lock} size={18} color="#94A3B8" strokeWidth={1.75} />
+              </span>
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 name="confirmPassword"
@@ -325,7 +607,7 @@ const Register = () => {
                 style={styles.eyeButton}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
-                {showConfirmPassword ? '👁️‍🗨️' : '👁️'}
+                <Icon d={showConfirmPassword ? ICONS.eyeOff : ICONS.eye} size={18} color="#94A3B8" strokeWidth={1.75} />
               </button>
             </div>
             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
@@ -343,8 +625,8 @@ const Register = () => {
                 <input
                   type="radio"
                   name="role"
-                  value="user"
-                  checked={formData.role === 'user'}
+                  value="buyer"
+                  checked={formData.role === 'buyer'}
                   onChange={handleChange}
                   style={styles.radioInput}
                   disabled={loading}
@@ -355,8 +637,8 @@ const Register = () => {
                 <input
                   type="radio"
                   name="role"
-                  value="vendor"
-                  checked={formData.role === 'vendor'}
+                  value="seller"
+                  checked={formData.role === 'seller'}
                   onChange={handleChange}
                   style={styles.radioInput}
                   disabled={loading}
@@ -389,17 +671,16 @@ const Register = () => {
             </label>
           </div>
 
-          <PrimaryButton
+          <button
             type="submit"
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={loading}
+            style={{
+              ...styles.submitButton,
+              ...(loading ? styles.submitButtonDisabled : {}),
+            }}
             disabled={loading || !agreeToTerms}
-            style={styles.submitButton}
           >
             {loading ? 'Creating Account...' : 'Create Account'}
-          </PrimaryButton>
+          </button>
 
           <div style={styles.divider}>
             <span style={styles.dividerLine}></span>
@@ -417,268 +698,6 @@ const Register = () => {
       </div>
     </div>
   );
-};
-
-// ==========================================
-// STYLES
-// ==========================================
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.gray50,
-    padding: '24px 16px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  },
-  card: {
-    width: '100%',
-    maxWidth: '460px',
-    backgroundColor: COLORS.white,
-    padding: '36px 32px',
-    borderRadius: '20px',
-    border: '1px solid COLORS.gray200',
-    boxShadow: '0 20px 60px rgba(21, 17, 48, 0.06)',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  logoContainer: {
-    textAlign: 'center',
-    marginBottom: '28px',
-  },
-  logoWrapper: {
-    width: '64px',
-    height: '64px',
-    backgroundColor: COLORS.lavenderLight,
-    borderRadius: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 12px auto',
-    border: '1px solid COLORS.lavenderTonic',
-  },
-  logoEmoji: {
-    fontSize: '32px',
-  },
-  brandName: {
-    fontSize: '28px',
-    fontWeight: '800',
-    color: COLORS.gray900,
-    margin: 0,
-    letterSpacing: '-0.5px',
-  },
-  brandTagline: {
-    fontSize: '11px',
-    color: COLORS.gray400,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    marginTop: '2px',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '24px',
-  },
-  title: {
-    fontSize: '22px',
-    fontWeight: '700',
-    color: COLORS.gray900,
-    margin: 0,
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: COLORS.gray500,
-    margin: '4px 0 0 0',
-  },
-  errorAlert: {
-    backgroundColor: '#FEF2F2',
-    padding: '12px 14px',
-    borderRadius: '10px',
-    border: '1px solid #FECACA',
-    marginBottom: '20px',
-    fontSize: '13px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  errorIcon: {
-    fontSize: '16px',
-    flexShrink: 0,
-  },
-  errorText: {
-    flex: 1,
-    color: '#991B1B',
-  },
-  errorClose: {
-    background: 'none',
-    border: 'none',
-    color: '#991B1B',
-    fontSize: '18px',
-    cursor: 'pointer',
-    padding: '4px',
-    lineHeight: 1,
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '18px',
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  label: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: COLORS.gray700,
-  },
-  required: {
-    color: COLORS.championBlue,
-  },
-  inputWrapper: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-  },
-  inputIcon: {
-    position: 'absolute',
-    left: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    pointerEvents: 'none',
-    color: COLORS.gray400,
-    fontSize: '16px',
-  },
-  input: {
-    width: '100%',
-    padding: '11px 14px 11px 40px',
-    border: `2px solid ${COLORS.gray200}`,
-    borderRadius: '10px',
-    fontSize: '14px',
-    color: COLORS.gray900,
-    outline: 'none',
-    boxSizing: 'border-box',
-    backgroundColor: COLORS.white,
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-  },
-  inputError: {
-    borderColor: COLORS.error,
-  },
-  inputSuccess: {
-    borderColor: COLORS.success,
-  },
-  eyeButton: {
-    position: 'absolute',
-    right: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: COLORS.gray400,
-    fontSize: '18px',
-    padding: '4px',
-  },
-  hintText: {
-    fontSize: '12px',
-    color: COLORS.gray400,
-    marginTop: '2px',
-  },
-  errorHint: {
-    fontSize: '12px',
-    color: COLORS.error,
-    marginTop: '2px',
-  },
-  successHint: {
-    fontSize: '12px',
-    color: COLORS.success,
-    marginTop: '2px',
-  },
-  radioGroup: {
-    display: 'flex',
-    gap: '16px',
-    marginTop: '4px',
-  },
-  radioLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    color: COLORS.gray700,
-  },
-  radioInput: {
-    width: '18px',
-    height: '18px',
-    cursor: 'pointer',
-    accentColor: COLORS.championBlue,
-  },
-  radioText: {
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  termsGroup: {
-    marginTop: '4px',
-  },
-  checkboxLabel: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '10px',
-    cursor: 'pointer',
-    fontSize: '13px',
-    color: COLORS.gray600,
-  },
-  checkboxInput: {
-    width: '18px',
-    height: '18px',
-    marginTop: '2px',
-    flexShrink: 0,
-    cursor: 'pointer',
-    accentColor: COLORS.championBlue,
-  },
-  checkboxText: {
-    lineHeight: '1.5',
-  },
-  termsLink: {
-    color: COLORS.lavenderTonic,
-    textDecoration: 'none',
-    fontWeight: '500',
-  },
-  submitButton: {
-    marginTop: '4px',
-    height: '48px',
-  },
-  divider: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    margin: '8px 0 4px 0',
-  },
-  dividerLine: {
-    flex: 1,
-    height: '1px',
-    backgroundColor: COLORS.gray200,
-  },
-  dividerText: {
-    fontSize: '12px',
-    color: COLORS.gray400,
-    fontWeight: '500',
-  },
-  footerText: {
-    textAlign: 'center',
-    fontSize: '14px',
-    color: COLORS.gray500,
-    margin: 0,
-  },
-  footerLink: {
-    color: COLORS.lavenderTonic,
-    textDecoration: 'none',
-    fontWeight: '600',
-  },
 };
 
 export default Register;

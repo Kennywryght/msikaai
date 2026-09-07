@@ -7,34 +7,10 @@ import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 
-// ==========================================
-// BRAND COLORS
-// ==========================================
-const COLORS = {
-  championBlue: '#151130',
-  championBlueLight: '#2A2438',
-  championBlueDark: '#0A081F',
-  lavenderTonic: '#C8BEFA',
-  lavenderLight: '#D8CFFF',
-  lavenderDark: '#B8A8F0',
-  white: '#FFFFFF',
-  gray50: '#F8F7FA',
-  gray100: '#EEECF5',
-  gray200: '#DDD9EB',
-  gray300: '#C5C0D6',
-  gray400: '#9E97B3',
-  gray500: '#787090',
-  gray600: '#5C5470',
-  gray700: '#3F384F',
-  gray800: '#2A2438',
-  gray900: '#151130',
-  success: '#10B981',
-  error: '#EF4444',
-  warning: '#F59E0B',
-};
-
-// --- HAND-DRAWN STYLE INLINE SVG ICONS ---
-const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
+// ============================================
+// PREMIUM FEATHER ICONS
+// ============================================
+const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
     height={size}
@@ -52,19 +28,20 @@ const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) =
 
 const ICONS = {
   store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-  plus: "M12 4v16M4 12h16",
+  plus: "M12 4v16m8-8H4",
   box: "M12.89 1.45l8 4A2 2 0 0122 7.24v9.53a2 2 0 01-1.11 1.79l-8 4a2 2 0 01-1.79 0l-8-4a2 2 0 01-1.1-1.8V7.24a2 2 0 011.11-1.79l8-4a2 2 0 011.78 0zM2.32 6.16L12 11l9.68-4.84M12 22.76V11",
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
   image: "M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
   close: "M18 6L6 18M6 6l12 12",
   check: "M20 6L9 17l-5-5",
-  arrowRight: "M5 12h14M12 5l7 7-7 7",
+  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
   clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
   user: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 7a4 4 0 100-8 4 4 0 000 8z",
   dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
   mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
   delivery: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8M9 16h6",
-  phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"
+  phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z",
+  upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
 };
 
 const LOCATIONS = [
@@ -281,27 +258,27 @@ const CreateListing = () => {
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: COLORS.gray50,
+      background: '#F8FAFC',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
+      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)',
     },
     card: {
       maxWidth: '600px',
       margin: '0 auto',
-      backgroundColor: COLORS.white,
+      background: '#FFFFFF',
       borderRadius: '16px',
       padding: 'clamp(20px, 2.5vw, 32px)',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      border: '1px solid ' + COLORS.gray200
+      boxShadow: '0 2px 12px rgba(30,41,59,0.04)',
+      border: '1px solid #E2E8F0',
     },
     header: {
-      marginBottom: '24px'
+      marginBottom: '24px',
     },
     backLink: {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '8px',
-      color: COLORS.gray500,
+      color: '#94A3B8',
       textDecoration: 'none',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
@@ -310,106 +287,107 @@ const CreateListing = () => {
       border: 'none',
       cursor: 'pointer',
       padding: 0,
-      transition: 'color 0.2s'
+      fontFamily: 'inherit',
+      transition: 'color 0.2s ease',
     },
     title: {
       fontSize: 'clamp(20px, 2.5vw, 24px)',
-      fontWeight: '800',
-      color: COLORS.gray900,
+      fontWeight: '700',
+      color: '#1E293B',
       margin: 0,
       display: 'flex',
       alignItems: 'center',
-      gap: '10px'
+      gap: '10px',
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     subtitle: {
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: COLORS.gray500,
+      color: '#94A3B8',
       marginTop: '4px',
-      marginBottom: 0
+      marginBottom: 0,
     },
     formGroup: {
-      marginBottom: 'clamp(14px, 1.5vw, 18px)'
+      marginBottom: 'clamp(14px, 1.5vw, 18px)',
     },
     label: {
       display: 'flex',
       alignItems: 'center',
       fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
-      color: COLORS.gray700,
-      marginBottom: '6px'
+      color: '#475569',
+      marginBottom: '4px',
     },
     input: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid ' + COLORS.gray300,
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: COLORS.gray900,
+      color: '#1E293B',
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: COLORS.white,
+      background: '#FFFFFF',
       fontFamily: 'inherit',
-      transition: 'border-color 0.15s, box-shadow 0.15s',
-      WebkitAppearance: 'none'
+      transition: 'border-color 0.2s, box-shadow 0.2s',
     },
     textarea: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid ' + COLORS.gray300,
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: COLORS.gray900,
+      color: '#1E293B',
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: COLORS.white,
+      background: '#FFFFFF',
       fontFamily: 'inherit',
       resize: 'vertical',
       minHeight: 'clamp(80px, 10vw, 100px)',
-      transition: 'border-color 0.15s, box-shadow 0.15s'
+      transition: 'border-color 0.2s, box-shadow 0.2s',
     },
     select: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid ' + COLORS.gray300,
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: COLORS.gray900,
+      color: '#1E293B',
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: COLORS.white,
+      background: '#FFFFFF',
       fontFamily: 'inherit',
-      WebkitAppearance: 'none'
+      appearance: 'none',
     },
     row: {
       display: 'flex',
       gap: '12px',
-      flexWrap: 'wrap'
+      flexWrap: 'wrap',
     },
     half: {
       flex: 1,
-      minWidth: 'clamp(130px, 35vw, 200px)'
+      minWidth: 'clamp(130px, 35vw, 200px)',
     },
     imageGrid: {
       display: 'flex',
       flexWrap: 'wrap',
       gap: '8px',
-      marginTop: '10px'
+      marginTop: '10px',
     },
     imageWrapper: {
-      position: 'relative'
+      position: 'relative',
     },
     imageThumb: {
       width: 'clamp(60px, 8vw, 80px)',
       height: 'clamp(60px, 8vw, 80px)',
       objectFit: 'cover',
       borderRadius: '8px',
-      border: '1px solid ' + COLORS.gray200
+      border: '1px solid #E2E8F0',
     },
     removeBtn: {
       position: 'absolute',
       top: '-6px',
       right: '-6px',
-      backgroundColor: COLORS.error,
+      background: '#EF4444',
       color: 'white',
       border: 'none',
       borderRadius: '50%',
@@ -420,55 +398,49 @@ const CreateListing = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 0
+      padding: 0,
     },
     fileInput: {
       padding: '8px',
-      border: '1px dashed ' + COLORS.gray300,
+      border: '1px dashed #E2E8F0',
       borderRadius: '8px',
       width: '100%',
       boxSizing: 'border-box',
       cursor: 'pointer',
-      fontSize: 'clamp(12px, 1vw, 13px)'
+      fontSize: 'clamp(12px, 1vw, 13px)',
+      background: '#F8FAFC',
     },
     checkbox: {
       width: 'clamp(16px, 1.5vw, 18px)',
       height: 'clamp(16px, 1.5vw, 18px)',
       cursor: 'pointer',
-      accentColor: COLORS.championBlue
+      accentColor: '#F59E0B',
     },
     required: {
-      color: COLORS.error,
-      marginLeft: '2px'
+      color: '#EF4444',
+      marginLeft: '2px',
     },
     submitBtn: {
-      marginTop: '8px'
-    }
+      marginTop: '8px',
+    },
   };
 
   return (
     <div style={styles.container}>
-      <style>{`
-        .input-focus:focus {
-          border-color: ${COLORS.lavenderTonic};
-          box-shadow: 0 0 0 3px rgba(200, 190, 250, 0.2);
-        }
-      `}</style>
-
       <div style={styles.card}>
         <div style={styles.header}>
           <button 
             onClick={() => navigate('/dashboard')} 
             style={styles.backLink}
-            onMouseEnter={(e) => e.currentTarget.style.color = COLORS.gray900}
-            onMouseLeave={(e) => e.currentTarget.style.color = COLORS.gray500}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#1E293B'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#94A3B8'; }}
           >
-            <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray500} strokeWidth={2.5} />
-            <span>Back to Dashboard</span>
+            <Icon d={ICONS.arrowLeft} size={16} color="#94A3B8" strokeWidth={1.75} />
+            Back to Dashboard
           </button>
           
           <h1 style={styles.title}>
-            <SketchIcon d={ICONS.box} size={24} color={COLORS.lavenderTonic} strokeWidth={2} />
+            <Icon d={ICONS.box} size={24} color="#F59E0B" strokeWidth={1.75} />
             Create New Listing
           </h1>
           <p style={styles.subtitle}>Add a product or service to your storefront</p>
@@ -478,7 +450,7 @@ const CreateListing = () => {
           {businesses.length > 0 && (
             <div style={styles.formGroup}>
               <label style={styles.label}>
-                <SketchIcon d={ICONS.store} size={14} color={COLORS.gray500} strokeWidth={2} />
+                <Icon d={ICONS.store} size={14} color="#94A3B8" strokeWidth={1.75} />
                 <span style={{ marginLeft: '4px' }}>Business</span>
                 <span style={styles.required}>*</span>
               </label>
@@ -501,7 +473,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.tag} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '4px' }}>Listing Title</span>
               <span style={styles.required}>*</span>
             </label>
@@ -521,7 +493,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.box} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.box} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '4px' }}>Description</span>
             </label>
             <textarea
@@ -536,7 +508,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.tag} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '4px' }}>Category</span>
               <span style={styles.required}>*</span>
             </label>
@@ -577,7 +549,7 @@ const CreateListing = () => {
             <div style={styles.half}>
               <div style={styles.formGroup}>
                 <label style={styles.label}>
-                  <SketchIcon d={ICONS.dollar} size={14} color={COLORS.gray500} strokeWidth={2} />
+                  <Icon d={ICONS.dollar} size={14} color="#94A3B8" strokeWidth={1.75} />
                   <span style={{ marginLeft: '4px' }}>Price (MWK)</span>
                 </label>
                 <input
@@ -645,7 +617,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.mapPin} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.mapPin} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '4px' }}>Specific Location</span>
               <span style={styles.required}>*</span>
             </label>
@@ -666,11 +638,11 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.delivery} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.delivery} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '4px' }}>Delivery Options</span>
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '4px' }}>
-              <label style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: COLORS.gray700, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+              <label style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   name="deliveryAvailable"
@@ -698,7 +670,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.phone} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.phone} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '4px' }}>Contact Phone</span>
               <span style={styles.required}>*</span>
             </label>
@@ -717,7 +689,7 @@ const CreateListing = () => {
 
           <div style={styles.formGroup}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.image} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.image} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '4px' }}>Images</span>
             </label>
             <input
@@ -759,7 +731,7 @@ const CreateListing = () => {
           >
             {loading ? 'Creating...' : (
               <>
-                <SketchIcon d={ICONS.check} size={18} color={COLORS.championBlue} strokeWidth={2.5} />
+                <Icon d={ICONS.check} size={18} color="#FFFFFF" strokeWidth={2} />
                 Create Listing
               </>
             )}

@@ -7,34 +7,10 @@ import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 
-// ==========================================
-// BRAND COLORS
-// ==========================================
-const COLORS = {
-  championBlue: '#151130',
-  championBlueLight: '#2A2438',
-  championBlueDark: '#0A081F',
-  lavenderTonic: '#C8BEFA',
-  lavenderLight: '#D8CFFF',
-  lavenderDark: '#B8A8F0',
-  white: '#FFFFFF',
-  gray50: '#F8F7FA',
-  gray100: '#EEECF5',
-  gray200: '#DDD9EB',
-  gray300: '#C5C0D6',
-  gray400: '#9E97B3',
-  gray500: '#787090',
-  gray600: '#5C5470',
-  gray700: '#3F384F',
-  gray800: '#2A2438',
-  gray900: '#151130',
-  success: '#10B981',
-  error: '#EF4444',
-  warning: '#F59E0B',
-};
-
-// --- HAND-DRAWN STYLE INLINE SVG ICONS ---
-const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
+// ============================================
+// PREMIUM FEATHER ICONS
+// ============================================
+const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
     height={size}
@@ -51,7 +27,7 @@ const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) =
 );
 
 const ICONS = {
-  arrowRight: "M5 12h14M12 5l7 7-7 7",
+  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
   store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
   mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
@@ -67,6 +43,7 @@ const ICONS = {
   copy: "M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M15 2H9a1 1 0 00-1 1v2a1 1 0 001 1h6a1 1 0 001-1V3a1 1 0 00-1-1z",
   share: "M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13",
   image: "M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
+  external: "M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3",
 };
 
 const ListingDetails = () => {
@@ -271,7 +248,7 @@ const ListingDetails = () => {
           The listing you're looking for doesn't exist or has been removed.
         </p>
         <PrimaryButton onClick={() => navigate('/search')} variant="primary">
-          <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.championBlue} strokeWidth={2.5} />
+          <Icon d={ICONS.arrowLeft} size={16} color="#FFFFFF" strokeWidth={1.75} />
           Back to Search
         </PrimaryButton>
       </div>
@@ -285,32 +262,33 @@ const ListingDetails = () => {
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: COLORS.gray50,
+      background: '#F8FAFC',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)'
+      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)',
     },
     backButton: {
-      padding: '10px 20px',
-      backgroundColor: COLORS.gray200,
-      border: 'none',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '10px 16px',
+      background: '#FFFFFF',
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
       fontWeight: '500',
-      color: COLORS.gray700,
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
+      color: '#64748B',
       marginBottom: '16px',
-      transition: 'background-color 0.2s'
+      transition: 'all 0.2s ease',
+      fontFamily: 'inherit',
     },
     card: {
-      backgroundColor: COLORS.white,
+      background: '#FFFFFF',
       borderRadius: '16px',
       padding: 'clamp(16px, 2vw, 24px)',
       marginBottom: '16px',
-      border: '1px solid ' + COLORS.gray200,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+      border: '1px solid #E2E8F0',
+      boxShadow: '0 2px 12px rgba(30,41,59,0.04)',
     },
     imageGrid: {
       display: 'flex',
@@ -318,42 +296,43 @@ const ListingDetails = () => {
       overflowX: 'auto',
       marginBottom: '16px',
       paddingBottom: '4px',
-      WebkitOverflowScrolling: 'touch'
+      scrollbarWidth: 'none',
     },
     image: {
       width: 'clamp(160px, 25vw, 200px)',
       height: 'clamp(120px, 18vw, 150px)',
       objectFit: 'cover',
       borderRadius: '12px',
-      border: '1px solid ' + COLORS.gray200,
-      flexShrink: 0
+      border: '1px solid #E2E8F0',
+      flexShrink: 0,
     },
     title: {
       fontSize: 'clamp(20px, 2.5vw, 24px)',
-      fontWeight: '800',
-      color: COLORS.gray900,
+      fontWeight: '700',
+      color: '#1E293B',
       margin: '0 0 8px 0',
-      lineHeight: '1.2'
+      lineHeight: '1.2',
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     badgeGroup: {
       display: 'flex',
       gap: '8px',
       flexWrap: 'wrap',
-      marginBottom: '12px'
+      marginBottom: '12px',
     },
     badge: {
       display: 'inline-block',
       padding: '4px 12px',
-      borderRadius: '9999px',
+      borderRadius: '20px',
       fontSize: 'clamp(11px, 0.9vw, 12px)',
-      fontWeight: '600'
+      fontWeight: '600',
     },
     description: {
-      color: COLORS.gray600,
+      color: '#64748B',
       lineHeight: '1.6',
       marginBottom: '12px',
       whiteSpace: 'pre-wrap',
-      fontSize: 'clamp(14px, 1.2vw, 15px)'
+      fontSize: 'clamp(14px, 1.2vw, 15px)',
     },
     metaRow: {
       display: 'flex',
@@ -361,35 +340,36 @@ const ListingDetails = () => {
       gap: '16px',
       marginTop: '12px',
       paddingTop: '12px',
-      borderTop: '1px solid ' + COLORS.gray100
+      borderTop: '1px solid #F1F5F9',
     },
     metaItem: {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: COLORS.gray500
+      color: '#94A3B8',
     },
     sectionTitle: {
       fontSize: 'clamp(16px, 1.6vw, 18px)',
       fontWeight: '700',
-      color: COLORS.gray900,
+      color: '#1E293B',
       margin: '0 0 8px 0',
       display: 'flex',
       alignItems: 'center',
-      gap: '8px'
+      gap: '8px',
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     contactRow: {
       display: 'flex',
       gap: '10px',
       flexWrap: 'wrap',
-      marginTop: '12px'
+      marginTop: '12px',
     },
     shareContainer: {
       display: 'flex',
       flexWrap: 'wrap',
       gap: '8px',
-      marginTop: '12px'
+      marginTop: '12px',
     },
     shareBtn: {
       padding: 'clamp(6px, 0.6vw, 8px) clamp(12px, 1.2vw, 14px)',
@@ -398,94 +378,96 @@ const ListingDetails = () => {
       cursor: 'pointer',
       fontSize: 'clamp(12px, 1vw, 13px)',
       fontWeight: '600',
-      color: COLORS.white,
+      color: '#FFFFFF',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '6px',
-      transition: 'transform 0.2s, opacity 0.2s'
+      transition: 'all 0.2s ease',
+      fontFamily: 'inherit',
     },
     shareSuccess: {
-      color: COLORS.success,
+      color: '#10B981',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      marginTop: '8px'
+      marginTop: '8px',
     },
     reviewHeader: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       flexWrap: 'wrap',
-      gap: '8px'
+      gap: '8px',
     },
     reviewForm: {
-      marginTop: '16px'
+      marginTop: '16px',
     },
     reviewItem: {
-      borderTop: '1px solid ' + COLORS.gray200,
+      borderTop: '1px solid #F1F5F9',
       paddingTop: '12px',
-      marginTop: '12px'
+      marginTop: '12px',
     },
     reviewRating: {
       display: 'flex',
       justifyContent: 'space-between',
       flexWrap: 'wrap',
-      gap: '8px'
+      gap: '8px',
     },
     reviewComment: {
-      color: COLORS.gray600,
+      color: '#64748B',
       marginTop: '4px',
-      fontSize: 'clamp(14px, 1.2vw, 15px)'
+      fontSize: 'clamp(14px, 1.2vw, 15px)',
     },
     noReviews: {
-      color: COLORS.gray500,
+      color: '#94A3B8',
       marginTop: '12px',
-      fontSize: 'clamp(14px, 1.2vw, 15px)'
+      fontSize: 'clamp(14px, 1.2vw, 15px)',
     },
     input: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid ' + COLORS.gray300,
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: COLORS.gray900,
+      color: '#1E293B',
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: COLORS.white,
+      background: '#FFFFFF',
       fontFamily: 'inherit',
-      transition: 'border-color 0.15s, box-shadow 0.15s'
+      transition: 'border-color 0.2s, box-shadow 0.2s',
     },
     textarea: {
       width: '100%',
       padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid ' + COLORS.gray300,
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: COLORS.gray900,
+      color: '#1E293B',
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: COLORS.white,
+      background: '#FFFFFF',
       fontFamily: 'inherit',
       resize: 'vertical',
       minHeight: 'clamp(60px, 8vw, 80px)',
-      transition: 'border-color 0.15s, box-shadow 0.15s'
+      transition: 'border-color 0.2s, box-shadow 0.2s',
     },
     select: {
       width: '100%',
       padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
-      border: '1px solid ' + COLORS.gray300,
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: COLORS.gray900,
+      color: '#1E293B',
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: COLORS.white
+      background: '#FFFFFF',
+      fontFamily: 'inherit',
     },
     row: {
       display: 'flex',
       gap: '12px',
-      flexWrap: 'wrap'
+      flexWrap: 'wrap',
     },
     half: {
-      flex: 1
+      flex: 1,
     },
     errorContainer: {
       minHeight: '100vh',
@@ -494,25 +476,26 @@ const ListingDetails = () => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '16px',
-      backgroundColor: COLORS.gray50,
+      background: '#F8FAFC',
       padding: '20px',
-      textAlign: 'center'
+      textAlign: 'center',
     },
     errorIcon: {
       fontSize: '48px',
-      marginBottom: '16px'
+      marginBottom: '16px',
     },
     errorTitle: {
-      color: COLORS.gray900,
+      color: '#1E293B',
       fontSize: 'clamp(18px, 2vw, 20px)',
       fontWeight: '700',
-      margin: 0
+      margin: 0,
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     errorText: {
-      color: COLORS.gray500,
+      color: '#94A3B8',
       marginBottom: '16px',
-      fontSize: 'clamp(14px, 1.2vw, 15px)'
-    }
+      fontSize: 'clamp(14px, 1.2vw, 15px)',
+    },
   };
 
   return (
@@ -520,11 +503,11 @@ const ListingDetails = () => {
       <button 
         onClick={() => navigate(-1)} 
         style={styles.backButton}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray300}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray200}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
       >
-        <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray600} strokeWidth={2.5} />
-        <span>Back</span>
+        <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
+        Back
       </button>
 
       <div style={styles.card}>
@@ -546,14 +529,14 @@ const ListingDetails = () => {
             ...styles.imageGrid,
             justifyContent: 'center',
             alignItems: 'center',
-            backgroundColor: COLORS.gray100,
+            background: '#F8FAFC',
             borderRadius: '12px',
             padding: '20px',
             marginBottom: '16px',
             minHeight: '120px'
           }}>
-            <div style={{ textAlign: 'center', color: COLORS.gray400 }}>
-              <SketchIcon d={ICONS.image} size={48} color={COLORS.gray400} strokeWidth={1.5} />
+            <div style={{ textAlign: 'center', color: '#94A3B8' }}>
+              <Icon d={ICONS.image} size={48} color="#94A3B8" strokeWidth={1.5} />
               <p style={{ marginTop: '8px', fontSize: '14px' }}>No image available</p>
             </div>
           </div>
@@ -562,27 +545,27 @@ const ListingDetails = () => {
         <h1 style={styles.title}>{listing.title}</h1>
 
         <div style={styles.badgeGroup}>
-          <span style={{ ...styles.badge, backgroundColor: '#EEECF5', color: COLORS.championBlue }}>
+          <span style={{ ...styles.badge, background: '#EDE9F5', color: '#1E293B' }}>
             {listing.category || 'General'}
           </span>
           {listing.sub_category && (
-            <span style={{ ...styles.badge, backgroundColor: COLORS.gray200, color: COLORS.gray600 }}>
+            <span style={{ ...styles.badge, background: '#F1F5F9', color: '#64748B' }}>
               {listing.sub_category}
             </span>
           )}
           {listing.price && (
-            <span style={{ ...styles.badge, backgroundColor: '#d1fae5', color: '#065f46' }}>
+            <span style={{ ...styles.badge, background: '#D1FAE5', color: '#065F46' }}>
               {formatPrice(listing.price)}
             </span>
           )}
           {listing.price_type === 'negotiable' && (
-            <span style={{ ...styles.badge, backgroundColor: '#fef3c7', color: '#92400e' }}>
+            <span style={{ ...styles.badge, background: '#FEF3C7', color: '#92400E' }}>
               Negotiable
             </span>
           )}
           {listing.delivery_available && (
-            <span style={{ ...styles.badge, backgroundColor: '#dbeafe', color: '#1e40af' }}>
-              <SketchIcon d={ICONS.delivery} size={12} color="#1e40af" strokeWidth={2} />
+            <span style={{ ...styles.badge, background: '#DBEAFE', color: '#1E40AF' }}>
+              <Icon d={ICONS.delivery} size={12} color="#1E40AF" strokeWidth={1.75} />
               <span style={{ marginLeft: '4px' }}>Delivery Available</span>
             </span>
           )}
@@ -593,24 +576,24 @@ const ListingDetails = () => {
         <div style={styles.metaRow}>
           {listing.location_area && (
             <span style={styles.metaItem}>
-              <SketchIcon d={ICONS.mapPin} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.mapPin} size={14} color="#94A3B8" strokeWidth={1.75} />
               {listing.location_area}
             </span>
           )}
           {listing.quantity && (
             <span style={styles.metaItem}>
-              <SketchIcon d={ICONS.tag} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
               {listing.quantity} {listing.unit || 'units'}
             </span>
           )}
           {listing.delivery_fee && (
             <span style={styles.metaItem}>
-              <SketchIcon d={ICONS.delivery} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.delivery} size={14} color="#94A3B8" strokeWidth={1.75} />
               Delivery: MWK {listing.delivery_fee}
             </span>
           )}
           <span style={styles.metaItem}>
-            <SketchIcon d={ICONS.clock} size={14} color={COLORS.gray500} strokeWidth={2} />
+            <Icon d={ICONS.clock} size={14} color="#94A3B8" strokeWidth={1.75} />
             {new Date(listing.created_at).toLocaleDateString()}
           </span>
         </div>
@@ -619,30 +602,30 @@ const ListingDetails = () => {
       {listing.businesses && (
         <div style={styles.card}>
           <h3 style={styles.sectionTitle}>
-            <SketchIcon d={ICONS.store} size={20} color={COLORS.lavenderTonic} strokeWidth={2} />
+            <Icon d={ICONS.store} size={20} color="#F59E0B" strokeWidth={1.75} />
             Contact {listing.businesses.business_name}
           </h3>
           
-          <p style={{ fontSize: 'clamp(15px, 1.3vw, 16px)', fontWeight: '600', color: COLORS.gray900 }}>
+          <p style={{ fontSize: 'clamp(15px, 1.3vw, 16px)', fontWeight: '600', color: '#1E293B' }}>
             {listing.businesses.business_name}
           </p>
           
           {sellerPhone && (
-            <p style={{ color: COLORS.gray500, marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
-              <SketchIcon d={ICONS.phone} size={14} color={COLORS.gray500} strokeWidth={2} />
+            <p style={{ color: '#94A3B8', marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
+              <Icon d={ICONS.phone} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '6px' }}>{sellerPhone}</span>
             </p>
           )}
           
           {listing.businesses.address && (
-            <p style={{ color: COLORS.gray500, fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
-              <SketchIcon d={ICONS.mapPin} size={14} color={COLORS.gray500} strokeWidth={2} />
+            <p style={{ color: '#94A3B8', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
+              <Icon d={ICONS.mapPin} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '6px' }}>{listing.businesses.address}</span>
             </p>
           )}
           
           {listing.businesses.rating > 0 && (
-            <p style={{ color: COLORS.warning, marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
+            <p style={{ color: '#F59E0B', marginTop: '4px', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
               {renderStars(listing.businesses.rating)} ({listing.businesses.rating.toFixed(1)})
             </p>
           )}
@@ -657,22 +640,22 @@ const ListingDetails = () => {
                       size="md"
                       onClick={openPhoneDialer}
                     >
-                      <SketchIcon d={ICONS.phone} size={16} color={COLORS.white} strokeWidth={2} />
+                      <Icon d={ICONS.phone} size={16} color="#FFFFFF" strokeWidth={1.75} />
                       Call Now
                     </PrimaryButton>
                     <PrimaryButton
                       variant="success"
                       size="md"
                       onClick={openWhatsApp}
-                      style={{ backgroundColor: '#25D366' }}
+                      style={{ background: '#25D366' }}
                     >
-                      <SketchIcon d={ICONS.whatsapp} size={16} color={COLORS.white} strokeWidth={2} />
+                      <Icon d={ICONS.whatsapp} size={16} color="#FFFFFF" strokeWidth={1.75} />
                       WhatsApp
                     </PrimaryButton>
                   </>
                 )}
                 {!sellerPhone && (
-                  <p style={{ color: COLORS.gray500, fontSize: 'clamp(13px, 1.1vw, 14px)' }}>
+                  <p style={{ color: '#94A3B8', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>
                     This seller hasn't provided a phone number yet.
                   </p>
                 )}
@@ -680,7 +663,7 @@ const ListingDetails = () => {
             ) : (
               <Link to="/login">
                 <PrimaryButton variant="primary" size="md">
-                  <SketchIcon d={ICONS.user} size={16} color={COLORS.championBlue} strokeWidth={2} />
+                  <Icon d={ICONS.user} size={16} color="#FFFFFF" strokeWidth={1.75} />
                   Sign in to Contact
                 </PrimaryButton>
               </Link>
@@ -691,48 +674,48 @@ const ListingDetails = () => {
 
       <div style={styles.card}>
         <h3 style={styles.sectionTitle}>
-          <SketchIcon d={ICONS.share} size={20} color={COLORS.lavenderTonic} strokeWidth={2} />
+          <Icon d={ICONS.share} size={20} color="#F59E0B" strokeWidth={1.75} />
           Share This Listing
         </h3>
-        <p style={{ color: COLORS.gray500, fontSize: 'clamp(13px, 1.1vw, 14px)', marginBottom: '12px' }}>
+        <p style={{ color: '#94A3B8', fontSize: 'clamp(13px, 1.1vw, 14px)', marginBottom: '12px' }}>
           Share this product with friends and family
         </p>
 
         <div style={styles.shareContainer}>
           <button
             onClick={shareOnWhatsApp}
-            style={{ ...styles.shareBtn, backgroundColor: '#25D366' }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            style={{ ...styles.shareBtn, background: '#25D366' }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <SketchIcon d={ICONS.whatsapp} size={16} color={COLORS.white} strokeWidth={2} />
+            <Icon d={ICONS.whatsapp} size={16} color="#FFFFFF" strokeWidth={1.75} />
             WhatsApp
           </button>
           <button
             onClick={shareOnFacebook}
-            style={{ ...styles.shareBtn, backgroundColor: '#1877F2' }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            style={{ ...styles.shareBtn, background: '#1877F2' }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <SketchIcon d={ICONS.share} size={16} color={COLORS.white} strokeWidth={2} />
+            <Icon d={ICONS.share} size={16} color="#FFFFFF" strokeWidth={1.75} />
             Facebook
           </button>
           <button
             onClick={shareOnTwitter}
-            style={{ ...styles.shareBtn, backgroundColor: '#000000' }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            style={{ ...styles.shareBtn, background: '#1DA1F2' }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <SketchIcon d={ICONS.share} size={16} color={COLORS.white} strokeWidth={2} />
+            <Icon d={ICONS.share} size={16} color="#FFFFFF" strokeWidth={1.75} />
             Twitter
           </button>
           <button
             onClick={copyLink}
-            style={{ ...styles.shareBtn, backgroundColor: COLORS.gray500 }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            style={{ ...styles.shareBtn, background: '#64748B' }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            <SketchIcon d={ICONS.copy} size={16} color={COLORS.white} strokeWidth={2} />
+            <Icon d={ICONS.copy} size={16} color="#FFFFFF" strokeWidth={1.75} />
             Copy Link
           </button>
         </div>
@@ -742,7 +725,7 @@ const ListingDetails = () => {
       <div style={styles.card}>
         <div style={styles.reviewHeader}>
           <h3 style={styles.sectionTitle}>
-            <SketchIcon d={ICONS.star} size={20} color={COLORS.warning} strokeWidth={2} />
+            <Icon d={ICONS.star} size={20} color="#F59E0B" strokeWidth={1.75} />
             Reviews ({reviews.length})
           </h3>
           {user && (
@@ -751,7 +734,7 @@ const ListingDetails = () => {
               size="sm"
               onClick={() => setShowReviewForm(!showReviewForm)}
             >
-              <SketchIcon d={ICONS.pencil} size={14} color={COLORS.championBlue} strokeWidth={2} />
+              <Icon d={ICONS.pencil} size={14} color="#FFFFFF" strokeWidth={1.75} />
               Write Review
             </PrimaryButton>
           )}
@@ -760,7 +743,7 @@ const ListingDetails = () => {
         {showReviewForm && (
           <form onSubmit={handleReviewSubmit} style={styles.reviewForm}>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: COLORS.gray700, fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Rating</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#475569', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Rating</label>
               <select
                 value={reviewData.rating}
                 onChange={(e) => setReviewData({ ...reviewData, rating: parseInt(e.target.value) })}
@@ -773,7 +756,7 @@ const ListingDetails = () => {
               </select>
             </div>
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: COLORS.gray700, fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Comment</label>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '600', color: '#475569', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>Comment</label>
               <textarea
                 value={reviewData.comment}
                 onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
@@ -801,7 +784,7 @@ const ListingDetails = () => {
                 <span style={{ fontWeight: '600', fontSize: 'clamp(14px, 1.2vw, 15px)' }}>
                   {renderStars(review.rating)} {review.rating}/5
                 </span>
-                <span style={{ color: COLORS.gray400, fontSize: 'clamp(11px, 0.9vw, 12px)' }}>
+                <span style={{ color: '#94A3B8', fontSize: 'clamp(11px, 0.9vw, 12px)' }}>
                   {new Date(review.created_at).toLocaleDateString()}
                 </span>
               </div>

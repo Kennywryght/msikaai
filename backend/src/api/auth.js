@@ -1,16 +1,18 @@
+// backend/src/api/auth.js
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { logger } from '../utils/logger.js';
+// ============================================
+// PHASE 7: IMPORT EMAIL SERVICE
+// ============================================
+import emailService from '../services/emailService.js';
+import queueService from '../services/queueService.js';
 
 // Load environment variables
 dotenv.config();
 
 const router = Router();
-
-// Check if environment variables are loaded
-console.log('🔍 Checking environment variables:');
-console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ Loaded' : '❌ Missing');
-console.log('SUPABASE_KEY:', process.env.SUPABASE_KEY ? '✅ Loaded' : '❌ Missing');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -29,7 +31,7 @@ router.post('/signup-email', async (req, res) => {
   try {
     const { email, password, fullName, phone } = req.body;
 
-    console.log('📝 Signup attempt:', { email, fullName });
+    logger.info('📝 Signup attempt:', { email, fullName });
 
     if (!email || !password) {
       return res.status(400).json({
@@ -51,7 +53,7 @@ router.post('/signup-email', async (req, res) => {
     });
 
     if (error) {
-      console.error('❌ Signup error:', error);
+      logger.error('❌ Signup error:', error);
       return res.status(400).json({
         success: false,
         error: error.message
@@ -71,19 +73,68 @@ router.post('/signup-email', async (req, res) => {
         });
 
       if (profileError) {
-        console.error('❌ Profile creation error:', profileError);
+        logger.error('❌ Profile creation error:', profileError);
+      }
+
+      // ============================================
+      // PHASE 7: SEND WELCOME EMAIL
+      // ============================================
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const verificationLink = `${frontendUrl}/verify-email?token=${data.session?.access_token || ''}`;
+        const dashboardLink = `${frontendUrl}/dashboard`;
+
+        // Send welcome email via queue or directly
+        if (queueService.isConnected && process.env.EMAIL_QUEUE_ENABLED !== 'false') {
+          // Queue the email for async sending
+          await queueService.sendEmail({
+            to: email,
+            template: 'welcome',
+            templateData: {
+              name: fullName || 'there',
+              email: email,
+              verificationLink: verificationLink,
+              dashboardLink: dashboardLink,
+            },
+          });
+          logger.info(`📧 Welcome email queued for ${email}`);
+        } else {
+          // Send directly
+          await emailService.sendWelcomeEmail(email, {
+            name: fullName || 'there',
+            email: email,
+            verificationLink: verificationLink,
+            dashboardLink: dashboardLink,
+          });
+          logger.info(`📧 Welcome email sent to ${email}`);
+        }
+      } catch (emailError) {
+        logger.error('❌ Welcome email error:', emailError.message);
+        // Don't fail signup if email fails
       }
     }
 
-    console.log('✅ Signup successful:', data.user?.id);
+    // Set cookie with access token
+    if (data.session?.access_token) {
+      res.cookie('access_token', data.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        sameSite: 'lax',
+        path: '/',
+      });
+    }
+
+    logger.info('✅ Signup successful:', data.user?.id);
 
     return res.json({
       success: true,
       message: 'Signup successful. Please verify your email.',
-      user: data.user
+      user: data.user,
+      session: data.session,
     });
   } catch (error) {
-    console.error('❌ Signup error:', error);
+    logger.error('❌ Signup error:', error);
     return res.status(400).json({
       success: false,
       error: error.message || 'Signup failed'
@@ -91,12 +142,12 @@ router.post('/signup-email', async (req, res) => {
   }
 });
 
-// Login with email - UPDATED with auto-profile creation
+// Login with email
 router.post('/login-email', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log('🔐 Login attempt:', { email });
+    logger.info('🔐 Login attempt:', { email });
 
     if (!email || !password) {
       return res.status(400).json({
@@ -111,7 +162,7 @@ router.post('/login-email', async (req, res) => {
     });
 
     if (error) {
-      console.error('❌ Login error:', error);
+      logger.error('❌ Login error:', error);
       return res.status(401).json({
         success: false,
         error: error.message || 'Invalid credentials'
@@ -119,7 +170,7 @@ router.post('/login-email', async (req, res) => {
     }
 
     // Check if user has a profile - if not, create one
-    console.log('🔍 Checking for profile for user:', data.user?.id);
+    logger.info('🔍 Checking for profile for user:', data.user?.id);
     
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -129,7 +180,7 @@ router.post('/login-email', async (req, res) => {
 
     // If profile doesn't exist (PGRST116), create it
     if (profileError && profileError.code === 'PGRST116') {
-      console.log('📝 Profile not found, creating one for user:', data.user?.id);
+      logger.info('📝 Profile not found, creating one for user:', data.user?.id);
       
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
@@ -144,7 +195,7 @@ router.post('/login-email', async (req, res) => {
         .single();
 
       if (createError) {
-        console.error('❌ Profile creation error:', createError);
+        logger.error('❌ Profile creation error:', createError);
         // Still return the user even if profile creation fails
         return res.json({
           success: true,
@@ -155,8 +206,19 @@ router.post('/login-email', async (req, res) => {
         });
       }
 
-      console.log('✅ Profile created successfully:', newProfile.id);
+      logger.info('✅ Profile created successfully:', newProfile.id);
       
+      // Set cookie with access token
+      if (data.session?.access_token) {
+        res.cookie('access_token', data.session.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+          sameSite: 'lax',
+          path: '/',
+        });
+      }
+
       return res.json({
         success: true,
         message: 'Login successful',
@@ -167,7 +229,7 @@ router.post('/login-email', async (req, res) => {
     }
 
     if (profileError) {
-      console.error('❌ Profile fetch error:', profileError);
+      logger.error('❌ Profile fetch error:', profileError);
       // Still return the user even if profile fetch fails
       return res.json({
         success: true,
@@ -178,7 +240,18 @@ router.post('/login-email', async (req, res) => {
       });
     }
 
-    console.log('✅ Login successful:', data.user?.id);
+    // Set cookie with access token
+    if (data.session?.access_token) {
+      res.cookie('access_token', data.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+        path: '/',
+      });
+    }
+
+    logger.info('✅ Login successful:', data.user?.id);
 
     return res.json({
       success: true,
@@ -188,7 +261,7 @@ router.post('/login-email', async (req, res) => {
       profile: profile || null
     });
   } catch (error) {
-    console.error('❌ Login error:', error);
+    logger.error('❌ Login error:', error);
     return res.status(401).json({
       success: false,
       error: error.message || 'Invalid credentials'
@@ -205,7 +278,7 @@ router.post('/send-otp', async (req, res) => {
   try {
     const { phone } = req.body;
 
-    console.log('📱 Send OTP attempt:', { phone });
+    logger.info('📱 Send OTP attempt:', { phone });
 
     if (!phone || phone.length < 10) {
       return res.status(400).json({
@@ -219,14 +292,14 @@ router.post('/send-otp', async (req, res) => {
     });
 
     if (error) {
-      console.error('❌ Send OTP error:', error);
+      logger.error('❌ Send OTP error:', error);
       return res.status(400).json({
         success: false,
         error: error.message
       });
     }
 
-    console.log('✅ OTP sent:', { phone });
+    logger.info('✅ OTP sent:', { phone });
 
     return res.json({
       success: true,
@@ -234,7 +307,7 @@ router.post('/send-otp', async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('❌ Send OTP error:', error);
+    logger.error('❌ Send OTP error:', error);
     return res.status(400).json({
       success: false,
       error: error.message || 'Failed to send OTP'
@@ -247,7 +320,7 @@ router.post('/verify-otp', async (req, res) => {
   try {
     const { phone, token, fullName } = req.body;
 
-    console.log('✅ Verify OTP attempt:', { phone });
+    logger.info('✅ Verify OTP attempt:', { phone });
 
     if (!phone || !token) {
       return res.status(400).json({
@@ -263,7 +336,7 @@ router.post('/verify-otp', async (req, res) => {
     });
 
     if (error) {
-      console.error('❌ Verify OTP error:', error);
+      logger.error('❌ Verify OTP error:', error);
       return res.status(400).json({
         success: false,
         error: error.message
@@ -271,7 +344,7 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     // Check if user has a profile - if not, create one
-    console.log('🔍 Checking for profile for user:', data.user?.id);
+    logger.info('🔍 Checking for profile for user:', data.user?.id);
     
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -281,7 +354,7 @@ router.post('/verify-otp', async (req, res) => {
 
     // If profile doesn't exist (PGRST116), create it
     if (profileError && profileError.code === 'PGRST116') {
-      console.log('📝 Profile not found, creating one for user:', data.user?.id);
+      logger.info('📝 Profile not found, creating one for user:', data.user?.id);
       
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
@@ -295,7 +368,7 @@ router.post('/verify-otp', async (req, res) => {
         .single();
 
       if (createError) {
-        console.error('❌ Profile creation error:', createError);
+        logger.error('❌ Profile creation error:', createError);
         // Still return the user even if profile creation fails
         return res.json({
           success: true,
@@ -306,8 +379,19 @@ router.post('/verify-otp', async (req, res) => {
         });
       }
 
-      console.log('✅ Profile created successfully:', newProfile.id);
+      logger.info('✅ Profile created successfully:', newProfile.id);
       
+      // Set cookie with access token
+      if (data.session?.access_token) {
+        res.cookie('access_token', data.session.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+          sameSite: 'lax',
+          path: '/',
+        });
+      }
+
       return res.json({
         success: true,
         message: 'Verified successfully',
@@ -318,7 +402,7 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     if (profileError) {
-      console.error('❌ Profile fetch error:', profileError);
+      logger.error('❌ Profile fetch error:', profileError);
       // Still return the user even if profile fetch fails
       return res.json({
         success: true,
@@ -329,7 +413,18 @@ router.post('/verify-otp', async (req, res) => {
       });
     }
 
-    console.log('✅ OTP verified:', data.user?.id);
+    // Set cookie with access token
+    if (data.session?.access_token) {
+      res.cookie('access_token', data.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+        path: '/',
+      });
+    }
+
+    logger.info('✅ OTP verified:', data.user?.id);
 
     return res.json({
       success: true,
@@ -339,7 +434,7 @@ router.post('/verify-otp', async (req, res) => {
       profile: profile || null
     });
   } catch (error) {
-    console.error('❌ Verify OTP error:', error);
+    logger.error('❌ Verify OTP error:', error);
     return res.status(400).json({
       success: false,
       error: error.message || 'Failed to verify OTP'
@@ -351,34 +446,39 @@ router.post('/verify-otp', async (req, res) => {
 // 3. SESSION MANAGEMENT
 // ============================================
 
-// Get current user - UPDATED with auto-profile creation
+// Get current user
 router.get('/me', async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    console.log('🔍 Authorization header:', authHeader ? 'Present' : 'Missing');
+    // Check cookie first, then Authorization header
+    let token = req.cookies?.access_token;
     
-    const token = authHeader?.split(' ')[1];
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+      }
+    }
 
     if (!token) {
-      console.log('❌ No token provided in Authorization header');
+      logger.warn('❌ No token provided');
       return res.status(401).json({
         success: false,
         error: 'No token provided'
       });
     }
 
-    console.log('🔍 Verifying token...');
+    logger.info('🔍 Verifying token...');
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error) {
-      console.error('❌ Token verification failed:', error.message);
+      logger.error('❌ Token verification failed:', error.message);
       return res.status(401).json({
         success: false,
         error: error.message
       });
     }
 
-    console.log('✅ Token verified for user:', data.user?.id);
+    logger.info('✅ Token verified for user:', data.user?.id);
 
     // Get profile - if not found, create one
     const { data: profile, error: profileError } = await supabase
@@ -389,7 +489,7 @@ router.get('/me', async (req, res) => {
 
     // If profile doesn't exist (PGRST116), create it
     if (profileError && profileError.code === 'PGRST116') {
-      console.log('📝 Profile not found, creating one for user:', data.user?.id);
+      logger.info('📝 Profile not found, creating one for user:', data.user?.id);
       
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
@@ -404,7 +504,7 @@ router.get('/me', async (req, res) => {
         .single();
 
       if (createError) {
-        console.error('❌ Profile creation error:', createError);
+        logger.error('❌ Profile creation error:', createError);
         // Return user without profile
         return res.json({
           success: true,
@@ -413,7 +513,7 @@ router.get('/me', async (req, res) => {
         });
       }
 
-      console.log('✅ Profile created successfully:', newProfile.id);
+      logger.info('✅ Profile created successfully:', newProfile.id);
       
       return res.json({
         success: true,
@@ -423,7 +523,7 @@ router.get('/me', async (req, res) => {
     }
 
     if (profileError) {
-      console.error('❌ Profile fetch error:', profileError);
+      logger.error('❌ Profile fetch error:', profileError);
       return res.status(404).json({
         success: false,
         error: 'Profile not found'
@@ -436,7 +536,7 @@ router.get('/me', async (req, res) => {
       profile
     });
   } catch (error) {
-    console.error('❌ Get user error:', error);
+    logger.error('❌ Get user error:', error);
     return res.status(401).json({
       success: false,
       error: error.message || 'Authentication failed'
@@ -447,6 +547,14 @@ router.get('/me', async (req, res) => {
 // Sign out
 router.post('/signout', async (req, res) => {
   try {
+    // Clear cookie
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -464,6 +572,146 @@ router.post('/signout', async (req, res) => {
     return res.status(400).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+// Refresh token
+router.post('/refresh', async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refresh_token;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        error: 'No refresh token provided'
+      });
+    }
+
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (error) {
+      logger.error('❌ Refresh token error:', error);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid refresh token'
+      });
+    }
+
+    // Set new cookies
+    if (data.session?.access_token) {
+      res.cookie('access_token', data.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+        path: '/',
+      });
+    }
+
+    if (data.session?.refresh_token) {
+      res.cookie('refresh_token', data.session.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        sameSite: 'lax',
+        path: '/',
+      });
+    }
+
+    return res.json({
+      success: true,
+      session: data.session,
+    });
+  } catch (error) {
+    logger.error('❌ Refresh error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to refresh token'
+    });
+  }
+});
+
+// ============================================
+// 4. FORGOT PASSWORD
+// ============================================
+
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
+    }
+
+    logger.info('🔐 Password reset requested for:', { email });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/reset-password?email=${encodeURIComponent(email)}`;
+
+    // Send password reset email
+    await emailService.sendPasswordResetEmail(email, {
+      name: 'User',
+      resetLink: resetLink,
+      expiresIn: '1 hour',
+    });
+
+    logger.info('✅ Password reset email sent to:', email);
+
+    return res.json({
+      success: true,
+      message: 'Password reset instructions sent to your email'
+    });
+  } catch (error) {
+    logger.error('❌ Forgot password error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to send reset email'
+    });
+  }
+});
+
+// ============================================
+// 5. RESEND VERIFICATION EMAIL
+// ============================================
+
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
+    }
+
+    logger.info('📧 Resend verification requested for:', { email });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const verificationLink = `${frontendUrl}/verify-email`;
+
+    await emailService.sendVerificationEmail(email, {
+      name: 'User',
+      verificationLink: verificationLink,
+    });
+
+    logger.info('✅ Verification email resent to:', email);
+
+    return res.json({
+      success: true,
+      message: 'Verification email sent successfully'
+    });
+  } catch (error) {
+    logger.error('❌ Resend verification error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to send verification email'
     });
   }
 });

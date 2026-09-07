@@ -4,20 +4,29 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PrimaryButton from '../components/PrimaryButton';
 
-// ==========================================
-// BRAND COLORS
-// ==========================================
-const COLORS = {
-  championBlue: '#151130',
-  lavenderTonic: '#C8BEFA',
-  gray50: '#F8F7FA',
-  gray200: '#DDD9EB',
-  gray400: '#9E97B3',
-  gray500: '#787090',
-  gray600: '#5C5470',
-  gray700: '#3F384F',
-  gray900: '#151130',
-  white: '#FFFFFF',
+// ============================================
+// PREMIUM FEATHER ICONS
+// ============================================
+const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+  >
+    <path d={d} />
+  </svg>
+);
+
+const ICONS = {
+  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
 };
 
 const NotFound = () => {
@@ -30,36 +39,38 @@ const NotFound = () => {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: COLORS.gray50,
+      background: '#F8FAFC',
       padding: '20px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      textAlign: 'center'
+      textAlign: 'center',
     },
     content: {
       maxWidth: '480px',
       animation: 'fadeIn 0.5s ease-out',
     },
     number: {
-      fontSize: '120px',
+      fontSize: 'clamp(80px, 15vw, 120px)',
       fontWeight: '900',
-      color: COLORS.gray200,
+      color: '#E2E8F0',
       lineHeight: 1,
       marginBottom: '8px',
       letterSpacing: '-0.05em',
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     icon: {
-      fontSize: '64px',
+      fontSize: 'clamp(48px, 8vw, 64px)',
       marginBottom: '16px',
     },
     title: {
-      fontSize: '28px',
+      fontSize: 'clamp(24px, 4vw, 28px)',
       fontWeight: '700',
-      color: COLORS.gray900,
+      color: '#1E293B',
       marginBottom: '8px',
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     description: {
-      color: COLORS.gray500,
-      fontSize: '16px',
+      color: '#94A3B8',
+      fontSize: 'clamp(15px, 1.4vw, 16px)',
       marginBottom: '32px',
       lineHeight: '1.6',
     },
@@ -72,14 +83,15 @@ const NotFound = () => {
     },
     support: {
       marginTop: '24px',
-      color: COLORS.gray400,
+      color: '#94A3B8',
       fontSize: '14px',
     },
     link: {
-      color: COLORS.lavenderTonic,
+      color: '#F59E0B',
       textDecoration: 'none',
       fontWeight: '500',
-    }
+      transition: 'color 0.2s',
+    },
   };
 
   return (
@@ -102,12 +114,14 @@ const NotFound = () => {
         <div style={styles.actions}>
           <Link to={user ? '/dashboard' : '/'} style={{ width: '100%' }}>
             <PrimaryButton variant="primary" size="lg" fullWidth>
+              <Icon d={ICONS.home} size={16} color="#FFFFFF" strokeWidth={1.75} />
               {user ? 'Go to Dashboard' : 'Go Home'}
             </PrimaryButton>
           </Link>
           
           <Link to="/search" style={{ width: '100%' }}>
             <PrimaryButton variant="outline" size="lg" fullWidth>
+              <Icon d={ICONS.search} size={16} color="#1E293B" strokeWidth={1.75} />
               Browse Listings
             </PrimaryButton>
           </Link>

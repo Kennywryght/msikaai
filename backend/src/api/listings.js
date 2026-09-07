@@ -6,6 +6,13 @@ import multer from 'multer';
 import { cacheMiddleware, keyGenerators, invalidateCache } from '../middleware/cache.js';
 import { authenticateToken } from '../middleware/auth.js';
 import storageService from '../services/storageService.js';
+import dbService from '../services/dbService.js';
+import { eq, desc, and } from 'drizzle-orm';
+import { listings as listingsTable } from '../db/schema.js';
+// ============================================
+// PHASE 5: IMPORT SEARCH SERVICE
+// ============================================
+import searchService from '../services/searchService.js';
 
 dotenv.config();
 
@@ -25,53 +32,25 @@ const upload = multer({
 // PUBLIC ROUTES (No authentication required)
 // ============================================
 
-// GET ALL LISTINGS - Public
+// GET ALL LISTINGS - Public using Drizzle
 router.get('/', cacheMiddleware(300, keyGenerators.listings), async (req, res) => {
   try {
     const { limit = 20, offset = 0, status = 'active' } = req.query;
 
     console.log('📦 Fetching all listings:', { limit, offset, status });
 
-    const maxLimit = Math.min(parseInt(limit), 50);
-    const validOffset = Math.max(parseInt(offset), 0);
-
-    const { data, error } = await supabaseAdmin
-      .from('listings')
-      .select(`
-        *,
-        businesses:business_id (
-          id,
-          business_name,
-          category,
-          phone,
-          address,
-          rating,
-          logo_url
-        )
-      `)
-      .eq('status', status)
-      .range(validOffset, validOffset + maxLimit - 1)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('❌ Fetch listings error:', error);
-      return res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
-
-    const { count, error: countError } = await supabaseAdmin
-      .from('listings')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', status);
+    const result = await dbService.getListings({
+      status,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
 
     return res.json({
       success: true,
-      listings: data || [],
-      total: count || 0,
-      limit: maxLimit,
-      offset: validOffset
+      listings: result.listings,
+      total: result.total,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
     });
   } catch (error) {
     console.error('❌ Fetch listings error:', error);
@@ -90,25 +69,16 @@ router.get('/business/:businessId', cacheMiddleware(300), async (req, res) => {
 
     console.log('🔍 Fetching listings for business:', businessId);
 
-    const { data, error } = await supabaseAdmin
-      .from('listings')
-      .select('*')
-      .eq('business_id', businessId)
-      .eq('status', status)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('❌ Fetch listings error:', error);
-      return res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
+    const result = await dbService.getListingsByBusiness(businessId, {
+      status,
+      limit: 100,
+      offset: 0,
+    });
 
     return res.json({
       success: true,
-      listings: data || [],
-      total: data?.length || 0
+      listings: result.listings,
+      total: result.total,
     });
   } catch (error) {
     console.error('❌ Fetch listings error:', error);
@@ -120,7 +90,7 @@ router.get('/business/:businessId', cacheMiddleware(300), async (req, res) => {
 });
 
 // ============================================
-// SEARCH LISTINGS - Public
+// SEARCH LISTINGS - Public (Database fallback)
 // ============================================
 router.get('/search', cacheMiddleware(180, keyGenerators.search), async (req, res) => {
   try {
@@ -135,70 +105,19 @@ router.get('/search', cacheMiddleware(180, keyGenerators.search), async (req, re
 
     console.log('🔍 Searching listings:', { q, category, minPrice, maxPrice, limit, offset });
 
-    const maxLimit = Math.min(parseInt(limit), 50);
-    const validOffset = Math.max(parseInt(offset), 0);
-
-    let query = supabaseAdmin
-      .from('listings')
-      .select(`
-        *,
-        businesses:business_id (
-          id,
-          business_name,
-          category,
-          rating,
-          logo_url
-        )
-      `)
-      .eq('status', 'active');
-
-    if (q) {
-      query = query.textSearch('search_vector', q, { config: 'english' });
-    }
-
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    if (minPrice) {
-      query = query.gte('price', parseFloat(minPrice));
-    }
-    if (maxPrice) {
-      query = query.lte('price', parseFloat(maxPrice));
-    }
-
-    const { data, error } = await query
-      .range(validOffset, validOffset + maxLimit - 1)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('❌ Search error:', error);
-      return res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
-
-    let countQuery = supabaseAdmin
-      .from('listings')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active');
-
-    if (q) {
-      countQuery = countQuery.textSearch('search_vector', q, { config: 'english' });
-    }
-    if (category) {
-      countQuery = countQuery.eq('category', category);
-    }
-
-    const { count, error: countError } = await countQuery;
+    const result = await dbService.searchListings(q, {
+      category,
+      location: req.query.location,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
 
     return res.json({
       success: true,
-      listings: data || [],
-      total: count || 0,
-      limit: maxLimit,
-      offset: validOffset
+      listings: result.listings,
+      total: result.total,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
     });
   } catch (error) {
     console.error('❌ Search error:', error);
@@ -216,48 +135,21 @@ router.get('/:id', cacheMiddleware(600), async (req, res) => {
 
     console.log('🔍 Fetching listing by ID:', id);
 
-    const { data, error } = await supabaseAdmin
-      .from('listings')
-      .select(`
-        *,
-        businesses:business_id (
-          id,
-          business_name,
-          category,
-          phone,
-          address,
-          rating,
-          logo_url
-        )
-      `)
-      .eq('id', id)
-      .single();
+    const listing = await dbService.getListing(id);
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({
-          success: false,
-          error: 'Listing not found'
-        });
-      }
-      console.error('❌ Fetch listing error:', error);
-      return res.status(400).json({
+    if (!listing) {
+      return res.status(404).json({
         success: false,
-        error: error.message
+        error: 'Listing not found'
       });
     }
 
-    // Increment view count (async)
-    supabaseAdmin
-      .from('listings')
-      .update({ view_count: (data.view_count || 0) + 1 })
-      .eq('id', id)
-      .then(() => console.log(`📊 View count updated for listing ${id}`))
-      .catch(err => console.error('View count update error:', err));
+    // Increment view count
+    await dbService.incrementViewCount(id);
 
     return res.json({
       success: true,
-      listing: data
+      listing: listing
     });
   } catch (error) {
     console.error('❌ Fetch listing error:', error);
@@ -301,82 +193,81 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
       });
     }
 
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id, user_id')
-      .eq('id', businessId)
-      .single();
-
-    if (businessError) {
-      console.error('❌ Business check error:', businessError);
+    // Check business exists
+    const business = await dbService.getBusiness(businessId);
+    if (!business) {
       return res.status(404).json({
         success: false,
         error: 'Business not found'
       });
     }
 
-    // ✅ Upload images to Supabase Storage
+    // Upload images using storage service (Cloudinary with Supabase fallback)
     let imageUrls = [];
     if (req.files && req.files.length > 0) {
       try {
         imageUrls = await storageService.uploadListingImages(req.files, businessId);
-        console.log(`✅ Uploaded ${imageUrls.length} images to bucket: listing-images`);
+        console.log(`✅ Uploaded ${imageUrls.length} images`);
       } catch (uploadError) {
         console.error('⚠️ Image upload warning:', uploadError.message);
-        // Continue without images if upload fails
       }
     } else {
       console.log('⚠️ No images to upload');
     }
 
-    // ✅ Fix: Parse numeric values carefully to prevent overflow
+    // Parse numeric values
     const parsedPrice = price !== undefined && price !== '' && price !== null ? parseFloat(price) : null;
     const parsedDeliveryFee = deliveryFee !== undefined && deliveryFee !== '' && deliveryFee !== null ? parseFloat(deliveryFee) : null;
     const parsedQuantity = quantity !== undefined && quantity !== '' && quantity !== null ? parseInt(quantity, 10) : null;
 
-    // ✅ Validate price range to prevent database overflow (max 99,999,999.99)
+    // Validate price range
     const finalPrice = parsedPrice !== null && parsedPrice <= 99999999.99 ? parsedPrice : null;
     const finalDeliveryFee = parsedDeliveryFee !== null && parsedDeliveryFee <= 99999999.99 ? parsedDeliveryFee : null;
 
-    const { data, error } = await supabaseAdmin
-      .from('listings')
-      .insert({
-        business_id: businessId,
-        title,
-        description: description || '',
-        category: category || 'Other',
-        sub_category: subCategory || '',
-        price: finalPrice,
-        price_type: priceType || 'fixed',
-        quantity: parsedQuantity,
-        unit: unit || '',
-        images: imageUrls,
-        status: status || 'active',
-        location_area: locationArea || '',
-        delivery_available: deliveryAvailable === true || deliveryAvailable === 'true',
-        delivery_fee: finalDeliveryFee,
-        contact_phone: contactPhone || ''
-      })
-      .select()
-      .single();
+    const listingData = {
+      businessId,
+      title,
+      description: description || '',
+      category: category || 'Other',
+      subCategory: subCategory || '',
+      price: finalPrice,
+      priceType: priceType || 'fixed',
+      quantity: parsedQuantity,
+      unit: unit || '',
+      images: imageUrls,
+      status: status || 'active',
+      locationArea: locationArea || '',
+      deliveryAvailable: deliveryAvailable === true || deliveryAvailable === 'true',
+      deliveryFee: finalDeliveryFee,
+      contactPhone: contactPhone || '',
+    };
 
-    if (error) {
-      console.error('❌ Listing creation error:', error);
-      return res.status(400).json({
-        success: false,
-        error: error.message || 'Failed to create listing'
-      });
+    const listing = await dbService.createListing(listingData);
+
+    // ============================================
+    // PHASE 5: INDEX IN SEARCH
+    // ============================================
+    try {
+      // Fetch full listing with business data for indexing
+      const fullListing = await dbService.getListing(listing.id);
+      if (fullListing) {
+        await searchService.indexListing(fullListing);
+        console.log('🔍 Listing indexed in search:', listing.id);
+      }
+    } catch (searchError) {
+      console.warn('⚠️ Search indexing warning:', searchError.message);
+      // Don't fail the request if search indexing fails
     }
 
     await invalidateCache('listings:');
     await invalidateCache(`business:${businessId}`);
 
-    console.log('✅ Listing created:', data.id, 'Images:', imageUrls.length);
+    console.log('✅ Listing created:', listing.id, 'Images:', imageUrls.length);
 
     return res.status(201).json({
       success: true,
       message: 'Listing created successfully',
-      listing: data
+      listing: listing
     });
   } catch (error) {
     console.error('❌ Listing creation error:', error);
@@ -395,38 +286,47 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     console.log('🔄 Updating listing:', id);
 
+    // Remove fields that shouldn't be updated
     delete updates.id;
-    delete updates.business_id;
-    delete updates.created_at;
-    delete updates.view_count;
-    delete updates.contact_count;
+    delete updates.businessId;
+    delete updates.createdAt;
+    delete updates.viewCount;
+    delete updates.contactCount;
 
-    // ✅ Fix: Parse numeric values for update
+    // Parse numeric values
     if (updates.price !== undefined) {
       const parsedPrice = updates.price !== '' && updates.price !== null ? parseFloat(updates.price) : null;
       updates.price = parsedPrice !== null && parsedPrice <= 99999999.99 ? parsedPrice : null;
     }
-    if (updates.delivery_fee !== undefined) {
-      const parsedFee = updates.delivery_fee !== '' && updates.delivery_fee !== null ? parseFloat(updates.delivery_fee) : null;
-      updates.delivery_fee = parsedFee !== null && parsedFee <= 99999999.99 ? parsedFee : null;
+    if (updates.deliveryFee !== undefined) {
+      const parsedFee = updates.deliveryFee !== '' && updates.deliveryFee !== null ? parseFloat(updates.deliveryFee) : null;
+      updates.deliveryFee = parsedFee !== null && parsedFee <= 99999999.99 ? parsedFee : null;
     }
     if (updates.quantity !== undefined) {
       updates.quantity = updates.quantity !== '' && updates.quantity !== null ? parseInt(updates.quantity, 10) : null;
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('listings')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    const listing = await dbService.updateListing(id, updates);
 
-    if (error) {
-      console.error('❌ Update error:', error);
-      return res.status(400).json({
+    if (!listing) {
+      return res.status(404).json({
         success: false,
-        error: error.message
+        error: 'Listing not found'
       });
+    }
+
+    // ============================================
+    // PHASE 5: UPDATE IN SEARCH
+    // ============================================
+    try {
+      // Fetch full listing with business data for indexing
+      const fullListing = await dbService.getListing(id);
+      if (fullListing) {
+        await searchService.indexListing(fullListing);
+        console.log('🔍 Listing updated in search:', id);
+      }
+    } catch (searchError) {
+      console.warn('⚠️ Search update warning:', searchError.message);
     }
 
     await invalidateCache('listings:');
@@ -437,7 +337,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     return res.json({
       success: true,
       message: 'Listing updated successfully',
-      listing: data
+      listing: listing
     });
   } catch (error) {
     console.error('❌ Update error:', error);
@@ -448,26 +348,30 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// DELETE LISTING - Protected
+// DELETE LISTING - Protected (Soft delete)
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
     console.log('🗑️ Deleting listing:', id);
 
-    const { data, error } = await supabaseAdmin
-      .from('listings')
-      .update({ status: 'inactive' })
-      .eq('id', id)
-      .select()
-      .single();
+    const listing = await dbService.updateListing(id, { status: 'inactive' });
 
-    if (error) {
-      console.error('❌ Delete error:', error);
-      return res.status(400).json({
+    if (!listing) {
+      return res.status(404).json({
         success: false,
-        error: error.message
+        error: 'Listing not found'
       });
+    }
+
+    // ============================================
+    // PHASE 5: DELETE FROM SEARCH
+    // ============================================
+    try {
+      await searchService.deleteListing(id);
+      console.log('🔍 Listing deleted from search:', id);
+    } catch (searchError) {
+      console.warn('⚠️ Search delete warning:', searchError.message);
     }
 
     await invalidateCache('listings:');
@@ -478,10 +382,77 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     return res.json({
       success: true,
       message: 'Listing deleted successfully',
-      listing: data
+      listing: listing
     });
   } catch (error) {
     console.error('❌ Delete error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// HARD DELETE LISTING - Protected (Admin only - permanently delete)
+router.delete('/:id/permanent', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log('🗑️ Permanently deleting listing:', id);
+
+    // Check if user is admin
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', req.user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Admin access required'
+      });
+    }
+
+    // Get listing before deleting
+    const listing = await dbService.getListing(id);
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        error: 'Listing not found'
+      });
+    }
+
+    // Delete from search
+    try {
+      await searchService.deleteListing(id);
+      console.log('🔍 Listing deleted from search:', id);
+    } catch (searchError) {
+      console.warn('⚠️ Search delete warning:', searchError.message);
+    }
+
+    // Hard delete from database
+    const deleted = await dbService.deleteListingPermanent(id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        error: 'Listing not found'
+      });
+    }
+
+    await invalidateCache('listings:');
+    await invalidateCache(`listing:${id}`);
+    await invalidateCache(`business:${listing.businessId}`);
+
+    console.log('✅ Listing permanently deleted:', id);
+
+    return res.json({
+      success: true,
+      message: 'Listing permanently deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ Permanent delete error:', error);
     return res.status(500).json({
       success: false,
       error: error.message

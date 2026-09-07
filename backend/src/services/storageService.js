@@ -2,6 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
+import cloudinaryService from './cloudinaryService.js';
+import { logger } from '../utils/logger.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -9,11 +11,42 @@ const supabase = createClient(
 );
 
 class StorageService {
-  // Upload listing images - ✅ FIXED: Use correct bucket name 'listing-images'
+  /**
+   * Upload listing images - Uses Cloudinary if available, falls back to Supabase
+   */
   async uploadListingImages(files, businessId) {
+    // Check if Cloudinary is configured
+    if (cloudinaryService.isConfigured) {
+      logger.info('📤 Using Cloudinary for image upload...');
+      const result = await cloudinaryService.uploadMultipleImages(files, {
+        folder: `listings/${businessId}`,
+        width: 800,
+        height: 800,
+        quality: 80,
+      });
+
+      if (result.success) {
+        const urls = result.results
+          .filter(r => r.success)
+          .map(r => r.url);
+        logger.info(`✅ Uploaded ${urls.length} images to Cloudinary`);
+        return urls;
+      } else {
+        logger.warn('⚠️ Cloudinary upload failed, falling back to Supabase:', result.error);
+        // Fall through to Supabase
+      }
+    }
+
+    // Fallback: Upload to Supabase Storage
+    logger.info('📤 Using Supabase Storage for image upload...');
+    return this.uploadListingImagesToSupabase(files, businessId);
+  }
+
+  /**
+   * Upload listing images to Supabase (fallback)
+   */
+  async uploadListingImagesToSupabase(files, businessId) {
     const uploadedUrls = [];
-    
-    // ✅ CORRECT BUCKET NAME from your Supabase
     const bucketName = 'listing-images';
     
     for (const file of files) {
@@ -34,7 +67,7 @@ class StorageService {
           });
 
         if (error) {
-          console.error('Upload error:', error);
+          logger.error('Upload error:', error);
           continue;
         }
 
@@ -45,18 +78,40 @@ class StorageService {
 
         uploadedUrls.push(urlData.publicUrl);
       } catch (error) {
-        console.error('Image upload error:', error);
+        logger.error('Image upload error:', error);
       }
     }
 
-    console.log(`✅ Uploaded ${uploadedUrls.length} images to bucket: ${bucketName}`);
+    logger.info(`✅ Uploaded ${uploadedUrls.length} images to Supabase bucket: ${bucketName}`);
     return uploadedUrls;
   }
 
-  // Upload business logo - ✅ FIXED: Use correct bucket name 'business-logos'
+  /**
+   * Upload business logo - Uses Cloudinary if available
+   */
   async uploadLogo(file, businessId) {
+    // Try Cloudinary first
+    if (cloudinaryService.isConfigured) {
+      logger.info('📤 Using Cloudinary for logo upload...');
+      const result = await cloudinaryService.uploadLogo(file, businessId);
+      if (result.success) {
+        logger.info(`✅ Logo uploaded to Cloudinary for business ${businessId}`);
+        return result.url;
+      } else {
+        logger.warn('⚠️ Cloudinary logo upload failed, falling back to Supabase:', result.error);
+      }
+    }
+
+    // Fallback: Upload to Supabase
+    logger.info('📤 Using Supabase Storage for logo upload...');
+    return this.uploadLogoToSupabase(file, businessId);
+  }
+
+  /**
+   * Upload business logo to Supabase (fallback)
+   */
+  async uploadLogoToSupabase(file, businessId) {
     try {
-      // ✅ CORRECT BUCKET NAME from your Supabase
       const bucketName = 'business-logos';
       
       const compressed = await sharp(file.buffer)
@@ -79,18 +134,40 @@ class StorageService {
         .from(bucketName)
         .getPublicUrl(data.path);
 
-      console.log(`✅ Logo uploaded to bucket: ${bucketName}`);
+      logger.info(`✅ Logo uploaded to Supabase bucket: ${bucketName}`);
       return urlData.publicUrl;
     } catch (error) {
-      console.error('Logo upload error:', error);
+      logger.error('Logo upload error:', error);
       return null;
     }
   }
 
-  // Upload user avatar - ✅ FIXED: Use correct bucket name 'service-images'
+  /**
+   * Upload user avatar - Uses Cloudinary if available
+   */
   async uploadAvatar(file, userId) {
+    // Try Cloudinary first
+    if (cloudinaryService.isConfigured) {
+      logger.info('📤 Using Cloudinary for avatar upload...');
+      const result = await cloudinaryService.uploadAvatar(file, userId);
+      if (result.success) {
+        logger.info(`✅ Avatar uploaded to Cloudinary for user ${userId}`);
+        return result.url;
+      } else {
+        logger.warn('⚠️ Cloudinary avatar upload failed, falling back to Supabase:', result.error);
+      }
+    }
+
+    // Fallback: Upload to Supabase
+    logger.info('📤 Using Supabase Storage for avatar upload...');
+    return this.uploadAvatarToSupabase(file, userId);
+  }
+
+  /**
+   * Upload user avatar to Supabase (fallback)
+   */
+  async uploadAvatarToSupabase(file, userId) {
     try {
-      // ✅ CORRECT BUCKET NAME from your Supabase
       const bucketName = 'service-images';
       
       const compressed = await sharp(file.buffer)
@@ -113,28 +190,107 @@ class StorageService {
         .from(bucketName)
         .getPublicUrl(data.path);
 
-      console.log(`✅ Avatar uploaded to bucket: ${bucketName}`);
+      logger.info(`✅ Avatar uploaded to Supabase bucket: ${bucketName}`);
       return urlData.publicUrl;
     } catch (error) {
-      console.error('Avatar upload error:', error);
+      logger.error('Avatar upload error:', error);
       return null;
     }
   }
 
-  // Delete image
+  /**
+   * Delete image - Supports both Cloudinary and Supabase
+   */
   async deleteImage(bucket, path) {
+    // Try Cloudinary first (if path is a Cloudinary public ID)
+    if (cloudinaryService.isConfigured && path && !path.includes('supabase')) {
+      try {
+        const result = await cloudinaryService.deleteImage(path);
+        if (result.success) {
+          logger.info(`✅ Deleted from Cloudinary: ${path}`);
+          return true;
+        }
+      } catch (error) {
+        logger.warn('⚠️ Cloudinary delete failed, trying Supabase:', error.message);
+      }
+    }
+
+    // Fallback: Delete from Supabase
     try {
       const { error } = await supabase.storage
         .from(bucket)
         .remove([path]);
 
       if (error) throw error;
-      console.log(`✅ Deleted file from bucket: ${bucket}`);
+      logger.info(`✅ Deleted from Supabase bucket: ${bucket}`);
       return true;
     } catch (error) {
-      console.error('Delete image error:', error);
+      logger.error('Delete image error:', error);
       return false;
     }
+  }
+
+  /**
+   * Delete multiple images
+   */
+  async deleteMultipleImages(bucket, paths) {
+    const results = [];
+    for (const path of paths) {
+      const result = await this.deleteImage(bucket, path);
+      results.push(result);
+    }
+    const successCount = results.filter(r => r).length;
+    logger.info(`✅ Deleted ${successCount}/${paths.length} images`);
+    return results;
+  }
+
+  /**
+   * Get optimized URL (Cloudinary) or public URL (Supabase)
+   */
+  getOptimizedUrl(url, options = {}) {
+    // If it's a Cloudinary URL, use Cloudinary optimization
+    if (url && url.includes('cloudinary.com')) {
+      const publicId = this.extractPublicIdFromUrl(url);
+      if (publicId) {
+        return cloudinaryService.getOptimizedUrl(publicId, options);
+      }
+    }
+    // Return original URL for Supabase or other
+    return url;
+  }
+
+  /**
+   * Extract public ID from Cloudinary URL
+   */
+  extractPublicIdFromUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/');
+      // Find the part after 'upload/'
+      const uploadIndex = pathParts.indexOf('upload');
+      if (uploadIndex !== -1) {
+        // Get everything after the version number
+        const publicIdParts = pathParts.slice(uploadIndex + 2);
+        return publicIdParts.join('/').replace(/\.[^.]+$/, '');
+      }
+    } catch (error) {
+      return null;
+    }
+    return null;
+  }
+
+  /**
+   * Get storage service status
+   */
+  getStatus() {
+    return {
+      cloudinary: {
+        configured: cloudinaryService.isConfigured,
+      },
+      supabase: {
+        configured: true,
+      },
+    };
   }
 }
 

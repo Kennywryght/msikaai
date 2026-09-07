@@ -1,7 +1,11 @@
 // mobile/src/pages/SplashScreen.jsx
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, memo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-// --- PREMIUM FEATHER ICONS ---
+// ============================================================
+// PREMIUM FEATHER ICONS
+// ============================================================
 const Icon = ({ d, size = 24, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
@@ -24,19 +28,24 @@ const ICONS = {
   mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
   mic: "M19 10v2a7 7 0 01-14 0v-2M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM8 21h8",
   bot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
-  arrowRight: "M5 12h14m-7-7l7 7-7 7",
 };
 
 const SplashScreen = memo(({ onComplete }) => {
+  const { isAuthenticated, loading, authInitialized } = useAuth();
+  const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
-  const [loadingText, setLoadingText] = useState('Loading Marketplace...');
+  const [loadingText, setLoadingText] = useState('Loading Kumsika...');
+  const [canRedirect, setCanRedirect] = useState(false);
+  const hasNavigated = useRef(false);
 
+  // ============================================================
+  // PROGRESS ANIMATION
+  // ============================================================
   useEffect(() => {
     const messages = [
-      'Loading Marketplace...',
-      'Discovering local businesses...',
-      'Preparing AI assistant...',
-      'Mapping your location...',
+      'Loading Kumsika...',
+      'Checking your session...',
+      'Preparing your marketplace...',
       'Almost ready...'
     ];
 
@@ -47,26 +56,44 @@ const SplashScreen = memo(({ onComplete }) => {
       progressValue += 3;
       setProgress(progressValue);
 
-      if (progressValue >= 20 && step < messages.length - 1) {
+      if (progressValue >= 25 && step < messages.length - 1) {
         step++;
         setLoadingText(messages[step]);
       }
 
       if (progressValue >= 100) {
         clearInterval(interval);
-        setTimeout(() => {
-          if (onComplete) onComplete();
-        }, 300);
+        setCanRedirect(true);
+        if (onComplete) onComplete();
       }
     }, 50);
 
     return () => clearInterval(interval);
   }, [onComplete]);
 
+  // ============================================================
+  // AUTO-REDIRECT
+  // ============================================================
+  useEffect(() => {
+    if (!canRedirect || !authInitialized || hasNavigated.current) return;
+
+    hasNavigated.current = true;
+
+    const timer = setTimeout(() => {
+      if (isAuthenticated) {
+        navigate('/landing', { replace: true });
+      } else {
+        navigate('/login', { replace: true });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [canRedirect, isAuthenticated, authInitialized, navigate]);
+
   const styles = {
     container: {
       minHeight: '100vh',
-      background: `linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%)`,
+      background: 'linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -74,7 +101,7 @@ const SplashScreen = memo(({ onComplete }) => {
       padding: '40px 24px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       position: 'relative',
-      overflow: 'hidden'
+      overflow: 'hidden',
     },
     bgOrb1: {
       position: 'absolute',
@@ -84,7 +111,7 @@ const SplashScreen = memo(({ onComplete }) => {
       borderRadius: '50%',
       top: '-150px',
       right: '-150px',
-      pointerEvents: 'none'
+      pointerEvents: 'none',
     },
     bgOrb2: {
       position: 'absolute',
@@ -94,7 +121,7 @@ const SplashScreen = memo(({ onComplete }) => {
       borderRadius: '50%',
       bottom: '-100px',
       left: '-100px',
-      pointerEvents: 'none'
+      pointerEvents: 'none',
     },
     logoContainer: {
       display: 'flex',
@@ -103,18 +130,18 @@ const SplashScreen = memo(({ onComplete }) => {
       gap: '16px',
       marginBottom: '24px',
       zIndex: 1,
-      animation: 'fadeIn 0.8s ease-out'
+      animation: 'fadeIn 0.8s ease-out',
     },
     logoBadge: {
       width: '80px',
       height: '80px',
-      background: `linear-gradient(135deg, #F59E0B, #D97706)`,
+      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
       borderRadius: '24px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       boxShadow: '0 8px 40px rgba(245,158,11,0.3)',
-      animation: 'pulse 2s ease-in-out infinite'
+      animation: 'pulse 2s ease-in-out infinite',
     },
     title: {
       fontSize: '44px',
@@ -122,17 +149,18 @@ const SplashScreen = memo(({ onComplete }) => {
       color: '#FFFFFF',
       margin: 0,
       lineHeight: '1.1',
-      letterSpacing: '-0.02em'
+      letterSpacing: '-0.02em',
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     titleAccent: {
-      color: '#F59E0B'
+      color: '#F59E0B',
     },
     subtitle: {
       color: '#94A3B8',
       fontSize: '16px',
       marginTop: '2px',
       textAlign: 'center',
-      animation: 'fadeIn 0.8s ease-out 0.3s both'
+      animation: 'fadeIn 0.8s ease-out 0.3s both',
     },
     tagline: {
       color: '#F59E0B',
@@ -147,7 +175,7 @@ const SplashScreen = memo(({ onComplete }) => {
       animation: 'fadeIn 0.8s ease-out 0.6s both',
       display: 'flex',
       alignItems: 'center',
-      gap: '6px'
+      gap: '6px',
     },
     features: {
       display: 'grid',
@@ -157,7 +185,7 @@ const SplashScreen = memo(({ onComplete }) => {
       maxWidth: '380px',
       width: '100%',
       zIndex: 1,
-      animation: 'fadeIn 0.8s ease-out 0.9s both'
+      animation: 'fadeIn 0.8s ease-out 0.9s both',
     },
     featureItem: {
       display: 'flex',
@@ -172,7 +200,7 @@ const SplashScreen = memo(({ onComplete }) => {
       backgroundColor: 'rgba(255,255,255,0.04)',
       borderRadius: '12px',
       border: '1px solid rgba(255,255,255,0.06)',
-      backdropFilter: 'blur(4px)'
+      backdropFilter: 'blur(4px)',
     },
     featureIcon: {
       width: '44px',
@@ -181,19 +209,19 @@ const SplashScreen = memo(({ onComplete }) => {
       borderRadius: '12px',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
     },
     featureLabel: {
       fontSize: '11px',
       color: '#94A3B8',
-      fontWeight: '500'
+      fontWeight: '500',
     },
     progressContainer: {
       width: '100%',
       maxWidth: '360px',
       marginTop: '36px',
       zIndex: 1,
-      animation: 'fadeIn 0.8s ease-out 1.2s both'
+      animation: 'fadeIn 0.8s ease-out 1.2s both',
     },
     progressBar: {
       width: '100%',
@@ -201,16 +229,17 @@ const SplashScreen = memo(({ onComplete }) => {
       backgroundColor: 'rgba(255,255,255,0.08)',
       borderRadius: '6px',
       overflow: 'hidden',
-      position: 'relative'
+      position: 'relative',
     },
     progressFill: {
       height: '100%',
-      background: `linear-gradient(90deg, #F59E0B, #D97706)`,
+      background: 'linear-gradient(90deg, #F59E0B, #D97706)',
       borderRadius: '6px',
       transition: 'width 0.1s ease',
       position: 'relative',
       overflow: 'hidden',
-      boxShadow: '0 0 20px rgba(245,158,11,0.3)'
+      boxShadow: '0 0 20px rgba(245,158,11,0.3)',
+      width: `${Math.min(progress, 100)}%`,
     },
     progressGlow: {
       position: 'absolute',
@@ -219,7 +248,7 @@ const SplashScreen = memo(({ onComplete }) => {
       right: 0,
       bottom: 0,
       background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-      animation: 'shimmer 1.5s infinite'
+      animation: 'shimmer 1.5s infinite',
     },
     progressText: {
       color: '#64748B',
@@ -227,11 +256,11 @@ const SplashScreen = memo(({ onComplete }) => {
       marginTop: '12px',
       textAlign: 'center',
       fontFamily: 'monospace',
-      letterSpacing: '0.3px'
+      letterSpacing: '0.3px',
     },
     percentage: {
       color: '#F59E0B',
-      fontWeight: '700'
+      fontWeight: '700',
     },
     footer: {
       position: 'absolute',
@@ -242,7 +271,7 @@ const SplashScreen = memo(({ onComplete }) => {
       animation: 'fadeIn 0.8s ease-out 1.5s both',
       display: 'flex',
       alignItems: 'center',
-      gap: '6px'
+      gap: '6px',
     },
     version: {
       position: 'absolute',
@@ -252,7 +281,7 @@ const SplashScreen = memo(({ onComplete }) => {
       fontSize: '11px',
       fontWeight: '500',
       fontFamily: 'monospace',
-      zIndex: 1
+      zIndex: 1,
     },
     keyframes: `
       @keyframes fadeIn {
@@ -268,7 +297,7 @@ const SplashScreen = memo(({ onComplete }) => {
         0% { transform: translateX(-100%); }
         100% { transform: translateX(100%); }
       }
-    `
+    `,
   };
 
   return (
@@ -284,11 +313,9 @@ const SplashScreen = memo(({ onComplete }) => {
         <div style={styles.logoBadge}>
           <Icon d={ICONS.store} size={34} color="#1E293B" strokeWidth={2.5} />
         </div>
-        <div>
-          <h1 style={styles.title}>
-            Msika<span style={styles.titleAccent}>AI</span>
-          </h1>
-        </div>
+        <h1 style={styles.title}>
+          Kum<span style={styles.titleAccent}>sika</span>
+        </h1>
       </div>
 
       <p style={styles.subtitle}>Malawi's Smart Local Marketplace</p>
@@ -320,8 +347,8 @@ const SplashScreen = memo(({ onComplete }) => {
 
       <div style={styles.progressContainer}>
         <div style={styles.progressBar}>
-          <div style={{ ...styles.progressFill, width: `${Math.min(progress, 100)}%` }}>
-            <div style={styles.progressGlow}></div>
+          <div style={styles.progressFill}>
+            <div style={styles.progressGlow} />
           </div>
         </div>
         <p style={styles.progressText}>

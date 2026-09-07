@@ -7,35 +7,12 @@ import { voiceAPI, businessAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
 import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../components/ToastContainer';
 
-// ==========================================
-// BRAND COLORS
-// ==========================================
-const COLORS = {
-  championBlue: '#151130',
-  championBlueLight: '#2A2438',
-  championBlueDark: '#0A081F',
-  lavenderTonic: '#C8BEFA',
-  lavenderLight: '#D8CFFF',
-  lavenderDark: '#B8A8F0',
-  white: '#FFFFFF',
-  gray50: '#F8F7FA',
-  gray100: '#EEECF5',
-  gray200: '#DDD9EB',
-  gray300: '#C5C0D6',
-  gray400: '#9E97B3',
-  gray500: '#787090',
-  gray600: '#5C5470',
-  gray700: '#3F384F',
-  gray800: '#2A2438',
-  gray900: '#151130',
-  success: '#10B981',
-  error: '#EF4444',
-  warning: '#F59E0B',
-};
-
-// --- HAND-DRAWN STYLE INLINE SVG ICONS ---
-const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) => (
+// ============================================
+// PREMIUM FEATHER ICONS
+// ============================================
+const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
     height={size}
@@ -52,19 +29,21 @@ const SketchIcon = ({ d, size = 20, color = 'currentColor', strokeWidth = 2 }) =
 );
 
 const ICONS = {
-  arrowRight: "M5 12h14M12 5l7 7-7 7",
+  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
   mic: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
   store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
   check: "M20 6L9 17l-5-5",
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
   dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
-  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"
+  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+  close: "M18 6L6 18M6 6l12 12",
 };
 
 const VoiceListing = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { showToast, success, error } = useToast();
   const [recording, setRecording] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -72,8 +51,8 @@ const VoiceListing = () => {
   const [createdListingId, setCreatedListingId] = useState(null);
   const [businesses, setBusinesses] = useState([]);
   const [selectedBusiness, setSelectedBusiness] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [language, setLanguage] = useState('ny');
   const [samplePrompts, setSamplePrompts] = useState([]);
   const [validation, setValidation] = useState(null);
@@ -129,10 +108,11 @@ const VoiceListing = () => {
 
       mediaRecorder.current.start();
       setRecording(true);
-      setError('');
+      setErrorMsg('');
       setTranscript('Recording...');
     } catch (err) {
-      setError('Microphone access denied. Please allow microphone access.');
+      setErrorMsg('Microphone access denied. Please allow microphone access.');
+      showToast('Microphone access denied', 'error');
     }
   };
 
@@ -161,14 +141,16 @@ const VoiceListing = () => {
         if (response.data.validation) {
           const validationErrors = response.data.validation.errors || [];
           if (validationErrors.length > 0) {
-            setError('Please review: ' + validationErrors.join(', '));
+            setErrorMsg('Please review: ' + validationErrors.join(', '));
           }
         }
       } else {
-        setError(response.data.error || 'Failed to process voice');
+        setErrorMsg(response.data.error || 'Failed to process voice');
+        showToast(response.data.error || 'Failed to process voice', 'error');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to process voice');
+      setErrorMsg(err.response?.data?.error || 'Failed to process voice');
+      showToast(err.response?.data?.error || 'Failed to process voice', 'error');
     } finally {
       setProcessing(false);
     }
@@ -176,12 +158,13 @@ const VoiceListing = () => {
 
   const handleCreateListing = async () => {
     if (!selectedBusiness || !listingData) {
-      setError('Please select a business and record a listing');
+      setErrorMsg('Please select a business and record a listing');
+      showToast('Please select a business and record a listing', 'error');
       return;
     }
 
     setProcessing(true);
-    setError('');
+    setErrorMsg('');
 
     try {
       const response = await voiceAPI.createListing({
@@ -193,15 +176,18 @@ const VoiceListing = () => {
       });
 
       if (response.data.success) {
-        setSuccess('🎉 Listing created successfully!');
+        setSuccessMsg('🎉 Listing created successfully!');
+        success('🎉 Listing created successfully!');
         setCreatedListingId(response.data.listing?.id);
         setListingData(response.data.listing || listingData);
         setValidation(response.data.validation);
       } else {
-        setError(response.data.error || 'Failed to create listing');
+        setErrorMsg(response.data.error || 'Failed to create listing');
+        showToast(response.data.error || 'Failed to create listing', 'error');
       }
     } catch (err) {
-      setError(err.message || 'Failed to create listing');
+      setErrorMsg(err.message || 'Failed to create listing');
+      showToast(err.message || 'Failed to create listing', 'error');
     } finally {
       setProcessing(false);
     }
@@ -214,72 +200,74 @@ const VoiceListing = () => {
   const styles = {
     container: {
       minHeight: '100vh',
-      backgroundColor: COLORS.gray50,
+      background: '#F8FAFC',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: '24px 16px',
       maxWidth: '800px',
-      margin: '0 auto'
+      margin: '0 auto',
     },
     backButton: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
       padding: '8px 16px',
-      backgroundColor: COLORS.white,
-      border: '1px solid ' + COLORS.gray300,
+      background: '#FFFFFF',
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: '500',
-      color: COLORS.gray700,
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
+      color: '#64748B',
       marginBottom: '16px',
-      transition: 'all 0.2s'
+      transition: 'all 0.2s ease',
+      fontFamily: 'inherit',
     },
     card: {
-      backgroundColor: COLORS.white,
+      background: '#FFFFFF',
       borderRadius: '16px',
       padding: '24px',
       marginBottom: '16px',
-      border: '1px solid ' + COLORS.gray200,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+      border: '1px solid #E2E8F0',
+      boxShadow: '0 2px 12px rgba(30,41,59,0.04)',
     },
     title: {
       fontSize: '22px',
-      fontWeight: '800',
-      color: COLORS.gray900,
+      fontWeight: '700',
+      color: '#1E293B',
       margin: '0 0 4px 0',
       display: 'flex',
       alignItems: 'center',
-      gap: '10px'
+      gap: '10px',
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     subtitle: {
       fontSize: '14px',
-      color: COLORS.gray500,
-      margin: '0 0 20px 0'
+      color: '#94A3B8',
+      margin: '0 0 20px 0',
     },
     label: {
       display: 'block',
       fontSize: '13px',
       fontWeight: '600',
-      color: COLORS.gray700,
-      marginBottom: '4px'
+      color: '#475569',
+      marginBottom: '4px',
     },
     select: {
       width: '100%',
       padding: '10px 14px',
-      border: '1px solid ' + COLORS.gray300,
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       fontSize: '14px',
-      color: COLORS.gray900,
+      color: '#1E293B',
       boxSizing: 'border-box',
       outline: 'none',
-      backgroundColor: COLORS.white,
+      background: '#FFFFFF',
       fontFamily: 'inherit',
-      transition: 'border-color 0.2s'
+      transition: 'border-color 0.2s, box-shadow 0.2s',
     },
     recordContainer: {
       textAlign: 'center',
-      margin: '20px 0'
+      margin: '20px 0',
     },
     recordBtn: {
       padding: '16px',
@@ -289,9 +277,10 @@ const VoiceListing = () => {
       cursor: 'pointer',
       width: '80px',
       height: '80px',
-      backgroundColor: COLORS.lavenderTonic,
-      color: COLORS.championBlue,
-      transition: 'all 0.2s'
+      background: '#EDE9F5',
+      color: '#1E293B',
+      transition: 'all 0.2s ease',
+      boxShadow: '0 4px 16px rgba(30,41,59,0.08)',
     },
     recordBtnRecording: {
       padding: '16px',
@@ -301,9 +290,10 @@ const VoiceListing = () => {
       cursor: 'pointer',
       width: '80px',
       height: '80px',
-      backgroundColor: COLORS.error,
-      color: COLORS.white,
-      animation: 'pulse 1s infinite'
+      background: '#EF4444',
+      color: '#FFFFFF',
+      animation: 'pulse 1s infinite',
+      boxShadow: '0 4px 16px rgba(239,68,68,0.3)',
     },
     recordBtnDisabled: {
       padding: '16px',
@@ -313,92 +303,94 @@ const VoiceListing = () => {
       cursor: 'not-allowed',
       width: '80px',
       height: '80px',
-      backgroundColor: COLORS.gray300,
-      color: COLORS.gray500,
-      opacity: 0.5
+      background: '#E2E8F0',
+      color: '#94A3B8',
+      opacity: 0.5,
     },
     recordLabel: {
       marginTop: '8px',
-      color: COLORS.gray500,
+      color: '#94A3B8',
       fontSize: '14px',
-      fontWeight: '500'
+      fontWeight: '500',
     },
     transcriptBox: {
       padding: '12px',
-      backgroundColor: COLORS.gray50,
+      background: '#F8FAFC',
       borderRadius: '8px',
       marginTop: '12px',
-      border: '1px solid ' + COLORS.gray200
+      border: '1px solid #E2E8F0',
     },
     transcriptLabel: {
       fontWeight: '600',
       marginBottom: '4px',
       fontSize: '13px',
-      color: COLORS.gray700
+      color: '#64748B',
     },
     transcriptText: {
-      color: COLORS.gray800,
+      color: '#1E293B',
       margin: 0,
       fontSize: '14px',
-      lineHeight: '1.6'
+      lineHeight: '1.6',
     },
     preview: {
       padding: '12px',
-      backgroundColor: '#EEECF5',
+      background: '#EDE9F5',
       borderRadius: '8px',
       marginTop: '12px',
-      border: '1px solid ' + COLORS.lavenderTonic
+      border: '1px solid #F59E0B',
     },
     previewLabel: {
       fontWeight: '600',
       marginBottom: '4px',
       fontSize: '13px',
-      color: COLORS.championBlue
+      color: '#1E293B',
     },
     previewItem: {
       fontSize: '14px',
-      color: COLORS.gray800,
-      margin: '2px 0'
+      color: '#1E293B',
+      margin: '2px 0',
     },
     error: {
-      color: COLORS.error,
+      color: '#EF4444',
       padding: '12px',
-      backgroundColor: '#fef2f2',
+      background: '#FEF2F2',
       borderRadius: '8px',
-      border: '1px solid #fecaca',
-      marginTop: '12px'
+      border: '1px solid #FECACA',
+      marginTop: '12px',
+      fontSize: '14px',
     },
     success: {
-      color: COLORS.success,
+      color: '#10B981',
       padding: '12px',
-      backgroundColor: '#ecfdf5',
+      background: '#ECFDF5',
       borderRadius: '8px',
-      border: '1px solid #a7f3d0',
-      marginTop: '12px'
+      border: '1px solid #BBF7D0',
+      marginTop: '12px',
+      fontSize: '14px',
     },
     validationBox: {
       padding: '12px',
-      backgroundColor: '#fef3c7',
+      background: '#FEF3C7',
       borderRadius: '8px',
       marginTop: '12px',
-      border: '1px solid #fde68a'
+      border: '1px solid #FDE68A',
     },
     validationLabel: {
       fontWeight: '600',
       marginBottom: '4px',
       fontSize: '13px',
-      color: '#92400e'
+      color: '#92400E',
     },
     validationItem: {
       fontSize: '13px',
-      color: '#78350f',
-      margin: '2px 0'
+      color: '#78350F',
+      margin: '2px 0',
     },
     createBtn: {
       width: '100%',
       padding: '12px',
-      backgroundColor: COLORS.success,
-      color: COLORS.white,
+      background: '#10B981',
+      color: '#FFFFFF',
       border: 'none',
       borderRadius: '8px',
       fontSize: '16px',
@@ -409,13 +401,15 @@ const VoiceListing = () => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '8px',
-      transition: 'background-color 0.2s'
+      transition: 'all 0.2s ease',
+      fontFamily: 'inherit',
+      boxShadow: '0 2px 12px rgba(16,185,129,0.2)',
     },
     createBtnDisabled: {
       width: '100%',
       padding: '12px',
-      backgroundColor: '#86efac',
-      color: COLORS.white,
+      background: '#A7F3D0',
+      color: '#FFFFFF',
       border: 'none',
       borderRadius: '8px',
       fontSize: '16px',
@@ -425,59 +419,65 @@ const VoiceListing = () => {
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '8px'
+      gap: '8px',
+      fontFamily: 'inherit',
     },
     prompts: {
       display: 'flex',
       flexDirection: 'column',
       gap: '8px',
-      marginTop: '8px'
+      marginTop: '8px',
     },
     promptBtn: {
       padding: '10px 14px',
-      backgroundColor: COLORS.gray50,
-      border: '1px solid ' + COLORS.gray200,
+      background: '#F8FAFC',
+      border: '1px solid #E2E8F0',
       borderRadius: '8px',
       cursor: 'pointer',
       textAlign: 'left',
       fontSize: '14px',
-      color: COLORS.gray700,
-      transition: 'background-color 0.2s',
-      fontFamily: 'inherit'
+      color: '#64748B',
+      transition: 'all 0.2s ease',
+      fontFamily: 'inherit',
     },
     promptSectionTitle: {
       fontSize: '16px',
       fontWeight: '600',
-      color: COLORS.gray900,
+      color: '#1E293B',
       marginBottom: '8px',
       display: 'flex',
       alignItems: 'center',
-      gap: '8px'
+      gap: '8px',
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     shareSection: {
       marginTop: '16px',
       paddingTop: '16px',
-      borderTop: '1px solid ' + COLORS.gray200
+      borderTop: '1px solid #E2E8F0',
     },
     shareLabel: {
       fontSize: '14px',
       fontWeight: '600',
-      color: COLORS.gray900,
-      marginBottom: '8px'
+      color: '#1E293B',
+      marginBottom: '8px',
     },
     confidenceBar: {
       width: '100%',
       height: '4px',
-      backgroundColor: COLORS.gray200,
+      background: '#E2E8F0',
       borderRadius: '2px',
       marginTop: '8px',
-      overflow: 'hidden'
+      overflow: 'hidden',
     },
     confidenceFill: {
       height: '100%',
       borderRadius: '2px',
-      transition: 'width 0.5s ease'
-    }
+      transition: 'width 0.5s ease',
+    },
+    required: {
+      color: '#EF4444',
+      marginLeft: '2px',
+    },
   };
 
   return (
@@ -489,24 +489,24 @@ const VoiceListing = () => {
           100% { opacity: 1; transform: scale(1); }
         }
         .input-focus:focus {
-          border-color: ${COLORS.lavenderTonic};
-          box-shadow: 0 0 0 3px rgba(200, 190, 250, 0.2);
+          border-color: #F59E0B;
+          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
         }
       `}</style>
       
       <button 
         onClick={() => navigate('/dashboard')} 
         style={styles.backButton}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.white}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
       >
-        <SketchIcon d={ICONS.arrowRight} size={16} color={COLORS.gray600} strokeWidth={2.5} />
+        <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
         Back to Dashboard
       </button>
 
       <div style={styles.card}>
         <h2 style={styles.title}>
-          <SketchIcon d={ICONS.mic} size={24} color={COLORS.lavenderTonic} strokeWidth={2} />
+          <Icon d={ICONS.mic} size={24} color="#F59E0B" strokeWidth={1.75} />
           Voice Listing
         </h2>
         <p style={styles.subtitle}>Speak to create a listing in Chichewa or English</p>
@@ -532,9 +532,9 @@ const VoiceListing = () => {
         {businesses.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
             <label style={styles.label}>
-              <SketchIcon d={ICONS.store} size={14} color={COLORS.gray500} strokeWidth={2} />
+              <Icon d={ICONS.store} size={14} color="#94A3B8" strokeWidth={1.75} />
               <span style={{ marginLeft: '4px' }}>Business</span>
-              <span style={{ color: COLORS.error }}> *</span>
+              <span style={styles.required}>*</span>
             </label>
             <select
               value={selectedBusiness}
@@ -598,14 +598,14 @@ const VoiceListing = () => {
             {/* Confidence Bar */}
             {validation && validation.confidence && (
               <div style={{ marginTop: '8px' }}>
-                <p style={{ fontSize: '12px', color: COLORS.gray500, marginBottom: '2px' }}>
+                <p style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '2px' }}>
                   Confidence: {Math.round(validation.confidence * 100)}%
                 </p>
                 <div style={styles.confidenceBar}>
                   <div style={{
                     ...styles.confidenceFill,
                     width: `${validation.confidence * 100}%`,
-                    backgroundColor: validation.confidence > 0.7 ? COLORS.success : validation.confidence > 0.4 ? COLORS.warning : COLORS.error
+                    background: validation.confidence > 0.7 ? '#10B981' : validation.confidence > 0.4 ? '#F59E0B' : '#EF4444'
                   }} />
                 </div>
               </div>
@@ -624,29 +624,29 @@ const VoiceListing = () => {
         )}
 
         {/* Error/Success */}
-        {error && <div style={styles.error}>{error}</div>}
-        {success && <div style={styles.success}>{success}</div>}
+        {errorMsg && <div style={styles.error}>{errorMsg}</div>}
+        {successMsg && <div style={styles.success}>{successMsg}</div>}
 
         {/* Create Listing Button */}
-        {listingData && !success && (
+        {listingData && !successMsg && (
           <button
             onClick={handleCreateListing}
             disabled={processing || !selectedBusiness}
             style={processing || !selectedBusiness ? styles.createBtnDisabled : styles.createBtn}
             onMouseEnter={(e) => {
-              if (!processing && selectedBusiness) e.currentTarget.style.backgroundColor = '#15803d';
+              if (!processing && selectedBusiness) e.currentTarget.style.background = '#059669';
             }}
             onMouseLeave={(e) => {
-              if (!processing && selectedBusiness) e.currentTarget.style.backgroundColor = COLORS.success;
+              if (!processing && selectedBusiness) e.currentTarget.style.background = '#10B981';
             }}
           >
-            <SketchIcon d={ICONS.check} size={18} color={COLORS.white} strokeWidth={2} />
+            <Icon d={ICONS.check} size={18} color="#FFFFFF" strokeWidth={1.75} />
             {processing ? 'Processing...' : 'Create Listing'}
           </button>
         )}
 
         {/* Share Section - Show after successful creation */}
-        {success && createdListingId && (
+        {successMsg && createdListingId && (
           <div style={styles.shareSection}>
             <p style={styles.shareLabel}>📤 Share Your Listing</p>
             <SocialShare 
@@ -661,7 +661,7 @@ const VoiceListing = () => {
       {/* Sample Prompts */}
       <div style={styles.card}>
         <h3 style={styles.promptSectionTitle}>
-          <SketchIcon d={ICONS.sparkles} size={16} color={COLORS.warning} strokeWidth={2} />
+          <Icon d={ICONS.sparkles} size={16} color="#F59E0B" strokeWidth={1.75} />
           Sample {language === 'ny' ? 'Chichewa' : 'English'} Prompts
         </h3>
         <div style={styles.prompts}>
@@ -692,8 +692,8 @@ const VoiceListing = () => {
                 }, 500);
               }}
               style={styles.promptBtn}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.gray100}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.gray50}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
             >
               {prompt}
             </button>

@@ -7,7 +7,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   css: {
-    postcss: false, // This should disable PostCSS
+    postcss: false, // Disable PostCSS - not needed for this project
   },
   resolve: {
     alias: {
@@ -51,6 +51,15 @@ export default defineConfig({
     assetsInlineLimit: 4096,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],
+    // ✅ Force re-optimization to fix import issues
+    force: true,
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@supabase/supabase-js',
+      'react-hot-toast',
+      'lucide-react',
+    ],
   },
 });

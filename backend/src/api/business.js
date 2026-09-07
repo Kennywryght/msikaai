@@ -1,16 +1,11 @@
+// backend/src/api/business.js
 import { Router } from 'express';
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import dbService from '../services/dbService.js';
 
 dotenv.config();
 
 const router = Router();
-
-// Admin client with service role key
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 // ============================================
 // 1. CREATE BUSINESS
@@ -36,58 +31,33 @@ router.post('/create', async (req, res) => {
     }
 
     // Check if user already has a business
-    const { data: existing, error: checkError } = await supabaseAdmin
-      .from('businesses')
-      .select('id, business_name')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('❌ Check error:', checkError);
-      return res.status(500).json({
-        success: false,
-        error: 'Error checking existing business'
-      });
-    }
+    const existing = await dbService.getBusinessByUser(userId);
 
     if (existing) {
       return res.status(400).json({
         success: false,
-        error: `You already have a business: "${existing.business_name}"`
+        error: `You already have a business: "${existing.businessName}"`
       });
     }
 
     // Create business
-    const { data, error } = await supabaseAdmin
-      .from('businesses')
-      .insert({
-        user_id: userId,
-        business_name: businessName,
-        category: category,
-        description: description || '',
-        phone: phone || '',
-        address: address || '',
-        status: 'active',
-        verified: false,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const business = await dbService.createBusiness({
+      userId,
+      businessName,
+      category,
+      description: description || '',
+      phone: phone || '',
+      address: address || '',
+      status: 'active',
+      verified: false,
+    });
 
-    if (error) {
-      console.error('❌ Business creation error:', error);
-      return res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
-
-    console.log('✅ Business created:', data.id);
+    console.log('✅ Business created:', business.id);
 
     return res.status(201).json({
       success: true,
       message: 'Business created successfully!',
-      business: data
+      business: business
     });
   } catch (error) {
     console.error('❌ Business creation error:', error);
@@ -114,21 +84,9 @@ router.get('/user/:userId', async (req, res) => {
       });
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('businesses')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const business = await dbService.getBusinessByUser(userId);
 
-    if (error) {
-      console.error('❌ Database error:', error);
-      return res.status(500).json({
-        success: false,
-        error: error.message
-      });
-    }
-
-    if (!data) {
+    if (!business) {
       console.log('ℹ️ No business found for user');
       return res.status(404).json({
         success: false,
@@ -136,11 +94,11 @@ router.get('/user/:userId', async (req, res) => {
       });
     }
 
-    console.log('✅ Business found:', data.id);
+    console.log('✅ Business found:', business.id);
 
     return res.json({
       success: true,
-      business: data
+      business: business
     });
   } catch (error) {
     console.error('❌ Get business error:', error);
@@ -160,21 +118,9 @@ router.get('/:id', async (req, res) => {
 
     console.log('🔍 Fetching business by ID:', id);
 
-    const { data, error } = await supabaseAdmin
-      .from('businesses')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    const business = await dbService.getBusiness(id);
 
-    if (error) {
-      console.error('❌ Fetch error:', error);
-      return res.status(500).json({
-        success: false,
-        error: error.message
-      });
-    }
-
-    if (!data) {
+    if (!business) {
       return res.status(404).json({
         success: false,
         error: 'Business not found'
@@ -183,7 +129,7 @@ router.get('/:id', async (req, res) => {
 
     return res.json({
       success: true,
-      business: data
+      business: business
     });
   } catch (error) {
     console.error('❌ Get business error:', error);
@@ -204,23 +150,18 @@ router.put('/:id', async (req, res) => {
 
     console.log('🔄 Updating business:', id);
 
+    // Remove fields that shouldn't be updated
     delete updates.id;
-    delete updates.user_id;
-    delete updates.created_at;
-    delete updates.updated_at;
+    delete updates.userId;
+    delete updates.createdAt;
+    delete updates.updatedAt;
 
-    const { data, error } = await supabaseAdmin
-      .from('businesses')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    const business = await dbService.updateBusiness(id, updates);
 
-    if (error) {
-      console.error('❌ Update error:', error);
-      return res.status(400).json({
+    if (!business) {
+      return res.status(404).json({
         success: false,
-        error: error.message
+        error: 'Business not found'
       });
     }
 
@@ -229,7 +170,7 @@ router.put('/:id', async (req, res) => {
     return res.json({
       success: true,
       message: 'Business updated successfully',
-      business: data
+      business: business
     });
   } catch (error) {
     console.error('❌ Update error:', error);
@@ -249,30 +190,17 @@ router.get('/', async (req, res) => {
 
     console.log('🔍 Fetching businesses:', { category, limit, offset });
 
-    let query = supabaseAdmin
-      .from('businesses')
-      .select('*', { count: 'exact' })
-      .eq('status', 'active')
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
-
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      console.error('❌ Fetch error:', error);
-      return res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
+    const result = await dbService.getBusinesses({
+      category,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      status: 'active',
+    });
 
     return res.json({
       success: true,
-      businesses: data || [],
-      total: count || 0,
+      businesses: result.businesses || [],
+      total: result.total || 0,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -294,18 +222,12 @@ router.delete('/:id', async (req, res) => {
 
     console.log('🗑️ Deleting business:', id);
 
-    const { data, error } = await supabaseAdmin
-      .from('businesses')
-      .update({ status: 'inactive' })
-      .eq('id', id)
-      .select()
-      .single();
+    const business = await dbService.updateBusiness(id, { status: 'inactive' });
 
-    if (error) {
-      console.error('❌ Delete error:', error);
-      return res.status(400).json({
+    if (!business) {
+      return res.status(404).json({
         success: false,
-        error: error.message
+        error: 'Business not found'
       });
     }
 
@@ -314,7 +236,7 @@ router.delete('/:id', async (req, res) => {
     return res.json({
       success: true,
       message: 'Business deleted successfully',
-      business: data
+      business: business
     });
   } catch (error) {
     console.error('❌ Delete error:', error);

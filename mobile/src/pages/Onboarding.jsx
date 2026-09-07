@@ -1,388 +1,288 @@
 // mobile/src/pages/Onboarding.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import PrimaryButton from '../components/PrimaryButton';
-import LoadingSpinner from '../components/LoadingSpinner';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 
-// ==========================================
-// BRAND COLORS
-// ==========================================
-const COLORS = {
-  championBlue: '#151130',
-  lavenderTonic: '#C8BEFA',
-  white: '#FFFFFF',
-  gray50: '#F8F7FA',
-  gray100: '#EEECF5',
-  gray200: '#DDD9EB',
-  gray300: '#C5C0D6',
-  gray400: '#9E97B3',
-  gray500: '#787090',
-  gray600: '#5C5470',
-  gray700: '#3F384F',
-  gray900: '#151130',
-  success: '#10B981',
-  error: '#EF4444',
+// ============================================================
+// PREMIUM FEATHER ICONS
+// ============================================================
+const Icon = ({ d, size = 24, color = 'currentColor', strokeWidth = 1.75 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+  >
+    <path d={d} />
+  </svg>
+);
+
+const ICONS = {
+  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  check: "M20 6L9 17l-5-5",
+  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+  build: "M14.7 6.3a4 4 0 11-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 015.4-5.4zM9 12l3-3",
+  arrowRight: "M5 12h14M12 5l7 7-7 7",
 };
 
 const Onboarding = () => {
+  const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
-  const [step, setStep] = useState(1);
+  const [selectedRole, setSelectedRole] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    role: 'user',
-    company: '',
-    interests: []
-  });
 
-  const interestsList = [
-    'Web Development',
-    'Mobile Apps',
-    'AI/ML',
-    'Data Science',
-    'DevOps',
-    'Cybersecurity',
-    'Cloud Computing',
-    'UI/UX Design'
-  ];
-
-  useEffect(() => {
-    const firstNameInput = document.querySelector('input[name="fullName"]');
-    if (firstNameInput) {
-      setTimeout(() => firstNameInput.focus(), 100);
-    }
-  }, []);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleInterestToggle = (interest) => {
-    setFormData(prev => ({
-      ...prev,
-      interests: prev.interests.includes(interest)
-        ? prev.interests.filter(i => i !== interest)
-        : [...prev.interests, interest]
-    }));
-  };
-
-  const handleSubmit = async () => {
+  const handleRoleSelect = async (role) => {
+    setSelectedRole(role);
     setLoading(true);
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const result = await updateProfile({ 
+        role: role,
+        onboarding_completed: true 
+      });
       
-      if (!user) {
-        navigate('/login');
-        return;
+      if (result.success) {
+        success(`Welcome to Kumsika as a ${role}! 🎉`);
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 500);
+      } else {
+        showToast(result.error || 'Failed to complete onboarding', 'error');
       }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.fullName,
-          phone: formData.phone,
-          role: formData.role,
-          company: formData.company,
-          interests: formData.interests,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      success('Profile setup complete! 🎉');
-      
-      setTimeout(() => {
-        if (formData.role === 'admin') {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
-        }
-      }, 1500);
     } catch (err) {
-      console.error('Error completing onboarding:', err);
-      const errMsg = err.message || 'Error saving profile';
-      showToast(errMsg, 'error');
+      showToast(err.message, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner fullScreen message="Setting up your profile..." />;
-  }
-
   const styles = {
     container: {
       minHeight: '100vh',
       display: 'flex',
-      justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: COLORS.gray50,
+      justifyContent: 'center',
+      padding: '24px',
+      background: '#F8FAFC',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: '20px'
     },
     card: {
-      backgroundColor: COLORS.white,
-      borderRadius: '16px',
-      padding: 'clamp(24px, 3vw, 40px)',
-      maxWidth: '500px',
+      maxWidth: '520px',
       width: '100%',
-      boxShadow: '0 4px 12px rgba(21, 17, 48, 0.08)',
-      border: '1px solid ' + COLORS.gray200
+      padding: '40px 32px',
+      background: '#FFFFFF',
+      borderRadius: '24px',
+      border: '1px solid #E2E8F0',
+      boxShadow: '0 20px 60px rgba(30,41,59,0.06)',
+      position: 'relative',
     },
     header: {
       textAlign: 'center',
-      marginBottom: '32px'
+      marginBottom: '32px',
+    },
+    emoji: {
+      fontSize: '48px',
+      display: 'block',
+      marginBottom: '12px',
     },
     title: {
-      fontSize: 'clamp(24px, 3vw, 28px)',
+      fontSize: '28px',
       fontWeight: '700',
-      color: COLORS.gray900,
-      margin: '0 0 8px 0'
+      color: '#1E293B',
+      margin: 0,
+      fontFamily: '"Fraunces", Georgia, serif',
     },
     subtitle: {
-      fontSize: 'clamp(14px, 1.2vw, 16px)',
-      color: COLORS.gray500,
-      margin: 0
+      fontSize: '16px',
+      color: '#94A3B8',
+      margin: '4px 0 0',
     },
-    stepIndicator: {
+    options: {
       display: 'flex',
-      justifyContent: 'center',
-      gap: '8px',
-      marginBottom: '32px'
-    },
-    stepDot: {
-      width: '8px',
-      height: '8px',
-      borderRadius: '50%',
-      backgroundColor: COLORS.gray200,
-      transition: 'background-color 0.3s'
-    },
-    stepDotActive: {
-      backgroundColor: COLORS.lavenderTonic
-    },
-    formGroup: {
-      marginBottom: '20px'
-    },
-    label: {
-      display: 'block',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      fontWeight: '500',
-      color: COLORS.gray900,
-      marginBottom: '6px'
-    },
-    input: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid ' + COLORS.gray200,
-      borderRadius: '8px',
-      fontSize: 'clamp(14px, 1.2vw, 15px)',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-      boxSizing: 'border-box',
-      outline: 'none',
-      fontFamily: 'inherit',
-      backgroundColor: COLORS.white,
-      color: COLORS.gray900
-    },
-    select: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid ' + COLORS.gray200,
-      borderRadius: '8px',
-      fontSize: 'clamp(14px, 1.2vw, 15px)',
-      backgroundColor: COLORS.white,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      outline: 'none',
-      color: COLORS.gray900
-    },
-    interestsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: '8px',
-      marginTop: '8px'
-    },
-    interestChip: {
-      padding: 'clamp(6px, 0.6vw, 8px) clamp(10px, 1vw, 12px)',
-      borderRadius: '8px',
-      border: '1px solid ' + COLORS.gray200,
-      backgroundColor: COLORS.white,
-      cursor: 'pointer',
-      fontSize: 'clamp(12px, 1vw, 14px)',
-      textAlign: 'center',
-      transition: 'all 0.2s',
-      userSelect: 'none',
-      color: COLORS.gray700
-    },
-    interestChipActive: {
-      backgroundColor: COLORS.lavenderTonic,
-      color: COLORS.championBlue,
-      borderColor: COLORS.lavenderTonic
-    },
-    buttonContainer: {
-      display: 'flex',
+      flexDirection: 'column',
       gap: '12px',
-      marginTop: '24px'
+      marginBottom: '24px',
     },
-    buttonHalf: {
-      flex: 1
-    }
+    option: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px',
+      padding: '20px',
+      borderRadius: '16px',
+      border: '2px solid #E2E8F0',
+      background: '#FFFFFF',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      fontFamily: 'inherit',
+      textAlign: 'left',
+      width: '100%',
+      opacity: loading ? 0.6 : 1,
+    },
+    optionSelected: {
+      borderColor: '#F59E0B',
+      background: 'rgba(245,158,11,0.04)',
+      boxShadow: '0 0 0 4px rgba(245,158,11,0.1)',
+    },
+    optionIcon: {
+      width: '48px',
+      height: '48px',
+      borderRadius: '12px',
+      background: '#F8FAFC',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    optionContent: {
+      flex: 1,
+    },
+    optionTitle: {
+      fontSize: '16px',
+      fontWeight: '700',
+      color: '#1E293B',
+      margin: 0,
+    },
+    optionDesc: {
+      fontSize: '13px',
+      color: '#94A3B8',
+      margin: '2px 0 0',
+    },
+    optionCheck: {
+      width: '24px',
+      height: '24px',
+      borderRadius: '50%',
+      background: '#E2E8F0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      transition: 'all 0.2s ease',
+    },
+    optionCheckActive: {
+      background: '#F59E0B',
+    },
+    footer: {
+      textAlign: 'center',
+      fontSize: '13px',
+      color: '#94A3B8',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '6px',
+      margin: 0,
+      paddingTop: '16px',
+      borderTop: '1px solid #E2E8F0',
+    },
+    loadingOverlay: {
+      position: 'absolute',
+      inset: 0,
+      background: 'rgba(255,255,255,0.85)',
+      backdropFilter: 'blur(4px)',
+      borderRadius: '24px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10,
+    },
+    loadingText: {
+      fontSize: '14px',
+      color: '#64748B',
+      marginTop: '8px',
+    },
   };
 
   return (
     <div style={styles.container}>
-      <style>{`
-        .input-focus:focus {
-          border-color: ${COLORS.lavenderTonic};
-          box-shadow: 0 0 0 3px rgba(200, 190, 250, 0.2);
-        }
-      `}</style>
-
       <div style={styles.card}>
+        {loading && (
+          <div style={styles.loadingOverlay}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>⏳</div>
+              <div style={styles.loadingText}>Setting up your account...</div>
+            </div>
+          </div>
+        )}
+
         <div style={styles.header}>
-          <h1 style={styles.title}>Welcome! 👋</h1>
-          <p style={styles.subtitle}>Let's set up your profile</p>
+          <span style={styles.emoji}>👋</span>
+          <h1 style={styles.title}>Welcome, {user?.email?.split('@')[0] || 'there'}!</h1>
+          <p style={styles.subtitle}>How do you want to use Kumsika?</p>
         </div>
 
-        <div style={styles.stepIndicator}>
-          {[1, 2].map((num) => (
-            <div
-              key={num}
-              style={{
-                ...styles.stepDot,
-                ...(step === num ? styles.stepDotActive : {})
-              }}
-            />
-          ))}
+        <div style={styles.options}>
+          <button
+            style={{
+              ...styles.option,
+              ...(selectedRole === 'buyer' ? styles.optionSelected : {}),
+            }}
+            onClick={() => handleRoleSelect('buyer')}
+            disabled={loading}
+          >
+            <div style={styles.optionIcon}>
+              <Icon d={ICONS.user} size={28} color="#F59E0B" strokeWidth={1.75} />
+            </div>
+            <div style={styles.optionContent}>
+              <h3 style={styles.optionTitle}>I want to buy</h3>
+              <p style={styles.optionDesc}>Browse listings, find products, and connect with sellers</p>
+            </div>
+            <div style={{ ...styles.optionCheck, ...(selectedRole === 'buyer' ? styles.optionCheckActive : {}) }}>
+              {selectedRole === 'buyer' && <Icon d={ICONS.check} size={14} color="#FFFFFF" strokeWidth={2.5} />}
+            </div>
+          </button>
+
+          <button
+            style={{
+              ...styles.option,
+              ...(selectedRole === 'seller' ? styles.optionSelected : {}),
+            }}
+            onClick={() => handleRoleSelect('seller')}
+            disabled={loading}
+          >
+            <div style={styles.optionIcon}>
+              <Icon d={ICONS.store} size={28} color="#10B981" strokeWidth={1.75} />
+            </div>
+            <div style={styles.optionContent}>
+              <h3 style={styles.optionTitle}>I want to sell</h3>
+              <p style={styles.optionDesc}>List products, manage inventory, and grow your business</p>
+            </div>
+            <div style={{ ...styles.optionCheck, ...(selectedRole === 'seller' ? styles.optionCheckActive : {}) }}>
+              {selectedRole === 'seller' && <Icon d={ICONS.check} size={14} color="#FFFFFF" strokeWidth={2.5} />}
+            </div>
+          </button>
+
+          <button
+            style={{
+              ...styles.option,
+              ...(selectedRole === 'business' ? styles.optionSelected : {}),
+            }}
+            onClick={() => handleRoleSelect('business')}
+            disabled={loading}
+          >
+            <div style={styles.optionIcon}>
+              <Icon d={ICONS.build} size={28} color="#8B5CF6" strokeWidth={1.75} />
+            </div>
+            <div style={styles.optionContent}>
+              <h3 style={styles.optionTitle}>I run a business</h3>
+              <p style={styles.optionDesc}>Full business profile, analytics, and team management</p>
+            </div>
+            <div style={{ ...styles.optionCheck, ...(selectedRole === 'business' ? styles.optionCheckActive : {}) }}>
+              {selectedRole === 'business' && <Icon d={ICONS.check} size={14} color="#FFFFFF" strokeWidth={2.5} />}
+            </div>
+          </button>
         </div>
 
-        {step === 1 && (
-          <>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Full Name *</label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="John Doe"
-                className="input-focus"
-                required
-                autoComplete="name"
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Phone Number</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="+1 234 567 8900"
-                className="input-focus"
-                autoComplete="tel"
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Role</label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleInputChange}
-                style={styles.select}
-                className="input-focus"
-              >
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Company (Optional)</label>
-              <input
-                type="text"
-                name="company"
-                value={formData.company}
-                onChange={handleInputChange}
-                style={styles.input}
-                placeholder="Your company name"
-                className="input-focus"
-                autoComplete="organization"
-              />
-            </div>
-
-            <PrimaryButton
-              variant="primary"
-              size="lg"
-              fullWidth
-              onClick={() => setStep(2)}
-              disabled={!formData.fullName}
-            >
-              Continue →
-            </PrimaryButton>
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Select your interests</label>
-              <p style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: COLORS.gray500, marginTop: '4px' }}>
-                Choose areas you're interested in (click to toggle)
-              </p>
-              <div style={styles.interestsGrid}>
-                {interestsList.map((interest) => (
-                  <div
-                    key={interest}
-                    style={{
-                      ...styles.interestChip,
-                      ...(formData.interests.includes(interest)
-                        ? styles.interestChipActive
-                        : {})
-                    }}
-                    onClick={() => handleInterestToggle(interest)}
-                  >
-                    {interest}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={styles.buttonContainer}>
-              <PrimaryButton
-                variant="outline"
-                size="md"
-                fullWidth
-                onClick={() => setStep(1)}
-                style={styles.buttonHalf}
-              >
-                ← Back
-              </PrimaryButton>
-              <PrimaryButton
-                variant="primary"
-                size="md"
-                fullWidth
-                onClick={handleSubmit}
-                disabled={loading}
-                loading={loading}
-                style={styles.buttonHalf}
-              >
-                Complete Setup ✨
-              </PrimaryButton>
-            </div>
-          </>
-        )}
+        <p style={styles.footer}>
+          <Icon d={ICONS.sparkles} size={14} color="#F59E0B" strokeWidth={1.75} />
+          Free forever · AI-powered · Local community
+        </p>
       </div>
     </div>
   );
