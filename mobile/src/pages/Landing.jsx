@@ -255,7 +255,17 @@ const Landing = () => {
 
   // Toggle comment section
   const toggleComments = (itemId) => {
-    setShowComments(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+    setShowComments(prev => ({ 
+      ...prev, 
+      [itemId]: !prev[itemId] 
+    }));
+    // If opening comments, focus the input after a small delay
+    if (!showComments[itemId]) {
+      setTimeout(() => {
+        const input = document.querySelector(`[data-comment-input="${itemId}"]`);
+        if (input) input.focus();
+      }, 300);
+    }
   };
 
   // Toggle reply input
@@ -581,6 +591,7 @@ const Landing = () => {
                         {/* Comment Input */}
                         <div className="comment-input-wrapper">
                           <input
+                            data-comment-input={item.id}
                             type="text"
                             placeholder="Write a comment..."
                             value={commentText[item.id] || ''}
@@ -1179,24 +1190,29 @@ const Landing = () => {
           margin-top: 10px;
           padding-top: 10px;
           border-top: 1px solid #F1F5F9;
+          width: 100%;
         }
 
         .comment-input-wrapper {
           display: flex;
           gap: 6px;
           margin-bottom: 10px;
+          width: 100%;
         }
 
         .comment-input-field {
           flex: 1;
-          padding: 6px 12px;
+          padding: 8px 12px;
           border: 1px solid #E2E8F0;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 13px;
           outline: none;
           font-family: inherit;
           background: #FFFFFF;
           transition: all 0.2s;
+          min-height: 36px;
+          width: 100%;
+          -webkit-appearance: none;
         }
 
         .comment-input-field:focus {
@@ -1204,21 +1220,31 @@ const Landing = () => {
           box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
         }
 
+        .comment-input-field::placeholder {
+          color: #94A3B8;
+        }
+
         .comment-send-btn {
-          padding: 6px 14px;
+          padding: 8px 16px;
           background: #1E293B;
           border: none;
           border-radius: 8px;
           color: #FFF;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 600;
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
+          white-space: nowrap;
+          min-height: 36px;
         }
 
         .comment-send-btn:hover {
           background: #F59E0B;
+        }
+
+        .comment-send-btn:active {
+          transform: scale(0.97);
         }
 
         .comments-list {
@@ -1246,6 +1272,7 @@ const Landing = () => {
           display: flex;
           align-items: center;
           gap: 8px;
+          flex-wrap: wrap;
         }
 
         .comment-user {
@@ -1263,6 +1290,7 @@ const Landing = () => {
           font-size: 13px;
           color: #475569;
           margin: 2px 0 4px;
+          word-wrap: break-word;
         }
 
         .reply-btn {
@@ -1287,11 +1315,12 @@ const Landing = () => {
           display: flex;
           gap: 6px;
           margin: 6px 0 6px 20px;
+          width: 100%;
         }
 
         .reply-input-field {
           flex: 1;
-          padding: 4px 10px;
+          padding: 6px 10px;
           border: 1px solid #E2E8F0;
           border-radius: 6px;
           font-size: 12px;
@@ -1299,6 +1328,9 @@ const Landing = () => {
           font-family: inherit;
           background: #FFFFFF;
           transition: all 0.2s;
+          min-height: 32px;
+          width: 100%;
+          -webkit-appearance: none;
         }
 
         .reply-input-field:focus {
@@ -1307,7 +1339,7 @@ const Landing = () => {
         }
 
         .reply-send-btn {
-          padding: 4px 12px;
+          padding: 6px 14px;
           background: #F59E0B;
           border: none;
           border-radius: 6px;
@@ -1317,6 +1349,8 @@ const Landing = () => {
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
+          white-space: nowrap;
+          min-height: 32px;
         }
 
         .reply-send-btn:hover {
@@ -1337,6 +1371,7 @@ const Landing = () => {
           display: flex;
           align-items: center;
           gap: 8px;
+          flex-wrap: wrap;
         }
 
         .reply-user {
@@ -1354,6 +1389,7 @@ const Landing = () => {
           font-size: 12px;
           color: #475569;
           margin: 2px 0 0;
+          word-wrap: break-word;
         }
 
         /* ===== EMPTY ===== */
@@ -1461,9 +1497,41 @@ const Landing = () => {
           .comments-list {
             max-height: 150px;
           }
-          .reply-input-wrapper {
-            margin-left: 10px;
+          
+          .comment-input-wrapper {
+            flex-wrap: wrap;
           }
+          
+          .comment-input-field {
+            font-size: 14px;
+            padding: 10px 12px;
+            min-height: 44px;
+          }
+          
+          .comment-send-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            min-height: 44px;
+            flex: 1;
+          }
+          
+          .reply-input-wrapper {
+            flex-wrap: wrap;
+            margin-left: 8px;
+          }
+          
+          .reply-input-field {
+            font-size: 13px;
+            padding: 8px 10px;
+            min-height: 38px;
+          }
+          
+          .reply-send-btn {
+            padding: 8px 16px;
+            font-size: 12px;
+            min-height: 38px;
+          }
+          
           .replies-list {
             margin-left: 10px;
             padding-left: 8px;
