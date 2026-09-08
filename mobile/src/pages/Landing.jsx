@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { listingsAPI, businessAPI } from '../services/api';
+import { listingsAPI, businessAPI, notificationsAPI } from '../services/api';
 import { useTranslation } from '../context/TranslationContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
@@ -58,6 +58,7 @@ const ICONS = {
   tool: "M14.7 6.3a4 4 0 11-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 015.4-5.4z",
   layers: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
   refresh: "M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15",
+  reply: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
 };
 
 const CATEGORIES = [
@@ -113,9 +114,9 @@ const FEATURED_SLIDES = [
 ];
 
 const Landing = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const { showToast, success } = useToast();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [allListings, setAllListings] = useState([]);
@@ -128,9 +129,11 @@ const Landing = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showCarousel, setShowCarousel] = useState(true);
   const [likedItems, setLikedItems] = useState({});
-  const [commentText, setCommentText] = useState({});
   const [comments, setComments] = useState({});
   const [showComments, setShowComments] = useState({});
+  const [replyTo, setReplyTo] = useState({});
+  const [replyText, setReplyText] = useState({});
+  const [commentText, setCommentText] = useState({});
   
   const searchInputRef = useRef(null);
 
@@ -163,30 +166,123 @@ const Landing = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login', { replace: true });
-  };
+  // Load comments from localStorage
+  useEffect(() => {
+    const savedComments = localStorage.getItem('listingComments');
+    if (savedComments) {
+      try {
+        setComments(JSON.parse(savedComments));
+      } catch (e) {
+        console.error('Error loading comments:', e);
+      }
+    }
+  }, []);
+
+  // Save comments to localStorage
+  useEffect(() => {
+    if (Object.keys(comments).length > 0) {
+      localStorage.setItem('listingComments', JSON.stringify(comments));
+    }
+  }, [comments]);
 
   const handleLike = (itemId) => {
     setLikedItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
-  const handleCommentSubmit = (itemId) => {
+  // Add a comment to a listing
+  const handleAddComment = (itemId) => {
     const text = commentText[itemId]?.trim();
     if (!text) return;
+
+    const newComment = {
+      id: Date.now().toString(),
+      user: user?.email?.split('@')[0] || 'Anonymous',
+      userId: user?.id || 'unknown',
+      text: text,
+      time: 'Just now',
+      timestamp: Date.now(),
+      replies: [],
+    };
+
     setComments(prev => ({
       ...prev,
-      [itemId]: [
-        ...(prev[itemId] || []),
-        { id: Date.now(), user: user?.email?.split('@')[0] || 'User', text, time: 'Just now' }
-      ]
+      [itemId]: [...(prev[itemId] || []), newComment]
     }));
+
     setCommentText(prev => ({ ...prev, [itemId]: '' }));
+    success('💬 Comment added!');
+
+    // Send notification to listing owner (if not the commenter)
+    const listing = allListings.find(l => l.id === itemId);
+    if (listing && listing.businesses?.id && listing.businesses.id !== user?.id) {
+      sendNotification(listing.businesses.id, 'comment', `New comment on "${listing.title}"`);
+    }
   };
 
+  // Add a reply to a comment
+  const handleAddReply = (itemId, commentId) => {
+    const text = replyText[`${itemId}-${commentId}`]?.trim();
+    if (!text) return;
+
+    const newReply = {
+      id: Date.now().toString(),
+      user: user?.email?.split('@')[0] || 'Anonymous',
+      userId: user?.id || 'unknown',
+      text: text,
+      time: 'Just now',
+      timestamp: Date.now(),
+    };
+
+    setComments(prev => ({
+      ...prev,
+      [itemId]: prev[itemId].map(c => 
+        c.id === commentId 
+          ? { ...c, replies: [...(c.replies || []), newReply] }
+          : c
+      )
+    }));
+
+    setReplyText(prev => ({ ...prev, [`${itemId}-${commentId}`]: '' }));
+    setReplyTo(prev => ({ ...prev, [`${itemId}-${commentId}`]: false }));
+    success('💬 Reply added!');
+
+    // Find the comment owner to notify
+    const comment = comments[itemId]?.find(c => c.id === commentId);
+    if (comment && comment.userId !== user?.id) {
+      sendNotification(comment.userId, 'reply', `Someone replied to your comment`);
+    }
+  };
+
+  // Toggle comment section
   const toggleComments = (itemId) => {
     setShowComments(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+  };
+
+  // Toggle reply input
+  const toggleReply = (itemId, commentId) => {
+    const key = `${itemId}-${commentId}`;
+    setReplyTo(prev => ({ ...prev, [key]: !prev[key] }));
+    if (!replyTo[key]) {
+      setTimeout(() => {
+        const input = document.querySelector(`[data-reply-input="${key}"]`);
+        if (input) input.focus();
+      }, 100);
+    }
+  };
+
+  // Send notification
+  const sendNotification = async (recipientId, type, message) => {
+    try {
+      await notificationsAPI.create({
+        userId: recipientId,
+        type: type,
+        title: type === 'comment' ? 'New Comment' : 'New Reply',
+        description: message,
+        read: false,
+      });
+    } catch (err) {
+      console.error('Error sending notification:', err);
+    }
   };
 
   useEffect(() => {
@@ -211,7 +307,7 @@ const Landing = () => {
             category: b.category,
             price: null,
             images: b.logo_url ? [b.logo_url] : [],
-            businesses: { business_name: b.business_name },
+            businesses: { business_name: b.business_name, id: b.id },
             created_at: b.created_at,
             is_business: true,
             location_area: b.location_text || 'Mitundu Trading Centre',
@@ -284,28 +380,37 @@ const Landing = () => {
     else if (id === 'profile') navigate('/profile');
   };
 
+  // Get comment count including replies
+  const getTotalCommentCount = (itemId) => {
+    const itemComments = comments[itemId] || [];
+    let count = itemComments.length;
+    itemComments.forEach(c => {
+      count += (c.replies || []).length;
+    });
+    return count;
+  };
+
+  // Format time
+  const formatTime = (timestamp) => {
+    if (!timestamp) return 'Just now';
+    const diff = Date.now() - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return new Date(timestamp).toLocaleDateString();
+  };
+
   if (loading) {
     return <LoadingSpinner fullScreen message="Loading marketplace..." />;
   }
 
   return (
     <div className="app">
-      {/* Navbar */}
-      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
-        <div className="navbar-inner">
-          <Link to="/landing" className="logo">
-            <span className="logo-icon">K</span>
-            <span className="logo-text">Kumsika</span>
-          </Link>
-          <div className="nav-actions">
-            <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
-            <button onClick={handleLogout} className="logout-btn">
-              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
-            </button>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero */}
       <section className="hero">
         <div className="hero-inner">
@@ -419,10 +524,11 @@ const Landing = () => {
               const isLiked = likedItems[item.id] || false;
               const itemComments = comments[item.id] || [];
               const showCommentsForItem = showComments[item.id] || false;
+              const totalComments = getTotalCommentCount(item.id);
 
               return (
-                <div key={item.id} className="listing-card" onClick={() => handleListingClick(item)}>
-                  <div className="card-media">
+                <div key={item.id} className="listing-card">
+                  <div className="card-media" onClick={() => handleListingClick(item)}>
                     {item.images && item.images.length > 0 ? (
                       <img src={item.images[0]} alt={item.title} className="card-img" loading="lazy" />
                     ) : (
@@ -449,10 +555,10 @@ const Landing = () => {
                     </button>
                   </div>
                   <div className="card-body">
-                    <h3 className="card-title">{item.title}</h3>
-                    <span className="card-category">{item.category}</span>
+                    <h3 className="card-title" onClick={() => handleListingClick(item)}>{item.title}</h3>
+                    <span className="card-category" onClick={() => handleListingClick(item)}>{item.category}</span>
                     <div className="card-footer">
-                      <span className="card-price">{formatPrice(item.price)}</span>
+                      <span className="card-price" onClick={() => handleListingClick(item)}>{formatPrice(item.price)}</span>
                       <div className="card-stats">
                         <button 
                           className="stat-btn"
@@ -464,26 +570,97 @@ const Landing = () => {
                           className="stat-btn"
                           onClick={(e) => { e.stopPropagation(); toggleComments(item.id); }}
                         >
-                          💬 {item.comments_count + itemComments.length}
+                          💬 {item.comments_count + totalComments}
                         </button>
                       </div>
                     </div>
+                    
+                    {/* Comments Section */}
                     {showCommentsForItem && (
-                      <div className="comments" onClick={(e) => e.stopPropagation()}>
-                        {itemComments.map((comment) => (
-                          <div key={comment.id} className="comment">
-                            <strong>{comment.user}</strong> {comment.text}
-                          </div>
-                        ))}
-                        <div className="comment-input">
+                      <div className="comments-section" onClick={(e) => e.stopPropagation()}>
+                        {/* Comment Input */}
+                        <div className="comment-input-wrapper">
                           <input
                             type="text"
                             placeholder="Write a comment..."
                             value={commentText[item.id] || ''}
                             onChange={(e) => setCommentText(prev => ({ ...prev, [item.id]: e.target.value }))}
-                            onKeyDown={(e) => { if (e.key === 'Enter') handleCommentSubmit(item.id); }}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(item.id); }}
+                            className="comment-input-field"
                           />
-                          <button onClick={() => handleCommentSubmit(item.id)}>Send</button>
+                          <button 
+                            className="comment-send-btn"
+                            onClick={() => handleAddComment(item.id)}
+                          >
+                            Send
+                          </button>
+                        </div>
+
+                        {/* Comments List */}
+                        <div className="comments-list">
+                          {itemComments.length === 0 ? (
+                            <p className="no-comments">No comments yet. Be the first!</p>
+                          ) : (
+                            itemComments.map((comment) => (
+                              <div key={comment.id} className="comment-item">
+                                <div className="comment-header">
+                                  <span className="comment-user">{comment.user}</span>
+                                  <span className="comment-time">{formatTime(comment.timestamp)}</span>
+                                </div>
+                                <p className="comment-text">{comment.text}</p>
+                                
+                                {/* Reply Button */}
+                                <button 
+                                  className="reply-btn"
+                                  onClick={() => toggleReply(item.id, comment.id)}
+                                >
+                                  <Icon d={ICONS.reply} size={12} color="#94A3B8" strokeWidth={1.75} />
+                                  Reply
+                                </button>
+
+                                {/* Reply Input */}
+                                {replyTo[`${item.id}-${comment.id}`] && (
+                                  <div className="reply-input-wrapper">
+                                    <input
+                                      data-reply-input={`${item.id}-${comment.id}`}
+                                      type="text"
+                                      placeholder={`Reply to ${comment.user}...`}
+                                      value={replyText[`${item.id}-${comment.id}`] || ''}
+                                      onChange={(e) => setReplyText(prev => ({ 
+                                        ...prev, 
+                                        [`${item.id}-${comment.id}`]: e.target.value 
+                                      }))}
+                                      onKeyDown={(e) => { 
+                                        if (e.key === 'Enter') handleAddReply(item.id, comment.id); 
+                                      }}
+                                      className="reply-input-field"
+                                    />
+                                    <button 
+                                      className="reply-send-btn"
+                                      onClick={() => handleAddReply(item.id, comment.id)}
+                                    >
+                                      Reply
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Replies */}
+                                {(comment.replies || []).length > 0 && (
+                                  <div className="replies-list">
+                                    {comment.replies.map((reply) => (
+                                      <div key={reply.id} className="reply-item">
+                                        <div className="reply-header">
+                                          <span className="reply-user">{reply.user}</span>
+                                          <span className="reply-time">{formatTime(reply.timestamp)}</span>
+                                        </div>
+                                        <p className="reply-text">{reply.text}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                     )}
@@ -524,23 +701,6 @@ const Landing = () => {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer-inner">
-          <div className="footer-brand">
-            <div className="footer-logo">
-              <span className="footer-logo-icon">K</span>
-              <span className="footer-logo-name">Kumsika</span>
-            </div>
-            <p className="footer-desc">Local marketplace for Mitundu and surrounding areas.</p>
-          </div>
-          <div className="footer-bottom">
-            <span>© 2026 Kumsika</span>
-            <span>📍 Mitundu, Malawi</span>
-          </div>
-        </div>
-      </footer>
-
       <style jsx>{`
         .app {
           min-height: 100vh;
@@ -552,90 +712,6 @@ const Landing = () => {
 
         @media (min-width: 769px) {
           .app { padding-bottom: 0; }
-        }
-
-        /* ===== NAVBAR ===== */
-        .navbar {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-          transition: all 0.2s;
-        }
-
-        .navbar-scrolled {
-          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
-        }
-
-        .navbar-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 10px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        }
-
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-          background: #1E293B;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #F59E0B;
-          font-weight: 700;
-          font-size: 16px;
-        }
-
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
-          letter-spacing: -0.5px;
-        }
-
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .greeting {
-          font-size: 13px;
-          color: #64748B;
-          display: none;
-        }
-
-        @media (min-width: 640px) {
-          .greeting { display: inline; }
-        }
-
-        .logout-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          border: none;
-          background: #FEF2F2;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-          background: #FEE2E2;
         }
 
         /* ===== HERO ===== */
@@ -975,7 +1051,6 @@ const Landing = () => {
           border-radius: 14px;
           overflow: hidden;
           border: 1px solid #F1F5F9;
-          cursor: pointer;
           transition: all 0.2s;
         }
 
@@ -989,6 +1064,7 @@ const Landing = () => {
           height: 120px;
           background: #F8FAFC;
           overflow: hidden;
+          cursor: pointer;
         }
 
         .card-img {
@@ -1048,11 +1124,17 @@ const Landing = () => {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          cursor: pointer;
+        }
+
+        .card-title:hover {
+          color: #F59E0B;
         }
 
         .card-category {
           font-size: 11px;
           color: #94A3B8;
+          cursor: pointer;
         }
 
         .card-footer {
@@ -1068,6 +1150,7 @@ const Landing = () => {
           font-size: 13px;
           font-weight: 700;
           color: #10B981;
+          cursor: pointer;
         }
 
         .card-stats {
@@ -1091,30 +1174,122 @@ const Landing = () => {
           background: #F1F5F9;
         }
 
-        /* ===== COMMENTS ===== */
-        .comments {
-          margin-top: 8px;
-          padding-top: 8px;
+        /* ===== COMMENTS SECTION ===== */
+        .comments-section {
+          margin-top: 10px;
+          padding-top: 10px;
           border-top: 1px solid #F1F5F9;
         }
 
-        .comment {
-          font-size: 12px;
-          color: #475569;
-          padding: 2px 0;
+        .comment-input-wrapper {
+          display: flex;
+          gap: 6px;
+          margin-bottom: 10px;
         }
 
-        .comment strong {
+        .comment-input-field {
+          flex: 1;
+          padding: 6px 12px;
+          border: 1px solid #E2E8F0;
+          border-radius: 8px;
+          font-size: 12px;
+          outline: none;
+          font-family: inherit;
+          background: #FFFFFF;
+          transition: all 0.2s;
+        }
+
+        .comment-input-field:focus {
+          border-color: #F59E0B;
+          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+        }
+
+        .comment-send-btn {
+          padding: 6px 14px;
+          background: #1E293B;
+          border: none;
+          border-radius: 8px;
+          color: #FFF;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .comment-send-btn:hover {
+          background: #F59E0B;
+        }
+
+        .comments-list {
+          max-height: 200px;
+          overflow-y: auto;
+        }
+
+        .no-comments {
+          font-size: 12px;
+          color: #94A3B8;
+          text-align: center;
+          padding: 8px 0;
+        }
+
+        .comment-item {
+          padding: 8px 0;
+          border-bottom: 1px solid #F8FAFC;
+        }
+
+        .comment-item:last-child {
+          border-bottom: none;
+        }
+
+        .comment-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .comment-user {
+          font-weight: 600;
+          font-size: 12px;
           color: #1E293B;
         }
 
-        .comment-input {
-          display: flex;
-          gap: 6px;
-          margin-top: 4px;
+        .comment-time {
+          font-size: 10px;
+          color: #94A3B8;
         }
 
-        .comment-input input {
+        .comment-text {
+          font-size: 13px;
+          color: #475569;
+          margin: 2px 0 4px;
+        }
+
+        .reply-btn {
+          background: none;
+          border: none;
+          font-size: 11px;
+          color: #94A3B8;
+          cursor: pointer;
+          font-family: inherit;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 2px 0;
+          transition: all 0.2s;
+        }
+
+        .reply-btn:hover {
+          color: #F59E0B;
+        }
+
+        .reply-input-wrapper {
+          display: flex;
+          gap: 6px;
+          margin: 6px 0 6px 20px;
+        }
+
+        .reply-input-field {
           flex: 1;
           padding: 4px 10px;
           border: 1px solid #E2E8F0;
@@ -1122,22 +1297,63 @@ const Landing = () => {
           font-size: 12px;
           outline: none;
           font-family: inherit;
+          background: #FFFFFF;
+          transition: all 0.2s;
         }
 
-        .comment-input input:focus {
+        .reply-input-field:focus {
           border-color: #F59E0B;
+          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
         }
 
-        .comment-input button {
-          padding: 4px 14px;
-          background: #1E293B;
+        .reply-send-btn {
+          padding: 4px 12px;
+          background: #F59E0B;
           border: none;
           border-radius: 6px;
           color: #FFF;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
           cursor: pointer;
           font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .reply-send-btn:hover {
+          background: #D97706;
+        }
+
+        .replies-list {
+          margin-left: 20px;
+          padding-left: 12px;
+          border-left: 2px solid #F1F5F9;
+        }
+
+        .reply-item {
+          padding: 4px 0;
+        }
+
+        .reply-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .reply-user {
+          font-weight: 600;
+          font-size: 11px;
+          color: #1E293B;
+        }
+
+        .reply-time {
+          font-size: 10px;
+          color: #94A3B8;
+        }
+
+        .reply-text {
+          font-size: 12px;
+          color: #475569;
+          margin: 2px 0 0;
         }
 
         /* ===== EMPTY ===== */
@@ -1211,60 +1427,18 @@ const Landing = () => {
           font-weight: 600;
         }
 
-        /* ===== FOOTER ===== */
-        .footer {
-          background: #1E293B;
-          padding: 24px 16px 12px;
-          margin-top: 16px;
+        /* ===== SCROLLBAR ===== */
+        .comments-list::-webkit-scrollbar {
+          width: 3px;
         }
 
-        .footer-inner {
-          max-width: 1200px;
-          margin: 0 auto;
+        .comments-list::-webkit-scrollbar-track {
+          background: transparent;
         }
 
-        .footer-brand {
-          margin-bottom: 16px;
-        }
-
-        .footer-logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .footer-logo-icon {
-          width: 28px;
-          height: 28px;
-          background: #F59E0B;
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 14px;
-          color: #1E293B;
-        }
-
-        .footer-logo-name {
-          font-size: 16px;
-          font-weight: 700;
-          color: #FFFFFF;
-        }
-
-        .footer-desc {
-          font-size: 13px;
-          color: rgba(255,255,255,0.4);
-          margin: 4px 0 0;
-        }
-
-        .footer-bottom {
-          display: flex;
-          justify-content: space-between;
-          font-size: 12px;
-          color: rgba(255,255,255,0.3);
-          padding-top: 12px;
-          border-top: 1px solid rgba(255,255,255,0.05);
+        .comments-list::-webkit-scrollbar-thumb {
+          background: #E2E8F0;
+          border-radius: 20px;
         }
 
         /* ===== RESPONSIVE ===== */
@@ -1280,6 +1454,19 @@ const Landing = () => {
           }
           .card-title {
             font-size: 12px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .comments-list {
+            max-height: 150px;
+          }
+          .reply-input-wrapper {
+            margin-left: 10px;
+          }
+          .replies-list {
+            margin-left: 10px;
+            padding-left: 8px;
           }
         }
       `}</style>
