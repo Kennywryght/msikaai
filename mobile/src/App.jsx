@@ -8,28 +8,23 @@ import Navbar from './components/Navbar';
 import './styles/global.css';
 import './index.css';
 
-// Lazy load pages
-const SplashScreen = lazy(() => import('./pages/SplashScreen'));
-const About = lazy(() => import('./pages/About'));
-const Landing = lazy(() => import('./pages/Landing'));
-const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const Onboarding = lazy(() => import('./pages/Onboarding'));
-const CreateListing = lazy(() => import('./pages/CreateListing'));
-const Search = lazy(() => import('./pages/Search'));
-const ListingDetails = lazy(() => import('./pages/ListingDetails'));
-const AISearch = lazy(() => import('./pages/AISearch'));
-const VoiceListing = lazy(() => import('./pages/VoiceListing'));
-const AdGenerator = lazy(() => import('./pages/AdGenerator'));
-const EditProfile = lazy(() => import('./pages/EditProfile'));
-const NotFound = lazy(() => import('./pages/NotFound'));
-
-// ============================================================
-// ✅ NO LOADING SPINNER - Just render null
-// ============================================================
-const PageLoader = () => null;
+// ✅ Import pages directly (no lazy loading) - This removes the loading spinner
+import SplashScreen from './pages/SplashScreen';
+import About from './pages/About';
+import Landing from './pages/Landing';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import Onboarding from './pages/Onboarding';
+import CreateListing from './pages/CreateListing';
+import Search from './pages/Search';
+import ListingDetails from './pages/ListingDetails';
+import AISearch from './pages/AISearch';
+import VoiceListing from './pages/VoiceListing';
+import AdGenerator from './pages/AdGenerator';
+import EditProfile from './pages/EditProfile';
+import NotFound from './pages/NotFound';
 
 // ============================================================
 // PROTECTED ROUTE
@@ -85,7 +80,6 @@ const Layout = ({ children }) => {
   // For all other pages, show the Navbar
   return (
     <>
-      {/* ✅ Only ONE navbar for the entire app */}
       <Navbar />
       <div style={{ paddingTop: '60px' }}>
         {children}
@@ -136,13 +130,9 @@ function AppRoutes() {
     return () => clearTimeout(failSafe);
   }, [phase, authLoading]);
 
-  // Splash screen - NO NAVBAR, NO SPINNER
+  // Splash screen - NO SPINNER
   if (phase === 'splash') {
-    return (
-      <Suspense fallback={null}>
-        <SplashScreen onComplete={handleSplashComplete} />
-      </Suspense>
-    );
+    return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
   // Bridge phase - NO SPINNER
@@ -150,171 +140,169 @@ function AppRoutes() {
     return null;
   }
 
-  // Ready phase
+  // ✅ Ready phase - Direct rendering (no Suspense needed)
   return (
-    <Suspense fallback={null}>
-      <Routes>
-        {/* Public Routes - No Navbar */}
-        <Route 
-          path="/login" 
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          } 
-        />
-        <Route 
-          path="/register" 
-          element={
-            <PublicRoute>
-              <Register />
-            </PublicRoute>
-          } 
-        />
+    <Routes>
+      {/* Public Routes - No Navbar */}
+      <Route 
+        path="/login" 
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } 
+      />
+      <Route 
+        path="/register" 
+        element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        } 
+      />
 
-        {/* Protected Routes - With Navbar (via Layout) */}
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Navigate to="/landing" replace />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/landing" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Landing />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/*" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <AdminDashboard />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/onboarding" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Onboarding />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/create-listing" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <CreateListing />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/search" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Search />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/listing/:id" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <ListingDetails />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/ai-search" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <AISearch />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/voice-listing" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <VoiceListing />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/ad-generator" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <AdGenerator />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/profile" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <EditProfile />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/about" 
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <About />
-              </Layout>
-            </ProtectedRoute>
-          } 
-        />
-
-        {/* 404 - With Navbar */}
-        <Route 
-          path="*" 
-          element={
+      {/* Protected Routes - With Navbar (via Layout) */}
+      <Route 
+        path="/" 
+        element={
+          <ProtectedRoute>
             <Layout>
-              <NotFound />
+              <Navigate to="/landing" replace />
             </Layout>
-          } 
-        />
-      </Routes>
-    </Suspense>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/landing" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Landing />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Dashboard />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/admin/*" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AdminDashboard />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/onboarding" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Onboarding />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/create-listing" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CreateListing />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/search" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Search />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/listing/:id" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ListingDetails />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/ai-search" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AISearch />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/voice-listing" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <VoiceListing />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/ad-generator" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AdGenerator />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <EditProfile />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/about" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <About />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+
+      {/* 404 - With Navbar */}
+      <Route 
+        path="*" 
+        element={
+          <Layout>
+            <NotFound />
+          </Layout>
+        } 
+      />
+    </Routes>
   );
 }
 
