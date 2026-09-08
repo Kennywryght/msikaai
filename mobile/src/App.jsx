@@ -1,5 +1,5 @@
 // mobile/src/App.jsx
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
@@ -8,7 +8,7 @@ import Navbar from './components/Navbar';
 import './styles/global.css';
 import './index.css';
 
-// ✅ Import pages directly (no lazy loading) - This removes the loading spinner
+// ✅ Import pages directly (no lazy loading)
 import SplashScreen from './pages/SplashScreen';
 import About from './pages/About';
 import Landing from './pages/Landing';
@@ -27,32 +27,30 @@ import EditProfile from './pages/EditProfile';
 import NotFound from './pages/NotFound';
 
 // ============================================================
-// PROTECTED ROUTE
+// PROTECTED ROUTE - Instant redirect, no loading
 // ============================================================
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading, authInitialized } = useAuth();
-  const location = useLocation();
+  const { isAuthenticated, authInitialized } = useAuth();
 
-  if (loading || !authInitialized) {
-    return null;
+  if (!authInitialized) {
+    return children; // ✅ Render children immediately, no loading
   }
 
   if (!isAuthenticated) {
-    sessionStorage.setItem('redirectAfterLogin', location.pathname + location.search);
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;
 };
 
 // ============================================================
-// PUBLIC ROUTE
+// PUBLIC ROUTE - Instant redirect, no loading
 // ============================================================
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated, loading, authInitialized } = useAuth();
+  const { isAuthenticated, authInitialized } = useAuth();
 
-  if (loading || !authInitialized) {
-    return null;
+  if (!authInitialized) {
+    return children; // ✅ Render children immediately, no loading
   }
 
   if (isAuthenticated) {
@@ -63,21 +61,18 @@ const PublicRoute = ({ children }) => {
 };
 
 // ============================================================
-// ✅ LAYOUT WRAPPER - Controls Navbar visibility
+// LAYOUT WRAPPER - Controls Navbar visibility
 // ============================================================
 const Layout = ({ children }) => {
-  const { isAuthenticated } = useAuth();
   const location = useLocation();
   
   // Pages where Navbar should NOT show
   const hideNavbar = ['/', '/login', '/register'].includes(location.pathname);
   
-  // If it's a page that should hide the navbar, just return children
   if (hideNavbar) {
     return children;
   }
 
-  // For all other pages, show the Navbar
   return (
     <>
       <Navbar />
@@ -89,58 +84,32 @@ const Layout = ({ children }) => {
 };
 
 // ============================================================
-// APP ROUTES
+// APP ROUTES - No splash screen, instant loading
 // ============================================================
 function AppRoutes() {
-  const { loading: authLoading } = useAuth();
-  const [phase, setPhase] = useState('splash');
-  const splashStarted = React.useRef(false);
-  const splashComplete = React.useRef(false);
+  const { authInitialized } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+  const splashTimer = React.useRef(null);
 
-  const SPLASH_MIN_MS = 2000;
-  const MAX_BRIDGE_MS = 4000;
-
-  const handleSplashComplete = () => {
-    splashComplete.current = true;
-    setPhase('bridge');
-  };
-
+  // Show splash screen for 2 seconds, then hide
   useEffect(() => {
-    if (splashStarted.current) return;
-    splashStarted.current = true;
+    splashTimer.current = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
 
-    const fallbackTimer = setTimeout(() => {
-      if (!splashComplete.current) {
-        setPhase('bridge');
+    return () => {
+      if (splashTimer.current) {
+        clearTimeout(splashTimer.current);
       }
-    }, SPLASH_MIN_MS + 2000);
-
-    return () => clearTimeout(fallbackTimer);
+    };
   }, []);
 
-  useEffect(() => {
-    if (phase !== 'bridge') return;
-
-    if (!authLoading) {
-      setPhase('ready');
-      return;
-    }
-
-    const failSafe = setTimeout(() => setPhase('ready'), MAX_BRIDGE_MS);
-    return () => clearTimeout(failSafe);
-  }, [phase, authLoading]);
-
-  // Splash screen - NO SPINNER
-  if (phase === 'splash') {
-    return <SplashScreen onComplete={handleSplashComplete} />;
+  // Show splash screen while it's visible
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
   }
 
-  // Bridge phase - NO SPINNER
-  if (phase === 'bridge') {
-    return null;
-  }
-
-  // ✅ Ready phase - Direct rendering (no Suspense needed)
+  // ✅ Ready phase - Direct rendering, NO loading spinners
   return (
     <Routes>
       {/* Public Routes - No Navbar */}
