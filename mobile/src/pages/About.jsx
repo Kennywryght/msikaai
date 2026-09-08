@@ -4,9 +4,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../context/TranslationContext';
 import LanguageToggle from '../components/LanguageToggle';
 
-// ==========================================
-// PREMIUM FEATHER ICONS
-// ==========================================
 const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
@@ -38,6 +35,12 @@ const ICONS = {
   globe: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z",
   award: "M12 15l-3.5 2 1.33-4.5-3.33-2.5h4.17L12 6l1.33 4h4.17l-3.33 2.5L15.5 17 12 15z",
   trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
+  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+  plus: "M12 4v16m8-8H4",
+  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
 };
 
 const About = () => {
@@ -48,446 +51,717 @@ const About = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      backgroundColor: '#F8FAFC',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      color: '#1E293B'
-    },
-    nav: {
-      backgroundColor: 'rgba(255,255,255,0.9)',
-      backdropFilter: 'blur(16px)',
-      padding: '12px 20px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      borderBottom: '1px solid rgba(226,232,240,0.5)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      flexWrap: 'wrap',
-      gap: '12px'
-    },
-    brandContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      textDecoration: 'none'
-    },
-    logoBadge: {
-      width: '38px',
-      height: '38px',
-      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-      borderRadius: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      boxShadow: '0 4px 16px rgba(245,158,11,0.25)',
-    },
-    brandTitle: {
-      fontSize: '20px',
-      fontWeight: '800',
-      color: '#1E293B',
-      margin: 0,
-      lineHeight: '1'
-    },
-    brandAccent: {
-      color: '#F59E0B'
-    },
-    navActions: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      flexWrap: 'wrap'
-    },
-    navBtn: {
-      padding: '8px 16px',
-      background: 'none',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '13px',
-      fontWeight: '600',
-      color: '#64748B',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      transition: 'all 0.2s ease',
-    },
-    navBtnPrimary: {
-      padding: '8px 20px',
-      background: '#1E293B',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '13px',
-      fontWeight: '600',
-      color: '#FFFFFF',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      boxShadow: '0 2px 8px rgba(30,41,59,0.15)',
-      transition: 'all 0.2s ease',
-      textDecoration: 'none',
-    },
-    hero: {
-      background: 'linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%)',
-      padding: '48px 20px',
-      textAlign: 'center',
-      color: '#FFFFFF',
-      position: 'relative',
-      overflow: 'hidden'
-    },
-    heroGlow: {
-      position: 'absolute',
-      width: '400px',
-      height: '400px',
-      background: 'radial-gradient(circle, rgba(245,158,11,0.06) 0%, transparent 70%)',
-      borderRadius: '50%',
-      top: '-150px',
-      right: '-100px',
-      pointerEvents: 'none'
-    },
-    heroTitle: {
-      fontSize: 'clamp(28px, 5vw, 36px)',
-      fontWeight: '800',
-      marginBottom: '12px',
-      lineHeight: '1.2',
-      position: 'relative',
-      zIndex: 1
-    },
-    heroSub: {
-      fontSize: 'clamp(15px, 1.8vw, 17px)',
-      opacity: 0.8,
-      maxWidth: '600px',
-      margin: '0 auto',
-      position: 'relative',
-      zIndex: 1,
-      lineHeight: '1.6'
-    },
-    content: {
-      maxWidth: '1000px',
-      margin: '0 auto',
-      padding: 'clamp(24px, 4vw, 40px) clamp(16px, 3vw, 24px)'
-    },
-    section: {
-      marginBottom: 'clamp(32px, 5vw, 48px)'
-    },
-    sectionTitle: {
-      fontSize: 'clamp(20px, 2.5vw, 24px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      marginBottom: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px'
-    },
-    card: {
-      backgroundColor: '#FFFFFF',
-      borderRadius: '16px',
-      padding: 'clamp(16px, 2vw, 24px)',
-      border: '1px solid #E2E8F0',
-      boxShadow: '0 2px 12px rgba(30,41,59,0.04)'
-    },
-    contactCard: {
-      backgroundColor: '#FFFFFF',
-      borderRadius: '16px',
-      padding: 'clamp(20px, 2.5vw, 28px)',
-      border: '1px solid #E2E8F0',
-      boxShadow: '0 4px 16px rgba(245,158,11,0.06)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '16px'
-    },
-    contactRow: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      fontSize: 'clamp(14px, 1.2vw, 16px)',
-      color: '#64748B',
-      flexWrap: 'wrap'
-    },
-    contactLink: {
-      color: '#F59E0B',
-      textDecoration: 'none',
-      fontWeight: '600',
-      wordBreak: 'break-all',
-      transition: 'color 0.2s'
-    },
-    grid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(200px, 25vw, 250px), 1fr))',
-      gap: '20px',
-      marginTop: '16px'
-    },
-    valueCard: {
-      backgroundColor: '#FFFFFF',
-      borderRadius: '14px',
-      padding: 'clamp(16px, 1.5vw, 20px)',
-      border: '1px solid #E2E8F0',
-      textAlign: 'center',
-      transition: 'all 0.3s ease',
-      boxShadow: '0 2px 8px rgba(30,41,59,0.02)'
-    },
-    valueIcon: {
-      width: '48px',
-      height: '48px',
-      backgroundColor: '#F8FAFC',
-      borderRadius: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      margin: '0 auto 12px auto'
-    },
-    valueTitle: {
-      fontSize: 'clamp(14px, 1.2vw, 16px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      marginBottom: '4px'
-    },
-    valueDesc: {
-      fontSize: 'clamp(12px, 1vw, 14px)',
-      color: '#94A3B8',
-      margin: 0,
-      lineHeight: '1.5'
-    },
-    statGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(100px, 15vw, 120px), 1fr))',
-      gap: '16px',
-      marginTop: '16px'
-    },
-    statCard: {
-      textAlign: 'center',
-      padding: 'clamp(12px, 1.5vw, 16px)',
-      backgroundColor: '#F8FAFC',
-      borderRadius: '12px',
-      border: '1px solid #E2E8F0'
-    },
-    statNumber: {
-      fontSize: 'clamp(22px, 3vw, 28px)',
-      fontWeight: '800',
-      color: '#F59E0B'
-    },
-    statLabel: {
-      fontSize: 'clamp(11px, 1vw, 13px)',
-      color: '#94A3B8',
-      marginTop: '2px'
-    },
-    teamGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(160px, 20vw, 200px), 1fr))',
-      gap: '20px',
-      marginTop: '16px'
-    },
-    teamCard: {
-      textAlign: 'center',
-      padding: 'clamp(16px, 1.5vw, 20px)',
-      backgroundColor: '#F8FAFC',
-      borderRadius: '12px',
-      border: '1px solid #E2E8F0'
-    },
-    teamAvatar: {
-      width: 'clamp(64px, 8vw, 80px)',
-      height: 'clamp(64px, 8vw, 80px)',
-      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      margin: '0 auto 12px auto',
-      fontSize: 'clamp(28px, 3.5vw, 32px)',
-      boxShadow: '0 4px 16px rgba(245,158,11,0.2)'
-    },
-    teamName: {
-      fontSize: 'clamp(14px, 1.2vw, 16px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      marginBottom: '2px'
-    },
-    teamRole: {
-      fontSize: 'clamp(12px, 1vw, 13px)',
-      color: '#94A3B8',
-      margin: 0
-    },
-    footer: {
-      backgroundColor: '#1E293B',
-      color: '#94A3B8',
-      padding: 'clamp(20px, 3vw, 24px)',
-      textAlign: 'center',
-      fontSize: 'clamp(12px, 1vw, 14px)',
-      borderTop: '1px solid #334155'
-    },
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+  const handleBottomNav = (id) => {
+    if (id === 'home') navigate('/landing');
+    else if (id === 'search') navigate('/search');
+    else if (id === 'sell') navigate('/create-listing');
+    else if (id === 'messages') navigate('/messages');
+    else if (id === 'profile') navigate('/profile');
   };
 
   return (
-    <div style={styles.container}>
-      <nav style={styles.nav}>
-        <Link to="/" style={styles.brandContainer}>
-          <div style={styles.logoBadge}>
-            <Icon d={ICONS.store} size={20} color="#1E293B" strokeWidth={2.5} />
-          </div>
-          <h1 style={styles.brandTitle}>
-            Msika<span style={styles.brandAccent}>AI</span>
-          </h1>
-        </Link>
-        <div style={styles.navActions}>
-          <LanguageToggle />
-          <button style={styles.navBtn} onClick={() => navigate('/')}>
-            Home
-          </button>
-          <Link to="/login" style={styles.navBtnPrimary}>
-            Sign In
+    <div className="about-page">
+      {/* Navbar */}
+      <nav className="navbar">
+        <div className="navbar-inner">
+          <Link to="/" className="logo">
+            <span className="logo-icon">K</span>
+            <span className="logo-text"></span>
           </Link>
+          <div className="nav-actions">
+            <LanguageToggle />
+            <button className="nav-btn" onClick={() => navigate('/')}>Home</button>
+            <Link to="/login" className="btn-primary">Sign In</Link>
+          </div>
         </div>
       </nav>
 
-      <div style={styles.hero}>
-        <div style={styles.heroGlow} />
-        <h1 style={styles.heroTitle}>
-          <Icon d={ICONS.sparkles} size={32} color="#F59E0B" strokeWidth={1.75} />
-          <br />
-          About MsikaAI
-        </h1>
-        <p style={styles.heroSub}>
-          We're building Malawi's first AI-powered local marketplace — connecting buyers, sellers, and skilled laborers in one place.
-        </p>
-      </div>
+      {/* Hero */}
+      <section className="hero">
+        <div className="hero-content">
+          <div className="hero-badge">
+            <Icon d={ICONS.sparkles} size={24} color="#F59E0B" strokeWidth={1.75} />
+          </div>
+          <h1 className="hero-title">
+            About <span className="hero-highlight">Kumsika</span>
+          </h1>
+          <p className="hero-subtitle">
+            Malawi's first AI-powered local marketplace — connecting buyers, sellers, 
+            and skilled laborers in one place.
+          </p>
+        </div>
+      </section>
 
-      <div style={styles.content}>
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>
+      {/* Main Content */}
+      <div className="main-content">
+        {/* Mission */}
+        <section className="section">
+          <div className="section-header">
             <Icon d={ICONS.heart} size={22} color="#F59E0B" strokeWidth={1.75} />
-            Our Mission
-          </h2>
-          <div style={styles.card}>
-            <p style={{ fontSize: 'clamp(15px, 1.4vw, 16px)', color: '#64748B', lineHeight: '1.7', margin: 0 }}>
-              <strong>MsikaAI</strong> exists to empower local businesses, farmers, and skilled laborers in Malawi 
+            <h2 className="section-title">Our Mission</h2>
+          </div>
+          <div className="card">
+            <p className="card-text">
+              <strong>Kumsika</strong> exists to empower local businesses, farmers, and skilled laborers in Malawi 
               by providing a digital platform where they can be discovered, trusted, and connected with customers 
               — all powered by AI that works in Chichewa and English.
             </p>
-            <p style={{ fontSize: 'clamp(15px, 1.4vw, 16px)', color: '#64748B', lineHeight: '1.7', marginTop: '16px' }}>
-              We believe that technology should serve communities, not replace them. That's why we built MsikaAI 
+            <p className="card-text" style={{ marginTop: '12px' }}>
+              We believe that technology should serve communities, not replace them. That's why we built Kumsika 
               to be local-first, voice-friendly, and built for the way Malawians actually trade.
             </p>
           </div>
-        </div>
+        </section>
 
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>
+        {/* Developer & Contact */}
+        <section className="section">
+          <div className="section-header">
             <Icon d={ICONS.mail} size={22} color="#F59E0B" strokeWidth={1.75} />
-            Developer & Contact Info
-          </h2>
-          <div style={styles.contactCard}>
-            <p style={{ margin: 0, fontSize: 'clamp(14px, 1.2vw, 15px)', color: '#64748B', lineHeight: '1.5' }}>
-              Have questions, feedback, or custom development inquiries? Get in touch directly with the lead developer:
+            <h2 className="section-title">Developer & Contact</h2>
+          </div>
+          <div className="contact-card">
+            <p className="contact-text">
+              Have questions, feedback, or custom development inquiries? Get in touch directly:
             </p>
-            <div style={styles.contactRow}>
-              <Icon d={ICONS.mail} size={20} color="#F59E0B" strokeWidth={1.75} />
+            <div className="contact-item">
+              <Icon d={ICONS.mail} size={18} color="#F59E0B" strokeWidth={1.75} />
               <span>
                 <strong>Email:</strong>{' '}
-                <a href="mailto:kennedybanda940@gmail.com" style={styles.contactLink}>
+                <a href="mailto:kennedybanda940@gmail.com" className="contact-link">
                   kennedybanda940@gmail.com
                 </a>
               </span>
             </div>
-            <div style={styles.contactRow}>
-              <Icon d={ICONS.phone} size={20} color="#10B981" strokeWidth={1.75} />
+            <div className="contact-item">
+              <Icon d={ICONS.phone} size={18} color="#10B981" strokeWidth={1.75} />
               <span>
                 <strong>WhatsApp:</strong>{' '}
                 <a 
                   href="https://wa.me/265888921110" 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  style={{ ...styles.contactLink, color: '#10B981' }}
+                  className="contact-link whatsapp"
                 >
                   +265 888 921 110
                 </a>
               </span>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>
+        {/* Impact Stats */}
+        <section className="section">
+          <div className="section-header">
             <Icon d={ICONS.trendingUp} size={22} color="#F59E0B" strokeWidth={1.75} />
-            Our Impact
-          </h2>
-          <div style={styles.statGrid}>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>100+</div>
-              <div style={styles.statLabel}>Active Listings</div>
+            <h2 className="section-title">Our Impact</h2>
+          </div>
+          <div className="stats-grid">
+            <div className="stat-item">
+              <div className="stat-number">100+</div>
+              <div className="stat-label">Active Listings</div>
             </div>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>50+</div>
-              <div style={styles.statLabel}>Local Businesses</div>
+            <div className="stat-item">
+              <div className="stat-number">50+</div>
+              <div className="stat-label">Local Businesses</div>
             </div>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>10+</div>
-              <div style={styles.statLabel}>Categories</div>
+            <div className="stat-item">
+              <div className="stat-number">10+</div>
+              <div className="stat-label">Categories</div>
             </div>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>100%</div>
-              <div style={styles.statLabel}>Free to Join</div>
+            <div className="stat-item">
+              <div className="stat-number">100%</div>
+              <div className="stat-label">Free to Join</div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>
+        {/* Values */}
+        <section className="section">
+          <div className="section-header">
             <Icon d={ICONS.check} size={22} color="#F59E0B" strokeWidth={1.75} />
-            Our Values
-          </h2>
-          <div style={styles.grid}>
-            <div style={styles.valueCard}>
-              <div style={styles.valueIcon}>
-                <Icon d={ICONS.users} size={24} color="#F59E0B" strokeWidth={1.75} />
+            <h2 className="section-title">Our Values</h2>
+          </div>
+          <div className="values-grid">
+            <div className="value-card">
+              <div className="value-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+                <Icon d={ICONS.users} size={22} color="#F59E0B" strokeWidth={1.75} />
               </div>
-              <h4 style={styles.valueTitle}>Community First</h4>
-              <p style={styles.valueDesc}>Built for and with the people of Malawi</p>
+              <h4 className="value-title">Community First</h4>
+              <p className="value-desc">Built for and with the people of Malawi</p>
             </div>
-            <div style={styles.valueCard}>
-              <div style={styles.valueIcon}>
-                <Icon d={ICONS.bot} size={24} color="#F59E0B" strokeWidth={1.75} />
+            <div className="value-card">
+              <div className="value-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
+                <Icon d={ICONS.bot} size={22} color="#3B82F6" strokeWidth={1.75} />
               </div>
-              <h4 style={styles.valueTitle}>AI for Everyone</h4>
-              <p style={styles.valueDesc}>Voice and text AI that works in Chichewa</p>
+              <h4 className="value-title">AI for Everyone</h4>
+              <p className="value-desc">Voice and text AI that works in Chichewa</p>
             </div>
-            <div style={styles.valueCard}>
-              <div style={styles.valueIcon}>
-                <Icon d={ICONS.store} size={24} color="#F59E0B" strokeWidth={1.75} />
+            <div className="value-card">
+              <div className="value-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                <Icon d={ICONS.store} size={22} color="#10B981" strokeWidth={1.75} />
               </div>
-              <h4 style={styles.valueTitle}>Local Commerce</h4>
-              <p style={styles.valueDesc}>Supporting local businesses and traders</p>
+              <h4 className="value-title">Local Commerce</h4>
+              <p className="value-desc">Supporting local businesses and traders</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>
+        {/* Team */}
+        <section className="section">
+          <div className="section-header">
             <Icon d={ICONS.users} size={22} color="#F59E0B" strokeWidth={1.75} />
-            Built with ❤️
-          </h2>
-          <div style={styles.teamGrid}>
-            <div style={styles.teamCard}>
-              <div style={styles.teamAvatar}>👨‍💻</div>
-              <h4 style={styles.teamName}>Kennedy Banda</h4>
-              <p style={styles.teamRole}>Lead Developer & Creator</p>
+            <h2 className="section-title">Built with ❤️</h2>
+          </div>
+          <div className="team-grid">
+            <div className="team-card">
+              <div className="team-avatar">👨‍💻</div>
+              <h4 className="team-name">Kennedy Banda</h4>
+              <p className="team-role">Lead Developer & Creator</p>
             </div>
-            <div style={styles.teamCard}>
-              <div style={styles.teamAvatar}>🌾</div>
-              <h4 style={styles.teamName}>Our Community</h4>
-              <p style={styles.teamRole}>Malawi Businesses & Farmers</p>
+            <div className="team-card">
+              <div className="team-avatar">🌾</div>
+              <h4 className="team-name">Our Community</h4>
+              <p className="team-role">Malawi Businesses & Farmers</p>
             </div>
-            <div style={styles.teamCard}>
-              <div style={styles.teamAvatar}>🤝</div>
-              <h4 style={styles.teamName}>Our Partners</h4>
-              <p style={styles.teamRole}>Local Leaders & Innovators</p>
+            <div className="team-card">
+              <div className="team-avatar">🤝</div>
+              <h4 className="team-name">Our Partners</h4>
+              <p className="team-role">Local Leaders & Innovators</p>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      <div style={styles.footer}>
-        <p>© {new Date().getFullYear()} MsikaAI — Built for Malawi 🇲🇼</p>
-      </div>
+      {/* Bottom Nav */}
+      {isMobile && (
+        <div className="bottom-nav">
+          {[
+            { id: 'home', label: 'Home', icon: 'home' },
+            { id: 'search', label: 'Search', icon: 'search' },
+            { id: 'sell', label: 'Sell', icon: 'plus' },
+            { id: 'messages', label: 'Chat', icon: 'message' },
+            { id: 'profile', label: 'Profile', icon: 'user' },
+          ].map((item) => {
+            const active = item.id === 'home';
+            return (
+              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
+                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+                </div>
+                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-inner">
+          <p className="footer-text">© {new Date().getFullYear()} Kumsika — Built for Malawi 🇲🇼</p>
+        </div>
+      </footer>
+
+      <style jsx>{`
+        .about-page {
+          min-height: 100vh;
+          background: #F8FAFC;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #1E293B;
+          padding-bottom: 80px;
+        }
+
+        @media (min-width: 769px) {
+          .about-page {
+            padding-bottom: 0;
+          }
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
+        }
+
+        .navbar-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+        }
+
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          background: #1E293B;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #F59E0B;
+          font-weight: 700;
+          font-size: 16px;
+        }
+
+        .logo-text {
+          font-size: 18px;
+          font-weight: 700;
+          color: #1E293B;
+          letter-spacing: -0.5px;
+        }
+
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .nav-btn {
+          padding: 6px 14px;
+          background: none;
+          border: none;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #64748B;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+          background: #F1F5F9;
+        }
+
+        .btn-primary {
+          padding: 6px 18px;
+          background: #1E293B;
+          border: none;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #FFFFFF;
+          cursor: pointer;
+          font-family: inherit;
+          text-decoration: none;
+          transition: all 0.2s;
+          box-shadow: 0 2px 8px rgba(30, 41, 59, 0.15);
+        }
+
+        .btn-primary:hover {
+          background: #F59E0B;
+          transform: scale(0.98);
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+          background: linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%);
+          padding: 48px 20px 56px;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .hero::before {
+          content: '';
+          position: absolute;
+          width: 400px;
+          height: 400px;
+          background: radial-gradient(circle, rgba(245, 158, 11, 0.06) 0%, transparent 70%);
+          border-radius: 50%;
+          top: -150px;
+          right: -100px;
+          pointer-events: none;
+        }
+
+        .hero-content {
+          position: relative;
+          z-index: 1;
+          max-width: 700px;
+          margin: 0 auto;
+        }
+
+        .hero-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          background: rgba(245, 158, 11, 0.12);
+          border-radius: 14px;
+          margin-bottom: 12px;
+        }
+
+        .hero-title {
+          font-size: clamp(28px, 4.5vw, 38px);
+          font-weight: 800;
+          color: #FFFFFF;
+          margin: 0 0 8px;
+          letter-spacing: -0.5px;
+        }
+
+        .hero-highlight {
+          background: linear-gradient(135deg, #F59E0B, #D97706);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .hero-subtitle {
+          font-size: clamp(15px, 1.4vw, 17px);
+          color: rgba(255, 255, 255, 0.75);
+          margin: 0;
+          line-height: 1.6;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 28px 16px 40px;
+        }
+
+        /* ===== SECTION ===== */
+        .section {
+          margin-bottom: 32px;
+        }
+
+        .section-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+
+        .section-title {
+          font-size: clamp(18px, 2.2vw, 22px);
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0;
+        }
+
+        /* ===== CARDS ===== */
+        .card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 18px 20px;
+          border: 1px solid #F1F5F9;
+        }
+
+        .card-text {
+          font-size: clamp(14px, 1.2vw, 15px);
+          color: #64748B;
+          line-height: 1.7;
+          margin: 0;
+        }
+
+        /* ===== CONTACT ===== */
+        .contact-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 18px 20px;
+          border: 1px solid #F1F5F9;
+        }
+
+        .contact-text {
+          font-size: 14px;
+          color: #64748B;
+          margin: 0 0 12px;
+          line-height: 1.5;
+        }
+
+        .contact-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 6px 0;
+          font-size: 14px;
+          color: #64748B;
+        }
+
+        .contact-link {
+          color: #F59E0B;
+          text-decoration: none;
+          font-weight: 600;
+          transition: color 0.2s;
+        }
+
+        .contact-link:hover {
+          color: #D97706;
+        }
+
+        .contact-link.whatsapp {
+          color: #10B981;
+        }
+
+        .contact-link.whatsapp:hover {
+          color: #059669;
+        }
+
+        /* ===== STATS ===== */
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+        }
+
+        @media (min-width: 480px) {
+          .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+
+        .stat-item {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 16px 12px;
+          border: 1px solid #F1F5F9;
+          text-align: center;
+          transition: all 0.2s;
+        }
+
+        .stat-item:hover {
+          border-color: #E2E8F0;
+          transform: translateY(-2px);
+        }
+
+        .stat-number {
+          font-size: clamp(22px, 2.5vw, 28px);
+          font-weight: 800;
+          color: #F59E0B;
+          line-height: 1.2;
+        }
+
+        .stat-label {
+          font-size: 12px;
+          color: #94A3B8;
+          margin-top: 2px;
+        }
+
+        /* ===== VALUES ===== */
+        .values-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 12px;
+        }
+
+        .value-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 18px 16px;
+          border: 1px solid #F1F5F9;
+          text-align: center;
+          transition: all 0.2s;
+        }
+
+        .value-card:hover {
+          border-color: #E2E8F0;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
+
+        .value-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 8px;
+        }
+
+        .value-title {
+          font-size: 14px;
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0 0 2px;
+        }
+
+        .value-desc {
+          font-size: 12px;
+          color: #94A3B8;
+          margin: 0;
+          line-height: 1.4;
+        }
+
+        /* ===== TEAM ===== */
+        .team-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+          gap: 12px;
+        }
+
+        .team-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 18px 16px;
+          border: 1px solid #F1F5F9;
+          text-align: center;
+          transition: all 0.2s;
+        }
+
+        .team-card:hover {
+          border-color: #E2E8F0;
+          transform: translateY(-2px);
+        }
+
+        .team-avatar {
+          width: clamp(60px, 7vw, 72px);
+          height: clamp(60px, 7vw, 72px);
+          background: linear-gradient(135deg, #F59E0B, #D97706);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 10px;
+          font-size: clamp(26px, 3vw, 30px);
+          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+        }
+
+        .team-name {
+          font-size: 14px;
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0 0 2px;
+        }
+
+        .team-role {
+          font-size: 12px;
+          color: #94A3B8;
+          margin: 0;
+        }
+
+        /* ===== BOTTOM NAV ===== */
+        .bottom-nav {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(12px);
+          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          display: flex;
+          justify-content: space-around;
+          padding: 4px 0 8px;
+          z-index: 100;
+        }
+
+        .nav-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          font-family: inherit;
+          min-width: 44px;
+        }
+
+        .nav-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .nav-icon-active {
+          background: #1E293B;
+        }
+
+        .nav-label {
+          font-size: 9px;
+          font-weight: 500;
+          color: #94A3B8;
+        }
+
+        .nav-label-active {
+          color: #1E293B;
+          font-weight: 600;
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+          background: #1E293B;
+          padding: 16px;
+          text-align: center;
+        }
+
+        .footer-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .footer-text {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.4);
+          margin: 0;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 380px) {
+          .hero {
+            padding: 32px 16px 40px;
+          }
+          .hero-title {
+            font-size: 24px;
+          }
+          .stats-grid {
+            gap: 8px;
+          }
+          .stat-item {
+            padding: 12px 8px;
+          }
+          .stat-number {
+            font-size: 20px;
+          }
+          .values-grid {
+            grid-template-columns: 1fr;
+          }
+          .team-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .nav-actions .nav-btn {
+            display: none;
+          }
+          .nav-actions .btn-primary {
+            padding: 6px 14px;
+            font-size: 12px;
+          }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+          .values-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+          .team-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+      `}</style>
     </div>
   );
 };

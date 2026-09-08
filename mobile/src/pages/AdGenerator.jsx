@@ -1,6 +1,6 @@
 // mobile/src/pages/AdGenerator.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { adAPI } from '../services/api';
@@ -9,9 +9,6 @@ import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 
-// ============================================
-// PREMIUM FEATHER ICONS
-// ============================================
 const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
@@ -38,10 +35,16 @@ const ICONS = {
   close: "M18 6L6 18M6 6l12 12",
   check: "M20 6L9 17l-5-5",
   upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
+  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+  plus: "M12 4v16m8-8H4",
+  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
 };
 
 const AdGenerator = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
@@ -57,7 +60,11 @@ const AdGenerator = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const fileInputRef = useRef();
+
+  const isMobile = windowWidth <= 768;
 
   const categories = [
     'Farm Inputs',
@@ -79,6 +86,29 @@ const AdGenerator = () => {
       setTimeout(() => titleInput.focus(), 100);
     }
   }, []);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      success('Logged out successfully');
+      navigate('/');
+    } catch (err) {
+      console.error('Logout error:', err);
+      showToast('Failed to logout', 'error');
+    }
+  };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -151,351 +181,118 @@ const AdGenerator = () => {
     success('📋 Copied to clipboard!');
   };
 
+  const handleBottomNav = (id) => {
+    if (id === 'home') navigate('/landing');
+    else if (id === 'search') navigate('/search');
+    else if (id === 'sell') navigate('/create-listing');
+    else if (id === 'messages') navigate('/messages');
+    else if (id === 'profile') navigate('/profile');
+  };
+
   if (loading) {
     return <LoadingSpinner fullScreen message="Generating your ad..." />;
   }
 
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      background: '#F8FAFC',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)',
-      paddingTop: 'clamp(72px, 10vh, 80px)',
-      maxWidth: '800px',
-      margin: '0 auto',
-    },
-    backButton: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '8px 14px',
-      background: '#FFFFFF',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#64748B',
-      marginBottom: '12px',
-      transition: 'all 0.2s ease',
-      fontFamily: 'inherit',
-    },
-    card: {
-      background: '#FFFFFF',
-      borderRadius: '16px',
-      padding: 'clamp(16px, 2vw, 24px)',
-      marginBottom: '16px',
-      border: '1px solid #E2E8F0',
-      boxShadow: '0 2px 12px rgba(30,41,59,0.04)',
-    },
-    title: {
-      fontSize: 'clamp(20px, 2.5vw, 22px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: '0 0 4px 0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      fontFamily: '"Fraunces", Georgia, serif',
-    },
-    subtitle: {
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#94A3B8',
-      margin: '0 0 20px 0',
-    },
-    label: {
-      display: 'block',
-      fontSize: 'clamp(12px, 1vw, 13px)',
-      fontWeight: '600',
-      color: '#475569',
-      marginBottom: '4px',
-    },
-    input: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#1E293B',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-    },
-    textarea: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#1E293B',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      resize: 'vertical',
-      minHeight: 'clamp(60px, 8vw, 80px)',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-    },
-    select: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#1E293B',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      appearance: 'none',
-    },
-    row: {
-      display: 'flex',
-      gap: '12px',
-      flexWrap: 'wrap',
-    },
-    half: {
-      flex: 1,
-      minWidth: 'clamp(140px, 40vw, 200px)',
-    },
-    uploadArea: {
-      border: '2px dashed #E2E8F0',
-      borderRadius: '12px',
-      padding: 'clamp(16px, 2vw, 24px)',
-      textAlign: 'center',
-      cursor: 'pointer',
-      background: '#F8FAFC',
-      transition: 'all 0.2s ease',
-    },
-    previewImage: {
-      maxWidth: '100%',
-      maxHeight: 'clamp(160px, 25vw, 220px)',
-      objectFit: 'contain',
-      borderRadius: '8px',
-    },
-    error: {
-      color: '#EF4444',
-      padding: '12px',
-      background: '#FEF2F2',
-      borderRadius: '8px',
-      border: '1px solid #FECACA',
-      marginTop: '12px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-    },
-    adPreview: {
-      background: '#F8FAFC',
-      padding: 'clamp(14px, 1.5vw, 18px)',
-      borderRadius: '12px',
-      border: '1px solid #E2E8F0',
-      marginBottom: '16px',
-    },
-    adTitle: {
-      fontSize: 'clamp(16px, 1.6vw, 18px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: '0 0 6px 0',
-      fontFamily: '"Fraunces", Georgia, serif',
-    },
-    adDesc: {
-      color: '#64748B',
-      margin: '0 0 10px 0',
-      lineHeight: '1.5',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-    },
-    adCTA: {
-      color: '#F59E0B',
-      fontWeight: '600',
-      margin: '0 0 8px 0',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-    },
-    hashtag: {
-      display: 'inline-block',
-      padding: '3px 10px',
-      background: '#EDE9F5',
-      color: '#1E293B',
-      borderRadius: '6px',
-      fontSize: 'clamp(11px, 0.9vw, 12px)',
-      fontWeight: '500',
-      marginRight: '6px',
-      marginTop: '4px',
-    },
-    socialCard: {
-      padding: 'clamp(12px, 1.2vw, 14px)',
-      borderRadius: '10px',
-      marginBottom: '10px',
-      border: '1px solid #E2E8F0',
-      background: '#F8FAFC',
-    },
-    socialHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '6px',
-      flexWrap: 'wrap',
-      gap: '8px',
-    },
-    socialLabel: {
-      fontWeight: '600',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-    },
-    copyBtn: {
-      padding: '4px 12px',
-      background: '#1E293B',
-      color: '#FFFFFF',
-      border: 'none',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: 'clamp(11px, 0.9vw, 12px)',
-      fontWeight: '500',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      fontFamily: 'inherit',
-      transition: 'all 0.2s ease',
-    },
-    socialText: {
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#64748B',
-      margin: 0,
-      whiteSpace: 'pre-wrap',
-      lineHeight: '1.4',
-      wordBreak: 'break-word',
-    },
-    resetBtn: {
-      width: '100%',
-      padding: 'clamp(10px, 1.2vw, 12px)',
-      background: '#F1F5F9',
-      color: '#64748B',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(14px, 1.2vw, 15px)',
-      fontWeight: '600',
-      cursor: 'pointer',
-      marginTop: '16px',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      fontFamily: 'inherit',
-      transition: 'all 0.2s ease',
-    },
-    shareSection: {
-      marginTop: '20px',
-      paddingTop: '16px',
-      borderTop: '1px solid #E2E8F0',
-    },
-    shareLabel: {
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      fontWeight: '600',
-      color: '#1E293B',
-      marginBottom: '10px',
-    },
-    required: {
-      color: '#EF4444',
-      marginLeft: '2px',
-    },
-  };
-
   return (
-    <div style={styles.container}>
-      <button 
-        onClick={() => navigate('/dashboard')} 
-        style={styles.backButton}
-        onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
-      >
-        <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
-        Back to Dashboard
-      </button>
+    <div className="ad-generator">
+      {/* Navbar */}
+      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
+        <div className="navbar-inner">
+          <Link to="/landing" className="logo">
+            <span className="logo-icon">K</span>
+            <span className="logo-text">Kumsika</span>
+          </Link>
+          <div className="nav-actions">
+            <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
+            <button onClick={handleLogout} className="logout-btn">
+              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
+            </button>
+          </div>
+        </div>
+      </nav>
 
-      <div style={styles.card}>
-        <h2 style={styles.title}>
-          <Icon d={ICONS.sparkles} size={24} color="#F59E0B" strokeWidth={1.75} />
-          AI Ad Generator
-        </h2>
-        <p style={styles.subtitle}>Upload a product image and let AI create a professional ad</p>
-
-        {/* Image Upload */}
-        <div style={{ marginBottom: '16px' }}>
-          <label style={styles.label}>
-            <Icon d={ICONS.image} size={14} color="#94A3B8" strokeWidth={1.75} />
-            <span style={{ marginLeft: '4px' }}>Product Image</span>
-            <span style={styles.required}>*</span>
-          </label>
-          <div
-            style={styles.uploadArea}
-            onClick={() => fileInputRef.current?.click()}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#F59E0B'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; }}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              style={{ display: 'none' }}
-              aria-label="Upload product image"
-            />
-            {imagePreview ? (
-              <img src={imagePreview} alt="Preview" style={styles.previewImage} />
-            ) : (
-              <div>
-                <Icon d={ICONS.upload} size={48} color="#94A3B8" strokeWidth={1.5} />
-                <p style={{ color: '#94A3B8', marginTop: '8px', fontWeight: '500', fontSize: 'clamp(13px, 1.1vw, 14px)' }}>
-                  Click to upload product image
-                </p>
-                <p style={{ color: '#94A3B8', fontSize: 'clamp(11px, 0.9vw, 12px)' }}>
-                  PNG, JPG, GIF up to 10MB
-                </p>
-              </div>
-            )}
+      <div className="main-content">
+        {/* Header */}
+        <div className="page-header">
+          <button className="back-btn" onClick={() => navigate('/dashboard')}>
+            <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
+            Back
+          </button>
+          <div className="header-content">
+            <div className="header-icon">
+              <Icon d={ICONS.sparkles} size={28} color="#F59E0B" strokeWidth={1.75} />
+            </div>
+            <h1 className="page-title">AI Ad Generator</h1>
+            <p className="page-subtitle">Upload a product image and let AI create a professional ad</p>
           </div>
         </div>
 
-        {/* Product Info */}
-        <div style={{ marginBottom: '16px' }}>
-          <label style={styles.label}>Product Title</label>
-          <input
-            type="text"
-            name="title"
-            value={productInfo.title}
-            onChange={(e) => setProductInfo({ ...productInfo, title: e.target.value })}
-            style={styles.input}
-            placeholder="e.g., Fresh Tomatoes"
-            className="input-focus"
-            autoComplete="off"
-          />
-        </div>
+        {/* Main Form */}
+        <div className="form-card">
+          {/* Image Upload */}
+          <div className="form-group">
+            <label className="form-label">
+              <Icon d={ICONS.image} size={14} color="#94A3B8" strokeWidth={1.75} />
+              Product Image <span className="required">*</span>
+            </label>
+            <div 
+              className="upload-area"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+                aria-label="Upload product image"
+              />
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="preview-image" />
+              ) : (
+                <div className="upload-placeholder">
+                  <Icon d={ICONS.upload} size={48} color="#94A3B8" strokeWidth={1.5} />
+                  <p className="upload-text">Click to upload product image</p>
+                  <p className="upload-hint">PNG, JPG, GIF up to 10MB</p>
+                </div>
+              )}
+            </div>
+          </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={styles.label}>Description</label>
-          <textarea
-            value={productInfo.description}
-            onChange={(e) => setProductInfo({ ...productInfo, description: e.target.value })}
-            style={styles.textarea}
-            placeholder="Brief description of your product..."
-            className="input-focus"
-          />
-        </div>
+          {/* Product Info */}
+          <div className="form-group">
+            <label className="form-label">Product Title</label>
+            <input
+              type="text"
+              name="title"
+              value={productInfo.title}
+              onChange={(e) => setProductInfo({ ...productInfo, title: e.target.value })}
+              className="form-input"
+              placeholder="e.g., Fresh Tomatoes"
+              autoComplete="off"
+            />
+          </div>
 
-        <div style={styles.row}>
-          <div style={styles.half}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={styles.label}>
+          <div className="form-group">
+            <label className="form-label">Description</label>
+            <textarea
+              value={productInfo.description}
+              onChange={(e) => setProductInfo({ ...productInfo, description: e.target.value })}
+              className="form-textarea"
+              placeholder="Brief description of your product..."
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group half">
+              <label className="form-label">
                 <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
-                <span style={{ marginLeft: '4px' }}>Category</span>
+                Category
               </label>
               <select
                 value={productInfo.category}
                 onChange={(e) => setProductInfo({ ...productInfo, category: e.target.value })}
-                style={styles.select}
-                className="input-focus"
+                className="form-select"
               >
                 <option value="">Select category</option>
                 {categories.map(cat => (
@@ -503,126 +300,732 @@ const AdGenerator = () => {
                 ))}
               </select>
             </div>
-          </div>
-          <div style={styles.half}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={styles.label}>
+            <div className="form-group half">
+              <label className="form-label">
                 <Icon d={ICONS.dollar} size={14} color="#94A3B8" strokeWidth={1.75} />
-                <span style={{ marginLeft: '4px' }}>Price (MWK)</span>
+                Price (MWK)
               </label>
               <input
                 type="number"
                 value={productInfo.price}
                 onChange={(e) => setProductInfo({ ...productInfo, price: e.target.value })}
-                style={styles.input}
+                className="form-input"
                 placeholder="e.g., 5000"
-                className="input-focus"
                 autoComplete="off"
               />
             </div>
           </div>
-        </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={styles.label}>Unit</label>
-          <input
-            type="text"
-            value={productInfo.unit}
-            onChange={(e) => setProductInfo({ ...productInfo, unit: e.target.value })}
-            style={styles.input}
-            placeholder="e.g., bag, kg, piece"
-            className="input-focus"
-            autoComplete="off"
-          />
-        </div>
-
-        <PrimaryButton
-          onClick={handleGenerateAd}
-          variant="primary"
-          size="lg"
-          fullWidth
-          disabled={loading || !image}
-          loading={loading}
-        >
-          {loading ? 'Generating...' : (
-            <>
-              <Icon d={ICONS.sparkles} size={18} color="#FFFFFF" strokeWidth={1.75} />
-              Generate Ad
-            </>
-          )}
-        </PrimaryButton>
-
-        {errorMsg && <div style={styles.error}>❌ {errorMsg}</div>}
-      </div>
-
-      {/* Results */}
-      {result && (
-        <div style={styles.card}>
-          <h3 style={{ fontSize: 'clamp(16px, 1.6vw, 18px)', fontWeight: '700', color: '#1E293B', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Icon d={ICONS.sparkles} size={20} color="#F59E0B" strokeWidth={1.75} />
-            Your AI-Generated Ad
-          </h3>
-
-          <div style={styles.adPreview}>
-            <h3 style={styles.adTitle}>{result.ad?.headline || result.ad?.title}</h3>
-            <p style={styles.adDesc}>{result.ad?.fullCopy || result.ad?.description}</p>
-            <p style={styles.adCTA}>{result.ad?.cta || result.ad?.callToAction}</p>
-            <div style={{ marginTop: '8px' }}>
-              {result.ad?.sellingPoints?.map((point, index) => (
-                <span key={index} style={{ ...styles.hashtag, background: '#ECFDF5', color: '#065F46' }}>
-                  ✓ {point}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginTop: '12px' }}>
-            <h4 style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', fontWeight: '600', color: '#1E293B', marginBottom: '8px' }}>
-              📱 Social Media Posts
-            </h4>
-            
-            {result.socialPosts?.facebook && (
-              <div style={{ ...styles.socialCard, borderColor: '#1877F2' }}>
-                <div style={styles.socialHeader}>
-                  <span style={{ ...styles.socialLabel, color: '#1877F2' }}>📘 Facebook</span>
-                  <button onClick={() => copyToClipboard(result.socialPosts.facebook)} style={styles.copyBtn}>
-                    <Icon d={ICONS.copy} size={12} color="#FFFFFF" strokeWidth={1.75} />
-                    Copy
-                  </button>
-                </div>
-                <p style={styles.socialText}>{result.socialPosts.facebook}</p>
-              </div>
-            )}
-
-            {result.socialPosts?.whatsapp && (
-              <div style={{ ...styles.socialCard, borderColor: '#25D366' }}>
-                <div style={styles.socialHeader}>
-                  <span style={{ ...styles.socialLabel, color: '#075E54' }}>💬 WhatsApp</span>
-                  <button onClick={() => copyToClipboard(result.socialPosts.whatsapp)} style={styles.copyBtn}>
-                    <Icon d={ICONS.copy} size={12} color="#FFFFFF" strokeWidth={1.75} />
-                    Copy
-                  </button>
-                </div>
-                <p style={styles.socialText}>{result.socialPosts.whatsapp}</p>
-              </div>
-            )}
-          </div>
-
-          <div style={styles.shareSection}>
-            <p style={styles.shareLabel}>📤 Share This Ad</p>
-            <SocialShare 
-              title={result.ad?.headline || result.ad?.title || 'Check out this product!'}
-              description={result.ad?.fullCopy || result.ad?.description || ''}
-              url={window.location.href}
+          <div className="form-group">
+            <label className="form-label">Unit</label>
+            <input
+              type="text"
+              value={productInfo.unit}
+              onChange={(e) => setProductInfo({ ...productInfo, unit: e.target.value })}
+              className="form-input"
+              placeholder="e.g., bag, kg, piece"
+              autoComplete="off"
             />
           </div>
 
-          <button onClick={handleReset} style={styles.resetBtn}>
-            <Icon d={ICONS.close} size={16} color="#64748B" strokeWidth={1.75} />
-            Start Over
+          {errorMsg && (
+            <div className="error-banner">
+              <Icon d={ICONS.close} size={16} color="#EF4444" strokeWidth={1.75} />
+              {errorMsg}
+            </div>
+          )}
+
+          <button 
+            className="generate-btn" 
+            onClick={handleGenerateAd}
+            disabled={loading || !image}
+          >
+            <Icon d={ICONS.sparkles} size={18} color="#FFFFFF" strokeWidth={1.75} />
+            {loading ? 'Generating...' : 'Generate Ad'}
           </button>
         </div>
+
+        {/* Results */}
+        {result && (
+          <div className="result-card">
+            <div className="result-header">
+              <Icon d={ICONS.sparkles} size={20} color="#F59E0B" strokeWidth={1.75} />
+              <h3 className="result-title">Your AI-Generated Ad</h3>
+            </div>
+
+            <div className="ad-preview">
+              <h3 className="ad-headline">{result.ad?.headline || result.ad?.title}</h3>
+              <p className="ad-description">{result.ad?.fullCopy || result.ad?.description}</p>
+              <p className="ad-cta">{result.ad?.cta || result.ad?.callToAction}</p>
+              <div className="ad-points">
+                {result.ad?.sellingPoints?.map((point, index) => (
+                  <span key={index} className="ad-point">
+                    ✓ {point}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="social-section">
+              <h4 className="social-title">📱 Social Media Posts</h4>
+              
+              {result.socialPosts?.facebook && (
+                <div className="social-card facebook">
+                  <div className="social-header">
+                    <span className="social-label">📘 Facebook</span>
+                    <button onClick={() => copyToClipboard(result.socialPosts.facebook)} className="copy-btn">
+                      <Icon d={ICONS.copy} size={12} color="#FFFFFF" strokeWidth={1.75} />
+                      Copy
+                    </button>
+                  </div>
+                  <p className="social-text">{result.socialPosts.facebook}</p>
+                </div>
+              )}
+
+              {result.socialPosts?.whatsapp && (
+                <div className="social-card whatsapp">
+                  <div className="social-header">
+                    <span className="social-label">💬 WhatsApp</span>
+                    <button onClick={() => copyToClipboard(result.socialPosts.whatsapp)} className="copy-btn">
+                      <Icon d={ICONS.copy} size={12} color="#FFFFFF" strokeWidth={1.75} />
+                      Copy
+                    </button>
+                  </div>
+                  <p className="social-text">{result.socialPosts.whatsapp}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="share-section">
+              <p className="share-label">📤 Share This Ad</p>
+              <SocialShare 
+                title={result.ad?.headline || result.ad?.title || 'Check out this product!'}
+                description={result.ad?.fullCopy || result.ad?.description || ''}
+                url={window.location.href}
+              />
+            </div>
+
+            <button onClick={handleReset} className="reset-btn">
+              <Icon d={ICONS.close} size={16} color="#64748B" strokeWidth={1.75} />
+              Start Over
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Nav */}
+      {isMobile && (
+        <div className="bottom-nav">
+          {[
+            { id: 'home', label: 'Home', icon: 'home' },
+            { id: 'search', label: 'Search', icon: 'search' },
+            { id: 'sell', label: 'Sell', icon: 'plus' },
+            { id: 'messages', label: 'Chat', icon: 'message' },
+            { id: 'profile', label: 'Profile', icon: 'user' },
+          ].map((item) => {
+            const active = item.id === 'home';
+            return (
+              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
+                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+                </div>
+                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       )}
+
+      <style jsx>{`
+        .ad-generator {
+          min-height: 100vh;
+          background: #F8FAFC;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #1E293B;
+          padding-bottom: 80px;
+        }
+
+        @media (min-width: 769px) {
+          .ad-generator {
+            padding-bottom: 0;
+          }
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
+          transition: all 0.2s;
+        }
+
+        .navbar-scrolled {
+          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+        }
+
+        .navbar-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+        }
+
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          background: #1E293B;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #F59E0B;
+          font-weight: 700;
+          font-size: 16px;
+        }
+
+        .logo-text {
+          font-size: 18px;
+          font-weight: 700;
+          color: #1E293B;
+          letter-spacing: -0.5px;
+        }
+
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .greeting {
+          font-size: 13px;
+          color: #64748B;
+          display: none;
+        }
+
+        @media (min-width: 640px) {
+          .greeting { display: inline; }
+        }
+
+        .logout-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: none;
+          background: #FEF2F2;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+          background: #FEE2E2;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px 16px 40px;
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+          margin-bottom: 24px;
+        }
+
+        .back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 6px 14px;
+          background: #FFFFFF;
+          border: 1px solid #F1F5F9;
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #64748B;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+          background: #F1F5F9;
+          border-color: #E2E8F0;
+        }
+
+        .header-content {
+          margin-top: 12px;
+        }
+
+        .header-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          background: rgba(245, 158, 11, 0.1);
+          border-radius: 14px;
+          margin-bottom: 8px;
+        }
+
+        .page-title {
+          font-size: clamp(24px, 2.8vw, 28px);
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0 0 4px;
+          letter-spacing: -0.5px;
+        }
+
+        .page-subtitle {
+          font-size: 14px;
+          color: #94A3B8;
+          margin: 0;
+        }
+
+        /* ===== FORM CARD ===== */
+        .form-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 18px 20px;
+          border: 1px solid #F1F5F9;
+          margin-bottom: 16px;
+        }
+
+        .form-group {
+          margin-bottom: 14px;
+        }
+
+        .form-group:last-of-type {
+          margin-bottom: 0;
+        }
+
+        .form-label {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #475569;
+          margin-bottom: 4px;
+        }
+
+        .required {
+          color: #EF4444;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+          font-size: 14px;
+          color: #1E293B;
+          outline: none;
+          background: #FFFFFF;
+          font-family: inherit;
+          transition: all 0.2s;
+          box-sizing: border-box;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+          border-color: #F59E0B;
+          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+        }
+
+        .form-textarea {
+          resize: vertical;
+          min-height: 60px;
+        }
+
+        .form-select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          padding-right: 32px;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .form-row .half {
+          flex: 1;
+          min-width: 140px;
+        }
+
+        /* ===== UPLOAD AREA ===== */
+        .upload-area {
+          border: 2px dashed #E2E8F0;
+          border-radius: 12px;
+          padding: 24px;
+          text-align: center;
+          cursor: pointer;
+          background: #F8FAFC;
+          transition: all 0.2s;
+          min-height: 140px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .upload-area:hover {
+          border-color: #F59E0B;
+          background: #FEFCF5;
+        }
+
+        .upload-placeholder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .upload-text {
+          font-size: 14px;
+          font-weight: 500;
+          color: #64748B;
+          margin: 4px 0 0;
+        }
+
+        .upload-hint {
+          font-size: 12px;
+          color: #94A3B8;
+          margin: 0;
+        }
+
+        .preview-image {
+          max-width: 100%;
+          max-height: 200px;
+          object-fit: contain;
+          border-radius: 8px;
+        }
+
+        /* ===== GENERATE BUTTON ===== */
+        .generate-btn {
+          width: 100%;
+          padding: 12px;
+          background: linear-gradient(135deg, #1E293B, #F59E0B);
+          border: none;
+          border-radius: 12px;
+          font-size: 15px;
+          font-weight: 600;
+          color: #FFFFFF;
+          cursor: pointer;
+          font-family: inherit;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: all 0.2s;
+          margin-top: 16px;
+        }
+
+        .generate-btn:hover:not(:disabled) {
+          transform: scale(0.98);
+          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+        }
+
+        .generate-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* ===== ERROR ===== */
+        .error-banner {
+          color: #EF4444;
+          font-size: 13px;
+          padding: 10px 14px;
+          background: #FEF2F2;
+          border-radius: 10px;
+          border: 1px solid #FECACA;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        /* ===== RESULT CARD ===== */
+        .result-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 18px 20px;
+          border: 1px solid #F1F5F9;
+          margin-top: 16px;
+        }
+
+        .result-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+
+        .result-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0;
+        }
+
+        /* ===== AD PREVIEW ===== */
+        .ad-preview {
+          background: #F8FAFC;
+          padding: 16px;
+          border-radius: 12px;
+          border: 1px solid #F1F5F9;
+          margin-bottom: 16px;
+        }
+
+        .ad-headline {
+          font-size: 17px;
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0 0 4px;
+        }
+
+        .ad-description {
+          font-size: 14px;
+          color: #64748B;
+          margin: 0 0 8px;
+          line-height: 1.5;
+        }
+
+        .ad-cta {
+          font-size: 14px;
+          font-weight: 600;
+          color: #F59E0B;
+          margin: 0 0 8px;
+        }
+
+        .ad-points {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .ad-point {
+          padding: 2px 10px;
+          background: #ECFDF5;
+          color: #065F46;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        /* ===== SOCIAL SECTION ===== */
+        .social-section {
+          margin: 16px 0;
+        }
+
+        .social-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1E293B;
+          margin: 0 0 10px;
+        }
+
+        .social-card {
+          padding: 12px 14px;
+          border-radius: 10px;
+          margin-bottom: 10px;
+          border: 1px solid #F1F5F9;
+          background: #F8FAFC;
+        }
+
+        .social-card.facebook {
+          border-left: 3px solid #1877F2;
+        }
+
+        .social-card.whatsapp {
+          border-left: 3px solid #25D366;
+        }
+
+        .social-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 4px;
+        }
+
+        .social-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #1E293B;
+        }
+
+        .copy-btn {
+          padding: 2px 12px;
+          background: #1E293B;
+          border: none;
+          border-radius: 6px;
+          color: #FFFFFF;
+          font-size: 11px;
+          font-weight: 500;
+          cursor: pointer;
+          font-family: inherit;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+          background: #F59E0B;
+        }
+
+        .social-text {
+          font-size: 13px;
+          color: #64748B;
+          margin: 0;
+          line-height: 1.4;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+
+        /* ===== SHARE SECTION ===== */
+        .share-section {
+          margin: 16px 0;
+          padding-top: 16px;
+          border-top: 1px solid #F1F5F9;
+        }
+
+        .share-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #1E293B;
+          margin: 0 0 10px;
+        }
+
+        /* ===== RESET BUTTON ===== */
+        .reset-btn {
+          width: 100%;
+          padding: 10px;
+          background: #F1F5F9;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #64748B;
+          cursor: pointer;
+          font-family: inherit;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: all 0.2s;
+        }
+
+        .reset-btn:hover {
+          background: #E2E8F0;
+        }
+
+        /* ===== BOTTOM NAV ===== */
+        .bottom-nav {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(12px);
+          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          display: flex;
+          justify-content: space-around;
+          padding: 4px 0 8px;
+          z-index: 100;
+        }
+
+        .nav-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          font-family: inherit;
+          min-width: 44px;
+        }
+
+        .nav-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .nav-icon-active {
+          background: #1E293B;
+        }
+
+        .nav-label {
+          font-size: 9px;
+          font-weight: 500;
+          color: #94A3B8;
+        }
+
+        .nav-label-active {
+          color: #1E293B;
+          font-weight: 600;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+          .form-row {
+            flex-direction: column;
+          }
+          .form-row .half {
+            min-width: 100%;
+          }
+          .upload-area {
+            min-height: 100px;
+            padding: 16px;
+          }
+          .ad-headline {
+            font-size: 15px;
+          }
+          .social-card {
+            padding: 10px 12px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .main-content {
+            padding: 12px 12px 32px;
+          }
+          .form-card {
+            padding: 14px 16px;
+          }
+          .result-card {
+            padding: 14px 16px;
+          }
+        }
+      `}</style>
     </div>
   );
 };

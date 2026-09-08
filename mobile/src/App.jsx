@@ -3,7 +3,6 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
-import LoadingSpinner from './components/LoadingSpinner';
 import { ToastProvider } from './components/ToastContainer';
 import Navbar from './components/Navbar';
 import './styles/global.css';
@@ -27,7 +26,10 @@ const AdGenerator = lazy(() => import('./pages/AdGenerator'));
 const EditProfile = lazy(() => import('./pages/EditProfile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-const PageLoader = ({ message }) => <LoadingSpinner fullScreen message={message || 'Loading page...'} />;
+// ============================================================
+// ✅ NO LOADING SPINNER - Just render null
+// ============================================================
+const PageLoader = () => null;
 
 // ============================================================
 // PROTECTED ROUTE
@@ -37,7 +39,7 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
   if (loading || !authInitialized) {
-    return <PageLoader message="Verifying your session..." />;
+    return null;
   }
 
   if (!isAuthenticated) {
@@ -55,7 +57,7 @@ const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading, authInitialized } = useAuth();
 
   if (loading || !authInitialized) {
-    return <PageLoader message="Loading..." />;
+    return null;
   }
 
   if (isAuthenticated) {
@@ -63,6 +65,33 @@ const PublicRoute = ({ children }) => {
   }
 
   return children;
+};
+
+// ============================================================
+// ✅ LAYOUT WRAPPER - Controls Navbar visibility
+// ============================================================
+const Layout = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  
+  // Pages where Navbar should NOT show
+  const hideNavbar = ['/', '/login', '/register'].includes(location.pathname);
+  
+  // If it's a page that should hide the navbar, just return children
+  if (hideNavbar) {
+    return children;
+  }
+
+  // For all other pages, show the Navbar
+  return (
+    <>
+      {/* ✅ Only ONE navbar for the entire app */}
+      <Navbar />
+      <div style={{ paddingTop: '60px' }}>
+        {children}
+      </div>
+    </>
+  );
 };
 
 // ============================================================
@@ -107,151 +136,185 @@ function AppRoutes() {
     return () => clearTimeout(failSafe);
   }, [phase, authLoading]);
 
+  // Splash screen - NO NAVBAR, NO SPINNER
   if (phase === 'splash') {
     return (
-      <Suspense fallback={<PageLoader />}>
+      <Suspense fallback={null}>
         <SplashScreen onComplete={handleSplashComplete} />
       </Suspense>
     );
   }
 
+  // Bridge phase - NO SPINNER
   if (phase === 'bridge') {
-    return <PageLoader message="Preparing your marketplace..." />;
+    return null;
   }
 
+  // Ready phase
   return (
-    <>
-      <Navbar />
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          {/* ✅ Public Routes - Only accessible when NOT logged in */}
-          <Route 
-            path="/login" 
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            } 
-          />
-          <Route 
-            path="/register" 
-            element={
-              <PublicRoute>
-                <Register />
-              </PublicRoute>
-            } 
-          />
+    <Suspense fallback={null}>
+      <Routes>
+        {/* Public Routes - No Navbar */}
+        <Route 
+          path="/login" 
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } 
+        />
+        <Route 
+          path="/register" 
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          } 
+        />
 
-          {/* ✅ Protected Routes - Require Authentication */}
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <Navigate to="/landing" replace />  {/* ✅ Changed to /landing */}
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/landing" 
-            element={
-              <ProtectedRoute>
+        {/* Protected Routes - With Navbar (via Layout) */}
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Navigate to="/landing" replace />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/landing" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <Landing />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/admin/*" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/*" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <AdminDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/onboarding" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/onboarding" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <Onboarding />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/create-listing" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/create-listing" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <CreateListing />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/search" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/search" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <Search />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/listing/:id" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/listing/:id" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <ListingDetails />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/ai-search" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/ai-search" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <AISearch />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/voice-listing" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/voice-listing" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <VoiceListing />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/ad-generator" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/ad-generator" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <AdGenerator />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <EditProfile />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/about" 
-            element={
-              <ProtectedRoute>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/about" 
+          element={
+            <ProtectedRoute>
+              <Layout>
                 <About />
-              </ProtectedRoute>
-            } 
-          />
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
-    </>
+        {/* 404 - With Navbar */}
+        <Route 
+          path="*" 
+          element={
+            <Layout>
+              <NotFound />
+            </Layout>
+          } 
+        />
+      </Routes>
+    </Suspense>
   );
 }
 

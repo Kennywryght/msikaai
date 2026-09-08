@@ -1,12 +1,11 @@
 // mobile/src/pages/Onboarding.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { businessAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
+import LoadingSpinner from '../components/LoadingSpinner';
 
-// ============================================================
-// PREMIUM FEATHER ICONS
-// ============================================================
 const Icon = ({ d, size = 24, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
@@ -24,86 +23,145 @@ const Icon = ({ d, size = 24, color = 'currentColor', strokeWidth = 1.75 }) => (
 );
 
 const ICONS = {
+  shopping: "M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0",
   store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-  check: "M20 6L9 17l-5-5",
-  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
-  build: "M14.7 6.3a4 4 0 11-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 015.4-5.4zM9 12l3-3",
+  user: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 7a4 4 0 100-8 4 4 0 000 8z",
   arrowRight: "M5 12h14M12 5l7 7-7 7",
+  check: "M20 6L9 17l-5-5",
+  close: "M18 6L6 18M6 6l12 12",
 };
 
 const Onboarding = () => {
-  const { user, updateProfile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
-  const [selectedRole, setSelectedRole] = useState(null);
+  const [selectedOption, setSelectedOption] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [checkingBusiness, setCheckingBusiness] = useState(true);
+  const [hasBusiness, setHasBusiness] = useState(false);
+  const [businessId, setBusinessId] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
+  const [isScrolled, setIsScrolled] = useState(false);
 
-  const handleRoleSelect = async (role) => {
-    setSelectedRole(role);
-    setLoading(true);
-    
-    try {
-      const result = await updateProfile({ 
-        role: role,
-        onboarding_completed: true 
-      });
-      
-      if (result.success) {
-        success(`Welcome to Kumsika as a ${role}! 🎉`);
-        setTimeout(() => {
-          navigate('/dashboard', { replace: true });
-        }, 500);
-      } else {
-        showToast(result.error || 'Failed to complete onboarding', 'error');
+  const isMobile = windowWidth <= 768;
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Check if user has a business
+  useEffect(() => {
+    const checkUserBusiness = async () => {
+      if (!user?.id) {
+        setCheckingBusiness(false);
+        return;
       }
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      setLoading(false);
+
+      try {
+        const response = await businessAPI.getByUser(user.id);
+        if (response.data?.business || (response.data?.businesses && response.data.businesses.length > 0)) {
+          const biz = response.data.business || response.data.businesses[0];
+          setHasBusiness(true);
+          setBusinessId(biz.id);
+        } else {
+          setHasBusiness(false);
+        }
+      } catch (err) {
+        console.error('Error checking business:', err);
+        setHasBusiness(false);
+      } finally {
+        setCheckingBusiness(false);
+      }
+    };
+
+    checkUserBusiness();
+  }, [user]);
+
+  const handleOptionSelect = (option) => {
+    setSelectedOption(option);
+  };
+
+  const handleContinue = () => {
+    if (!selectedOption) {
+      showToast('Please select an option to continue', 'warning');
+      return;
+    }
+
+    if (selectedOption === 'buy') {
+      // Redirect to landing page
+      navigate('/landing');
+    } else if (selectedOption === 'sell') {
+      // Check if user has a business
+      if (hasBusiness && businessId) {
+        // Has business → go to create listing
+        navigate('/create-listing');
+      } else {
+        // No business → go to register business (EditProfile)
+        navigate('/profile');
+      }
     }
   };
+
+  if (checkingBusiness) {
+    return <LoadingSpinner fullScreen message="Loading your profile..." />;
+  }
 
   const styles = {
     container: {
       minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px',
       background: '#F8FAFC',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      color: '#1E293B',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px 16px',
     },
     card: {
-      maxWidth: '520px',
+      maxWidth: '480px',
       width: '100%',
-      padding: '40px 32px',
       background: '#FFFFFF',
-      borderRadius: '24px',
-      border: '1px solid #E2E8F0',
-      boxShadow: '0 20px 60px rgba(30,41,59,0.06)',
-      position: 'relative',
+      borderRadius: '20px',
+      padding: 'clamp(24px, 4vw, 36px)',
+      border: '1px solid #F1F5F9',
+      boxShadow: '0 4px 24px rgba(30, 41, 59, 0.04)',
     },
     header: {
       textAlign: 'center',
-      marginBottom: '32px',
+      marginBottom: '28px',
     },
-    emoji: {
-      fontSize: '48px',
-      display: 'block',
+    headerIcon: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '64px',
+      height: '64px',
+      background: 'rgba(245, 158, 11, 0.1)',
+      borderRadius: '16px',
       marginBottom: '12px',
     },
     title: {
-      fontSize: '28px',
+      fontSize: 'clamp(22px, 3vw, 26px)',
       fontWeight: '700',
       color: '#1E293B',
-      margin: 0,
+      margin: '0 0 6px',
       fontFamily: '"Fraunces", Georgia, serif',
+      letterSpacing: '-0.02em',
     },
     subtitle: {
-      fontSize: '16px',
+      fontSize: 'clamp(14px, 1.2vw, 15px)',
       color: '#94A3B8',
-      margin: '4px 0 0',
+      margin: '0',
+      lineHeight: '1.5',
     },
     options: {
       display: 'flex',
@@ -111,179 +169,316 @@ const Onboarding = () => {
       gap: '12px',
       marginBottom: '24px',
     },
-    option: {
+    optionCard: {
       display: 'flex',
       alignItems: 'center',
       gap: '16px',
-      padding: '20px',
-      borderRadius: '16px',
-      border: '2px solid #E2E8F0',
-      background: '#FFFFFF',
+      padding: 'clamp(16px, 2vw, 20px)',
+      borderRadius: '14px',
+      border: '2px solid #F1F5F9',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      fontFamily: 'inherit',
-      textAlign: 'left',
-      width: '100%',
-      opacity: loading ? 0.6 : 1,
+      transition: 'all 0.25s ease',
+      background: '#FFFFFF',
     },
-    optionSelected: {
+    optionCardSelected: {
       borderColor: '#F59E0B',
-      background: 'rgba(245,158,11,0.04)',
-      boxShadow: '0 0 0 4px rgba(245,158,11,0.1)',
+      background: 'rgba(245, 158, 11, 0.04)',
+      boxShadow: '0 0 0 4px rgba(245, 158, 11, 0.08)',
     },
     optionIcon: {
-      width: '48px',
-      height: '48px',
-      borderRadius: '12px',
-      background: '#F8FAFC',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      width: '48px',
+      height: '48px',
+      borderRadius: '12px',
       flexShrink: 0,
+      background: '#F8FAFC',
+    },
+    optionIconActive: {
+      background: 'rgba(245, 158, 11, 0.12)',
     },
     optionContent: {
       flex: 1,
     },
     optionTitle: {
-      fontSize: '16px',
-      fontWeight: '700',
+      fontSize: 'clamp(15px, 1.3vw, 16px)',
+      fontWeight: '600',
       color: '#1E293B',
-      margin: 0,
+      margin: '0 0 2px',
     },
-    optionDesc: {
-      fontSize: '13px',
+    optionDescription: {
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
       color: '#94A3B8',
-      margin: '2px 0 0',
+      margin: '0',
+      lineHeight: '1.4',
     },
     optionCheck: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       width: '24px',
       height: '24px',
       borderRadius: '50%',
-      background: '#E2E8F0',
+      border: '2px solid #E2E8F0',
+      flexShrink: 0,
+      transition: 'all 0.25s ease',
+    },
+    optionCheckSelected: {
+      background: '#F59E0B',
+      borderColor: '#F59E0B',
+    },
+    continueBtn: {
+      width: '100%',
+      padding: 'clamp(12px, 1.5vw, 14px)',
+      background: selectedOption ? 'linear-gradient(135deg, #1E293B, #F59E0B)' : '#E2E8F0',
+      border: 'none',
+      borderRadius: '12px',
+      fontSize: 'clamp(15px, 1.3vw, 16px)',
+      fontWeight: '600',
+      color: selectedOption ? '#FFFFFF' : '#94A3B8',
+      cursor: selectedOption ? 'pointer' : 'not-allowed',
+      transition: 'all 0.25s ease',
+      fontFamily: 'inherit',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      flexShrink: 0,
-      transition: 'all 0.2s ease',
+      gap: '8px',
     },
-    optionCheckActive: {
-      background: '#F59E0B',
+    continueBtnHover: {
+      transform: 'scale(0.98)',
+      boxShadow: '0 4px 16px rgba(245, 158, 11, 0.3)',
+    },
+    skipLink: {
+      display: 'block',
+      textAlign: 'center',
+      marginTop: '16px',
+      color: '#94A3B8',
+      fontSize: 'clamp(13px, 1.1vw, 14px)',
+      textDecoration: 'none',
+      transition: 'color 0.2s ease',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+    },
+    businessStatus: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      fontSize: '12px',
+      padding: '6px 12px',
+      borderRadius: '8px',
+      marginTop: '8px',
+      background: '#F8FAFC',
+      border: '1px solid #F1F5F9',
+    },
+    businessStatusText: {
+      color: '#64748B',
+    },
+    businessStatusBadge: {
+      fontWeight: '600',
+    },
+    businessStatusBadgeRegistered: {
+      color: '#10B981',
+    },
+    businessStatusBadgeUnregistered: {
+      color: '#F59E0B',
     },
     footer: {
       textAlign: 'center',
-      fontSize: '13px',
+      marginTop: '16px',
+      fontSize: '12px',
       color: '#94A3B8',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '6px',
-      margin: 0,
-      paddingTop: '16px',
-      borderTop: '1px solid #E2E8F0',
-    },
-    loadingOverlay: {
-      position: 'absolute',
-      inset: 0,
-      background: 'rgba(255,255,255,0.85)',
-      backdropFilter: 'blur(4px)',
-      borderRadius: '24px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10,
-    },
-    loadingText: {
-      fontSize: '14px',
-      color: '#64748B',
-      marginTop: '8px',
     },
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        {loading && (
-          <div style={styles.loadingOverlay}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>⏳</div>
-              <div style={styles.loadingText}>Setting up your account...</div>
-            </div>
-          </div>
-        )}
-
         <div style={styles.header}>
-          <span style={styles.emoji}>👋</span>
-          <h1 style={styles.title}>Welcome, {user?.email?.split('@')[0] || 'there'}!</h1>
-          <p style={styles.subtitle}>How do you want to use Kumsika?</p>
+          <div style={styles.headerIcon}>
+            <Icon d={ICONS.store} size={28} color="#F59E0B" strokeWidth={1.75} />
+          </div>
+          <h1 style={styles.title}>Welcome to Kumsika</h1>
+          <p style={styles.subtitle}>
+            How would you like to get started today?
+          </p>
         </div>
 
         <div style={styles.options}>
-          <button
+          {/* Buy Option */}
+          <div
             style={{
-              ...styles.option,
-              ...(selectedRole === 'buyer' ? styles.optionSelected : {}),
+              ...styles.optionCard,
+              ...(selectedOption === 'buy' ? styles.optionCardSelected : {}),
             }}
-            onClick={() => handleRoleSelect('buyer')}
-            disabled={loading}
+            onClick={() => handleOptionSelect('buy')}
+            onMouseEnter={(e) => {
+              if (selectedOption !== 'buy') {
+                e.currentTarget.style.borderColor = '#E2E8F0';
+                e.currentTarget.style.background = '#F8FAFC';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (selectedOption !== 'buy') {
+                e.currentTarget.style.borderColor = '#F1F5F9';
+                e.currentTarget.style.background = '#FFFFFF';
+              }
+            }}
           >
-            <div style={styles.optionIcon}>
-              <Icon d={ICONS.user} size={28} color="#F59E0B" strokeWidth={1.75} />
+            <div
+              style={{
+                ...styles.optionIcon,
+                ...(selectedOption === 'buy' ? styles.optionIconActive : {}),
+              }}
+            >
+              <Icon d={ICONS.shopping} size={22} color={selectedOption === 'buy' ? '#F59E0B' : '#94A3B8'} strokeWidth={1.75} />
             </div>
             <div style={styles.optionContent}>
               <h3 style={styles.optionTitle}>I want to buy</h3>
-              <p style={styles.optionDesc}>Browse listings, find products, and connect with sellers</p>
+              <p style={styles.optionDescription}>Browse products and services from local sellers</p>
             </div>
-            <div style={{ ...styles.optionCheck, ...(selectedRole === 'buyer' ? styles.optionCheckActive : {}) }}>
-              {selectedRole === 'buyer' && <Icon d={ICONS.check} size={14} color="#FFFFFF" strokeWidth={2.5} />}
+            <div
+              style={{
+                ...styles.optionCheck,
+                ...(selectedOption === 'buy' ? styles.optionCheckSelected : {}),
+              }}
+            >
+              {selectedOption === 'buy' && (
+                <Icon d={ICONS.check} size={14} color="#FFFFFF" strokeWidth={2.5} />
+              )}
             </div>
-          </button>
+          </div>
 
-          <button
+          {/* Sell Option */}
+          <div
             style={{
-              ...styles.option,
-              ...(selectedRole === 'seller' ? styles.optionSelected : {}),
+              ...styles.optionCard,
+              ...(selectedOption === 'sell' ? styles.optionCardSelected : {}),
             }}
-            onClick={() => handleRoleSelect('seller')}
-            disabled={loading}
+            onClick={() => handleOptionSelect('sell')}
+            onMouseEnter={(e) => {
+              if (selectedOption !== 'sell') {
+                e.currentTarget.style.borderColor = '#E2E8F0';
+                e.currentTarget.style.background = '#F8FAFC';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (selectedOption !== 'sell') {
+                e.currentTarget.style.borderColor = '#F1F5F9';
+                e.currentTarget.style.background = '#FFFFFF';
+              }
+            }}
           >
-            <div style={styles.optionIcon}>
-              <Icon d={ICONS.store} size={28} color="#10B981" strokeWidth={1.75} />
+            <div
+              style={{
+                ...styles.optionIcon,
+                ...(selectedOption === 'sell' ? styles.optionIconActive : {}),
+              }}
+            >
+              <Icon d={ICONS.store} size={22} color={selectedOption === 'sell' ? '#F59E0B' : '#94A3B8'} strokeWidth={1.75} />
             </div>
             <div style={styles.optionContent}>
               <h3 style={styles.optionTitle}>I want to sell</h3>
-              <p style={styles.optionDesc}>List products, manage inventory, and grow your business</p>
+              <p style={styles.optionDescription}>List products or services and reach customers</p>
             </div>
-            <div style={{ ...styles.optionCheck, ...(selectedRole === 'seller' ? styles.optionCheckActive : {}) }}>
-              {selectedRole === 'seller' && <Icon d={ICONS.check} size={14} color="#FFFFFF" strokeWidth={2.5} />}
+            <div
+              style={{
+                ...styles.optionCheck,
+                ...(selectedOption === 'sell' ? styles.optionCheckSelected : {}),
+              }}
+            >
+              {selectedOption === 'sell' && (
+                <Icon d={ICONS.check} size={14} color="#FFFFFF" strokeWidth={2.5} />
+              )}
             </div>
-          </button>
-
-          <button
-            style={{
-              ...styles.option,
-              ...(selectedRole === 'business' ? styles.optionSelected : {}),
-            }}
-            onClick={() => handleRoleSelect('business')}
-            disabled={loading}
-          >
-            <div style={styles.optionIcon}>
-              <Icon d={ICONS.build} size={28} color="#8B5CF6" strokeWidth={1.75} />
-            </div>
-            <div style={styles.optionContent}>
-              <h3 style={styles.optionTitle}>I run a business</h3>
-              <p style={styles.optionDesc}>Full business profile, analytics, and team management</p>
-            </div>
-            <div style={{ ...styles.optionCheck, ...(selectedRole === 'business' ? styles.optionCheckActive : {}) }}>
-              {selectedRole === 'business' && <Icon d={ICONS.check} size={14} color="#FFFFFF" strokeWidth={2.5} />}
-            </div>
-          </button>
+          </div>
         </div>
 
-        <p style={styles.footer}>
-          <Icon d={ICONS.sparkles} size={14} color="#F59E0B" strokeWidth={1.75} />
-          Free forever · AI-powered · Local community
-        </p>
+        {/* Business Status Indicator */}
+        {selectedOption === 'sell' && (
+          <div style={styles.businessStatus}>
+            <span style={styles.businessStatusText}>
+              {hasBusiness ? '✅ You have a registered business' : '⚠️ You need to register a business to sell'}
+            </span>
+            <span
+              style={{
+                ...styles.businessStatusBadge,
+                ...(hasBusiness ? styles.businessStatusBadgeRegistered : styles.businessStatusBadgeUnregistered),
+              }}
+            >
+              {hasBusiness ? 'Registered' : 'Not Registered'}
+            </span>
+          </div>
+        )}
+
+        {/* Continue Button */}
+        <button
+          onClick={handleContinue}
+          style={styles.continueBtn}
+          disabled={!selectedOption}
+          onMouseEnter={(e) => {
+            if (selectedOption) {
+              Object.assign(e.currentTarget.style, styles.continueBtnHover);
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (selectedOption) {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+            }
+          }}
+        >
+          {selectedOption === 'buy' && 'Start Shopping →'}
+          {selectedOption === 'sell' && (hasBusiness ? 'Create Listing →' : 'Register Business →')}
+          {!selectedOption && 'Select an option to continue'}
+        </button>
+
+        {/* Skip Link */}
+        <button
+          onClick={() => navigate('/landing')}
+          style={styles.skipLink}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#1E293B'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = '#94A3B8'; }}
+        >
+          Skip for now
+        </button>
+
+        <div style={styles.footer}>
+          You can always change this later in settings
+        </div>
       </div>
+
+      <style jsx>{`
+        @media (max-width: 480px) {
+          .option-card {
+            padding: 14px 16px !important;
+          }
+          .option-icon {
+            width: 40px !important;
+            height: 40px !important;
+          }
+          .option-icon svg {
+            width: 18px !important;
+            height: 18px !important;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .card {
+            padding: 16px !important;
+          }
+          .header-icon {
+            width: 48px !important;
+            height: 48px !important;
+          }
+          .header-icon svg {
+            width: 22px !important;
+            height: 22px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 // mobile/src/pages/EditProfile.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { profileAPI, businessAPI } from '../services/api';
@@ -8,9 +8,6 @@ import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 
-// ============================================
-// PREMIUM FEATHER ICONS
-// ============================================
 const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
@@ -39,10 +36,15 @@ const ICONS = {
   close: "M18 6L6 18M6 6l12 12",
   save: "M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8",
   upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
+  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+  plus: "M12 4v16m8-8H4",
+  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
 };
 
 const EditProfile = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
@@ -53,6 +55,8 @@ const EditProfile = () => {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
 
   const [profile, setProfile] = useState({
     full_name: '',
@@ -74,6 +78,8 @@ const EditProfile = () => {
   const [logoPreview, setLogoPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [logoFile, setLogoFile] = useState(null);
+
+  const isMobile = windowWidth <= 768;
 
   const categories = [
     'Hardware & Construction',
@@ -99,6 +105,18 @@ const EditProfile = () => {
   }, [user]);
 
   useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     if (!loading) {
       const firstNameInput = document.querySelector('input[name="full_name"]');
       if (firstNameInput) {
@@ -106,6 +124,17 @@ const EditProfile = () => {
       }
     }
   }, [loading]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      success('Logged out successfully');
+      navigate('/');
+    } catch (err) {
+      console.error('Logout error:', err);
+      showToast('Failed to logout', 'error');
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -230,469 +259,792 @@ const EditProfile = () => {
     }
   };
 
+  const handleBottomNav = (id) => {
+    if (id === 'home') navigate('/landing');
+    else if (id === 'search') navigate('/search');
+    else if (id === 'sell') navigate('/create-listing');
+    else if (id === 'messages') navigate('/messages');
+    else if (id === 'profile') navigate('/profile');
+  };
+
   if (loading) {
     return <LoadingSpinner fullScreen message="Loading your profile..." />;
   }
 
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      background: '#F8FAFC',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)',
-    },
-    card: {
-      maxWidth: '700px',
-      margin: '0 auto',
-      background: '#FFFFFF',
-      borderRadius: '16px',
-      padding: 'clamp(20px, 2.5vw, 32px)',
-      boxShadow: '0 2px 12px rgba(30,41,59,0.04)',
-      border: '1px solid #E2E8F0',
-    },
-    backButton: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '8px 16px',
-      background: '#F8FAFC',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: 'pointer',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      fontWeight: '500',
-      color: '#64748B',
-      marginBottom: '20px',
-      transition: 'background 0.2s',
-      fontFamily: 'inherit',
-    },
-    title: {
-      fontSize: 'clamp(20px, 2.5vw, 24px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: '0 0 4px 0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      fontFamily: '"Fraunces", Georgia, serif',
-    },
-    subtitle: {
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#94A3B8',
-      margin: '0 0 24px 0',
-    },
-    section: {
-      marginBottom: '24px',
-      paddingBottom: '24px',
-      borderBottom: '1px solid #E2E8F0',
-    },
-    sectionTitle: {
-      fontSize: 'clamp(14px, 1.3vw, 16px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: '0 0 4px 0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontFamily: '"Fraunces", Georgia, serif',
-    },
-    sectionSubtitle: {
-      fontSize: 'clamp(12px, 1vw, 13px)',
-      color: '#94A3B8',
-      margin: '0 0 16px 0',
-    },
-    formGroup: {
-      marginBottom: 'clamp(12px, 1.2vw, 16px)',
-    },
-    label: {
-      display: 'block',
-      fontSize: 'clamp(12px, 1vw, 13px)',
-      fontWeight: '600',
-      color: '#475569',
-      marginBottom: '4px',
-    },
-    input: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#1E293B',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-    },
-    textarea: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#1E293B',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      resize: 'vertical',
-      minHeight: 'clamp(60px, 8vw, 80px)',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-    },
-    select: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#1E293B',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      appearance: 'none',
-    },
-    row: {
-      display: 'flex',
-      gap: '12px',
-      flexWrap: 'wrap',
-    },
-    half: {
-      flex: 1,
-      minWidth: 'clamp(130px, 35vw, 200px)',
-    },
-    avatarSection: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-      marginBottom: '16px',
-      flexWrap: 'wrap',
-    },
-    avatarWrapper: {
-      position: 'relative',
-    },
-    avatar: {
-      width: 'clamp(64px, 8vw, 80px)',
-      height: 'clamp(64px, 8vw, 80px)',
-      borderRadius: '50%',
-      objectFit: 'cover',
-      background: '#F8FAFC',
-      border: '2px solid #E2E8F0',
-    },
-    avatarPlaceholder: {
-      width: 'clamp(64px, 8vw, 80px)',
-      height: 'clamp(64px, 8vw, 80px)',
-      borderRadius: '50%',
-      background: '#EDE9F5',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 'clamp(28px, 3.5vw, 32px)',
-      color: '#F59E0B',
-      border: '2px solid #E2E8F0',
-    },
-    uploadBtn: {
-      padding: '6px 14px',
-      background: '#F8FAFC',
-      color: '#64748B',
-      border: '1px solid #E2E8F0',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: 'clamp(11px, 0.9vw, 12px)',
-      fontWeight: '500',
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      transition: 'background 0.2s',
-      fontFamily: 'inherit',
-    },
-    error: {
-      color: '#EF4444',
-      padding: '12px',
-      background: '#FEF2F2',
-      borderRadius: '8px',
-      border: '1px solid #FECACA',
-      marginBottom: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-    },
-    success: {
-      color: '#10B981',
-      padding: '12px',
-      background: '#ECFDF5',
-      borderRadius: '8px',
-      border: '1px solid #BBF7D0',
-      marginBottom: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-    },
-    hint: {
-      fontSize: 'clamp(10px, 0.8vw, 11px)',
-      color: '#94A3B8',
-      marginTop: '4px',
-    },
-    required: {
-      color: '#EF4444',
-      marginLeft: '2px',
-    },
-  };
-
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <button 
-          onClick={() => navigate('/dashboard')} 
-          style={styles.backButton}
-          onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
-        >
-          <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
-          Back to Dashboard
-        </button>
-
-        <h1 style={styles.title}>
-          <Icon d={ICONS.user} size={24} color="#F59E0B" strokeWidth={1.75} />
-          Edit Profile
-        </h1>
-        <p style={styles.subtitle}>Update your business and personal information</p>
-
-        {errorMsg && (
-          <div style={styles.error}>
-            <Icon d={ICONS.close} size={16} color="#EF4444" strokeWidth={1.75} />
-            {errorMsg}
+    <div className="edit-profile">
+      {/* Navbar */}
+      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
+        <div className="navbar-inner">
+          <Link to="/landing" className="logo">
+            <span className="logo-icon">K</span>
+            <span className="logo-text">Kumsika</span>
+          </Link>
+          <div className="nav-actions">
+            <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
+            <button onClick={handleLogout} className="logout-btn">
+              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
+            </button>
           </div>
-        )}
-        {successMsg && (
-          <div style={styles.success}>
-            <Icon d={ICONS.check} size={16} color="#10B981" strokeWidth={2.5} />
-            {successMsg}
+        </div>
+      </nav>
+
+      <div className="main-content">
+        {/* Page Header */}
+        <div className="page-header">
+          <button className="back-btn" onClick={() => navigate('/dashboard')}>
+            <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
+            Back
+          </button>
+          <div className="header-content">
+            <div className="header-icon">
+              <Icon d={ICONS.user} size={28} color="#F59E0B" strokeWidth={1.75} />
+            </div>
+            <h1 className="page-title">Edit Profile</h1>
+            <p className="page-subtitle">Update your business and personal information</p>
           </div>
-        )}
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          {/* Personal Information */}
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>
-              <Icon d={ICONS.user} size={18} color="#F59E0B" strokeWidth={1.75} />
-              Personal Information
-            </h3>
-            <p style={styles.sectionSubtitle}>Update your personal details</p>
+        {/* Form Card */}
+        <div className="form-card">
+          {errorMsg && (
+            <div className="error-banner">
+              <Icon d={ICONS.close} size={16} color="#EF4444" strokeWidth={1.75} />
+              {errorMsg}
+            </div>
+          )}
+          {successMsg && (
+            <div className="success-banner">
+              <Icon d={ICONS.check} size={16} color="#10B981" strokeWidth={2.5} />
+              {successMsg}
+            </div>
+          )}
 
-            <div style={styles.avatarSection}>
-              <div style={styles.avatarWrapper}>
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar" style={styles.avatar} />
-                ) : (
-                  <div style={styles.avatarPlaceholder}>
-                    {profile.full_name?.charAt(0).toUpperCase() || '👤'}
-                  </div>
-                )}
+          <form onSubmit={handleSubmit}>
+            {/* Personal Information */}
+            <div className="section">
+              <h3 className="section-title">
+                <Icon d={ICONS.user} size={18} color="#F59E0B" strokeWidth={1.75} />
+                Personal Information
+              </h3>
+              <p className="section-subtitle">Update your personal details</p>
+
+              <div className="avatar-section">
+                <div className="avatar-wrapper">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="avatar" />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      {profile.full_name?.charAt(0).toUpperCase() || '👤'}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="upload-btn"
+                  >
+                    <Icon d={ICONS.camera} size={14} color="#64748B" strokeWidth={1.75} />
+                    Upload Photo
+                  </button>
+                  <p className="hint-text">JPG, PNG or GIF. Max 2MB.</p>
+                </div>
               </div>
-              <div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  Full Name <span className="required">*</span>
+                </label>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  style={{ display: 'none' }}
+                  type="text"
+                  name="full_name"
+                  value={profile.full_name}
+                  onChange={handleProfileChange}
+                  className="form-input"
+                  placeholder="Your full name"
+                  autoComplete="name"
+                  required
                 />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={styles.uploadBtn}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
-                >
-                  <Icon d={ICONS.camera} size={14} color="#64748B" strokeWidth={1.75} />
-                  Upload Photo
-                </button>
-                <p style={styles.hint}>JPG, PNG or GIF. Max 2MB.</p>
               </div>
-            </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Full Name <span style={styles.required}>*</span></label>
-              <input
-                type="text"
-                name="full_name"
-                value={profile.full_name}
-                onChange={handleProfileChange}
-                style={styles.input}
-                placeholder="Your full name"
-                className="input-focus"
-                autoComplete="name"
-                required
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Phone Number</label>
-              <input
-                type="tel"
-                name="phone"
-                value={profile.phone}
-                onChange={handleProfileChange}
-                style={styles.input}
-                placeholder="e.g., 0999123456"
-                className="input-focus"
-                autoComplete="tel"
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Location</label>
-              <input
-                type="text"
-                name="location_text"
-                value={profile.location_text}
-                onChange={handleProfileChange}
-                style={styles.input}
-                placeholder="e.g., Mitundu Trading Centre"
-                className="input-focus"
-                autoComplete="address-level2"
-              />
-            </div>
-          </div>
-
-          {/* Business Information */}
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>
-              <Icon d={ICONS.store} size={18} color="#F59E0B" strokeWidth={1.75} />
-              Business Information
-            </h3>
-            <p style={styles.sectionSubtitle}>Update your business details</p>
-
-            <div style={styles.avatarSection}>
-              <div style={styles.avatarWrapper}>
-                {logoPreview ? (
-                  <img src={logoPreview} alt="Logo" style={{ ...styles.avatar, borderRadius: '12px' }} />
-                ) : (
-                  <div style={{ ...styles.avatarPlaceholder, borderRadius: '12px', fontSize: 'clamp(24px, 3vw, 28px)' }}>
-                    🏪
-                  </div>
-                )}
-              </div>
-              <div>
+              <div className="form-group">
+                <label className="form-label">
+                  <Icon d={ICONS.phone} size={14} color="#94A3B8" strokeWidth={1.75} />
+                  Phone Number
+                </label>
                 <input
-                  ref={logoInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  style={{ display: 'none' }}
+                  type="tel"
+                  name="phone"
+                  value={profile.phone}
+                  onChange={handleProfileChange}
+                  className="form-input"
+                  placeholder="e.g., 0999123456"
+                  autoComplete="tel"
                 />
-                <button
-                  type="button"
-                  onClick={() => logoInputRef.current?.click()}
-                  style={styles.uploadBtn}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; }}
-                >
-                  <Icon d={ICONS.camera} size={14} color="#64748B" strokeWidth={1.75} />
-                  Upload Logo
-                </button>
-                <p style={styles.hint}>JPG, PNG or GIF. Max 2MB.</p>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  <Icon d={ICONS.mapPin} size={14} color="#94A3B8" strokeWidth={1.75} />
+                  Location
+                </label>
+                <input
+                  type="text"
+                  name="location_text"
+                  value={profile.location_text}
+                  onChange={handleProfileChange}
+                  className="form-input"
+                  placeholder="e.g., Mitundu Trading Centre"
+                  autoComplete="address-level2"
+                />
               </div>
             </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Business Name <span style={styles.required}>*</span></label>
-              <input
-                type="text"
-                name="business_name"
-                value={business.business_name}
-                onChange={handleBusinessChange}
-                style={styles.input}
-                placeholder="Your business name"
-                className="input-focus"
-                autoComplete="organization"
-                required
-              />
-            </div>
+            {/* Business Information */}
+            <div className="section">
+              <h3 className="section-title">
+                <Icon d={ICONS.store} size={18} color="#F59E0B" strokeWidth={1.75} />
+                Business Information
+              </h3>
+              <p className="section-subtitle">Update your business details</p>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Category <span style={styles.required}>*</span></label>
-              <select
-                name="category"
-                value={business.category}
-                onChange={handleBusinessChange}
-                style={styles.select}
-                className="input-focus"
-                required
-              >
-                <option value="">Select category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
+              <div className="avatar-section">
+                <div className="avatar-wrapper">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo" className="logo-avatar" />
+                  ) : (
+                    <div className="logo-placeholder">🏪</div>
+                  )}
+                </div>
+                <div>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    className="upload-btn"
+                  >
+                    <Icon d={ICONS.camera} size={14} color="#64748B" strokeWidth={1.75} />
+                    Upload Logo
+                  </button>
+                  <p className="hint-text">JPG, PNG or GIF. Max 2MB.</p>
+                </div>
+              </div>
 
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Description</label>
-              <textarea
-                name="description"
-                value={business.description}
-                onChange={handleBusinessChange}
-                style={styles.textarea}
-                placeholder="Describe what products or services you offer..."
-                className="input-focus"
-              />
-            </div>
+              <div className="form-group">
+                <label className="form-label">
+                  Business Name <span className="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="business_name"
+                  value={business.business_name}
+                  onChange={handleBusinessChange}
+                  className="form-input"
+                  placeholder="Your business name"
+                  autoComplete="organization"
+                  required
+                />
+              </div>
 
-            <div style={styles.row}>
-              <div style={styles.half}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Business Phone</label>
+              <div className="form-group">
+                <label className="form-label">
+                  <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
+                  Category <span className="required">*</span>
+                </label>
+                <select
+                  name="category"
+                  value={business.category}
+                  onChange={handleBusinessChange}
+                  className="form-select"
+                  required
+                >
+                  <option value="">Select category</option>
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Description</label>
+                <textarea
+                  name="description"
+                  value={business.description}
+                  onChange={handleBusinessChange}
+                  className="form-textarea"
+                  placeholder="Describe what products or services you offer..."
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group half">
+                  <label className="form-label">
+                    <Icon d={ICONS.phone} size={14} color="#94A3B8" strokeWidth={1.75} />
+                    Business Phone
+                  </label>
                   <input
                     type="tel"
                     name="phone"
                     value={business.phone}
                     onChange={handleBusinessChange}
-                    style={styles.input}
+                    className="form-input"
                     placeholder="e.g., 0999123456"
-                    className="input-focus"
                     autoComplete="tel"
                   />
                 </div>
-              </div>
-              <div style={styles.half}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Business Address</label>
+                <div className="form-group half">
+                  <label className="form-label">
+                    <Icon d={ICONS.mapPin} size={14} color="#94A3B8" strokeWidth={1.75} />
+                    Business Address
+                  </label>
                   <input
                     type="text"
                     name="address"
                     value={business.address}
                     onChange={handleBusinessChange}
-                    style={styles.input}
+                    className="form-input"
                     placeholder="e.g., Mitundu Trading Centre"
-                    className="input-focus"
                     autoComplete="address-line1"
                   />
                 </div>
               </div>
             </div>
-          </div>
 
-          <PrimaryButton
-            type="submit"
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={saving}
-            disabled={saving}
-          >
-            {saving ? 'Saving...' : (
-              <>
-                <Icon d={ICONS.save} size={18} color="#FFFFFF" strokeWidth={1.75} />
-                Save Changes
-              </>
-            )}
-          </PrimaryButton>
-        </form>
+            <button type="submit" className="submit-btn" disabled={saving}>
+              <Icon d={ICONS.save} size={18} color="#FFFFFF" strokeWidth={1.75} />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </form>
+        </div>
       </div>
+
+      {/* Bottom Nav */}
+      {isMobile && (
+        <div className="bottom-nav">
+          {[
+            { id: 'home', label: 'Home', icon: 'home' },
+            { id: 'search', label: 'Search', icon: 'search' },
+            { id: 'sell', label: 'Sell', icon: 'plus' },
+            { id: 'messages', label: 'Chat', icon: 'message' },
+            { id: 'profile', label: 'Profile', icon: 'user' },
+          ].map((item) => {
+            const active = item.id === 'profile';
+            return (
+              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
+                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+                </div>
+                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <style jsx>{`
+        .edit-profile {
+          min-height: 100vh;
+          background: #F8FAFC;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #1E293B;
+          padding-bottom: 80px;
+        }
+
+        @media (min-width: 769px) {
+          .edit-profile {
+            padding-bottom: 0;
+          }
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
+          transition: all 0.2s;
+        }
+
+        .navbar-scrolled {
+          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+        }
+
+        .navbar-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+        }
+
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          background: #1E293B;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #F59E0B;
+          font-weight: 700;
+          font-size: 16px;
+        }
+
+        .logo-text {
+          font-size: 18px;
+          font-weight: 700;
+          color: #1E293B;
+          letter-spacing: -0.5px;
+        }
+
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .greeting {
+          font-size: 13px;
+          color: #64748B;
+          display: none;
+        }
+
+        @media (min-width: 640px) {
+          .greeting { display: inline; }
+        }
+
+        .logout-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: none;
+          background: #FEF2F2;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+          background: #FEE2E2;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+          max-width: 700px;
+          margin: 0 auto;
+          padding: 20px 16px 40px;
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+          margin-bottom: 24px;
+        }
+
+        .back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 6px 14px;
+          background: #FFFFFF;
+          border: 1px solid #F1F5F9;
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #64748B;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+          background: #F1F5F9;
+          border-color: #E2E8F0;
+        }
+
+        .header-content {
+          margin-top: 12px;
+        }
+
+        .header-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          background: rgba(245, 158, 11, 0.1);
+          border-radius: 14px;
+          margin-bottom: 8px;
+        }
+
+        .page-title {
+          font-size: clamp(24px, 2.8vw, 28px);
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0 0 4px;
+          letter-spacing: -0.5px;
+        }
+
+        .page-subtitle {
+          font-size: 14px;
+          color: #94A3B8;
+          margin: 0;
+        }
+
+        /* ===== FORM CARD ===== */
+        .form-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 18px 20px;
+          border: 1px solid #F1F5F9;
+        }
+
+        /* ===== SECTION ===== */
+        .section {
+          margin-bottom: 24px;
+          padding-bottom: 24px;
+          border-bottom: 1px solid #F1F5F9;
+        }
+
+        .section:last-of-type {
+          border-bottom: none;
+          margin-bottom: 0;
+          padding-bottom: 0;
+        }
+
+        .section-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0 0 2px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .section-subtitle {
+          font-size: 13px;
+          color: #94A3B8;
+          margin: 0 0 16px;
+        }
+
+        /* ===== FORM GROUP ===== */
+        .form-group {
+          margin-bottom: 14px;
+        }
+
+        .form-group:last-of-type {
+          margin-bottom: 0;
+        }
+
+        .form-label {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #475569;
+          margin-bottom: 4px;
+        }
+
+        .required {
+          color: #EF4444;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+          font-size: 14px;
+          color: #1E293B;
+          outline: none;
+          background: #FFFFFF;
+          font-family: inherit;
+          transition: all 0.2s;
+          box-sizing: border-box;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+          border-color: #F59E0B;
+          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+        }
+
+        .form-textarea {
+          resize: vertical;
+          min-height: 80px;
+        }
+
+        .form-select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          padding-right: 32px;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .form-row .half {
+          flex: 1;
+          min-width: 140px;
+        }
+
+        /* ===== AVATAR ===== */
+        .avatar-section {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+        }
+
+        .avatar-wrapper {
+          position: relative;
+        }
+
+        .avatar {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          object-fit: cover;
+          background: #F8FAFC;
+          border: 2px solid #F1F5F9;
+        }
+
+        .avatar-placeholder {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: #EDE9F5;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 30px;
+          color: #F59E0B;
+          border: 2px solid #F1F5F9;
+        }
+
+        .logo-avatar {
+          width: 72px;
+          height: 72px;
+          border-radius: 12px;
+          object-fit: cover;
+          background: #F8FAFC;
+          border: 2px solid #F1F5F9;
+        }
+
+        .logo-placeholder {
+          width: 72px;
+          height: 72px;
+          border-radius: 12px;
+          background: #EDE9F5;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 30px;
+          border: 2px solid #F1F5F9;
+        }
+
+        .upload-btn {
+          padding: 6px 16px;
+          background: #F8FAFC;
+          color: #64748B;
+          border: 1px solid #E2E8F0;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .upload-btn:hover {
+          background: #F1F5F9;
+          border-color: #CBD5E1;
+        }
+
+        .hint-text {
+          font-size: 11px;
+          color: #94A3B8;
+          margin: 4px 0 0;
+        }
+
+        /* ===== BANNERS ===== */
+        .error-banner {
+          color: #EF4444;
+          font-size: 13px;
+          padding: 10px 14px;
+          background: #FEF2F2;
+          border-radius: 10px;
+          border: 1px solid #FECACA;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+
+        .success-banner {
+          color: #10B981;
+          font-size: 13px;
+          padding: 10px 14px;
+          background: #ECFDF5;
+          border-radius: 10px;
+          border: 1px solid #BBF7D0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+
+        /* ===== SUBMIT BUTTON ===== */
+        .submit-btn {
+          width: 100%;
+          padding: 12px;
+          background: linear-gradient(135deg, #1E293B, #F59E0B);
+          border: none;
+          border-radius: 12px;
+          font-size: 15px;
+          font-weight: 600;
+          color: #FFFFFF;
+          cursor: pointer;
+          font-family: inherit;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: all 0.2s;
+          margin-top: 8px;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          transform: scale(0.98);
+          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+        }
+
+        .submit-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* ===== BOTTOM NAV ===== */
+        .bottom-nav {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(12px);
+          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          display: flex;
+          justify-content: space-around;
+          padding: 4px 0 8px;
+          z-index: 100;
+        }
+
+        .nav-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          font-family: inherit;
+          min-width: 44px;
+        }
+
+        .nav-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .nav-icon-active {
+          background: #1E293B;
+        }
+
+        .nav-label {
+          font-size: 9px;
+          font-weight: 500;
+          color: #94A3B8;
+        }
+
+        .nav-label-active {
+          color: #1E293B;
+          font-weight: 600;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+          .form-row {
+            flex-direction: column;
+          }
+          .form-row .half {
+            min-width: 100%;
+          }
+          .form-card {
+            padding: 14px 16px;
+          }
+          .avatar-section {
+            gap: 12px;
+          }
+          .avatar, .avatar-placeholder, .logo-avatar, .logo-placeholder {
+            width: 60px;
+            height: 60px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .main-content {
+            padding: 12px 12px 32px;
+          }
+          .form-card {
+            padding: 12px 14px;
+          }
+        }
+      `}</style>
     </div>
   );
 };

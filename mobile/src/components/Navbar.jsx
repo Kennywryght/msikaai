@@ -37,6 +37,10 @@ const ICONS = {
   bell: "M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0",
   clock: "M12 6v6l4 2M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
   check: "M20 6L9 17l-5-5",
+  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+  info: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  mic: "M19 10v2a7 7 0 01-14 0v-2M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM8 21h8",
+  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
 };
 
 // ============================================================
@@ -173,12 +177,27 @@ const Navbar = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // ============================================================
-  // ✅ NAVIGATION ITEMS - FIXED: Home goes to /landing
+  // ✅ NAVIGATION ITEMS - Desktop
   // ============================================================
   const navItems = [
     { label: 'Home', path: '/landing', icon: 'home' },
     { label: 'Search', path: '/search', icon: 'search' },
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
+  ];
+
+  // ============================================================
+  // ✅ MOBILE NAVIGATION ITEMS - ALL PAGES
+  // ============================================================
+  const mobileNavItems = [
+    { label: 'Home', path: '/landing', icon: 'home' },
+    { label: 'Search', path: '/search', icon: 'search' },
+    { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
+    { label: 'AI Search', path: '/ai-search', icon: 'ai' },
+    { label: 'Ad Generator', path: '/ad-generator', icon: 'sparkles' },
+    { label: 'Voice Listing', path: '/voice-listing', icon: 'mic' },
+    { label: 'Create Listing', path: '/create-listing', icon: 'plus' },
+    { label: 'About', path: '/about', icon: 'info' },
+    { label: 'Profile', path: '/profile', icon: 'user' },
   ];
 
   const isActive = (path) => {
@@ -523,7 +542,7 @@ const Navbar = () => {
       top: 0,
       right: 0,
       width: '70%',
-      maxWidth: '260px',
+      maxWidth: '280px',
       height: '100%',
       background: '#FFFFFF',
       padding: '20px 14px',
@@ -614,12 +633,13 @@ const Navbar = () => {
       flexDirection: 'column',
       gap: '2px',
       flex: 1,
+      overflowY: 'auto',
     },
     mobileNavItem: {
       display: 'flex',
       alignItems: 'center',
       gap: '10px',
-      padding: '12px 14px',
+      padding: '10px 14px',
       borderRadius: '8px',
       fontSize: '14px',
       fontWeight: '500',
@@ -631,6 +651,19 @@ const Navbar = () => {
     mobileNavItemActive: {
       color: '#F59E0B',
       background: 'rgba(245,158,11,0.08)',
+    },
+    mobileDivider: {
+      height: '1px',
+      background: '#F1F5F9',
+      margin: '4px 0',
+    },
+    mobileSectionLabel: {
+      fontSize: '10px',
+      fontWeight: '600',
+      color: '#94A3B8',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      padding: '8px 14px 4px',
     },
     mobileBottom: {
       borderTop: '1px solid #F1F5F9',
@@ -879,7 +912,8 @@ const Navbar = () => {
             <div style={styles.mobileNav}>
               {isAuthenticated ? (
                 <>
-                  {navItems.map((item) => (
+                  {/* ✅ ALL PAGES IN MOBILE MENU */}
+                  {mobileNavItems.map((item) => (
                     <Link
                       key={item.path}
                       to={item.path}
@@ -893,19 +927,6 @@ const Navbar = () => {
                       {item.label}
                     </Link>
                   ))}
-                  <div style={{ height: '1px', background: '#F1F5F9', margin: '6px 0' }} />
-                  <Link to="/create-listing" style={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                    <Icon d={ICONS.plus} size={18} color="#64748B" strokeWidth={1.75} />
-                    Create Listing
-                  </Link>
-                  <Link to="/ai-search" style={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                    <Icon d={ICONS.ai} size={18} color="#64748B" strokeWidth={1.75} />
-                    AI Tools
-                  </Link>
-                  <Link to="/profile" style={styles.mobileNavItem} onClick={() => setIsMobileMenuOpen(false)}>
-                    <Icon d={ICONS.user} size={18} color="#64748B" strokeWidth={1.75} />
-                    Profile
-                  </Link>
                 </>
               ) : (
                 <>
@@ -958,12 +979,6 @@ const Navbar = () => {
           .desktop-nav { display: none !important; }
           .hamburger-btn { display: flex !important; }
           .navbar { padding: 0 8px !important; }
-          .notification-dropdown {
-            right: 8px !important;
-            width: calc(100vw - 16px) !important;
-            max-width: calc(100vw - 16px) !important;
-            border-radius: 12px !important;
-          }
         }
 
         @media (min-width: 769px) {
@@ -978,8 +993,8 @@ const Navbar = () => {
           transform: scale(0.96);
         }
 
-        .mobile-close:active {
-          background: #F1F5F9;
+        .mobile-nav-item:hover {
+          background: #F8FAFC;
         }
 
         .notification-item:hover {

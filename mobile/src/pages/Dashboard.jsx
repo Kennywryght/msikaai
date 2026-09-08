@@ -10,9 +10,6 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 import PaymentModal from '../components/PaymentModal';
 
-// ============================================
-// PREMIUM FEATHER ICONS
-// ============================================
 const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
@@ -48,6 +45,11 @@ const ICONS = {
   trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
   clock: "M12 6v6l4 2M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
   mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
+  close: "M6 18L18 6M6 6l12 12",
+  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
 };
 
 const Dashboard = () => {
@@ -56,7 +58,6 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
 
-  // State
   const [business, setBusiness] = useState(null);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +69,6 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   
-  // Stats
   const [stats, setStats] = useState({
     totalListings: 0,
     totalViews: 0,
@@ -76,7 +76,6 @@ const Dashboard = () => {
     activeListings: 0,
   });
 
-  // Subscription
   const [subscription, setSubscription] = useState({
     plan: 'free',
     listings_allowed: 3,
@@ -99,9 +98,6 @@ const Dashboard = () => {
   const formRef = useRef(null);
   const nameInputRef = useRef(null);
 
-  // ============================================
-  // FETCH DATA
-  // ============================================
   useEffect(() => {
     if (user?.id) {
       fetchBusiness();
@@ -121,7 +117,6 @@ const Dashboard = () => {
 
   const fetchSubscription = async () => {
     if (!user?.id) return;
-    
     setLoadingSubscription(true);
     try {
       const response = await paymentAPI.getSubscription(user.id);
@@ -228,9 +223,6 @@ const Dashboard = () => {
     }
   };
 
-  // ============================================
-  // HANDLERS
-  // ============================================
   const handleExportCSV = async () => {
     if (!business?.id) {
       showToast('No business data to export', 'warning');
@@ -361,516 +353,237 @@ const Dashboard = () => {
     }
   };
 
-  // ============================================
-  // RENDER
-  // ============================================
+  const handleBottomNav = (id) => {
+    if (id === 'home') navigate('/landing');
+    else if (id === 'search') navigate('/search');
+    else if (id === 'sell') navigate('/create-listing');
+    else if (id === 'messages') navigate('/messages');
+    else if (id === 'profile') navigate('/profile');
+  };
+
   if (loading) {
     return <LoadingSpinner fullScreen message="Loading your dashboard..." />;
   }
 
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      background: '#F8FAFC',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      paddingTop: 'clamp(72px, 10vh, 80px)',
-      paddingBottom: 'clamp(24px, 4vw, 40px)',
-    },
-    main: {
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '0 16px',
-    },
-    header: {
-      marginBottom: '24px',
-    },
-    title: {
-      fontSize: 'clamp(24px, 3vw, 28px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: 0,
-      fontFamily: '"Fraunces", Georgia, serif',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-    },
-    subtitle: {
-      fontSize: 'clamp(14px, 1.2vw, 16px)',
-      color: '#94A3B8',
-      margin: '4px 0 0',
-    },
-    statsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-      gap: '12px',
-      marginBottom: '24px',
-    },
-    statCard: {
-      background: '#FFFFFF',
-      borderRadius: '12px',
-      padding: '16px 18px',
-      border: '1px solid #E2E8F0',
-      boxShadow: '0 2px 12px rgba(30,41,59,0.04)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-    },
-    statIcon: {
-      width: '40px',
-      height: '40px',
-      borderRadius: '10px',
-      background: 'rgba(245,158,11,0.1)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    statValue: {
-      fontSize: 'clamp(20px, 2vw, 24px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      fontFamily: '"Fraunces", Georgia, serif',
-      lineHeight: '1.2',
-    },
-    statLabel: {
-      fontSize: '12px',
-      color: '#94A3B8',
-    },
-    card: {
-      background: '#FFFFFF',
-      borderRadius: '12px',
-      padding: '20px',
-      border: '1px solid #E2E8F0',
-      boxShadow: '0 2px 12px rgba(30,41,59,0.04)',
-      marginBottom: '16px',
-    },
-    cardHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '14px',
-      flexWrap: 'wrap',
-      gap: '10px',
-    },
-    cardTitle: {
-      fontSize: 'clamp(16px, 1.4vw, 18px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: 0,
-      fontFamily: '"Fraunces", Georgia, serif',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-    },
-    businessInfo: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '14px',
-      flexWrap: 'wrap',
-    },
-    businessAvatar: {
-      width: '48px',
-      height: '48px',
-      borderRadius: '50%',
-      background: 'linear-gradient(135deg, #EDE9F5, #F59E0B)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '20px',
-      fontWeight: '700',
-      color: '#1E293B',
-      flexShrink: 0,
-    },
-    businessName: {
-      fontSize: 'clamp(18px, 1.6vw, 20px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      fontFamily: '"Fraunces", Georgia, serif',
-    },
-    businessCategory: {
-      fontSize: '13px',
-      color: '#94A3B8',
-    },
-    listingRow: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '10px 0',
-      borderBottom: '1px solid #F1F5F9',
-      gap: '10px',
-      flexWrap: 'wrap',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-    },
-    listingRowLast: {
-      borderBottom: 'none',
-    },
-    listingInfo: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-    },
-    listingImage: {
-      width: '40px',
-      height: '40px',
-      borderRadius: '8px',
-      objectFit: 'cover',
-      background: '#F1F5F9',
-      flexShrink: 0,
-    },
-    listingTitle: {
-      fontSize: '14px',
-      fontWeight: '600',
-      color: '#1E293B',
-    },
-    listingMeta: {
-      fontSize: '12px',
-      color: '#94A3B8',
-    },
-    listingPrice: {
-      fontSize: '14px',
-      fontWeight: '700',
-      color: '#10B981',
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: 'clamp(32px, 4vw, 48px) 20px',
-    },
-    emptyStateIcon: {
-      fontSize: '48px',
-      marginBottom: '12px',
-    },
-    emptyStateTitle: {
-      fontSize: '18px',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: '0 0 6px',
-      fontFamily: '"Fraunces", Georgia, serif',
-    },
-    emptyStateText: {
-      fontSize: '14px',
-      color: '#94A3B8',
-      margin: '0 0 20px',
-    },
-    quickActions: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-      gap: '10px',
-    },
-    actionCard: {
-      padding: '14px',
-      borderRadius: '10px',
-      border: '1px solid #E2E8F0',
-      background: '#F8FAFC',
-      textAlign: 'center',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-    },
-    actionCardIcon: {
-      fontSize: '28px',
-      marginBottom: '6px',
-    },
-    actionCardTitle: {
-      fontSize: '13px',
-      fontWeight: '600',
-      color: '#1E293B',
-    },
-    actionCardDesc: {
-      fontSize: '11px',
-      color: '#94A3B8',
-    },
-    modalOverlay: {
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(15, 23, 42, 0.6)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '16px',
-      zIndex: 1000,
-    },
-    modalContent: {
-      background: '#FFFFFF',
-      borderRadius: '16px',
-      maxWidth: 'clamp(340px, 50vw, 520px)',
-      width: '100%',
-      padding: 'clamp(16px, 2vw, 24px)',
-      maxHeight: '90vh',
-      overflowY: 'auto',
-      boxShadow: '0 20px 40px rgba(30,41,59,0.15)',
-    },
-    modalHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '16px',
-    },
-    modalTitle: {
-      fontSize: 'clamp(16px, 1.8vw, 18px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: 0,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontFamily: '"Fraunces", Georgia, serif',
-    },
-    modalClose: {
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      color: '#94A3B8',
-      padding: '4px',
-    },
-    fieldGroup: {
-      marginBottom: 'clamp(10px, 1.2vw, 14px)',
-    },
-    label: {
-      display: 'block',
-      fontSize: 'clamp(12px, 1.1vw, 13px)',
-      fontWeight: '600',
-      color: '#475569',
-      marginBottom: '4px',
-    },
-    input: {
-      width: '100%',
-      padding: 'clamp(6px, 0.8vw, 8px) clamp(10px, 1vw, 12px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.2vw, 14px)',
-      color: '#1E293B',
-      marginTop: '2px',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-    },
-    select: {
-      width: '100%',
-      padding: 'clamp(6px, 0.8vw, 8px) clamp(10px, 1vw, 12px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.2vw, 14px)',
-      color: '#1E293B',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      appearance: 'none',
-    },
-    modalActions: {
-      display: 'flex',
-      gap: '10px',
-      marginTop: '16px',
-      flexWrap: 'wrap',
-    },
-    errorBanner: {
-      color: '#EF4444',
-      fontSize: '13px',
-      marginBottom: '16px',
-      padding: '10px 14px',
-      background: '#FEF2F2',
-      borderRadius: '8px',
-      border: '1px solid #FECACA',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      flexWrap: 'wrap',
-    },
-  };
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.main}>
-        {/* Header */}
-        <div style={styles.header}>
-          <h1 style={styles.title}>
-            👋 Welcome back, {user?.email?.split('@')[0] || 'User'}!
+    <div className="dashboard">
+      {/* Navbar */}
+      <nav className="navbar">
+        <div className="navbar-inner">
+          <Link to="/landing" className="logo">
+            <span className="logo-icon">K</span>
+            <span className="logo-text">Kumsika</span>
+          </Link>
+          <div className="nav-actions">
+            <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
+            <button onClick={handleLogout} className="logout-btn">
+              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="dashboard-main">
+        {/* Welcome Header */}
+        <div className="welcome-section">
+          <h1 className="welcome-title">
+            Welcome back, <span className="welcome-highlight">{user?.email?.split('@')[0] || 'User'}</span>
           </h1>
-          <p style={styles.subtitle}>
-            Here's what's happening with your business today
-          </p>
+          <p className="welcome-subtitle">Here's what's happening with your business today</p>
         </div>
 
-        {/* Stats */}
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statIcon}>
+        {/* Stats Grid */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
               <Icon d={ICONS.box} size={18} color="#F59E0B" strokeWidth={1.75} />
             </div>
-            <div>
-              <div style={styles.statValue}>{stats.total}</div>
-              <div style={styles.statLabel}>Total Listings</div>
+            <div className="stat-info">
+              <div className="stat-value">{stats.totalListings}</div>
+              <div className="stat-label">Total Listings</div>
             </div>
           </div>
-          <div style={styles.statCard}>
-            <div style={styles.statIcon}>
+          <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
               <Icon d={ICONS.check} size={18} color="#10B981" strokeWidth={1.75} />
             </div>
-            <div>
-              <div style={styles.statValue}>{stats.active}</div>
-              <div style={styles.statLabel}>Active</div>
+            <div className="stat-info">
+              <div className="stat-value">{stats.activeListings}</div>
+              <div className="stat-label">Active</div>
             </div>
           </div>
-          <div style={styles.statCard}>
-            <div style={styles.statIcon}>
+          <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
               <Icon d={ICONS.eye} size={18} color="#3B82F6" strokeWidth={1.75} />
             </div>
-            <div>
-              <div style={styles.statValue}>{stats.views}</div>
-              <div style={styles.statLabel}>Views</div>
+            <div className="stat-info">
+              <div className="stat-value">{stats.totalViews}</div>
+              <div className="stat-label">Views</div>
             </div>
           </div>
-          <div style={styles.statCard}>
-            <div style={styles.statIcon}>
+          <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
               <Icon d={ICONS.phone} size={18} color="#8B5CF6" strokeWidth={1.75} />
             </div>
-            <div>
-              <div style={styles.statValue}>{stats.contacts}</div>
-              <div style={styles.statLabel}>Contacts</div>
+            <div className="stat-info">
+              <div className="stat-value">{stats.totalContacts}</div>
+              <div className="stat-label">Contacts</div>
             </div>
           </div>
         </div>
 
         {/* Business Info */}
         {business ? (
-          <div style={styles.card}>
-            <div style={styles.businessInfo}>
-              <div style={styles.businessAvatar}>
+          <div className="business-card">
+            <div className="business-info">
+              <div className="business-avatar">
                 {business.business_name?.charAt(0).toUpperCase() || 'B'}
               </div>
-              <div>
-                <div style={styles.businessName}>{business.business_name}</div>
-                <div style={styles.businessCategory}>
+              <div className="business-details">
+                <div className="business-name">{business.business_name}</div>
+                <div className="business-meta">
                   {business.category} • {business.address || 'Location not set'}
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          <div style={styles.card}>
-            <div style={styles.emptyState}>
-              <div style={styles.emptyStateIcon}>🏪</div>
-              <h3 style={styles.emptyStateTitle}>No Business Registered</h3>
-              <p style={styles.emptyStateText}>
+          <div className="empty-business">
+            <div className="empty-content">
+              <div className="empty-icon">🏪</div>
+              <h3 className="empty-title">No Business Registered</h3>
+              <p className="empty-text">
                 Register your business to start listing products and reaching customers.
               </p>
-              <PrimaryButton variant="primary" size="md" onClick={() => navigate('/edit-profile')}>
+              <button className="btn-primary" onClick={() => navigate('/edit-profile')}>
                 Register Business
-              </PrimaryButton>
+              </button>
             </div>
           </div>
         )}
 
         {/* Quick Actions */}
-        <div style={styles.card}>
-          <div style={styles.cardHeader}>
-            <h3 style={styles.cardTitle}>
+        <div className="section-card">
+          <div className="section-header">
+            <h3 className="section-title">
               <Icon d={ICONS.plus} size={18} color="#F59E0B" strokeWidth={1.75} />
               Quick Actions
             </h3>
           </div>
-          <div style={styles.quickActions}>
-            <div style={styles.actionCard} onClick={() => navigate('/create-listing')}>
-              <div style={styles.actionCardIcon}>➕</div>
-              <div style={styles.actionCardTitle}>Add Listing</div>
-              <div style={styles.actionCardDesc}>Create new product</div>
+          <div className="actions-grid">
+            <div className="action-item" onClick={() => navigate('/create-listing')}>
+              <div className="action-icon">➕</div>
+              <div className="action-name">Add Listing</div>
+              <div className="action-desc">Create new product</div>
             </div>
-            <div style={styles.actionCard} onClick={() => navigate('/search')}>
-              <div style={styles.actionCardIcon}>🔍</div>
-              <div style={styles.actionCardTitle}>Browse</div>
-              <div style={styles.actionCardDesc}>Discover products</div>
+            <div className="action-item" onClick={() => navigate('/search')}>
+              <div className="action-icon">🔍</div>
+              <div className="action-name">Browse</div>
+              <div className="action-desc">Discover products</div>
             </div>
-            <div style={styles.actionCard} onClick={() => navigate('/ai-search')}>
-              <div style={styles.actionCardIcon}>🤖</div>
-              <div style={styles.actionCardTitle}>AI Search</div>
-              <div style={styles.actionCardDesc}>Smart search & insights</div>
+            <div className="action-item" onClick={() => navigate('/ai-search')}>
+              <div className="action-icon">🤖</div>
+              <div className="action-name">AI Search</div>
+              <div className="action-desc">Smart search & insights</div>
             </div>
-            <div style={styles.actionCard} onClick={() => navigate('/voice-listing')}>
-              <div style={styles.actionCardIcon}>🎤</div>
-              <div style={styles.actionCardTitle}>Voice Listing</div>
-              <div style={styles.actionCardDesc}>List with your voice</div>
+            <div className="action-item" onClick={() => navigate('/voice-listing')}>
+              <div className="action-icon">🎤</div>
+              <div className="action-name">Voice Listing</div>
+              <div className="action-desc">List with your voice</div>
             </div>
           </div>
         </div>
 
         {/* Recent Listings */}
         {listings.length > 0 && (
-          <div style={styles.card}>
-            <div style={styles.cardHeader}>
-              <h3 style={styles.cardTitle}>
+          <div className="section-card">
+            <div className="section-header">
+              <h3 className="section-title">
                 <Icon d={ICONS.store} size={18} color="#F59E0B" strokeWidth={1.75} />
                 Recent Listings
               </h3>
-              <PrimaryButton variant="outline" size="sm" onClick={() => navigate('/search')}>
-                View All
-              </PrimaryButton>
+              <button className="link-btn" onClick={() => navigate('/search')}>View All →</button>
             </div>
-            {listings.slice(0, 5).map((listing, index) => (
-              <div
-                key={listing.id}
-                style={{
-                  ...styles.listingRow,
-                  ...(index === Math.min(4, listings.length - 1) ? styles.listingRowLast : {}),
-                }}
-                onClick={() => navigate(`/listing/${listing.id}`)}
-              >
-                <div style={styles.listingInfo}>
-                  {listing.images && listing.images[0] ? (
-                    <img src={listing.images[0]} alt={listing.title} style={styles.listingImage} />
-                  ) : (
-                    <div style={{ ...styles.listingImage, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>
-                      📦
-                    </div>
-                  )}
-                  <div>
-                    <div style={styles.listingTitle}>{listing.title}</div>
-                    <div style={styles.listingMeta}>
-                      {listing.category} • {listing.location_area || 'Location not set'}
+            <div className="listings-list">
+              {listings.slice(0, 5).map((listing, index) => (
+                <div
+                  key={listing.id}
+                  className={`listing-item ${index === Math.min(4, listings.length - 1) ? 'listing-item-last' : ''}`}
+                  onClick={() => navigate(`/listing/${listing.id}`)}
+                >
+                  <div className="listing-info">
+                    {listing.images && listing.images[0] ? (
+                      <img src={listing.images[0]} alt={listing.title} className="listing-image" />
+                    ) : (
+                      <div className="listing-image-placeholder">📦</div>
+                    )}
+                    <div className="listing-details">
+                      <div className="listing-title">{listing.title}</div>
+                      <div className="listing-meta">
+                        {listing.category} • {listing.location_area || 'Location not set'}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <div style={styles.listingPrice}>{formatPrice(listing.price)}</div>
-                  <div style={{ ...styles.listingMeta, textAlign: 'right' }}>
-                    {listing.view_count || 0} views
+                  <div className="listing-right">
+                    <div className="listing-price">{formatPrice(listing.price)}</div>
+                    <div className="listing-views">{listing.view_count || 0} views</div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
 
+      {/* Bottom Nav */}
+      {isMobile && (
+        <div className="bottom-nav">
+          {[
+            { id: 'home', label: 'Home', icon: 'home' },
+            { id: 'search', label: 'Search', icon: 'search' },
+            { id: 'sell', label: 'Sell', icon: 'plus' },
+            { id: 'messages', label: 'Chat', icon: 'message' },
+            { id: 'profile', label: 'Profile', icon: 'user' },
+          ].map((item) => {
+            const active = item.id === 'home';
+            return (
+              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
+                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+                </div>
+                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Business Registration Modal */}
       {showCreateForm && (
-        <div style={styles.modalOverlay} onClick={() => setShowCreateForm(false)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <h3 style={styles.modalTitle}>
+        <div className="modal-overlay" onClick={() => setShowCreateForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">
                 <Icon d={ICONS.store} size={20} color="#F59E0B" strokeWidth={1.75} />
                 Register Business
               </h3>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                style={styles.modalClose}
-                aria-label="Close modal"
-              >
+              <button onClick={() => setShowCreateForm(false)} className="modal-close">
                 <Icon d={ICONS.close} size={18} color="#94A3B8" strokeWidth={1.75} />
               </button>
             </div>
 
             {errorMsg && (
-              <div style={styles.errorBanner}>
+              <div className="error-banner">
                 <Icon d={ICONS.close} size={16} color="#EF4444" strokeWidth={1.75} />
                 {errorMsg}
               </div>
             )}
 
             <form onSubmit={handleCreateBusiness} ref={formRef}>
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Business Name *</label>
+              <div className="field-group">
+                <label className="field-label">Business Name *</label>
                 <input
                   ref={nameInputRef}
                   type="text"
@@ -878,19 +591,19 @@ const Dashboard = () => {
                   required
                   value={formData.businessName}
                   onChange={handleChange}
-                  style={styles.input}
+                  className="field-input"
                   placeholder="e.g., Mitundu Hardware"
                 />
               </div>
 
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Category *</label>
+              <div className="field-group">
+                <label className="field-label">Category *</label>
                 <select
                   name="category"
                   required
                   value={formData.category}
                   onChange={handleChange}
-                  style={styles.select}
+                  className="field-select"
                 >
                   <option value="">Select category</option>
                   <option value="Hardware">Hardware</option>
@@ -908,60 +621,53 @@ const Dashboard = () => {
                 </select>
               </div>
 
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Description</label>
+              <div className="field-group">
+                <label className="field-label">Description</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
                   rows="3"
-                  style={{ ...styles.input, resize: 'vertical', minHeight: '60px' }}
+                  className="field-textarea"
                   placeholder="Describe your business..."
                 />
               </div>
 
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Phone / WhatsApp</label>
+              <div className="field-group">
+                <label className="field-label">Phone / WhatsApp</label>
                 <input
                   type="tel"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  style={styles.input}
+                  className="field-input"
                   placeholder="e.g., 0999123456"
                 />
               </div>
 
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Location / Address</label>
+              <div className="field-group">
+                <label className="field-label">Location / Address</label>
                 <input
                   type="text"
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  style={styles.input}
+                  className="field-input"
                   placeholder="e.g., Mitundu Trading Centre"
                 />
               </div>
 
-              <div style={styles.modalActions}>
-                <PrimaryButton
-                  type="submit"
-                  variant="primary"
-                  size="md"
-                  disabled={creating}
-                  loading={creating}
-                >
+              <div className="modal-actions">
+                <button type="submit" className="btn-primary" disabled={creating}>
                   {creating ? 'Saving...' : 'Complete Setup'}
-                </PrimaryButton>
-                <PrimaryButton
+                </button>
+                <button
                   type="button"
-                  variant="outline"
-                  size="md"
+                  className="btn-outline"
                   onClick={() => { setShowCreateForm(false); setErrorMsg(''); }}
                 >
                   Cancel
-                </PrimaryButton>
+                </button>
               </div>
             </form>
           </div>
@@ -977,6 +683,704 @@ const Dashboard = () => {
           onSuccess={handlePaymentSuccess}
         />
       )}
+
+      <style jsx>{`
+        .dashboard {
+          min-height: 100vh;
+          background: #F8FAFC;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #1E293B;
+          padding-bottom: 80px;
+        }
+
+        @media (min-width: 769px) {
+          .dashboard {
+            padding-bottom: 0;
+          }
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
+        }
+
+        .navbar-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+        }
+
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          background: #1E293B;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #F59E0B;
+          font-weight: 700;
+          font-size: 16px;
+        }
+
+        .logo-text {
+          font-size: 18px;
+          font-weight: 700;
+          color: #1E293B;
+          letter-spacing: -0.5px;
+        }
+
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .greeting {
+          font-size: 13px;
+          color: #64748B;
+          display: none;
+        }
+
+        @media (min-width: 640px) {
+          .greeting { display: inline; }
+        }
+
+        .logout-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: none;
+          background: #FEF2F2;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+          background: #FEE2E2;
+        }
+
+        /* ===== MAIN ===== */
+        .dashboard-main {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 20px 16px 40px;
+        }
+
+        /* ===== WELCOME ===== */
+        .welcome-section {
+          margin-bottom: 24px;
+        }
+
+        .welcome-title {
+          font-size: clamp(22px, 2.8vw, 30px);
+          font-weight: 700;
+          margin: 0 0 4px;
+          letter-spacing: -0.5px;
+        }
+
+        .welcome-highlight {
+          background: linear-gradient(135deg, #F59E0B, #D97706);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-subtitle {
+          font-size: 14px;
+          color: #94A3B8;
+          margin: 0;
+        }
+
+        /* ===== STATS ===== */
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+
+        @media (min-width: 480px) {
+          .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+
+        .stat-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 14px 16px;
+          border: 1px solid #F1F5F9;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+          border-color: #E2E8F0;
+          transform: translateY(-1px);
+        }
+
+        .stat-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .stat-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .stat-value {
+          font-size: clamp(18px, 1.8vw, 22px);
+          font-weight: 700;
+          color: #1E293B;
+          line-height: 1.2;
+        }
+
+        .stat-label {
+          font-size: 11px;
+          color: #94A3B8;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        /* ===== BUSINESS CARD ===== */
+        .business-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 16px 18px;
+          border: 1px solid #F1F5F9;
+          margin-bottom: 16px;
+        }
+
+        .business-info {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .business-avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #EDE9F5, #F59E0B);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          font-weight: 700;
+          color: #1E293B;
+          flex-shrink: 0;
+        }
+
+        .business-details {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .business-name {
+          font-size: 17px;
+          font-weight: 700;
+          color: #1E293B;
+        }
+
+        .business-meta {
+          font-size: 13px;
+          color: #94A3B8;
+        }
+
+        /* ===== EMPTY BUSINESS ===== */
+        .empty-business {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 32px 20px;
+          border: 1px solid #F1F5F9;
+          text-align: center;
+          margin-bottom: 16px;
+        }
+
+        .empty-content {
+          max-width: 320px;
+          margin: 0 auto;
+        }
+
+        .empty-icon {
+          font-size: 40px;
+          margin-bottom: 8px;
+        }
+
+        .empty-title {
+          font-size: 17px;
+          font-weight: 700;
+          margin: 0 0 4px;
+        }
+
+        .empty-text {
+          font-size: 14px;
+          color: #94A3B8;
+          margin: 0 0 16px;
+        }
+
+        /* ===== SECTION CARD ===== */
+        .section-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 16px 18px;
+          border: 1px solid #F1F5F9;
+          margin-bottom: 16px;
+        }
+
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 14px;
+        }
+
+        .section-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .link-btn {
+          background: none;
+          border: none;
+          color: #F59E0B;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          font-family: inherit;
+        }
+
+        .link-btn:hover {
+          color: #D97706;
+        }
+
+        /* ===== ACTIONS GRID ===== */
+        .actions-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+        }
+
+        @media (min-width: 480px) {
+          .actions-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+
+        .action-item {
+          padding: 14px 12px;
+          border-radius: 12px;
+          border: 1px solid #F1F5F9;
+          background: #F8FAFC;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .action-item:hover {
+          border-color: #E2E8F0;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+
+        .action-icon {
+          font-size: 24px;
+          margin-bottom: 4px;
+        }
+
+        .action-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: #1E293B;
+        }
+
+        .action-desc {
+          font-size: 10px;
+          color: #94A3B8;
+        }
+
+        /* ===== LISTINGS ===== */
+        .listings-list {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .listing-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 0;
+          border-bottom: 1px solid #F1F5F9;
+          cursor: pointer;
+          gap: 10px;
+          transition: all 0.2s;
+        }
+
+        .listing-item:hover {
+          background: #F8FAFC;
+          margin: 0 -4px;
+          padding: 10px 4px;
+          border-radius: 6px;
+        }
+
+        .listing-item-last {
+          border-bottom: none;
+        }
+
+        .listing-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .listing-image {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          object-fit: cover;
+          background: #F1F5F9;
+          flex-shrink: 0;
+        }
+
+        .listing-image-placeholder {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: #F1F5F9;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          flex-shrink: 0;
+        }
+
+        .listing-details {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .listing-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #1E293B;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .listing-meta {
+          font-size: 12px;
+          color: #94A3B8;
+        }
+
+        .listing-right {
+          text-align: right;
+          flex-shrink: 0;
+        }
+
+        .listing-price {
+          font-size: 14px;
+          font-weight: 700;
+          color: #10B981;
+        }
+
+        .listing-views {
+          font-size: 11px;
+          color: #94A3B8;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn-primary {
+          padding: 10px 24px;
+          background: #1E293B;
+          border: none;
+          border-radius: 10px;
+          color: #FFF;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+          background: #F59E0B;
+          transform: scale(0.98);
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .btn-outline {
+          padding: 10px 24px;
+          background: transparent;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+          color: #64748B;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .btn-outline:hover {
+          background: #F1F5F9;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.5);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          z-index: 1000;
+          animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .modal-content {
+          background: #FFFFFF;
+          border-radius: 16px;
+          max-width: 480px;
+          width: 100%;
+          padding: 20px;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 40px rgba(30, 41, 59, 0.15);
+          animation: slideUp 0.25s ease;
+        }
+
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .modal-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .modal-close {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #94A3B8;
+          padding: 4px;
+        }
+
+        .modal-close:hover {
+          color: #475569;
+        }
+
+        .field-group {
+          margin-bottom: 12px;
+        }
+
+        .field-label {
+          display: block;
+          font-size: 12px;
+          font-weight: 600;
+          color: #475569;
+          margin-bottom: 4px;
+        }
+
+        .field-input,
+        .field-select,
+        .field-textarea {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+          font-size: 14px;
+          color: #1E293B;
+          outline: none;
+          background: #FFFFFF;
+          font-family: inherit;
+          transition: all 0.2s;
+          box-sizing: border-box;
+        }
+
+        .field-input:focus,
+        .field-select:focus,
+        .field-textarea:focus {
+          border-color: #F59E0B;
+          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+        }
+
+        .field-textarea {
+          resize: vertical;
+          min-height: 60px;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 16px;
+          flex-wrap: wrap;
+        }
+
+        .error-banner {
+          color: #EF4444;
+          font-size: 13px;
+          margin-bottom: 16px;
+          padding: 10px 14px;
+          background: #FEF2F2;
+          border-radius: 10px;
+          border: 1px solid #FECACA;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        /* ===== BOTTOM NAV ===== */
+        .bottom-nav {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(12px);
+          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          display: flex;
+          justify-content: space-around;
+          padding: 4px 0 8px;
+          z-index: 100;
+        }
+
+        .nav-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          font-family: inherit;
+          min-width: 44px;
+        }
+
+        .nav-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .nav-icon-active {
+          background: #1E293B;
+        }
+
+        .nav-label {
+          font-size: 9px;
+          font-weight: 500;
+          color: #94A3B8;
+        }
+
+        .nav-label-active {
+          color: #1E293B;
+          font-weight: 600;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 380px) {
+          .stats-grid {
+            gap: 8px;
+          }
+          .stat-card {
+            padding: 10px 12px;
+          }
+          .stat-icon {
+            width: 32px;
+            height: 32px;
+          }
+          .stat-value {
+            font-size: 16px;
+          }
+          .actions-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+          }
+          .action-item {
+            padding: 10px 8px;
+          }
+          .action-icon {
+            font-size: 20px;
+          }
+          .action-name {
+            font-size: 12px;
+          }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+          .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+          .actions-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+      `}</style>
     </div>
   );
 };

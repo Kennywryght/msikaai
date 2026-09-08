@@ -1,15 +1,12 @@
 // mobile/src/pages/CreateListing.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { businessAPI } from '../services/api';
 import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 
-// ============================================
-// PREMIUM FEATHER ICONS
-// ============================================
 const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
     width={size}
@@ -42,6 +39,10 @@ const ICONS = {
   delivery: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8M9 16h6",
   phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z",
   upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
+  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
 };
 
 const LOCATIONS = [
@@ -56,12 +57,14 @@ const LOCATIONS = [
 ];
 
 const CreateListing = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
   const [loading, setLoading] = useState(false);
   const [businesses, setBusinesses] = useState([]);
   const [selectedBusiness, setSelectedBusiness] = useState('');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -81,6 +84,8 @@ const CreateListing = () => {
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const fileInputRef = useRef(null);
+
+  const isMobile = windowWidth <= 768;
 
   const categories = [
     'Products',
@@ -113,8 +118,31 @@ const CreateListing = () => {
   }, []);
 
   useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     fetchBusinesses();
   }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      success('Logged out successfully');
+      navigate('/');
+    } catch (err) {
+      console.error('Logout error:', err);
+      showToast('Failed to logout', 'error');
+    }
+  };
 
   const fetchBusinesses = async () => {
     if (!user?.id) return;
@@ -251,328 +279,174 @@ const CreateListing = () => {
     }
   };
 
+  const handleBottomNav = (id) => {
+    if (id === 'home') navigate('/landing');
+    else if (id === 'search') navigate('/search');
+    else if (id === 'sell') navigate('/create-listing');
+    else if (id === 'messages') navigate('/messages');
+    else if (id === 'profile') navigate('/profile');
+  };
+
   if (loading) {
     return <LoadingSpinner fullScreen message="Creating your listing..." />;
   }
 
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      background: '#F8FAFC',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      padding: 'clamp(16px, 2vw, 24px) clamp(12px, 2vw, 16px)',
-    },
-    card: {
-      maxWidth: '600px',
-      margin: '0 auto',
-      background: '#FFFFFF',
-      borderRadius: '16px',
-      padding: 'clamp(20px, 2.5vw, 32px)',
-      boxShadow: '0 2px 12px rgba(30,41,59,0.04)',
-      border: '1px solid #E2E8F0',
-    },
-    header: {
-      marginBottom: '24px',
-    },
-    backLink: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      color: '#94A3B8',
-      textDecoration: 'none',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      fontWeight: '500',
-      marginBottom: '12px',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      padding: 0,
-      fontFamily: 'inherit',
-      transition: 'color 0.2s ease',
-    },
-    title: {
-      fontSize: 'clamp(20px, 2.5vw, 24px)',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: 0,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      fontFamily: '"Fraunces", Georgia, serif',
-    },
-    subtitle: {
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#94A3B8',
-      marginTop: '4px',
-      marginBottom: 0,
-    },
-    formGroup: {
-      marginBottom: 'clamp(14px, 1.5vw, 18px)',
-    },
-    label: {
-      display: 'flex',
-      alignItems: 'center',
-      fontSize: 'clamp(12px, 1vw, 13px)',
-      fontWeight: '600',
-      color: '#475569',
-      marginBottom: '4px',
-    },
-    input: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#1E293B',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-    },
-    textarea: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#1E293B',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      resize: 'vertical',
-      minHeight: 'clamp(80px, 10vw, 100px)',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-    },
-    select: {
-      width: '100%',
-      padding: 'clamp(8px, 0.8vw, 10px) clamp(12px, 1vw, 14px)',
-      border: '1px solid #E2E8F0',
-      borderRadius: '8px',
-      fontSize: 'clamp(13px, 1.1vw, 14px)',
-      color: '#1E293B',
-      boxSizing: 'border-box',
-      outline: 'none',
-      background: '#FFFFFF',
-      fontFamily: 'inherit',
-      appearance: 'none',
-    },
-    row: {
-      display: 'flex',
-      gap: '12px',
-      flexWrap: 'wrap',
-    },
-    half: {
-      flex: 1,
-      minWidth: 'clamp(130px, 35vw, 200px)',
-    },
-    imageGrid: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '8px',
-      marginTop: '10px',
-    },
-    imageWrapper: {
-      position: 'relative',
-    },
-    imageThumb: {
-      width: 'clamp(60px, 8vw, 80px)',
-      height: 'clamp(60px, 8vw, 80px)',
-      objectFit: 'cover',
-      borderRadius: '8px',
-      border: '1px solid #E2E8F0',
-    },
-    removeBtn: {
-      position: 'absolute',
-      top: '-6px',
-      right: '-6px',
-      background: '#EF4444',
-      color: 'white',
-      border: 'none',
-      borderRadius: '50%',
-      width: '20px',
-      height: '20px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 0,
-    },
-    fileInput: {
-      padding: '8px',
-      border: '1px dashed #E2E8F0',
-      borderRadius: '8px',
-      width: '100%',
-      boxSizing: 'border-box',
-      cursor: 'pointer',
-      fontSize: 'clamp(12px, 1vw, 13px)',
-      background: '#F8FAFC',
-    },
-    checkbox: {
-      width: 'clamp(16px, 1.5vw, 18px)',
-      height: 'clamp(16px, 1.5vw, 18px)',
-      cursor: 'pointer',
-      accentColor: '#F59E0B',
-    },
-    required: {
-      color: '#EF4444',
-      marginLeft: '2px',
-    },
-    submitBtn: {
-      marginTop: '8px',
-    },
-  };
-
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            style={styles.backLink}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#1E293B'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#94A3B8'; }}
-          >
-            <Icon d={ICONS.arrowLeft} size={16} color="#94A3B8" strokeWidth={1.75} />
-            Back to Dashboard
+    <div className="create-listing">
+      {/* Navbar */}
+      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
+        <div className="navbar-inner">
+          <Link to="/landing" className="logo">
+            <span className="logo-icon">K</span>
+            <span className="logo-text">Kumsika</span>
+          </Link>
+          <div className="nav-actions">
+            <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
+            <button onClick={handleLogout} className="logout-btn">
+              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <div className="main-content">
+        {/* Page Header */}
+        <div className="page-header">
+          <button className="back-btn" onClick={() => navigate('/dashboard')}>
+            <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
+            Back
           </button>
-          
-          <h1 style={styles.title}>
-            <Icon d={ICONS.box} size={24} color="#F59E0B" strokeWidth={1.75} />
-            Create New Listing
-          </h1>
-          <p style={styles.subtitle}>Add a product or service to your storefront</p>
+          <div className="header-content">
+            <div className="header-icon">
+              <Icon d={ICONS.box} size={28} color="#F59E0B" strokeWidth={1.75} />
+            </div>
+            <h1 className="page-title">Create Listing</h1>
+            <p className="page-subtitle">Add a product or service to your storefront</p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          {businesses.length > 0 && (
-            <div style={styles.formGroup}>
-              <label style={styles.label}>
-                <Icon d={ICONS.store} size={14} color="#94A3B8" strokeWidth={1.75} />
-                <span style={{ marginLeft: '4px' }}>Business</span>
-                <span style={styles.required}>*</span>
+        {/* Form Card */}
+        <div className="form-card">
+          <form onSubmit={handleSubmit}>
+            {/* Business Selection */}
+            {businesses.length > 0 && (
+              <div className="form-group">
+                <label className="form-label">
+                  <Icon d={ICONS.store} size={14} color="#94A3B8" strokeWidth={1.75} />
+                  Business <span className="required">*</span>
+                </label>
+                <select
+                  value={selectedBusiness}
+                  onChange={(e) => setSelectedBusiness(e.target.value)}
+                  className="form-select"
+                  required
+                >
+                  <option value="">Select a business</option>
+                  {businesses.map(biz => (
+                    <option key={biz.id} value={biz.id}>
+                      {biz.business_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Title */}
+            <div className="form-group">
+              <label className="form-label">
+                <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
+                Listing Title <span className="required">*</span>
+              </label>
+              <input
+                ref={titleInputRef}
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="e.g., Fresh Tomatoes, Plumbing Services"
+                required
+                autoComplete="off"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="form-group">
+              <label className="form-label">
+                <Icon d={ICONS.box} size={14} color="#94A3B8" strokeWidth={1.75} />
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                className="form-textarea"
+                placeholder="Describe your product or service in detail..."
+              />
+            </div>
+
+            {/* Category */}
+            <div className="form-group">
+              <label className="form-label">
+                <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
+                Category <span className="required">*</span>
               </label>
               <select
-                value={selectedBusiness}
-                onChange={(e) => setSelectedBusiness(e.target.value)}
-                style={styles.select}
-                className="input-focus"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className="form-select"
                 required
               >
-                <option value="">Select a business</option>
-                {businesses.map(biz => (
-                  <option key={biz.id} value={biz.id}>
-                    {biz.business_name}
-                  </option>
+                <option value="">Select category</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
             </div>
-          )}
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
-              <span style={{ marginLeft: '4px' }}>Listing Title</span>
-              <span style={styles.required}>*</span>
-            </label>
-            <input
-              ref={titleInputRef}
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              style={styles.input}
-              placeholder="e.g., Fresh Tomatoes, Plumbing Services"
-              className="input-focus"
-              required
-              autoComplete="off"
-            />
-          </div>
+            {/* Sub Category */}
+            {formData.category && subCategories[formData.category] && (
+              <div className="form-group">
+                <label className="form-label">Sub Category</label>
+                <select
+                  name="subCategory"
+                  value={formData.subCategory}
+                  onChange={handleChange}
+                  className="form-select"
+                >
+                  <option value="">Select sub category</option>
+                  {subCategories[formData.category].map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <Icon d={ICONS.box} size={14} color="#94A3B8" strokeWidth={1.75} />
-              <span style={{ marginLeft: '4px' }}>Description</span>
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              style={styles.textarea}
-              placeholder="Describe your product or service in detail..."
-              className="input-focus"
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
-              <span style={{ marginLeft: '4px' }}>Category</span>
-              <span style={styles.required}>*</span>
-            </label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              style={styles.select}
-              className="input-focus"
-              required
-            >
-              <option value="">Select category</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
-          {formData.category && subCategories[formData.category] && (
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Sub Category</label>
-              <select
-                name="subCategory"
-                value={formData.subCategory}
-                onChange={handleChange}
-                style={styles.select}
-                className="input-focus"
-              >
-                <option value="">Select sub category</option>
-                {subCategories[formData.category].map(sub => (
-                  <option key={sub} value={sub}>{sub}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div style={styles.row}>
-            <div style={styles.half}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>
+            {/* Price & Price Type */}
+            <div className="form-row">
+              <div className="form-group half">
+                <label className="form-label">
                   <Icon d={ICONS.dollar} size={14} color="#94A3B8" strokeWidth={1.75} />
-                  <span style={{ marginLeft: '4px' }}>Price (MWK)</span>
+                  Price (MWK)
                 </label>
                 <input
                   type="number"
                   name="price"
                   value={formData.price}
                   onChange={handleChange}
-                  style={styles.input}
+                  className="form-input"
                   placeholder="e.g., 5000"
-                  className="input-focus"
                   autoComplete="off"
                 />
               </div>
-            </div>
-            <div style={styles.half}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Price Type</label>
+              <div className="form-group half">
+                <label className="form-label">Price Type</label>
                 <select
                   name="priceType"
                   value={formData.priceType}
                   onChange={handleChange}
-                  style={styles.select}
-                  className="input-focus"
+                  className="form-select"
                 >
                   <option value="fixed">Fixed</option>
                   <option value="negotiable">Negotiable</option>
@@ -580,164 +454,634 @@ const CreateListing = () => {
                 </select>
               </div>
             </div>
-          </div>
 
-          <div style={styles.row}>
-            <div style={styles.half}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Quantity</label>
+            {/* Quantity & Unit */}
+            <div className="form-row">
+              <div className="form-group half">
+                <label className="form-label">Quantity</label>
                 <input
                   type="number"
                   name="quantity"
                   value={formData.quantity}
                   onChange={handleChange}
-                  style={styles.input}
+                  className="form-input"
                   placeholder="e.g., 10"
-                  className="input-focus"
                   autoComplete="off"
                 />
               </div>
-            </div>
-            <div style={styles.half}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Unit</label>
+              <div className="form-group half">
+                <label className="form-label">Unit</label>
                 <input
                   type="text"
                   name="unit"
                   value={formData.unit}
                   onChange={handleChange}
-                  style={styles.input}
+                  className="form-input"
                   placeholder="e.g., bags, kg, pieces"
-                  className="input-focus"
                   autoComplete="off"
                 />
               </div>
             </div>
-          </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <Icon d={ICONS.mapPin} size={14} color="#94A3B8" strokeWidth={1.75} />
-              <span style={{ marginLeft: '4px' }}>Specific Location</span>
-              <span style={styles.required}>*</span>
-            </label>
-            <select
-              name="locationArea"
-              value={formData.locationArea}
-              onChange={handleChange}
-              style={styles.select}
-              className="input-focus"
-              required
-            >
-              <option value="">Select location in Mitundu</option>
-              {LOCATIONS.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <Icon d={ICONS.delivery} size={14} color="#94A3B8" strokeWidth={1.75} />
-              <span style={{ marginLeft: '4px' }}>Delivery Options</span>
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '4px' }}>
-              <label style={{ fontSize: 'clamp(13px, 1.1vw, 14px)', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  name="deliveryAvailable"
-                  checked={formData.deliveryAvailable}
-                  onChange={handleChange}
-                  style={styles.checkbox}
-                />
-                Delivery available
+            {/* Location */}
+            <div className="form-group">
+              <label className="form-label">
+                <Icon d={ICONS.mapPin} size={14} color="#94A3B8" strokeWidth={1.75} />
+                Location <span className="required">*</span>
               </label>
-              {formData.deliveryAvailable && (
-                <div style={{ flex: 1, minWidth: '120px' }}>
+              <select
+                name="locationArea"
+                value={formData.locationArea}
+                onChange={handleChange}
+                className="form-select"
+                required
+              >
+                <option value="">Select location in Mitundu</option>
+                {LOCATIONS.map(loc => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Delivery */}
+            <div className="form-group">
+              <label className="form-label">
+                <Icon d={ICONS.delivery} size={14} color="#94A3B8" strokeWidth={1.75} />
+                Delivery Options
+              </label>
+              <div className="delivery-options">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="deliveryAvailable"
+                    checked={formData.deliveryAvailable}
+                    onChange={handleChange}
+                    className="checkbox-input"
+                  />
+                  Delivery available
+                </label>
+                {formData.deliveryAvailable && (
                   <input
                     type="number"
                     name="deliveryFee"
                     value={formData.deliveryFee}
                     onChange={handleChange}
-                    style={styles.input}
+                    className="form-input delivery-fee"
                     placeholder="Delivery fee (MWK)"
-                    className="input-focus"
                   />
+                )}
+              </div>
+            </div>
+
+            {/* Contact Phone */}
+            <div className="form-group">
+              <label className="form-label">
+                <Icon d={ICONS.phone} size={14} color="#94A3B8" strokeWidth={1.75} />
+                Contact Phone <span className="required">*</span>
+              </label>
+              <input
+                type="tel"
+                name="contactPhone"
+                value={formData.contactPhone}
+                onChange={handleChange}
+                className="form-input"
+                placeholder="e.g., 0999123456"
+                required
+                autoComplete="tel"
+              />
+            </div>
+
+            {/* Images */}
+            <div className="form-group">
+              <label className="form-label">
+                <Icon d={ICONS.image} size={14} color="#94A3B8" strokeWidth={1.75} />
+                Images
+              </label>
+              <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  style={{ display: 'none' }}
+                  aria-label="Upload product images"
+                />
+                <Icon d={ICONS.upload} size={24} color="#94A3B8" strokeWidth={1.5} />
+                <span className="upload-text">Click to upload images</span>
+                <span className="upload-hint">PNG, JPG, GIF up to 10MB each</span>
+              </div>
+              {imagePreviews.length > 0 && (
+                <div className="image-grid">
+                  {imagePreviews.map((url, index) => (
+                    <div key={index} className="image-wrapper">
+                      <img src={url} alt={`Upload ${index}`} className="image-thumb" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="remove-btn"
+                        aria-label="Remove image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-          </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <Icon d={ICONS.phone} size={14} color="#94A3B8" strokeWidth={1.75} />
-              <span style={{ marginLeft: '4px' }}>Contact Phone</span>
-              <span style={styles.required}>*</span>
-            </label>
-            <input
-              type="tel"
-              name="contactPhone"
-              value={formData.contactPhone}
-              onChange={handleChange}
-              style={styles.input}
-              placeholder="e.g., 0999123456"
-              className="input-focus"
-              required
-              autoComplete="tel"
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              <Icon d={ICONS.image} size={14} color="#94A3B8" strokeWidth={1.75} />
-              <span style={{ marginLeft: '4px' }}>Images</span>
-            </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageUpload}
-              style={styles.fileInput}
-              aria-label="Upload product images"
-            />
-            {imagePreviews.length > 0 && (
-              <div style={styles.imageGrid}>
-                {imagePreviews.map((url, index) => (
-                  <div key={index} style={styles.imageWrapper}>
-                    <img src={url} alt={`Upload ${index}`} style={styles.imageThumb} />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      style={styles.removeBtn}
-                      aria-label="Remove image"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <PrimaryButton
-            type="submit"
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={loading}
-            disabled={loading || !selectedBusiness}
-            style={styles.submitBtn}
-          >
-            {loading ? 'Creating...' : (
-              <>
-                <Icon d={ICONS.check} size={18} color="#FFFFFF" strokeWidth={2} />
-                Create Listing
-              </>
-            )}
-          </PrimaryButton>
-        </form>
+            {/* Submit */}
+            <button type="submit" className="submit-btn" disabled={loading || !selectedBusiness}>
+              <Icon d={ICONS.check} size={18} color="#FFFFFF" strokeWidth={2} />
+              {loading ? 'Creating...' : 'Create Listing'}
+            </button>
+          </form>
+        </div>
       </div>
+
+      {/* Bottom Nav */}
+      {isMobile && (
+        <div className="bottom-nav">
+          {[
+            { id: 'home', label: 'Home', icon: 'home' },
+            { id: 'search', label: 'Search', icon: 'search' },
+            { id: 'sell', label: 'Sell', icon: 'plus' },
+            { id: 'messages', label: 'Chat', icon: 'message' },
+            { id: 'profile', label: 'Profile', icon: 'user' },
+          ].map((item) => {
+            const active = item.id === 'sell';
+            return (
+              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
+                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+                </div>
+                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <style jsx>{`
+        .create-listing {
+          min-height: 100vh;
+          background: #F8FAFC;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #1E293B;
+          padding-bottom: 80px;
+        }
+
+        @media (min-width: 769px) {
+          .create-listing {
+            padding-bottom: 0;
+          }
+        }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
+          transition: all 0.2s;
+        }
+
+        .navbar-scrolled {
+          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+        }
+
+        .navbar-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+        }
+
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          background: #1E293B;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #F59E0B;
+          font-weight: 700;
+          font-size: 16px;
+        }
+
+        .logo-text {
+          font-size: 18px;
+          font-weight: 700;
+          color: #1E293B;
+          letter-spacing: -0.5px;
+        }
+
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .greeting {
+          font-size: 13px;
+          color: #64748B;
+          display: none;
+        }
+
+        @media (min-width: 640px) {
+          .greeting { display: inline; }
+        }
+
+        .logout-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: none;
+          background: #FEF2F2;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+          background: #FEE2E2;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px 16px 40px;
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+          margin-bottom: 24px;
+        }
+
+        .back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 6px 14px;
+          background: #FFFFFF;
+          border: 1px solid #F1F5F9;
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 500;
+          color: #64748B;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+          background: #F1F5F9;
+          border-color: #E2E8F0;
+        }
+
+        .header-content {
+          margin-top: 12px;
+        }
+
+        .header-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          background: rgba(245, 158, 11, 0.1);
+          border-radius: 14px;
+          margin-bottom: 8px;
+        }
+
+        .page-title {
+          font-size: clamp(24px, 2.8vw, 28px);
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0 0 4px;
+          letter-spacing: -0.5px;
+        }
+
+        .page-subtitle {
+          font-size: 14px;
+          color: #94A3B8;
+          margin: 0;
+        }
+
+        /* ===== FORM CARD ===== */
+        .form-card {
+          background: #FFFFFF;
+          border-radius: 14px;
+          padding: 18px 20px;
+          border: 1px solid #F1F5F9;
+        }
+
+        .form-group {
+          margin-bottom: 14px;
+        }
+
+        .form-group:last-of-type {
+          margin-bottom: 0;
+        }
+
+        .form-label {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #475569;
+          margin-bottom: 4px;
+        }
+
+        .required {
+          color: #EF4444;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+          font-size: 14px;
+          color: #1E293B;
+          outline: none;
+          background: #FFFFFF;
+          font-family: inherit;
+          transition: all 0.2s;
+          box-sizing: border-box;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+          border-color: #F59E0B;
+          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+        }
+
+        .form-textarea {
+          resize: vertical;
+          min-height: 80px;
+        }
+
+        .form-select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          padding-right: 32px;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .form-row .half {
+          flex: 1;
+          min-width: 140px;
+        }
+
+        /* ===== DELIVERY ===== */
+        .delivery-options {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-top: 4px;
+        }
+
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 14px;
+          color: #64748B;
+          cursor: pointer;
+        }
+
+        .checkbox-input {
+          width: 16px;
+          height: 16px;
+          accent-color: #F59E0B;
+          cursor: pointer;
+        }
+
+        .delivery-fee {
+          flex: 1;
+          min-width: 120px;
+        }
+
+        /* ===== IMAGE UPLOAD ===== */
+        .upload-area {
+          border: 2px dashed #E2E8F0;
+          border-radius: 12px;
+          padding: 20px;
+          text-align: center;
+          cursor: pointer;
+          background: #F8FAFC;
+          transition: all 0.2s;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .upload-area:hover {
+          border-color: #F59E0B;
+          background: #FEFCF5;
+        }
+
+        .upload-text {
+          font-size: 14px;
+          font-weight: 500;
+          color: #64748B;
+        }
+
+        .upload-hint {
+          font-size: 12px;
+          color: #94A3B8;
+        }
+
+        .image-grid {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 10px;
+        }
+
+        .image-wrapper {
+          position: relative;
+        }
+
+        .image-thumb {
+          width: 72px;
+          height: 72px;
+          object-fit: cover;
+          border-radius: 10px;
+          border: 1px solid #F1F5F9;
+        }
+
+        .remove-btn {
+          position: absolute;
+          top: -6px;
+          right: -6px;
+          background: #EF4444;
+          color: #FFFFFF;
+          border: none;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          transition: all 0.2s;
+        }
+
+        .remove-btn:hover {
+          transform: scale(1.1);
+        }
+
+        /* ===== SUBMIT BUTTON ===== */
+        .submit-btn {
+          width: 100%;
+          padding: 12px;
+          background: linear-gradient(135deg, #1E293B, #F59E0B);
+          border: none;
+          border-radius: 12px;
+          font-size: 15px;
+          font-weight: 600;
+          color: #FFFFFF;
+          cursor: pointer;
+          font-family: inherit;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: all 0.2s;
+          margin-top: 8px;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          transform: scale(0.98);
+          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+        }
+
+        .submit-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* ===== BOTTOM NAV ===== */
+        .bottom-nav {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(12px);
+          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          display: flex;
+          justify-content: space-around;
+          padding: 4px 0 8px;
+          z-index: 100;
+        }
+
+        .nav-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          font-family: inherit;
+          min-width: 44px;
+        }
+
+        .nav-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .nav-icon-active {
+          background: #1E293B;
+        }
+
+        .nav-label {
+          font-size: 9px;
+          font-weight: 500;
+          color: #94A3B8;
+        }
+
+        .nav-label-active {
+          color: #1E293B;
+          font-weight: 600;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+          .form-row {
+            flex-direction: column;
+          }
+          .form-row .half {
+            min-width: 100%;
+          }
+          .delivery-options {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .delivery-fee {
+            width: 100%;
+          }
+          .form-card {
+            padding: 14px 16px;
+          }
+          .upload-area {
+            padding: 16px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .main-content {
+            padding: 12px 12px 32px;
+          }
+          .form-card {
+            padding: 12px 14px;
+          }
+          .image-thumb {
+            width: 60px;
+            height: 60px;
+          }
+        }
+      `}</style>
     </div>
   );
 };
