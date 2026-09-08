@@ -2,7 +2,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../context/TranslationContext';
-import LanguageToggle from '../components/LanguageToggle';
 
 const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
   <svg
@@ -35,7 +34,6 @@ const ICONS = {
   globe: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z",
   award: "M12 15l-3.5 2 1.33-4.5-3.33-2.5h4.17L12 6l1.33 4h4.17l-3.33 2.5L15.5 17 12 15z",
   trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
-  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
   home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
   search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
   plus: "M12 4v16m8-8H4",
@@ -63,33 +61,17 @@ const About = () => {
 
   return (
     <div className="about-page">
-      {/* Navbar */}
-      <nav className="navbar">
-        <div className="navbar-inner">
-          <Link to="/" className="logo">
-            <span className="logo-icon">K</span>
-            <span className="logo-text"></span>
-          </Link>
-          <div className="nav-actions">
-            <LanguageToggle />
-            <button className="nav-btn" onClick={() => navigate('/')}>Home</button>
-            <Link to="/login" className="btn-primary">Sign In</Link>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero */}
       <section className="hero">
         <div className="hero-content">
           <div className="hero-badge">
-            <Icon d={ICONS.sparkles} size={24} color="#F59E0B" strokeWidth={1.75} />
+            <Icon d={ICONS.sparkles} size={28} color="#F59E0B" strokeWidth={1.75} />
           </div>
           <h1 className="hero-title">
             About <span className="hero-highlight">Kumsika</span>
           </h1>
           <p className="hero-subtitle">
-            Malawi's first AI-powered local marketplace — connecting buyers, sellers, 
-            and skilled laborers in one place.
+            Malawi's first AI powered local marketplace connecting buyers, sellers and skilled laborers in one place.
           </p>
         </div>
       </section>
@@ -104,13 +86,10 @@ const About = () => {
           </div>
           <div className="card">
             <p className="card-text">
-              <strong>Kumsika</strong> exists to empower local businesses, farmers, and skilled laborers in Malawi 
-              by providing a digital platform where they can be discovered, trusted, and connected with customers 
-              — all powered by AI that works in Chichewa and English.
+              <strong>Kumsika</strong> exists to empower local businesses, farmers and skilled laborers in Malawi by providing a digital platform where they can be discovered, trusted and connected with customers all powered by AI that works in Chichewa and English.
             </p>
             <p className="card-text" style={{ marginTop: '12px' }}>
-              We believe that technology should serve communities, not replace them. That's why we built Kumsika 
-              to be local-first, voice-friendly, and built for the way Malawians actually trade.
+              We believe that technology should serve communities, not replace them. That is why we built Kumsika to be local first, voice friendly and built for the way Malawians actually trade.
             </p>
           </div>
         </section>
@@ -119,11 +98,11 @@ const About = () => {
         <section className="section">
           <div className="section-header">
             <Icon d={ICONS.mail} size={22} color="#F59E0B" strokeWidth={1.75} />
-            <h2 className="section-title">Developer & Contact</h2>
+            <h2 className="section-title">Developer and Contact</h2>
           </div>
           <div className="contact-card">
             <p className="contact-text">
-              Have questions, feedback, or custom development inquiries? Get in touch directly:
+              Have questions, feedback or custom development inquiries? Get in touch directly:
             </p>
             <div className="contact-item">
               <Icon d={ICONS.mail} size={18} color="#F59E0B" strokeWidth={1.75} />
@@ -212,23 +191,23 @@ const About = () => {
         <section className="section">
           <div className="section-header">
             <Icon d={ICONS.users} size={22} color="#F59E0B" strokeWidth={1.75} />
-            <h2 className="section-title">Built with ❤️</h2>
+            <h2 className="section-title">Built with Love</h2>
           </div>
           <div className="team-grid">
             <div className="team-card">
               <div className="team-avatar">👨‍💻</div>
               <h4 className="team-name">Kennedy Banda</h4>
-              <p className="team-role">Lead Developer & Creator</p>
+              <p className="team-role">Lead Developer and Creator</p>
             </div>
             <div className="team-card">
               <div className="team-avatar">🌾</div>
               <h4 className="team-name">Our Community</h4>
-              <p className="team-role">Malawi Businesses & Farmers</p>
+              <p className="team-role">Malawi Businesses and Farmers</p>
             </div>
             <div className="team-card">
               <div className="team-avatar">🤝</div>
               <h4 className="team-name">Our Partners</h4>
-              <p className="team-role">Local Leaders & Innovators</p>
+              <p className="team-role">Local Leaders and Innovators</p>
             </div>
           </div>
         </section>
@@ -279,102 +258,14 @@ const About = () => {
           }
         }
 
-        /* ===== NAVBAR ===== */
-        .navbar {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-        }
-
-        .navbar-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 10px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        }
-
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-          background: #1E293B;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #F59E0B;
-          font-weight: 700;
-          font-size: 16px;
-        }
-
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
-          letter-spacing: -0.5px;
-        }
-
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .nav-btn {
-          padding: 6px 14px;
-          background: none;
-          border: none;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 600;
-          color: #64748B;
-          cursor: pointer;
-          font-family: inherit;
-          transition: all 0.2s;
-        }
-
-        .nav-btn:hover {
-          background: #F1F5F9;
-        }
-
-        .btn-primary {
-          padding: 6px 18px;
-          background: #1E293B;
-          border: none;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 600;
-          color: #FFFFFF;
-          cursor: pointer;
-          font-family: inherit;
-          text-decoration: none;
-          transition: all 0.2s;
-          box-shadow: 0 2px 8px rgba(30, 41, 59, 0.15);
-        }
-
-        .btn-primary:hover {
-          background: #F59E0B;
-          transform: scale(0.98);
-        }
-
         /* ===== HERO ===== */
         .hero {
           background: linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%);
-          padding: 48px 20px 56px;
+          padding: 60px 20px 64px;
           text-align: center;
           position: relative;
           overflow: hidden;
+          margin-top: 0;
         }
 
         .hero::before {
@@ -400,15 +291,15 @@ const About = () => {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 48px;
-          height: 48px;
+          width: 56px;
+          height: 56px;
           background: rgba(245, 158, 11, 0.12);
-          border-radius: 14px;
-          margin-bottom: 12px;
+          border-radius: 16px;
+          margin-bottom: 16px;
         }
 
         .hero-title {
-          font-size: clamp(28px, 4.5vw, 38px);
+          font-size: clamp(30px, 4.5vw, 40px);
           font-weight: 800;
           color: #FFFFFF;
           margin: 0 0 8px;
@@ -422,10 +313,10 @@ const About = () => {
         }
 
         .hero-subtitle {
-          font-size: clamp(15px, 1.4vw, 17px);
-          color: rgba(255, 255, 255, 0.75);
+          font-size: clamp(16px, 1.4vw, 18px);
+          color: rgba(255, 255, 255, 0.8);
           margin: 0;
-          line-height: 1.6;
+          line-height: 1.7;
           max-width: 600px;
           margin: 0 auto;
         }
@@ -434,12 +325,12 @@ const About = () => {
         .main-content {
           max-width: 1000px;
           margin: 0 auto;
-          padding: 28px 16px 40px;
+          padding: 32px 16px 40px;
         }
 
         /* ===== SECTION ===== */
         .section {
-          margin-bottom: 32px;
+          margin-bottom: 36px;
         }
 
         .section-header {
@@ -450,7 +341,7 @@ const About = () => {
         }
 
         .section-title {
-          font-size: clamp(18px, 2.2vw, 22px);
+          font-size: clamp(20px, 2.2vw, 24px);
           font-weight: 700;
           color: #1E293B;
           margin: 0;
@@ -460,14 +351,14 @@ const About = () => {
         .card {
           background: #FFFFFF;
           border-radius: 14px;
-          padding: 18px 20px;
+          padding: 20px 24px;
           border: 1px solid #F1F5F9;
         }
 
         .card-text {
-          font-size: clamp(14px, 1.2vw, 15px);
+          font-size: clamp(15px, 1.2vw, 16px);
           color: #64748B;
-          line-height: 1.7;
+          line-height: 1.8;
           margin: 0;
         }
 
@@ -475,23 +366,23 @@ const About = () => {
         .contact-card {
           background: #FFFFFF;
           border-radius: 14px;
-          padding: 18px 20px;
+          padding: 20px 24px;
           border: 1px solid #F1F5F9;
         }
 
         .contact-text {
-          font-size: 14px;
+          font-size: 15px;
           color: #64748B;
-          margin: 0 0 12px;
-          line-height: 1.5;
+          margin: 0 0 14px;
+          line-height: 1.6;
         }
 
         .contact-item {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 6px 0;
-          font-size: 14px;
+          gap: 12px;
+          padding: 8px 0;
+          font-size: 15px;
           color: #64748B;
         }
 
@@ -518,7 +409,7 @@ const About = () => {
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 10px;
+          gap: 12px;
         }
 
         @media (min-width: 480px) {
@@ -530,7 +421,7 @@ const About = () => {
         .stat-item {
           background: #FFFFFF;
           border-radius: 14px;
-          padding: 16px 12px;
+          padding: 18px 14px;
           border: 1px solid #F1F5F9;
           text-align: center;
           transition: all 0.2s;
@@ -542,29 +433,29 @@ const About = () => {
         }
 
         .stat-number {
-          font-size: clamp(22px, 2.5vw, 28px);
+          font-size: clamp(24px, 2.5vw, 30px);
           font-weight: 800;
           color: #F59E0B;
           line-height: 1.2;
         }
 
         .stat-label {
-          font-size: 12px;
+          font-size: 13px;
           color: #94A3B8;
-          margin-top: 2px;
+          margin-top: 4px;
         }
 
         /* ===== VALUES ===== */
         .values-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 14px;
         }
 
         .value-card {
           background: #FFFFFF;
           border-radius: 14px;
-          padding: 18px 16px;
+          padding: 20px 18px;
           border: 1px solid #F1F5F9;
           text-align: center;
           transition: all 0.2s;
@@ -577,40 +468,40 @@ const About = () => {
         }
 
         .value-icon {
-          width: 44px;
-          height: 44px;
+          width: 48px;
+          height: 48px;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 8px;
+          margin: 0 auto 10px;
         }
 
         .value-title {
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 700;
           color: #1E293B;
-          margin: 0 0 2px;
+          margin: 0 0 4px;
         }
 
         .value-desc {
-          font-size: 12px;
+          font-size: 13px;
           color: #94A3B8;
           margin: 0;
-          line-height: 1.4;
+          line-height: 1.5;
         }
 
         /* ===== TEAM ===== */
         .team-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+          gap: 14px;
         }
 
         .team-card {
           background: #FFFFFF;
           border-radius: 14px;
-          padding: 18px 16px;
+          padding: 20px 16px;
           border: 1px solid #F1F5F9;
           text-align: center;
           transition: all 0.2s;
@@ -622,27 +513,27 @@ const About = () => {
         }
 
         .team-avatar {
-          width: clamp(60px, 7vw, 72px);
-          height: clamp(60px, 7vw, 72px);
+          width: clamp(64px, 7vw, 76px);
+          height: clamp(64px, 7vw, 76px);
           background: linear-gradient(135deg, #F59E0B, #D97706);
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 10px;
-          font-size: clamp(26px, 3vw, 30px);
+          margin: 0 auto 12px;
+          font-size: clamp(28px, 3vw, 32px);
           box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
         }
 
         .team-name {
-          font-size: 14px;
+          font-size: 15px;
           font-weight: 700;
           color: #1E293B;
           margin: 0 0 2px;
         }
 
         .team-role {
-          font-size: 12px;
+          font-size: 13px;
           color: #94A3B8;
           margin: 0;
         }
@@ -703,7 +594,7 @@ const About = () => {
         /* ===== FOOTER ===== */
         .footer {
           background: #1E293B;
-          padding: 16px;
+          padding: 20px 16px;
           text-align: center;
         }
 
@@ -713,7 +604,7 @@ const About = () => {
         }
 
         .footer-text {
-          font-size: 13px;
+          font-size: 14px;
           color: rgba(255, 255, 255, 0.4);
           margin: 0;
         }
@@ -721,10 +612,10 @@ const About = () => {
         /* ===== RESPONSIVE ===== */
         @media (max-width: 380px) {
           .hero {
-            padding: 32px 16px 40px;
+            padding: 40px 16px 44px;
           }
           .hero-title {
-            font-size: 24px;
+            font-size: 26px;
           }
           .stats-grid {
             gap: 8px;
@@ -744,12 +635,17 @@ const About = () => {
         }
 
         @media (max-width: 480px) {
-          .nav-actions .nav-btn {
-            display: none;
+          .card {
+            padding: 16px 18px;
           }
-          .nav-actions .btn-primary {
-            padding: 6px 14px;
-            font-size: 12px;
+          .contact-card {
+            padding: 16px 18px;
+          }
+          .value-card {
+            padding: 16px 14px;
+          }
+          .team-card {
+            padding: 16px 14px;
           }
         }
 
