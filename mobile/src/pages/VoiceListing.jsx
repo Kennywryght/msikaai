@@ -5,45 +5,95 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { voiceAPI, businessAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
-import PrimaryButton from '../components/PrimaryButton';
-import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 
-const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path d={d} />
-  </svg>
-);
+// ============================================================
+// LUCIDE-STYLE ICONS
+// ============================================================
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+  const icons = {
+    arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+    mic: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
+    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+    check: "M20 6L9 17l-5-5",
+    tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+    dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+    sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+    close: "M18 6L6 18M6 6l12 12",
+    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+    search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+    plus: "M12 4v16m8-8H4",
+    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  };
 
-const ICONS = {
-  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-  mic: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
-  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-  check: "M20 6L9 17l-5-5",
-  tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
-  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
-  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
-  close: "M18 6L6 18M6 6l12 12",
-  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
-  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
-  plus: "M12 4v16m8-8H4",
-  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
-  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+  const d = icons[name] || icons.store;
+  
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d={d} />
+    </svg>
+  );
 };
 
+// ============================================================
+// SOUND WAVE COMPONENT
+// ============================================================
+const SoundWave = ({ isRecording, audioLevel }) => {
+  const [bars, setBars] = useState(Array(20).fill(5));
+
+  useEffect(() => {
+    if (!isRecording) {
+      setBars(Array(20).fill(5));
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const newBars = bars.map(() => {
+        // Generate random height based on audio level
+        const baseHeight = 4 + (audioLevel || 0) * 20;
+        const randomFactor = 0.5 + Math.random() * 0.5;
+        return Math.min(baseHeight * randomFactor, 100);
+      });
+      setBars(newBars);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isRecording, audioLevel, bars]);
+
+  return (
+    <div className="sound-wave-container">
+      {bars.map((height, index) => (
+        <div
+          key={index}
+          className="sound-bar"
+          style={{
+            height: `${Math.max(4, height)}%`,
+            animationDelay: `${index * 0.05}s`,
+            opacity: isRecording ? 1 : 0.2,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const VoiceListing = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
@@ -59,41 +109,37 @@ const VoiceListing = () => {
   const [language, setLanguage] = useState('ny');
   const [samplePrompts, setSamplePrompts] = useState([]);
   const [validation, setValidation] = useState(null);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [recordingTimer, setRecordingTimer] = useState(null);
   
   const mediaRecorder = useRef(null);
   const audioChunks = useRef([]);
+  const audioContext = useRef(null);
+  const analyser = useRef(null);
+  const dataArray = useRef(null);
+  const animationFrame = useRef(null);
 
-  const isMobile = windowWidth <= 768;
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   useEffect(() => {
     fetchBusinesses();
     fetchSamplePrompts();
   }, [user, language]);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      success('Logged out successfully');
-      navigate('/');
-    } catch (err) {
-      console.error('Logout error:', err);
-      showToast('Failed to logout', 'error');
-    }
-  };
+  useEffect(() => {
+    return () => {
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+      }
+      if (animationFrame.current) {
+        cancelAnimationFrame(animationFrame.current);
+      }
+      if (audioContext.current) {
+        audioContext.current.close();
+      }
+    };
+  }, [recordingTimer]);
 
   const fetchBusinesses = async () => {
     if (!user?.id) return;
@@ -121,7 +167,25 @@ const VoiceListing = () => {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        } 
+      });
+
+      // Set up audio context for visualization
+      audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
+      analyser.current = audioContext.current.createAnalyser();
+      analyser.current.fftSize = 256;
+      const source = audioContext.current.createMediaStreamSource(stream);
+      source.connect(analyser.current);
+      dataArray.current = new Uint8Array(analyser.current.frequencyBinCount);
+
+      // Start audio visualization
+      updateAudioLevel();
+
       mediaRecorder.current = new MediaRecorder(stream, {
         mimeType: 'audio/webm'
       });
@@ -134,28 +198,63 @@ const VoiceListing = () => {
       mediaRecorder.current.onstop = () => {
         const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
         processAudio(audioBlob);
+        // Clean up audio context
+        if (animationFrame.current) {
+          cancelAnimationFrame(animationFrame.current);
+        }
+        if (audioContext.current) {
+          audioContext.current.close();
+        }
       };
 
-      mediaRecorder.current.start();
+      mediaRecorder.current.start(1000);
       setRecording(true);
       setErrorMsg('');
-      setTranscript('Recording...');
+      setTranscript('');
+      setRecordingTime(0);
+      
+      // Start timer
+      const timer = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      setRecordingTimer(timer);
+      
+      showToast('Recording started... 🎙️', 'info');
     } catch (err) {
       setErrorMsg('Microphone access denied. Please allow microphone access.');
       showToast('Microphone access denied', 'error');
     }
   };
 
+  const updateAudioLevel = () => {
+    if (!analyser.current || !recording) return;
+
+    analyser.current.getByteFrequencyData(dataArray.current);
+    const average = dataArray.current.reduce((acc, val) => acc + val, 0) / dataArray.current.length;
+    const normalizedLevel = Math.min(average / 128, 1);
+    setAudioLevel(normalizedLevel);
+
+    animationFrame.current = requestAnimationFrame(updateAudioLevel);
+  };
+
   const stopRecording = () => {
     if (mediaRecorder.current && recording) {
       mediaRecorder.current.stop();
       setRecording(false);
-      setProcessing(true);
+      
+      // Clear timer
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+        setRecordingTimer(null);
+      }
+      
       mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
+      showToast('Processing your recording... ⏳', 'info');
     }
   };
 
   const processAudio = async (audioBlob) => {
+    setProcessing(true);
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.webm');
@@ -174,6 +273,7 @@ const VoiceListing = () => {
             setErrorMsg('Please review: ' + validationErrors.join(', '));
           }
         }
+        success('Voice processed successfully! 🎉');
       } else {
         setErrorMsg(response.data.error || 'Failed to process voice');
         showToast(response.data.error || 'Failed to process voice', 'error');
@@ -183,6 +283,7 @@ const VoiceListing = () => {
       showToast(err.response?.data?.error || 'Failed to process voice', 'error');
     } finally {
       setProcessing(false);
+      setAudioLevel(0);
     }
   };
 
@@ -231,32 +332,29 @@ const VoiceListing = () => {
     else if (id === 'profile') navigate('/profile');
   };
 
-  if (processing && !transcript) {
-    return <LoadingSpinner fullScreen message="Processing your voice..." />;
-  }
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const resetAll = () => {
+    setTranscript('');
+    setListingData(null);
+    setValidation(null);
+    setErrorMsg('');
+    setSuccessMsg('');
+    setCreatedListingId(null);
+    setRecordingTime(0);
+    setAudioLevel(0);
+  };
 
   return (
     <div className="voice-listing">
-      {/* Navbar */}
-      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
-        <div className="navbar-inner">
-          <Link to="/landing" className="logo">
-            <span className="logo-icon">K</span>
-            <span className="logo-text">Kumsika</span>
-          </Link>
-          <div className="nav-actions">
-            <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
-            <button onClick={handleLogout} className="logout-btn">
-              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <div className="main-content">
         {/* Back Button */}
         <button className="back-btn" onClick={() => navigate('/dashboard')}>
-          <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
+          <Icon name="arrowLeft" size={16} color="#64748B" strokeWidth={1.75} />
           Back
         </button>
 
@@ -264,7 +362,7 @@ const VoiceListing = () => {
         <div className="main-card">
           <div className="card-header">
             <div className="header-icon">
-              <Icon d={ICONS.mic} size={28} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="mic" size={24} color="#F59E0B" strokeWidth={1.75} />
             </div>
             <h1 className="card-title">Voice Listing</h1>
             <p className="card-subtitle">Speak to create a listing in Chichewa or English</p>
@@ -272,28 +370,33 @@ const VoiceListing = () => {
 
           {/* Language Selector */}
           <div className="form-group">
-            <label className="form-label">
-              <Icon d={ICONS.sparkles} size={14} color="#94A3B8" strokeWidth={1.75} />
-              Language
-            </label>
-            <select
-              value={language}
-              onChange={(e) => {
-                setLanguage(e.target.value);
-                fetchSamplePrompts();
-              }}
-              className="form-select"
-            >
-              <option value="ny">🇲🇼 Chichewa</option>
-              <option value="en">🇬🇧 English</option>
-            </select>
+            <label className="form-label">Language</label>
+            <div className="language-selector">
+              <button
+                className={`lang-btn ${language === 'ny' ? 'active' : ''}`}
+                onClick={() => {
+                  setLanguage('ny');
+                  fetchSamplePrompts();
+                }}
+              >
+                🇲🇼 Chichewa
+              </button>
+              <button
+                className={`lang-btn ${language === 'en' ? 'active' : ''}`}
+                onClick={() => {
+                  setLanguage('en');
+                  fetchSamplePrompts();
+                }}
+              >
+                🇬🇧 English
+              </button>
+            </div>
           </div>
 
           {/* Business Selector */}
           {businesses.length > 0 && (
             <div className="form-group">
               <label className="form-label">
-                <Icon d={ICONS.store} size={14} color="#94A3B8" strokeWidth={1.75} />
                 Business <span className="required">*</span>
               </label>
               <select
@@ -310,24 +413,47 @@ const VoiceListing = () => {
             </div>
           )}
 
-          {/* Record Button */}
+          {/* Record Section with Sound Wave */}
           <div className="record-section">
+            {/* Sound Wave Visualization */}
+            <SoundWave isRecording={recording} audioLevel={audioLevel} />
+
+            {/* Record Button */}
             <button
               onClick={recording ? stopRecording : startRecording}
               className={`record-btn ${recording ? 'recording' : ''}`}
               disabled={!selectedBusiness || processing}
             >
-              {recording ? '⏹️' : '🎙️'}
+              {recording ? (
+                <Icon name="mic" size={28} color="#FFFFFF" strokeWidth={2} />
+              ) : (
+                <Icon name="mic" size={28} color="#1E293B" strokeWidth={2} />
+              )}
             </button>
-            <p className="record-label">
-              {recording ? 'Recording... Click to stop' : 'Click to start recording'}
-            </p>
-            {recording && (
-              <div className="recording-indicator">
-                <span className="recording-dot" />
-                <span>Recording in progress...</span>
-              </div>
-            )}
+            
+            <div className="record-status">
+              {recording ? (
+                <>
+                  <span className="status-dot recording" />
+                  <span className="status-text">Recording... {formatTime(recordingTime)}</span>
+                </>
+              ) : processing ? (
+                <>
+                  <span className="status-dot processing" />
+                  <span className="status-text">Processing...</span>
+                </>
+              ) : transcript ? (
+                <>
+                  <span className="status-dot done" />
+                  <span className="status-text">Done</span>
+                </>
+              ) : (
+                <>
+                  <span className="status-dot idle" />
+                  <span className="status-text">Ready to record</span>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Transcript */}
@@ -354,7 +480,7 @@ const VoiceListing = () => {
                 {listingData.price && (
                   <div className="preview-item">
                     <span className="preview-key">Price</span>
-                    <span className="preview-value">MWK {listingData.price}</span>
+                    <span className="preview-value">MK {listingData.price}</span>
                   </div>
                 )}
                 {listingData.quantity && (
@@ -363,15 +489,9 @@ const VoiceListing = () => {
                     <span className="preview-value">{listingData.quantity} {listingData.unit || 'units'}</span>
                   </div>
                 )}
-                {listingData.deliveryAvailable && (
-                  <div className="preview-item">
-                    <span className="preview-key">Delivery</span>
-                    <span className="preview-value badge-success">Available</span>
-                  </div>
-                )}
               </div>
 
-              {/* Confidence Bar */}
+              {/* Confidence */}
               {validation && validation.confidence && (
                 <div className="confidence-section">
                   <div className="confidence-header">
@@ -386,43 +506,53 @@ const VoiceListing = () => {
                   </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Validation Warnings */}
-          {validation && validation.warnings && validation.warnings.length > 0 && (
-            <div className="warning-box">
-              <p className="warning-label">⚠️ Suggestions</p>
-              {validation.warnings.map((warning, index) => (
-                <p key={index} className="warning-item">• {warning}</p>
-              ))}
+              {/* Warnings */}
+              {validation && validation.warnings && validation.warnings.length > 0 && (
+                <div className="warning-box">
+                  <p className="warning-label">⚠️ Suggestions</p>
+                  {validation.warnings.map((warning, index) => (
+                    <p key={index} className="warning-item">• {warning}</p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {/* Error/Success */}
           {errorMsg && (
             <div className="error-banner">
-              <Icon d={ICONS.close} size={16} color="#EF4444" strokeWidth={1.75} />
+              <Icon name="close" size={16} color="#EF4444" strokeWidth={1.75} />
               {errorMsg}
             </div>
           )}
           {successMsg && (
             <div className="success-banner">
-              <Icon d={ICONS.check} size={16} color="#10B981" strokeWidth={2.5} />
+              <Icon name="check" size={16} color="#10B981" strokeWidth={2.5} />
               {successMsg}
             </div>
           )}
 
-          {/* Create Listing Button */}
+          {/* Action Buttons */}
           {listingData && !successMsg && (
             <button
               onClick={handleCreateListing}
               className="create-btn"
               disabled={processing || !selectedBusiness}
             >
-              <Icon d={ICONS.check} size={18} color="#FFFFFF" strokeWidth={1.75} />
               {processing ? 'Processing...' : 'Create Listing'}
             </button>
+          )}
+
+          {successMsg && createdListingId && (
+            <>
+              <button className="create-btn success" onClick={() => navigate(`/listing/${createdListingId}`)}>
+                View Listing →
+              </button>
+              <button className="reset-btn" onClick={resetAll}>
+                Create Another
+              </button>
+            </>
           )}
 
           {/* Share Section */}
@@ -441,7 +571,7 @@ const VoiceListing = () => {
         {/* Sample Prompts */}
         <div className="prompts-card">
           <h3 className="prompts-title">
-            <Icon d={ICONS.sparkles} size={16} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="sparkles" size={16} color="#F59E0B" strokeWidth={1.75} />
             Sample {language === 'ny' ? 'Chichewa' : 'English'} Prompts
           </h3>
           <div className="prompts-list">
@@ -492,11 +622,11 @@ const VoiceListing = () => {
           ].map((item) => {
             const active = item.id === 'sell';
             return (
-              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
-                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
-                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
+                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
@@ -518,93 +648,9 @@ const VoiceListing = () => {
           }
         }
 
-        /* ===== NAVBAR ===== */
-        .navbar {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-          transition: all 0.2s;
-        }
-
-        .navbar-scrolled {
-          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
-        }
-
-        .navbar-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 10px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        }
-
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-          background: #1E293B;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #F59E0B;
-          font-weight: 700;
-          font-size: 16px;
-        }
-
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
-          letter-spacing: -0.5px;
-        }
-
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .greeting {
-          font-size: 13px;
-          color: #64748B;
-          display: none;
-        }
-
-        @media (min-width: 640px) {
-          .greeting { display: inline; }
-        }
-
-        .logout-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          border: none;
-          background: #FEF2F2;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-          background: #FEE2E2;
-        }
-
         /* ===== MAIN CONTENT ===== */
         .main-content {
-          max-width: 800px;
+          max-width: 600px;
           margin: 0 auto;
           padding: 16px 16px 40px;
         }
@@ -635,13 +681,15 @@ const VoiceListing = () => {
         /* ===== MAIN CARD ===== */
         .main-card {
           background: #FFFFFF;
-          border-radius: 14px;
-          padding: 18px 20px;
+          border-radius: 12px;
+          padding: 20px;
           border: 1px solid #F1F5F9;
           margin-bottom: 16px;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .card-header {
+          text-align: center;
           margin-bottom: 20px;
         }
 
@@ -657,11 +705,10 @@ const VoiceListing = () => {
         }
 
         .card-title {
-          font-size: clamp(22px, 2.8vw, 26px);
+          font-size: 22px;
           font-weight: 700;
           color: #1E293B;
           margin: 0 0 4px;
-          letter-spacing: -0.5px;
         }
 
         .card-subtitle {
@@ -672,14 +719,12 @@ const VoiceListing = () => {
 
         /* ===== FORM ===== */
         .form-group {
-          margin-bottom: 14px;
+          margin-bottom: 16px;
         }
 
         .form-label {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 12px;
+          display: block;
+          font-size: 13px;
           font-weight: 600;
           color: #475569;
           margin-bottom: 4px;
@@ -691,7 +736,7 @@ const VoiceListing = () => {
 
         .form-select {
           width: 100%;
-          padding: 8px 12px;
+          padding: 10px 14px;
           border: 1px solid #E2E8F0;
           border-radius: 10px;
           font-size: 14px;
@@ -713,28 +758,96 @@ const VoiceListing = () => {
           box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
         }
 
+        /* ===== LANGUAGE SELECTOR ===== */
+        .language-selector {
+          display: flex;
+          gap: 8px;
+        }
+
+        .lang-btn {
+          flex: 1;
+          padding: 8px 12px;
+          border: 2px solid #E2E8F0;
+          border-radius: 10px;
+          background: #FFFFFF;
+          font-size: 14px;
+          font-weight: 500;
+          color: #64748B;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .lang-btn:hover {
+          border-color: #94A3B8;
+        }
+
+        .lang-btn.active {
+          border-color: #F59E0B;
+          background: rgba(245, 158, 11, 0.05);
+          color: #F59E0B;
+        }
+
         /* ===== RECORD SECTION ===== */
         .record-section {
           text-align: center;
           padding: 16px 0;
         }
 
+        /* ===== SOUND WAVE ===== */
+        .sound-wave-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 3px;
+          height: 60px;
+          margin-bottom: 16px;
+          padding: 0 20px;
+        }
+
+        .sound-bar {
+          flex: 1;
+          max-width: 6px;
+          min-height: 4px;
+          background: linear-gradient(180deg, #F59E0B, #D97706);
+          border-radius: 3px;
+          transition: height 0.15s ease;
+          opacity: 0.3;
+        }
+
+        .sound-bar.active {
+          opacity: 1;
+        }
+
+        .sound-bar.recording {
+          animation: wave-pulse 0.8s ease-in-out infinite;
+        }
+
+        @keyframes wave-pulse {
+          0%, 100% { transform: scaleY(0.5); }
+          50% { transform: scaleY(1); }
+        }
+
+        /* ===== RECORD BUTTON ===== */
         .record-btn {
-          width: 80px;
-          height: 80px;
+          width: 72px;
+          height: 72px;
           border-radius: 50%;
           border: none;
-          font-size: 32px;
           cursor: pointer;
-          background: #EDE9F5;
+          background: #F1F5F9;
           color: #1E293B;
           transition: all 0.3s;
-          box-shadow: 0 4px 16px rgba(30, 41, 59, 0.08);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
         }
 
         .record-btn:hover:not(:disabled) {
           transform: scale(1.05);
-          box-shadow: 0 4px 24px rgba(30, 41, 59, 0.12);
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
 
         .record-btn:disabled {
@@ -746,7 +859,7 @@ const VoiceListing = () => {
           background: #EF4444;
           color: #FFFFFF;
           animation: pulse 1s infinite;
-          box-shadow: 0 4px 24px rgba(239, 68, 68, 0.3);
+          box-shadow: 0 4px 24px rgba(239, 68, 68, 0.2);
         }
 
         @keyframes pulse {
@@ -754,40 +867,53 @@ const VoiceListing = () => {
           50% { transform: scale(1.06); }
         }
 
-        .record-label {
-          font-size: 14px;
-          color: #94A3B8;
-          margin: 8px 0 0;
-          font-weight: 500;
-        }
-
-        .recording-indicator {
+        .record-status {
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          margin-top: 8px;
-          font-size: 13px;
-          color: #EF4444;
-          font-weight: 500;
+          margin-top: 12px;
         }
 
-        .recording-dot {
-          width: 10px;
-          height: 10px;
+        .status-dot {
+          width: 8px;
+          height: 8px;
           border-radius: 50%;
+          display: inline-block;
+        }
+
+        .status-dot.idle {
+          background: #94A3B8;
+        }
+
+        .status-dot.recording {
           background: #EF4444;
           animation: blink 0.8s infinite;
         }
 
+        .status-dot.processing {
+          background: #F59E0B;
+          animation: blink 0.8s infinite;
+        }
+
+        .status-dot.done {
+          background: #10B981;
+        }
+
         @keyframes blink {
           0%, 100% { opacity: 1; }
-          50% { opacity: 0.2; }
+          50% { opacity: 0.3; }
+        }
+
+        .status-text {
+          font-size: 14px;
+          color: #64748B;
+          font-weight: 500;
         }
 
         /* ===== TRANSCRIPT ===== */
         .transcript-box {
-          padding: 12px 14px;
+          padding: 14px 16px;
           background: #F8FAFC;
           border-radius: 10px;
           border: 1px solid #F1F5F9;
@@ -810,7 +936,7 @@ const VoiceListing = () => {
 
         /* ===== PREVIEW ===== */
         .preview-box {
-          padding: 14px 16px;
+          padding: 16px 18px;
           background: #FEFCF5;
           border-radius: 10px;
           border: 1px solid #FDE68A;
@@ -844,11 +970,6 @@ const VoiceListing = () => {
         .preview-value {
           color: #1E293B;
           font-weight: 500;
-        }
-
-        .badge-success {
-          color: #10B981;
-          font-weight: 600;
         }
 
         /* ===== CONFIDENCE ===== */
@@ -888,17 +1009,9 @@ const VoiceListing = () => {
           transition: width 0.5s ease;
         }
 
-        .confidence-fill.high {
-          background: #10B981;
-        }
-
-        .confidence-fill.medium {
-          background: #F59E0B;
-        }
-
-        .confidence-fill.low {
-          background: #EF4444;
-        }
+        .confidence-fill.high { background: #10B981; }
+        .confidence-fill.medium { background: #F59E0B; }
+        .confidence-fill.low { background: #EF4444; }
 
         /* ===== WARNINGS ===== */
         .warning-box {
@@ -906,7 +1019,7 @@ const VoiceListing = () => {
           background: #FEF3C7;
           border-radius: 10px;
           border: 1px solid #FDE68A;
-          margin-top: 12px;
+          margin-top: 10px;
         }
 
         .warning-label {
@@ -953,7 +1066,7 @@ const VoiceListing = () => {
         .create-btn {
           width: 100%;
           padding: 12px;
-          background: linear-gradient(135deg, #10B981, #059669);
+          background: #1E293B;
           border: none;
           border-radius: 12px;
           font-size: 15px;
@@ -961,22 +1074,46 @@ const VoiceListing = () => {
           color: #FFFFFF;
           cursor: pointer;
           font-family: inherit;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
           transition: all 0.2s;
           margin-top: 12px;
+          min-height: 48px;
         }
 
         .create-btn:hover:not(:disabled) {
+          background: #F59E0B;
           transform: scale(0.98);
-          box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
         }
 
         .create-btn:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+
+        .create-btn.success {
+          background: #10B981;
+        }
+
+        .create-btn.success:hover {
+          background: #059669;
+        }
+
+        .reset-btn {
+          width: 100%;
+          padding: 10px;
+          background: #F1F5F9;
+          border: 1px solid #E2E8F0;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #64748B;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+          margin-top: 8px;
+        }
+
+        .reset-btn:hover {
+          background: #E2E8F0;
         }
 
         /* ===== SHARE ===== */
@@ -996,7 +1133,7 @@ const VoiceListing = () => {
         /* ===== PROMPTS CARD ===== */
         .prompts-card {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 16px 18px;
           border: 1px solid #F1F5F9;
         }
@@ -1033,7 +1170,6 @@ const VoiceListing = () => {
         .prompt-btn:hover {
           background: #F1F5F9;
           border-color: #E2E8F0;
-          transform: translateX(4px);
         }
 
         /* ===== BOTTOM NAV ===== */
@@ -1051,7 +1187,7 @@ const VoiceListing = () => {
           z-index: 100;
         }
 
-        .nav-item {
+        .nav-btn {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -1064,7 +1200,7 @@ const VoiceListing = () => {
           min-width: 44px;
         }
 
-        .nav-icon {
+        .nav-icon-wrap {
           width: 34px;
           height: 34px;
           border-radius: 10px;
@@ -1074,7 +1210,7 @@ const VoiceListing = () => {
           transition: all 0.2s;
         }
 
-        .nav-icon-active {
+        .nav-icon-wrap.active {
           background: #1E293B;
         }
 
@@ -1084,7 +1220,7 @@ const VoiceListing = () => {
           color: #94A3B8;
         }
 
-        .nav-label-active {
+        .nav-label.active {
           color: #1E293B;
           font-weight: 600;
         }
@@ -1092,7 +1228,7 @@ const VoiceListing = () => {
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
           .main-card {
-            padding: 14px 16px;
+            padding: 16px;
           }
           .prompts-card {
             padding: 14px 16px;
@@ -1101,9 +1237,33 @@ const VoiceListing = () => {
             grid-template-columns: 1fr;
           }
           .record-btn {
-            width: 64px;
-            height: 64px;
-            font-size: 28px;
+            width: 60px;
+            height: 60px;
+          }
+          .record-btn svg {
+            width: 24px;
+            height: 24px;
+          }
+          .card-title {
+            font-size: 20px;
+          }
+          .header-icon {
+            width: 40px;
+            height: 40px;
+          }
+          .header-icon svg {
+            width: 22px;
+            height: 22px;
+          }
+          .language-selector {
+            flex-direction: column;
+          }
+          .sound-wave-container {
+            height: 40px;
+            gap: 2px;
+          }
+          .sound-bar {
+            max-width: 4px;
           }
         }
 
@@ -1111,10 +1271,27 @@ const VoiceListing = () => {
           .main-content {
             padding: 12px 12px 32px;
           }
+          .main-card {
+            padding: 14px;
+          }
           .record-btn {
-            width: 56px;
-            height: 56px;
-            font-size: 24px;
+            width: 52px;
+            height: 52px;
+          }
+          .record-btn svg {
+            width: 20px;
+            height: 20px;
+          }
+          .card-title {
+            font-size: 18px;
+          }
+          .prompt-btn {
+            font-size: 13px;
+            padding: 6px 12px;
+          }
+          .sound-wave-container {
+            height: 32px;
+            gap: 2px;
           }
         }
       `}</style>

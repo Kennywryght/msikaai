@@ -5,46 +5,55 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { adAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
-import PrimaryButton from '../components/PrimaryButton';
-import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 
-const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path d={d} />
-  </svg>
-);
+// ============================================================
+// LUCIDE-STYLE ICONS
+// ============================================================
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+  const icons = {
+    arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+    image: "M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
+    sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+    tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+    dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+    copy: "M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M15 2H9a1 1 0 00-1 1v2a1 1 0 001 1h6a1 1 0 001-1V3a1 1 0 00-1-1z",
+    close: "M18 6L6 18M6 6l12 12",
+    check: "M20 6L9 17l-5-5",
+    upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
+    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+    search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+    plus: "M12 4v16m8-8H4",
+    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+  };
 
-const ICONS = {
-  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-  image: "M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
-  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
-  tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
-  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
-  copy: "M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M15 2H9a1 1 0 00-1 1v2a1 1 0 001 1h6a1 1 0 001-1V3a1 1 0 00-1-1z",
-  close: "M18 6L6 18M6 6l12 12",
-  check: "M20 6L9 17l-5-5",
-  upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
-  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
-  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
-  plus: "M12 4v16m8-8H4",
-  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
-  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+  const d = icons[name] || icons.store;
+  
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d={d} />
+    </svg>
+  );
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const AdGenerator = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
@@ -60,7 +69,6 @@ const AdGenerator = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [isScrolled, setIsScrolled] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const fileInputRef = useRef();
 
@@ -88,27 +96,10 @@ const AdGenerator = () => {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      success('Logged out successfully');
-      navigate('/');
-    } catch (err) {
-      console.error('Logout error:', err);
-      showToast('Failed to logout', 'error');
-    }
-  };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -190,37 +181,75 @@ const AdGenerator = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Generating your ad..." />;
+    return (
+      <div className="loading-skeleton">
+        <div className="skeleton-header" />
+        <div className="skeleton-upload" />
+        <div className="skeleton-form">
+          {[1,2,3,4].map(i => <div key={i} className="skeleton-field" />)}
+        </div>
+        <div className="skeleton-button" />
+        <style jsx>{`
+          .loading-skeleton {
+            min-height: 100vh;
+            background: #F8FAFC;
+            padding: 20px 16px 80px;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          .skeleton-header {
+            height: 80px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-upload {
+            height: 140px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+          .skeleton-field {
+            height: 44px;
+            background: #E2E8F0;
+            border-radius: 8px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-button {
+            height: 48px;
+            background: #E2E8F0;
+            border-radius: 10px;
+            margin-top: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+        `}</style>
+      </div>
+    );
   }
 
   return (
     <div className="ad-generator">
-      {/* Navbar */}
-      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
-        <div className="navbar-inner">
-          <Link to="/landing" className="logo">
-            <span className="logo-icon">K</span>
-            <span className="logo-text">Kumsika</span>
-          </Link>
-          <div className="nav-actions">
-            <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
-            <button onClick={handleLogout} className="logout-btn">
-              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <div className="main-content">
         {/* Header */}
         <div className="page-header">
           <button className="back-btn" onClick={() => navigate('/dashboard')}>
-            <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
+            <Icon name="arrowLeft" size={16} color="#64748B" strokeWidth={1.75} />
             Back
           </button>
           <div className="header-content">
             <div className="header-icon">
-              <Icon d={ICONS.sparkles} size={28} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="sparkles" size={28} color="#F59E0B" strokeWidth={1.75} />
             </div>
             <h1 className="page-title">AI Ad Generator</h1>
             <p className="page-subtitle">Upload a product image and let AI create a professional ad</p>
@@ -232,7 +261,7 @@ const AdGenerator = () => {
           {/* Image Upload */}
           <div className="form-group">
             <label className="form-label">
-              <Icon d={ICONS.image} size={14} color="#94A3B8" strokeWidth={1.75} />
+              <Icon name="image" size={14} color="#94A3B8" strokeWidth={1.75} />
               Product Image <span className="required">*</span>
             </label>
             <div 
@@ -251,7 +280,7 @@ const AdGenerator = () => {
                 <img src={imagePreview} alt="Preview" className="preview-image" />
               ) : (
                 <div className="upload-placeholder">
-                  <Icon d={ICONS.upload} size={48} color="#94A3B8" strokeWidth={1.5} />
+                  <Icon name="upload" size={40} color="#94A3B8" strokeWidth={1.5} />
                   <p className="upload-text">Click to upload product image</p>
                   <p className="upload-hint">PNG, JPG, GIF up to 10MB</p>
                 </div>
@@ -286,7 +315,7 @@ const AdGenerator = () => {
           <div className="form-row">
             <div className="form-group half">
               <label className="form-label">
-                <Icon d={ICONS.tag} size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="tag" size={14} color="#94A3B8" strokeWidth={1.75} />
                 Category
               </label>
               <select
@@ -302,8 +331,8 @@ const AdGenerator = () => {
             </div>
             <div className="form-group half">
               <label className="form-label">
-                <Icon d={ICONS.dollar} size={14} color="#94A3B8" strokeWidth={1.75} />
-                Price (MWK)
+                <Icon name="dollar" size={14} color="#94A3B8" strokeWidth={1.75} />
+                Price (MK)
               </label>
               <input
                 type="number"
@@ -330,7 +359,7 @@ const AdGenerator = () => {
 
           {errorMsg && (
             <div className="error-banner">
-              <Icon d={ICONS.close} size={16} color="#EF4444" strokeWidth={1.75} />
+              <Icon name="close" size={16} color="#EF4444" strokeWidth={1.75} />
               {errorMsg}
             </div>
           )}
@@ -340,7 +369,7 @@ const AdGenerator = () => {
             onClick={handleGenerateAd}
             disabled={loading || !image}
           >
-            <Icon d={ICONS.sparkles} size={18} color="#FFFFFF" strokeWidth={1.75} />
+            <Icon name="sparkles" size={18} color="#FFFFFF" strokeWidth={1.75} />
             {loading ? 'Generating...' : 'Generate Ad'}
           </button>
         </div>
@@ -349,7 +378,7 @@ const AdGenerator = () => {
         {result && (
           <div className="result-card">
             <div className="result-header">
-              <Icon d={ICONS.sparkles} size={20} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="sparkles" size={20} color="#F59E0B" strokeWidth={1.75} />
               <h3 className="result-title">Your AI-Generated Ad</h3>
             </div>
 
@@ -374,7 +403,7 @@ const AdGenerator = () => {
                   <div className="social-header">
                     <span className="social-label">📘 Facebook</span>
                     <button onClick={() => copyToClipboard(result.socialPosts.facebook)} className="copy-btn">
-                      <Icon d={ICONS.copy} size={12} color="#FFFFFF" strokeWidth={1.75} />
+                      <Icon name="copy" size={12} color="#FFFFFF" strokeWidth={1.75} />
                       Copy
                     </button>
                   </div>
@@ -387,7 +416,7 @@ const AdGenerator = () => {
                   <div className="social-header">
                     <span className="social-label">💬 WhatsApp</span>
                     <button onClick={() => copyToClipboard(result.socialPosts.whatsapp)} className="copy-btn">
-                      <Icon d={ICONS.copy} size={12} color="#FFFFFF" strokeWidth={1.75} />
+                      <Icon name="copy" size={12} color="#FFFFFF" strokeWidth={1.75} />
                       Copy
                     </button>
                   </div>
@@ -406,7 +435,7 @@ const AdGenerator = () => {
             </div>
 
             <button onClick={handleReset} className="reset-btn">
-              <Icon d={ICONS.close} size={16} color="#64748B" strokeWidth={1.75} />
+              <Icon name="close" size={16} color="#64748B" strokeWidth={1.75} />
               Start Over
             </button>
           </div>
@@ -425,11 +454,11 @@ const AdGenerator = () => {
           ].map((item) => {
             const active = item.id === 'home';
             return (
-              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
-                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
-                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
+                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
@@ -451,93 +480,9 @@ const AdGenerator = () => {
           }
         }
 
-        /* ===== NAVBAR ===== */
-        .navbar {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-          transition: all 0.2s;
-        }
-
-        .navbar-scrolled {
-          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
-        }
-
-        .navbar-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 10px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        }
-
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-          background: #1E293B;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #F59E0B;
-          font-weight: 700;
-          font-size: 16px;
-        }
-
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
-          letter-spacing: -0.5px;
-        }
-
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .greeting {
-          font-size: 13px;
-          color: #64748B;
-          display: none;
-        }
-
-        @media (min-width: 640px) {
-          .greeting { display: inline; }
-        }
-
-        .logout-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          border: none;
-          background: #FEF2F2;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-          background: #FEE2E2;
-        }
-
         /* ===== MAIN CONTENT ===== */
         .main-content {
-          max-width: 800px;
+          max-width: 600px;
           margin: 0 auto;
           padding: 20px 16px 40px;
         }
@@ -600,10 +545,11 @@ const AdGenerator = () => {
         /* ===== FORM CARD ===== */
         .form-card {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 18px 20px;
           border: 1px solid #F1F5F9;
           margin-bottom: 16px;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .form-group {
@@ -679,12 +625,12 @@ const AdGenerator = () => {
         .upload-area {
           border: 2px dashed #E2E8F0;
           border-radius: 12px;
-          padding: 24px;
+          padding: 20px;
           text-align: center;
           cursor: pointer;
           background: #F8FAFC;
           transition: all 0.2s;
-          min-height: 140px;
+          min-height: 120px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -699,7 +645,7 @@ const AdGenerator = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 4px;
+          gap: 2px;
         }
 
         .upload-text {
@@ -717,7 +663,7 @@ const AdGenerator = () => {
 
         .preview-image {
           max-width: 100%;
-          max-height: 200px;
+          max-height: 180px;
           object-fit: contain;
           border-radius: 8px;
         }
@@ -726,7 +672,7 @@ const AdGenerator = () => {
         .generate-btn {
           width: 100%;
           padding: 12px;
-          background: linear-gradient(135deg, #1E293B, #F59E0B);
+          background: #1E293B;
           border: none;
           border-radius: 12px;
           font-size: 15px;
@@ -740,11 +686,13 @@ const AdGenerator = () => {
           gap: 8px;
           transition: all 0.2s;
           margin-top: 16px;
+          min-height: 48px;
         }
 
         .generate-btn:hover:not(:disabled) {
+          background: #F59E0B;
           transform: scale(0.98);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
         }
 
         .generate-btn:disabled {
@@ -769,10 +717,11 @@ const AdGenerator = () => {
         /* ===== RESULT CARD ===== */
         .result-card {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 18px 20px;
           border: 1px solid #F1F5F9;
           margin-top: 16px;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .result-header {
@@ -793,7 +742,7 @@ const AdGenerator = () => {
         .ad-preview {
           background: #F8FAFC;
           padding: 16px;
-          border-radius: 12px;
+          border-radius: 10px;
           border: 1px solid #F1F5F9;
           margin-bottom: 16px;
         }
@@ -935,6 +884,7 @@ const AdGenerator = () => {
           justify-content: center;
           gap: 6px;
           transition: all 0.2s;
+          margin-top: 8px;
         }
 
         .reset-btn:hover {
@@ -956,7 +906,7 @@ const AdGenerator = () => {
           z-index: 100;
         }
 
-        .nav-item {
+        .nav-btn {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -969,7 +919,7 @@ const AdGenerator = () => {
           min-width: 44px;
         }
 
-        .nav-icon {
+        .nav-icon-wrap {
           width: 34px;
           height: 34px;
           border-radius: 10px;
@@ -979,7 +929,7 @@ const AdGenerator = () => {
           transition: all 0.2s;
         }
 
-        .nav-icon-active {
+        .nav-icon-wrap.active {
           background: #1E293B;
         }
 
@@ -989,7 +939,7 @@ const AdGenerator = () => {
           color: #94A3B8;
         }
 
-        .nav-label-active {
+        .nav-label.active {
           color: #1E293B;
           font-weight: 600;
         }
@@ -1012,6 +962,17 @@ const AdGenerator = () => {
           .social-card {
             padding: 10px 12px;
           }
+          .page-title {
+            font-size: 22px;
+          }
+          .header-icon {
+            width: 40px;
+            height: 40px;
+          }
+          .header-icon svg {
+            width: 22px;
+            height: 22px;
+          }
         }
 
         @media (max-width: 380px) {
@@ -1023,6 +984,21 @@ const AdGenerator = () => {
           }
           .result-card {
             padding: 14px 16px;
+          }
+          .page-title {
+            font-size: 20px;
+          }
+          .generate-btn {
+            font-size: 14px;
+            padding: 10px;
+            min-height: 44px;
+          }
+          .upload-area {
+            min-height: 80px;
+            padding: 12px;
+          }
+          .upload-text {
+            font-size: 13px;
           }
         }
       `}</style>

@@ -4,44 +4,53 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { aiAPI } from '../services/api';
-import PrimaryButton from '../components/PrimaryButton';
-import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 
-const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path d={d} />
-  </svg>
-);
+// ============================================================
+// LUCIDE-STYLE ICONS
+// ============================================================
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+  const icons = {
+    arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+    bot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
+    search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+    sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+    clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
+    tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+    dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+    mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
+    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+    plus: "M12 4v16m8-8H4",
+    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+  };
 
-const ICONS = {
-  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-  bot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
-  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
-  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
-  clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
-  tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
-  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
-  mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
-  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
-  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-  plus: "M12 4v16m8-8H4",
-  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
-  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+  const d = icons[name] || icons.store;
+  
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d={d} />
+    </svg>
+  );
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const AISearch = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
@@ -54,7 +63,6 @@ const AISearch = () => {
   const [aiResponse, setAiResponse] = useState(null);
   const [relatedSearches, setRelatedSearches] = useState([]);
   const [suggestedCategory, setSuggestedCategory] = useState('');
-  const [isScrolled, setIsScrolled] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const searchRef = useRef();
 
@@ -73,27 +81,10 @@ const AISearch = () => {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      success('Logged out successfully');
-      navigate('/');
-    } catch (err) {
-      console.error('Logout error:', err);
-      showToast('Failed to logout', 'error');
-    }
-  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -158,7 +149,7 @@ const AISearch = () => {
 
   const formatPrice = (price) => {
     if (!price && price !== 0) return 'Price on request';
-    return `MWK ${Number(price).toLocaleString()}`;
+    return `MK ${Number(price).toLocaleString()}`;
   };
 
   const handleBottomNav = (id) => {
@@ -170,32 +161,62 @@ const AISearch = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="AI is searching..." />;
+    return (
+      <div className="loading-skeleton">
+        <div className="skeleton-header" />
+        <div className="skeleton-search" />
+        <div className="skeleton-results">
+          {[1,2,3].map(i => <div key={i} className="skeleton-result" />)}
+        </div>
+        <style jsx>{`
+          .loading-skeleton {
+            min-height: 100vh;
+            background: #F8FAFC;
+            padding: 20px 16px 80px;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          .skeleton-header {
+            height: 80px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-search {
+            height: 50px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-results {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .skeleton-result {
+            height: 100px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+        `}</style>
+      </div>
+    );
   }
 
   return (
     <div className="ai-search">
-      {/* Navbar */}
-      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
-        <div className="navbar-inner">
-          <Link to="/landing" className="logo">
-            <span className="logo-icon">K</span>
-            <span className="logo-text">Kumsika</span>
-          </Link>
-          <div className="nav-actions">
-            <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
-            <button onClick={handleLogout} className="logout-btn">
-              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <div className="main-content">
         {/* Page Header */}
         <div className="page-header">
           <div className="header-icon">
-            <Icon d={ICONS.bot} size={28} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="bot" size={28} color="#F59E0B" strokeWidth={1.75} />
           </div>
           <h1 className="page-title">AI Assistant</h1>
           <p className="page-subtitle">Ask in English or Chichewa. Example: "Ndikufuna plumber pafupi"</p>
@@ -205,7 +226,7 @@ const AISearch = () => {
         <div className="search-card" ref={searchRef}>
           <form onSubmit={handleSearch} className="search-form">
             <div className="search-input-wrapper">
-              <Icon d={ICONS.search} size={18} color="#94A3B8" strokeWidth={1.75} />
+              <Icon name="search" size={18} color="#94A3B8" strokeWidth={1.75} />
               <input
                 type="text"
                 placeholder="Ask anything..."
@@ -216,7 +237,7 @@ const AISearch = () => {
                 autoComplete="off"
               />
               <button type="submit" className="search-btn" disabled={loading}>
-                <Icon d={ICONS.search} size={16} color="#FFFFFF" strokeWidth={1.75} />
+                <Icon name="search" size={16} color="#FFFFFF" strokeWidth={2} />
                 {loading ? '...' : 'Search'}
               </button>
             </div>
@@ -229,7 +250,7 @@ const AISearch = () => {
                     className="suggestion-item"
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
-                    <Icon d={ICONS.search} size={14} color="#94A3B8" strokeWidth={1.75} />
+                    <Icon name="search" size={14} color="#94A3B8" strokeWidth={1.75} />
                     {suggestion}
                   </div>
                 ))}
@@ -241,7 +262,7 @@ const AISearch = () => {
         {/* Error */}
         {errorMsg && (
           <div className="error-banner">
-            <Icon d={ICONS.search} size={16} color="#EF4444" strokeWidth={1.75} />
+            <Icon name="search" size={16} color="#EF4444" strokeWidth={1.75} />
             {errorMsg}
           </div>
         )}
@@ -250,7 +271,7 @@ const AISearch = () => {
         {aiResponse && (
           <div className="ai-response">
             <div className="ai-response-header">
-              <Icon d={ICONS.sparkles} size={16} color="#166534" strokeWidth={1.75} />
+              <Icon name="sparkles" size={16} color="#166534" strokeWidth={1.75} />
               <span>AI Suggestion</span>
             </div>
             <p className="ai-response-text">{aiResponse}</p>
@@ -308,7 +329,7 @@ const AISearch = () => {
                       )}
                       {item.location_area && (
                         <span className="badge badge-location">
-                          <Icon d={ICONS.mapPin} size={10} color="#92400E" strokeWidth={1.75} />
+                          <Icon name="mapPin" size={10} color="#92400E" strokeWidth={1.75} />
                           {item.location_area}
                         </span>
                       )}
@@ -329,7 +350,7 @@ const AISearch = () => {
         {/* Empty State - No Results */}
         {!loading && results.length === 0 && query && !errorMsg && (
           <div className="empty-state">
-            <Icon d={ICONS.search} size={40} color="#CBD5E1" strokeWidth={1.5} />
+            <Icon name="search" size={40} color="#CBD5E1" strokeWidth={1.5} />
             <h3 className="empty-title">No results found for "{query}"</h3>
             <p className="empty-text">Try using different keywords or check your spelling</p>
           </div>
@@ -369,11 +390,11 @@ const AISearch = () => {
           ].map((item) => {
             const active = item.id === 'home';
             return (
-              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
-                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
-                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
+                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
@@ -393,90 +414,6 @@ const AISearch = () => {
           .ai-search {
             padding-bottom: 0;
           }
-        }
-
-        /* ===== NAVBAR ===== */
-        .navbar {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-          transition: all 0.2s;
-        }
-
-        .navbar-scrolled {
-          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
-        }
-
-        .navbar-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 10px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        }
-
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-          background: #1E293B;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #F59E0B;
-          font-weight: 700;
-          font-size: 16px;
-        }
-
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
-          letter-spacing: -0.5px;
-        }
-
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .greeting {
-          font-size: 13px;
-          color: #64748B;
-          display: none;
-        }
-
-        @media (min-width: 640px) {
-          .greeting { display: inline; }
-        }
-
-        .logout-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          border: none;
-          background: #FEF2F2;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-          background: #FEE2E2;
         }
 
         /* ===== MAIN CONTENT ===== */
@@ -519,11 +456,12 @@ const AISearch = () => {
         /* ===== SEARCH CARD ===== */
         .search-card {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 18px 20px;
           border: 1px solid #F1F5F9;
           margin-bottom: 16px;
           position: relative;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .search-form {
@@ -563,8 +501,8 @@ const AISearch = () => {
         }
 
         .search-btn {
-          padding: 8px 20px;
-          background: linear-gradient(135deg, #1E293B, #F59E0B);
+          padding: 8px 18px;
+          background: #1E293B;
           border: none;
           border-radius: 10px;
           color: #FFFFFF;
@@ -579,12 +517,12 @@ const AISearch = () => {
         }
 
         .search-btn:hover:not(:disabled) {
+          background: #F59E0B;
           transform: scale(0.98);
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
 
         .search-btn:disabled {
-          opacity: 0.6;
+          opacity: 0.5;
           cursor: not-allowed;
         }
 
@@ -595,7 +533,7 @@ const AISearch = () => {
           left: 0;
           right: 0;
           background: #FFFFFF;
-          border-radius: 12px;
+          border-radius: 10px;
           box-shadow: 0 8px 24px rgba(30, 41, 59, 0.12);
           z-index: 100;
           max-height: 220px;
@@ -674,7 +612,7 @@ const AISearch = () => {
           padding: 4px 14px;
           background: #D1FAE5;
           color: #065F46;
-          border-radius: 16px;
+          border-radius: 14px;
           font-size: 12px;
           font-weight: 500;
           cursor: pointer;
@@ -693,7 +631,7 @@ const AISearch = () => {
           padding: 4px 14px;
           background: #FEF3C7;
           color: #92400E;
-          border-radius: 16px;
+          border-radius: 14px;
           font-size: 13px;
           font-weight: 600;
           margin-top: 8px;
@@ -713,23 +651,24 @@ const AISearch = () => {
 
         .result-card {
           background: #FFFFFF;
-          border-radius: 14px;
-          padding: 16px 18px;
-          margin-bottom: 12px;
+          border-radius: 12px;
+          padding: 14px 16px;
+          margin-bottom: 10px;
           border: 1px solid #F1F5F9;
           cursor: pointer;
           transition: all 0.2s;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .result-card:hover {
           border-color: #E2E8F0;
           transform: translateY(-2px);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         }
 
         .result-content {
           display: flex;
-          gap: 14px;
+          gap: 12px;
         }
 
         .result-info {
@@ -738,8 +677,8 @@ const AISearch = () => {
         }
 
         .result-title {
-          font-size: 16px;
-          font-weight: 700;
+          font-size: 15px;
+          font-weight: 600;
           color: #1E293B;
           margin: 0 0 2px;
         }
@@ -799,10 +738,10 @@ const AISearch = () => {
         }
 
         .result-image {
-          width: 72px;
-          height: 72px;
+          width: 64px;
+          height: 64px;
           object-fit: cover;
-          border-radius: 10px;
+          border-radius: 8px;
           flex-shrink: 0;
           background: #F1F5F9;
         }
@@ -812,7 +751,7 @@ const AISearch = () => {
           text-align: center;
           padding: 40px 20px;
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           border: 1px solid #F1F5F9;
         }
 
@@ -832,10 +771,11 @@ const AISearch = () => {
         /* ===== EXAMPLES ===== */
         .examples-card {
           background: #FFFFFF;
-          border-radius: 14px;
-          padding: 18px 20px;
+          border-radius: 12px;
+          padding: 16px 18px;
           border: 1px solid #F1F5F9;
           margin-top: 16px;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .examples-title {
@@ -848,7 +788,7 @@ const AISearch = () => {
         .examples-grid {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
         }
 
         .example-btn {
@@ -888,7 +828,7 @@ const AISearch = () => {
           z-index: 100;
         }
 
-        .nav-item {
+        .nav-btn {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -901,7 +841,7 @@ const AISearch = () => {
           min-width: 44px;
         }
 
-        .nav-icon {
+        .nav-icon-wrap {
           width: 34px;
           height: 34px;
           border-radius: 10px;
@@ -911,7 +851,7 @@ const AISearch = () => {
           transition: all 0.2s;
         }
 
-        .nav-icon-active {
+        .nav-icon-wrap.active {
           background: #1E293B;
         }
 
@@ -921,7 +861,7 @@ const AISearch = () => {
           color: #94A3B8;
         }
 
-        .nav-label-active {
+        .nav-label.active {
           color: #1E293B;
           font-weight: 600;
         }
@@ -944,10 +884,16 @@ const AISearch = () => {
           }
           .result-image {
             width: 100%;
-            height: 120px;
+            height: 100px;
           }
           .result-card {
             padding: 12px 14px;
+          }
+          .result-title {
+            font-size: 14px;
+          }
+          .page-title {
+            font-size: 22px;
           }
         }
 
@@ -964,6 +910,17 @@ const AISearch = () => {
           .example-btn {
             font-size: 13px;
             padding: 8px 12px;
+          }
+          .header-icon {
+            width: 40px;
+            height: 40px;
+          }
+          .header-icon svg {
+            width: 22px;
+            height: 22px;
+          }
+          .page-title {
+            font-size: 20px;
           }
         }
       `}</style>

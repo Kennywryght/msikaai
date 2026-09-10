@@ -10,48 +10,56 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 import PaymentModal from '../components/PaymentModal';
 
-const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path d={d} />
-  </svg>
-);
+// ============================================================
+// LUCIDE-STYLE ICONS
+// ============================================================
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+  const icons = {
+    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+    plus: "M12 4v16m8-8H4",
+    box: "M12.89 1.45l8 4A2 2 0 0122 7.24v9.53a2 2 0 01-1.11 1.79l-8 4a2 2 0 01-1.79 0l-8-4a2 2 0 01-1.1-1.8V7.24a2 2 0 011.11-1.79l8-4a2 2 0 011.78 0zM2.32 6.16L12 11l9.68-4.84M12 22.76V11",
+    tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+    eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 12a3 3 0 100-6 3 3 0 000 6z",
+    phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z",
+    check: "M20 6L9 17l-5-5",
+    arrowRight: "M5 12h14M12 5l7 7-7 7",
+    robot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
+    mic: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
+    trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
+    clock: "M12 6v6l4 2M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
+    mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
+    close: "M6 18L18 6M6 6l12 12",
+    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+    search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+    sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+    export: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5-5 5 5M12 15V3",
+  };
 
-const ICONS = {
-  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-  plus: "M12 4v16m8-8H4",
-  box: "M12.89 1.45l8 4A2 2 0 0122 7.24v9.53a2 2 0 01-1.11 1.79l-8 4a2 2 0 01-1.79 0l-8-4a2 2 0 01-1.1-1.8V7.24a2 2 0 011.11-1.79l8-4a2 2 0 011.78 0zM2.32 6.16L12 11l9.68-4.84M12 22.76V11",
-  tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
-  eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 12a3 3 0 100-6 3 3 0 000 6z",
-  phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z",
-  check: "M20 6L9 17l-5-5",
-  arrowRight: "M5 12h14M12 5l7 7-7 7",
-  wave: "M18 11V6a2 2 0 00-4 0v5M14 10V4a2 2 0 00-4 0v6M10 10.5V2.5a2 2 0 00-4 0V14M6 14v-1.5a1.5 1.5 0 00-3 0V16a7 7 0 007 7h3a7 7 0 007-7v-5a2 2 0 00-4 0",
-  dot: "M12 12a4 4 0 100-8 4 4 0 000 8z",
-  pencil: "M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z",
-  export: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5-5 5 5M12 15V3",
-  robot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
-  mic: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
-  palette: "M12 21a9 9 0 100-18c2 0 4 .8 5.2 2.1a9 9 0 012.8 6.4c0 2.5-2 4.5-4.5 4.5h-1.5a2 2 0 00-2 2v.5a2.5 2.5 0 01-2.5 2.5zM7.5 10.5a.5.5 0 100-1 .5.5 0 000 1zM12 7.5a.5.5 0 100-1 .5.5 0 000 1zM16.5 10.5a.5.5 0 100-1 .5.5 0 000 1z",
-  trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
-  clock: "M12 6v6l4 2M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
-  mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
-  close: "M6 18L18 6M6 6l12 12",
-  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
-  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
-  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
-  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  const d = icons[name] || icons.store;
+  
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d={d} />
+    </svg>
+  );
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
@@ -310,7 +318,7 @@ const Dashboard = () => {
 
   const formatPrice = (price) => {
     if (!price) return 'Price on request';
-    return `MWK ${price.toLocaleString()}`;
+    return `MK ${price.toLocaleString()}`;
   };
 
   const handleLogout = async () => {
@@ -362,7 +370,76 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Loading your dashboard..." />;
+    return (
+      <div className="loading-skeleton">
+        <div className="skeleton-header" />
+        <div className="skeleton-stats">
+          {[1,2,3,4].map(i => <div key={i} className="skeleton-stat" />)}
+        </div>
+        <div className="skeleton-card" />
+        <div className="skeleton-actions">
+          {[1,2,3,4].map(i => <div key={i} className="skeleton-action" />)}
+        </div>
+        <style jsx>{`
+          .loading-skeleton {
+            min-height: 100vh;
+            background: #F8FAFC;
+            padding: 20px 16px 80px;
+            max-width: 1200px;
+            margin: 0 auto;
+          }
+          .skeleton-header {
+            height: 60px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+          }
+          .skeleton-stat {
+            height: 70px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-card {
+            height: 80px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+          }
+          .skeleton-action {
+            height: 80px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+          @media (max-width: 480px) {
+            .skeleton-stats {
+              grid-template-columns: repeat(2, 1fr);
+            }
+            .skeleton-actions {
+              grid-template-columns: repeat(2, 1fr);
+            }
+          }
+        `}</style>
+      </div>
+    );
   }
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
@@ -372,6 +449,9 @@ const Dashboard = () => {
       <div className="dashboard-main">
         {/* Welcome Header */}
         <div className="welcome-section">
+          <div className="welcome-badge">
+            <Icon name="sparkles" size={16} color="#F59E0B" strokeWidth={1.75} />
+          </div>
           <h1 className="welcome-title">
             Welcome back, <span className="welcome-highlight">{user?.email?.split('@')[0] || 'User'}</span>
           </h1>
@@ -382,16 +462,16 @@ const Dashboard = () => {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-              <Icon d={ICONS.box} size={18} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="box" size={18} color="#F59E0B" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.totalListings}</div>
-              <div className="stat-label">Total Listings</div>
+              <div className="stat-label">Listings</div>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-              <Icon d={ICONS.check} size={18} color="#10B981" strokeWidth={1.75} />
+              <Icon name="check" size={18} color="#10B981" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.activeListings}</div>
@@ -400,7 +480,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
-              <Icon d={ICONS.eye} size={18} color="#3B82F6" strokeWidth={1.75} />
+              <Icon name="eye" size={18} color="#3B82F6" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.totalViews}</div>
@@ -409,7 +489,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-              <Icon d={ICONS.phone} size={18} color="#8B5CF6" strokeWidth={1.75} />
+              <Icon name="phone" size={18} color="#8B5CF6" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.totalContacts}</div>
@@ -428,7 +508,11 @@ const Dashboard = () => {
               <div className="business-details">
                 <div className="business-name">{business.business_name}</div>
                 <div className="business-meta">
-                  {business.category} • {business.address || 'Location not set'}
+                  <Icon name="tag" size={12} color="#94A3B8" strokeWidth={1.75} />
+                  {business.category}
+                  <span className="business-meta-divider">•</span>
+                  <Icon name="mapPin" size={12} color="#94A3B8" strokeWidth={1.75} />
+                  {business.address || 'Location not set'}
                 </div>
               </div>
             </div>
@@ -442,6 +526,7 @@ const Dashboard = () => {
                 Register your business to start listing products and reaching customers.
               </p>
               <button className="btn-primary" onClick={() => navigate('/edit-profile')}>
+                <Icon name="plus" size={16} color="#FFFFFF" strokeWidth={1.75} />
                 Register Business
               </button>
             </div>
@@ -452,7 +537,7 @@ const Dashboard = () => {
         <div className="section-card">
           <div className="section-header">
             <h3 className="section-title">
-              <Icon d={ICONS.plus} size={18} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="sparkles" size={18} color="#F59E0B" strokeWidth={1.75} />
               Quick Actions
             </h3>
           </div>
@@ -485,10 +570,12 @@ const Dashboard = () => {
           <div className="section-card">
             <div className="section-header">
               <h3 className="section-title">
-                <Icon d={ICONS.store} size={18} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="store" size={18} color="#F59E0B" strokeWidth={1.75} />
                 Recent Listings
               </h3>
-              <button className="link-btn" onClick={() => navigate('/search')}>View All →</button>
+              <button className="link-btn" onClick={() => navigate('/search')}>
+                View All <Icon name="arrowRight" size={14} color="#F59E0B" strokeWidth={1.75} />
+              </button>
             </div>
             <div className="listings-list">
               {listings.slice(0, 5).map((listing, index) => (
@@ -501,18 +588,27 @@ const Dashboard = () => {
                     {listing.images && listing.images[0] ? (
                       <img src={listing.images[0]} alt={listing.title} className="listing-image" />
                     ) : (
-                      <div className="listing-image-placeholder">📦</div>
+                      <div className="listing-image-placeholder">
+                        <Icon name="store" size={16} color="#CBD5E1" strokeWidth={1.5} />
+                      </div>
                     )}
                     <div className="listing-details">
                       <div className="listing-title">{listing.title}</div>
                       <div className="listing-meta">
-                        {listing.category} • {listing.location_area || 'Location not set'}
+                        <Icon name="tag" size={10} color="#94A3B8" strokeWidth={1.75} />
+                        {listing.category}
+                        <span className="listing-meta-dot">•</span>
+                        <Icon name="mapPin" size={10} color="#94A3B8" strokeWidth={1.75} />
+                        {listing.location_area || 'Location not set'}
                       </div>
                     </div>
                   </div>
                   <div className="listing-right">
                     <div className="listing-price">{formatPrice(listing.price)}</div>
-                    <div className="listing-views">{listing.view_count || 0} views</div>
+                    <div className="listing-views">
+                      <Icon name="eye" size={10} color="#94A3B8" strokeWidth={1.75} />
+                      {listing.view_count || 0}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -533,11 +629,11 @@ const Dashboard = () => {
           ].map((item) => {
             const active = item.id === 'home';
             return (
-              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
-                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
-                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
+                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
@@ -550,24 +646,24 @@ const Dashboard = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
-                <Icon d={ICONS.store} size={20} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="store" size={20} color="#F59E0B" strokeWidth={1.75} />
                 Register Business
               </h3>
               <button onClick={() => setShowCreateForm(false)} className="modal-close">
-                <Icon d={ICONS.close} size={18} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="close" size={18} color="#94A3B8" strokeWidth={1.75} />
               </button>
             </div>
 
             {errorMsg && (
               <div className="error-banner">
-                <Icon d={ICONS.close} size={16} color="#EF4444" strokeWidth={1.75} />
+                <Icon name="close" size={16} color="#EF4444" strokeWidth={1.75} />
                 {errorMsg}
               </div>
             )}
 
             <form onSubmit={handleCreateBusiness} ref={formRef}>
               <div className="field-group">
-                <label className="field-label">Business Name *</label>
+                <label className="field-label">Business Name <span className="required">*</span></label>
                 <input
                   ref={nameInputRef}
                   type="text"
@@ -581,7 +677,7 @@ const Dashboard = () => {
               </div>
 
               <div className="field-group">
-                <label className="field-label">Category *</label>
+                <label className="field-label">Category <span className="required">*</span></label>
                 <select
                   name="category"
                   required
@@ -695,6 +791,20 @@ const Dashboard = () => {
           margin-bottom: 24px;
         }
 
+        .welcome-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(245, 158, 11, 0.08);
+          padding: 4px 10px;
+          border-radius: 20px;
+          margin-bottom: 8px;
+          gap: 4px;
+          font-size: 12px;
+          color: #F59E0B;
+          font-weight: 500;
+        }
+
         .welcome-title {
           font-size: clamp(22px, 2.8vw, 30px);
           font-weight: 700;
@@ -730,7 +840,7 @@ const Dashboard = () => {
 
         .stat-card {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 14px 16px;
           border: 1px solid #F1F5F9;
           display: flex;
@@ -742,11 +852,12 @@ const Dashboard = () => {
         .stat-card:hover {
           border-color: #E2E8F0;
           transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
 
         .stat-icon {
-          width: 38px;
-          height: 38px;
+          width: 36px;
+          height: 36px;
           border-radius: 10px;
           display: flex;
           align-items: center;
@@ -776,7 +887,7 @@ const Dashboard = () => {
         /* ===== BUSINESS CARD ===== */
         .business-card {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 16px 18px;
           border: 1px solid #F1F5F9;
           margin-bottom: 16px;
@@ -816,12 +927,20 @@ const Dashboard = () => {
         .business-meta {
           font-size: 13px;
           color: #94A3B8;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+
+        .business-meta-divider {
+          color: #E2E8F0;
         }
 
         /* ===== EMPTY BUSINESS ===== */
         .empty-business {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 32px 20px;
           border: 1px solid #F1F5F9;
           text-align: center;
@@ -853,7 +972,7 @@ const Dashboard = () => {
         /* ===== SECTION CARD ===== */
         .section-card {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 16px 18px;
           border: 1px solid #F1F5F9;
           margin-bottom: 16px;
@@ -884,6 +1003,10 @@ const Dashboard = () => {
           font-size: 13px;
           cursor: pointer;
           font-family: inherit;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          transition: all 0.2s;
         }
 
         .link-btn:hover {
@@ -905,7 +1028,7 @@ const Dashboard = () => {
 
         .action-item {
           padding: 14px 12px;
-          border-radius: 12px;
+          border-radius: 10px;
           border: 1px solid #F1F5F9;
           background: #F8FAFC;
           text-align: center;
@@ -988,7 +1111,6 @@ const Dashboard = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 16px;
           flex-shrink: 0;
         }
 
@@ -1009,6 +1131,13 @@ const Dashboard = () => {
         .listing-meta {
           font-size: 12px;
           color: #94A3B8;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .listing-meta-dot {
+          color: #E2E8F0;
         }
 
         .listing-right {
@@ -1025,6 +1154,10 @@ const Dashboard = () => {
         .listing-views {
           font-size: 11px;
           color: #94A3B8;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          justify-content: flex-end;
         }
 
         /* ===== BUTTONS ===== */
@@ -1033,15 +1166,18 @@ const Dashboard = () => {
           background: #1E293B;
           border: none;
           border-radius: 10px;
-          color: #FFF;
+          color: #FFFFFF;
           font-weight: 600;
           font-size: 14px;
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
           background: #F59E0B;
           transform: scale(0.98);
         }
@@ -1127,6 +1263,9 @@ const Dashboard = () => {
           cursor: pointer;
           color: #94A3B8;
           padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .modal-close:hover {
@@ -1143,6 +1282,10 @@ const Dashboard = () => {
           font-weight: 600;
           color: #475569;
           margin-bottom: 4px;
+        }
+
+        .required {
+          color: #EF4444;
         }
 
         .field-input,
@@ -1209,7 +1352,7 @@ const Dashboard = () => {
           z-index: 100;
         }
 
-        .nav-item {
+        .nav-btn {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -1222,7 +1365,7 @@ const Dashboard = () => {
           min-width: 44px;
         }
 
-        .nav-icon {
+        .nav-icon-wrap {
           width: 34px;
           height: 34px;
           border-radius: 10px;
@@ -1232,7 +1375,7 @@ const Dashboard = () => {
           transition: all 0.2s;
         }
 
-        .nav-icon-active {
+        .nav-icon-wrap.active {
           background: #1E293B;
         }
 
@@ -1242,7 +1385,7 @@ const Dashboard = () => {
           color: #94A3B8;
         }
 
-        .nav-label-active {
+        .nav-label.active {
           color: #1E293B;
           font-weight: 600;
         }
@@ -1273,6 +1416,12 @@ const Dashboard = () => {
             font-size: 20px;
           }
           .action-name {
+            font-size: 12px;
+          }
+          .listing-meta {
+            font-size: 10px;
+          }
+          .listing-price {
             font-size: 12px;
           }
         }

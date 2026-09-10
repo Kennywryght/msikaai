@@ -2,49 +2,58 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import LoadingSpinner from '../components/LoadingSpinner';
-import PrimaryButton from '../components/PrimaryButton';
 import { useToast } from '../components/ToastContainer';
 
-const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path d={d} />
-  </svg>
-);
+// ============================================================
+// LUCIDE-STYLE ICONS
+// ============================================================
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+  const icons = {
+    dashboard: "M3 12h3m6-6h3m-9 12h3m6-6h3m-6 6h3M3 6h3M3 18h3M12 6h3M12 18h3M21 6h3M21 18h3M12 12h3M21 12h3",
+    users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87",
+    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+    shopping: "M6 2l1.5 5M18 2l-1.5 5M4 7h16l-1.5 13a2 2 0 01-2 1.8H7.5a2 2 0 01-2-1.8L4 7zM9 11v3M15 11v3",
+    dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+    logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+    clock: "M12 6v6l4 2M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
+    arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+    search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+    plus: "M12 4v16m8-8H4",
+    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+    trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
+    check: "M20 6L9 17l-5-5",
+    star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+  };
 
-const ICONS = {
-  dashboard: "M3 12h3m6-6h3m-9 12h3m6-6h3m-6 6h3M3 6h3M3 18h3M12 6h3M12 18h3M21 6h3M21 18h3M12 12h3M21 12h3",
-  users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87",
-  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-  shopping: "M6 2l1.5 5M18 2l-1.5 5M4 7h16l-1.5 13a2 2 0 01-2 1.8H7.5a2 2 0 01-2-1.8L4 7zM9 11v3M15 11v3",
-  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
-  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
-  clock: "M12 6v6l4 2M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
-  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
-  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
-  plus: "M12 4v16m8-8H4",
-  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
-  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-  trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
-  check: "M20 6L9 17l-5-5",
+  const d = icons[name] || icons.store;
+  
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d={d} />
+    </svg>
+  );
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
   const [loading, setLoading] = useState(true);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [stats, setStats] = useState({
     users: 0,
@@ -56,12 +65,6 @@ const AdminDashboard = () => {
   });
 
   const isMobile = windowWidth <= 768;
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -180,33 +183,78 @@ const AdminDashboard = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Loading dashboard..." />;
+    return (
+      <div className="loading-skeleton">
+        <div className="skeleton-header" />
+        <div className="skeleton-stats">
+          {[1,2,3,4].map(i => <div key={i} className="skeleton-stat" />)}
+        </div>
+        <div className="skeleton-activities">
+          {[1,2].map(i => <div key={i} className="skeleton-activity" />)}
+        </div>
+        <style jsx>{`
+          .loading-skeleton {
+            min-height: 100vh;
+            background: #F8FAFC;
+            padding: 20px 16px 80px;
+            max-width: 1200px;
+            margin: 0 auto;
+          }
+          .skeleton-header {
+            height: 80px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+          }
+          .skeleton-stat {
+            height: 70px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-activities {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
+          .skeleton-activity {
+            height: 200px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+          @media (max-width: 480px) {
+            .skeleton-stats {
+              grid-template-columns: repeat(2, 1fr);
+            }
+            .skeleton-activities {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}</style>
+      </div>
+    );
   }
 
   return (
     <div className="admin-dashboard">
-      {/* Navbar */}
-      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
-        <div className="navbar-inner">
-          <Link to="/landing" className="logo">
-            <span className="logo-icon">K</span>
-            <span className="logo-text">Kumsika</span>
-            <span className="admin-badge">Admin</span>
-          </Link>
-          <div className="nav-actions">
-            <span className="greeting">👋 Admin</span>
-            <button onClick={handleLogout} className="logout-btn">
-              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <div className="main-content">
         {/* Welcome Section */}
         <div className="welcome-section">
-          <div className="welcome-icon">
-            <Icon d={ICONS.dashboard} size={28} color="#F59E0B" strokeWidth={1.75} />
+          <div className="welcome-badge">
+            <Icon name="dashboard" size={16} color="#F59E0B" strokeWidth={1.75} />
+            <span>Admin</span>
           </div>
           <h1 className="welcome-title">Admin Dashboard</h1>
           <p className="welcome-subtitle">Overview of your platform's performance and activity</p>
@@ -216,38 +264,38 @@ const AdminDashboard = () => {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
-              <Icon d={ICONS.users} size={18} color="#3B82F6" strokeWidth={1.75} />
+              <Icon name="users" size={18} color="#3B82F6" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.users.toLocaleString()}</div>
-              <div className="stat-label">Total Users</div>
+              <div className="stat-label">Users</div>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-              <Icon d={ICONS.store} size={18} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="store" size={18} color="#F59E0B" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.projects.toLocaleString()}</div>
-              <div className="stat-label">Total Listings</div>
+              <div className="stat-label">Listings</div>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-              <Icon d={ICONS.shopping} size={18} color="#8B5CF6" strokeWidth={1.75} />
+              <Icon name="shopping" size={18} color="#8B5CF6" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.orders.toLocaleString()}</div>
-              <div className="stat-label">Total Orders</div>
+              <div className="stat-label">Orders</div>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-              <Icon d={ICONS.dollar} size={18} color="#10B981" strokeWidth={1.75} />
+              <Icon name="dollar" size={18} color="#10B981" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value stat-revenue">{formatCurrency(stats.revenue)}</div>
-              <div className="stat-label">Total Revenue</div>
+              <div className="stat-label">Revenue</div>
             </div>
           </div>
         </div>
@@ -257,7 +305,7 @@ const AdminDashboard = () => {
           <div className="activity-card">
             <div className="card-header">
               <h3 className="card-title">
-                <Icon d={ICONS.clock} size={18} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="clock" size={18} color="#F59E0B" strokeWidth={1.75} />
                 Recent Orders
               </h3>
               <span className="card-count">{stats.recentOrders.length}</span>
@@ -292,7 +340,7 @@ const AdminDashboard = () => {
           <div className="activity-card">
             <div className="card-header">
               <h3 className="card-title">
-                <Icon d={ICONS.users} size={18} color="#3B82F6" strokeWidth={1.75} />
+                <Icon name="users" size={18} color="#3B82F6" strokeWidth={1.75} />
                 Recent Users
               </h3>
               <span className="card-count">{stats.recentUsers.length}</span>
@@ -333,11 +381,11 @@ const AdminDashboard = () => {
           ].map((item) => {
             const active = item.id === 'home';
             return (
-              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
-                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
-                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
+                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
@@ -359,101 +407,6 @@ const AdminDashboard = () => {
           }
         }
 
-        /* ===== NAVBAR ===== */
-        .navbar {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-          transition: all 0.2s;
-        }
-
-        .navbar-scrolled {
-          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
-        }
-
-        .navbar-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 10px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        }
-
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-          background: #1E293B;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #F59E0B;
-          font-weight: 700;
-          font-size: 16px;
-        }
-
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
-          letter-spacing: -0.5px;
-        }
-
-        .admin-badge {
-          padding: 2px 10px;
-          background: #F59E0B;
-          color: #FFFFFF;
-          font-size: 10px;
-          font-weight: 700;
-          border-radius: 6px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .greeting {
-          font-size: 13px;
-          color: #64748B;
-          display: none;
-        }
-
-        @media (min-width: 640px) {
-          .greeting { display: inline; }
-        }
-
-        .logout-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          border: none;
-          background: #FEF2F2;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-          background: #FEE2E2;
-        }
-
         /* ===== MAIN CONTENT ===== */
         .main-content {
           max-width: 1200px;
@@ -466,14 +419,16 @@ const AdminDashboard = () => {
           margin-bottom: 24px;
         }
 
-        .welcome-icon {
+        .welcome-badge {
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          width: 48px;
-          height: 48px;
-          background: rgba(245, 158, 11, 0.1);
-          border-radius: 14px;
+          gap: 6px;
+          background: rgba(245, 158, 11, 0.08);
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          color: #F59E0B;
+          font-weight: 500;
           margin-bottom: 8px;
         }
 
@@ -507,19 +462,20 @@ const AdminDashboard = () => {
 
         .stat-card {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 14px 16px;
           border: 1px solid #F1F5F9;
           display: flex;
           align-items: center;
           gap: 12px;
           transition: all 0.2s;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .stat-card:hover {
           border-color: #E2E8F0;
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         }
 
         .stat-icon {
@@ -570,9 +526,10 @@ const AdminDashboard = () => {
 
         .activity-card {
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           padding: 16px 18px;
           border: 1px solid #F1F5F9;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .card-header {
@@ -704,7 +661,7 @@ const AdminDashboard = () => {
           z-index: 100;
         }
 
-        .nav-item {
+        .nav-btn {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -717,7 +674,7 @@ const AdminDashboard = () => {
           min-width: 44px;
         }
 
-        .nav-icon {
+        .nav-icon-wrap {
           width: 34px;
           height: 34px;
           border-radius: 10px;
@@ -727,7 +684,7 @@ const AdminDashboard = () => {
           transition: all 0.2s;
         }
 
-        .nav-icon-active {
+        .nav-icon-wrap.active {
           background: #1E293B;
         }
 
@@ -737,7 +694,7 @@ const AdminDashboard = () => {
           color: #94A3B8;
         }
 
-        .nav-label-active {
+        .nav-label.active {
           color: #1E293B;
           font-weight: 600;
         }
@@ -762,6 +719,9 @@ const AdminDashboard = () => {
           }
           .activity-item {
             padding: 8px 0;
+          }
+          .welcome-title {
+            font-size: 20px;
           }
         }
 

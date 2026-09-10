@@ -1,5 +1,12 @@
 // mobile/src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useToast } from '../components/ToastContainer';
 
@@ -23,28 +30,14 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState('guest');
   const [authInitialized, setAuthInitialized] = useState(false);
-  
+
   const refreshTimer = useRef(null);
   const initialized = useRef(false);
-  
-  // ✅ Safely get toast - handles case where ToastProvider is not available
-  let toast;
-  try {
-    toast = useToast();
-  } catch (e) {
-    // Toast not available - use console fallback
-    console.warn('⚠️ ToastProvider not available, using console fallback');
-    toast = {
-      showToast: (msg, type = 'info') => {
-        const emoji = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-        console.log(`${emoji} ${msg}`);
-      },
-      success: (msg) => console.log(`✅ ${msg}`),
-      error: (msg) => console.log(`❌ ${msg}`),
-    };
-  }
 
-  const { showToast, success, error } = toast;
+  // ✅ Always call useToast() — AuthProvider is nested inside ToastProvider in App.jsx,
+  // so the hook will always find its context. Wrapping hook calls in try/catch
+  // violates the Rules of Hooks and caused async stack crashes.
+  const { showToast, success, error } = useToast();
 
   // ============================================================
   // INITIALIZE AUTH
@@ -81,12 +74,12 @@ export const AuthProvider = ({ children }) => {
 
         const sessionUser = result.data?.session?.user ?? null;
         const sessionData = result.data?.session ?? null;
-        
+
         if (sessionData?.access_token) {
           localStorage.setItem('access_token', sessionData.access_token);
           localStorage.setItem('refresh_token', sessionData.refresh_token);
         }
-        
+
         if (sessionUser) {
           await fetchUserProfile(sessionUser);
           setSession(sessionData);
@@ -100,8 +93,8 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
         }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
+      } catch (err) {
+        console.error('Auth initialization error:', err);
         setUser(null);
         setIsAuthenticated(false);
         setUserRole('guest');
@@ -119,7 +112,7 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Auth state changed:', event);
-        
+
         if (event === 'TOKEN_REFRESHED') {
           setSession(session);
           if (session?.access_token) {
@@ -128,7 +121,7 @@ export const AuthProvider = ({ children }) => {
           }
           return;
         }
-        
+
         if (event === 'SIGNED_IN') {
           setSession(session);
           setIsAuthenticated(true);
@@ -138,12 +131,12 @@ export const AuthProvider = ({ children }) => {
           }
           success('Welcome back! 👋');
         }
-        
+
         if (event === 'SIGNED_OUT') {
           clearAuth();
           success('Signed out successfully');
         }
-        
+
         if (event === 'USER_UPDATED') {
           if (session?.user) {
             await fetchUserProfile(session.user);
@@ -184,10 +177,10 @@ export const AuthProvider = ({ children }) => {
 
       setUser(userData);
       setUserRole(profile?.role || 'buyer');
-      
+
       return userData;
-    } catch (error) {
-      console.error('Profile fetch error:', error);
+    } catch (err) {
+      console.error('Profile fetch error:', err);
       setUser(authUser);
       setUserRole('buyer');
       return authUser;
@@ -201,13 +194,13 @@ export const AuthProvider = ({ children }) => {
     if (refreshTimer.current) {
       clearTimeout(refreshTimer.current);
     }
-    
+
     if (!session?.expires_at) return;
-    
+
     const expiresAt = new Date(session.expires_at).getTime();
     const now = Date.now();
     const timeUntilExpiry = expiresAt - now - TOKEN_REFRESH_BUFFER;
-    
+
     if (timeUntilExpiry > 0) {
       refreshTimer.current = setTimeout(async () => {
         await refreshToken();
@@ -228,8 +221,8 @@ export const AuthProvider = ({ children }) => {
         scheduleTokenRefresh(data.session);
         return { success: true };
       }
-    } catch (error) {
-      console.error('❌ Token refresh failed:', error);
+    } catch (err) {
+      console.error('❌ Token refresh failed:', err);
       return { success: false };
     }
   };
@@ -250,7 +243,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ============================================================
-  // LOGIN - Smooth & Fast
+  // LOGIN
   // ============================================================
   const login = async (email, password, rememberMe = false) => {
     try {
@@ -281,20 +274,20 @@ export const AuthProvider = ({ children }) => {
       scheduleTokenRefresh(data.session);
 
       return { success: true, user: data.user };
-    } catch (error) {
-      console.error('❌ Login error:', error);
-      return { success: false, error: error.message };
+    } catch (err) {
+      console.error('❌ Login error:', err);
+      return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }
   };
 
   // ============================================================
-  // REGISTER / SIGNUP
+  // REGISTER
   // ============================================================
   const register = async (userData) => {
     const { email, password, fullName, phone, role = 'buyer' } = userData;
-    
+
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
@@ -314,59 +307,66 @@ export const AuthProvider = ({ children }) => {
       if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert([{
-            id: data.user.id,
-            full_name: fullName,
-            email: email.trim().toLowerCase(),
-            phone: phone || null,
-            role: role,
-            status: 'active',
-            onboarding_completed: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }]);
+          .insert([
+            {
+              id: data.user.id,
+              full_name: fullName,
+              email: email.trim().toLowerCase(),
+              phone: phone || null,
+              role: role,
+              status: 'active',
+              onboarding_completed: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ]);
 
         if (profileError) {
           console.error('Profile creation error:', profileError);
         }
 
+        // ✅ Only set session state if Supabase actually returned one.
+        // If email confirmation is required, data.session will be null
+        // and the SIGNED_IN event will fire later after the user confirms.
         if (data.session?.access_token) {
           localStorage.setItem('access_token', data.session.access_token);
           localStorage.setItem('refresh_token', data.session.refresh_token);
-        }
 
-        await fetchUserProfile(data.user);
-        setSession(data.session);
-        setIsAuthenticated(true);
-        scheduleTokenRefresh(data.session);
+          await fetchUserProfile(data.user);
+          setSession(data.session);
+          setIsAuthenticated(true);
+          scheduleTokenRefresh(data.session);
+        } else {
+          console.log('📧 Awaiting email confirmation — session will arrive via SIGNED_IN event');
+        }
       }
 
       return { success: true, user: data.user };
-    } catch (error) {
-      console.error('❌ Registration error:', error);
-      return { success: false, error: error.message };
+    } catch (err) {
+      console.error('❌ Registration error:', err);
+      return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }
   };
 
   // ============================================================
-  // LOGOUT - Clean
+  // LOGOUT
   // ============================================================
   const logout = async () => {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
+
       clearAuth();
       sessionStorage.clear();
-      
+
       return { success: true };
-    } catch (error) {
-      console.error('❌ Logout error:', error);
+    } catch (err) {
+      console.error('❌ Logout error:', err);
       clearAuth();
-      return { success: false, error: error.message };
+      return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }
@@ -391,7 +391,7 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      setUser(prev => ({
+      setUser((prev) => ({
         ...prev,
         ...data,
         profile: data,
@@ -402,29 +402,32 @@ export const AuthProvider = ({ children }) => {
       }
 
       return { success: true, data };
-    } catch (error) {
-      console.error('❌ Profile update error:', error);
-      return { success: false, error: error.message };
+    } catch (err) {
+      console.error('❌ Profile update error:', err);
+      return { success: false, error: err.message };
     }
   };
 
   // ============================================================
   // ROLE HELPERS
   // ============================================================
-  const hasRole = useCallback((requiredRole) => {
-    if (!isAuthenticated) return false;
-    if (requiredRole === 'any') return true;
-    if (requiredRole === 'guest') return !isAuthenticated;
-    
-    const roleHierarchy = {
-      admin: ['admin'],
-      business: ['admin', 'business'],
-      seller: ['admin', 'business', 'seller'],
-      buyer: ['admin', 'business', 'seller', 'buyer'],
-    };
-    
-    return roleHierarchy[requiredRole]?.includes(userRole) || false;
-  }, [isAuthenticated, userRole]);
+  const hasRole = useCallback(
+    (requiredRole) => {
+      if (!isAuthenticated) return false;
+      if (requiredRole === 'any') return true;
+      if (requiredRole === 'guest') return !isAuthenticated;
+
+      const roleHierarchy = {
+        admin: ['admin'],
+        business: ['admin', 'business'],
+        seller: ['admin', 'business', 'seller'],
+        buyer: ['admin', 'business', 'seller', 'buyer'],
+      };
+
+      return roleHierarchy[requiredRole]?.includes(userRole) || false;
+    },
+    [isAuthenticated, userRole]
+  );
 
   const isSeller = useCallback(() => hasRole('seller'), [hasRole]);
   const isBuyer = useCallback(() => hasRole('buyer'), [hasRole]);
@@ -453,9 +456,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 };
 

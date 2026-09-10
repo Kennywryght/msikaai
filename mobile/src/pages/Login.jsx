@@ -3,41 +3,49 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
-import LoadingSpinner from '../components/LoadingSpinner';
 import { supabase } from '../lib/supabase';
 
 // ============================================================
-// PREMIUM FEATHER ICONS
+// LUCIDE-STYLE ICONS
 // ============================================================
-const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path d={d} />
-  </svg>
-);
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+  const icons = {
+    mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6",
+    lock: "M12 2a4 4 0 00-4 4v4H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-2V6a4 4 0 00-4-4zM12 14v4M9 12h6",
+    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+    phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z",
+    eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z",
+    eyeOff: "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22",
+    arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+    google: "M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z",
+    facebook: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z",
+    check: "M20 6L9 17l-5-5",
+  };
 
-const ICONS = {
-  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-  mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6",
-  lock: "M12 2a4 4 0 00-4 4v4H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-2V6a4 4 0 00-4-4zM12 14v4M9 12h6",
-  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-  phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z",
-  eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z",
-  eyeOff: "M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22",
-  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-  google: "M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z",
-  facebook: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z",
+  const d = icons[name] || icons.store;
+  
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d={d} />
+    </svg>
+  );
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const Login = () => {
   const { login, register, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -67,18 +75,12 @@ const Login = () => {
 
   const timerRef = useRef(null);
 
-  // ============================================================
-  // REDIRECT IF ALREADY AUTHENTICATED
-  // ============================================================
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/landing', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
-  // ============================================================
-  // LOAD SAVED EMAIL
-  // ============================================================
   useEffect(() => {
     const savedEmail = localStorage.getItem('remembered_email');
     const remember = localStorage.getItem('rememberMe') === 'true';
@@ -88,9 +90,6 @@ const Login = () => {
     }
   }, []);
 
-  // ============================================================
-  // OTP TIMER
-  // ============================================================
   useEffect(() => {
     if (otpTimer > 0) {
       timerRef.current = setTimeout(() => setOtpTimer(otpTimer - 1), 1000);
@@ -103,9 +102,6 @@ const Login = () => {
     setErrorMsg('');
   };
 
-  // ============================================================
-  // EMAIL LOGIN
-  // ============================================================
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -142,9 +138,6 @@ const Login = () => {
     }
   };
 
-  // ============================================================
-  // SOCIAL LOGIN
-  // ============================================================
   const handleSocialLogin = async (provider) => {
     setLoading(true);
     try {
@@ -167,9 +160,6 @@ const Login = () => {
     }
   };
 
-  // ============================================================
-  // PHONE OTP
-  // ============================================================
   const handleSendOTP = async () => {
     if (!formData.phone || formData.phone.length < 10) {
       setErrorMsg('Please enter a valid phone number');
@@ -225,383 +215,93 @@ const Login = () => {
   };
 
   if (authLoading) {
-    return <LoadingSpinner fullScreen message="Checking your session..." />;
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner" />
+        <style jsx>{`
+          .loading-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #F8FAFC;
+          }
+          .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #E2E8F0;
+            border-top-color: #F59E0B;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
   }
 
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: '#F8FAFC',
-      padding: '24px 16px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    },
-    card: {
-      width: '100%',
-      maxWidth: '420px',
-      background: '#FFFFFF',
-      padding: '32px 24px',
-      borderRadius: '20px',
-      border: '1px solid #E2E8F0',
-      boxShadow: '0 20px 60px rgba(30,41,59,0.06)',
-    },
-    logoContainer: {
-      textAlign: 'center',
-      marginBottom: '24px',
-    },
-    logoWrapper: {
-      width: '56px',
-      height: '56px',
-      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-      borderRadius: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      margin: '0 auto 10px auto',
-      boxShadow: '0 4px 20px rgba(245,158,11,0.25)',
-    },
-    brandName: {
-      fontSize: '24px',
-      fontWeight: '800',
-      color: '#1E293B',
-      margin: 0,
-      fontFamily: '"Fraunces", Georgia, serif',
-    },
-    brandAccent: {
-      color: '#F59E0B',
-    },
-    brandTagline: {
-      fontSize: '11px',
-      color: '#94A3B8',
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-    },
-    header: {
-      textAlign: 'center',
-      marginBottom: '20px',
-    },
-    title: {
-      fontSize: '20px',
-      fontWeight: '700',
-      color: '#1E293B',
-      margin: 0,
-    },
-    subtitle: {
-      fontSize: '13px',
-      color: '#94A3B8',
-      margin: '2px 0 0',
-    },
-    errorAlert: {
-      backgroundColor: '#FEF2F2',
-      padding: '10px 14px',
-      borderRadius: '10px',
-      border: '1px solid #FECACA',
-      marginBottom: '16px',
-      fontSize: '13px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-    },
-    errorText: {
-      flex: 1,
-      color: '#991B1B',
-    },
-    errorClose: {
-      background: 'none',
-      border: 'none',
-      color: '#991B1B',
-      fontSize: '18px',
-      cursor: 'pointer',
-      padding: '4px',
-    },
-    methodTabs: {
-      display: 'flex',
-      gap: '8px',
-      marginBottom: '20px',
-      background: '#F1F5F9',
-      borderRadius: '12px',
-      padding: '4px',
-    },
-    methodTab: {
-      flex: 1,
-      padding: '8px 12px',
-      borderRadius: '8px',
-      border: 'none',
-      background: 'transparent',
-      fontSize: '13px',
-      fontWeight: '600',
-      color: '#64748B',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '6px',
-      transition: 'all 0.2s ease',
-    },
-    methodTabActive: {
-      background: '#1E293B',
-      color: '#FFFFFF',
-      boxShadow: '0 2px 8px rgba(30,41,59,0.15)',
-    },
-    form: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '14px',
-    },
-    formGroup: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-    },
-    label: {
-      fontSize: '13px',
-      fontWeight: '600',
-      color: '#475569',
-    },
-    inputWrapper: {
-      position: 'relative',
-      display: 'flex',
-      alignItems: 'center',
-    },
-    inputIcon: {
-      position: 'absolute',
-      left: '12px',
-      display: 'flex',
-      alignItems: 'center',
-      pointerEvents: 'none',
-      color: '#94A3B8',
-    },
-    input: {
-      width: '100%',
-      padding: '10px 14px 10px 40px',
-      border: '2px solid #E2E8F0',
-      borderRadius: '10px',
-      fontSize: '14px',
-      color: '#1E293B',
-      outline: 'none',
-      boxSizing: 'border-box',
-      backgroundColor: '#FFFFFF',
-      transition: 'border-color 0.2s, box-shadow 0.2s',
-      fontFamily: 'inherit',
-    },
-    eyeButton: {
-      position: 'absolute',
-      right: '12px',
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      color: '#94A3B8',
-      padding: '4px',
-    },
-    otpButton: {
-      position: 'absolute',
-      right: '4px',
-      padding: '6px 14px',
-      background: '#1E293B',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '12px',
-      fontWeight: '600',
-      color: '#FFFFFF',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      transition: 'all 0.2s ease',
-    },
-    otpTimer: {
-      position: 'absolute',
-      right: '12px',
-      fontSize: '14px',
-      fontWeight: '600',
-      color: '#94A3B8',
-    },
-    otpResend: {
-      fontSize: '12px',
-      color: '#94A3B8',
-      marginTop: '4px',
-    },
-    otpResendLink: {
-      background: 'none',
-      border: 'none',
-      color: '#F59E0B',
-      fontWeight: '600',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-    },
-    rememberContainer: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    rememberLabel: {
-      fontSize: '13px',
-      color: '#64748B',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      cursor: 'pointer',
-    },
-    rememberCheckbox: {
-      width: '16px',
-      height: '16px',
-      accentColor: '#F59E0B',
-      cursor: 'pointer',
-    },
-    forgotLink: {
-      fontSize: '13px',
-      color: '#F59E0B',
-      textDecoration: 'none',
-      fontWeight: '500',
-    },
-    submitButton: {
-      width: '100%',
-      padding: '12px',
-      background: '#1E293B',
-      border: 'none',
-      borderRadius: '10px',
-      fontSize: '15px',
-      fontWeight: '700',
-      color: '#FFFFFF',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      boxShadow: '0 2px 12px rgba(30,41,59,0.15)',
-      transition: 'all 0.2s ease',
-      marginTop: '4px',
-    },
-    submitButtonDisabled: {
-      opacity: 0.6,
-      cursor: 'not-allowed',
-    },
-    divider: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      marginTop: '20px',
-    },
-    dividerLine: {
-      flex: 1,
-      height: '1px',
-      backgroundColor: '#E2E8F0',
-    },
-    dividerText: {
-      fontSize: '11px',
-      color: '#94A3B8',
-      fontWeight: '500',
-      whiteSpace: 'nowrap',
-    },
-    socialButtons: {
-      display: 'flex',
-      gap: '12px',
-      marginTop: '12px',
-    },
-    socialButton: {
-      flex: 1,
-      padding: '10px',
-      border: '2px solid #E2E8F0',
-      borderRadius: '10px',
-      background: '#FFFFFF',
-      fontSize: '13px',
-      fontWeight: '600',
-      color: '#1E293B',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      transition: 'all 0.2s ease',
-    },
-    toggleContainer: {
-      marginTop: '16px',
-      textAlign: 'center',
-      paddingTop: '14px',
-      borderTop: '1px solid #E2E8F0',
-    },
-    toggleButton: {
-      background: 'none',
-      border: 'none',
-      color: '#64748B',
-      fontSize: '13px',
-      cursor: 'pointer',
-      fontWeight: '500',
-      fontFamily: 'inherit',
-    },
-    toggleLink: {
-      color: '#F59E0B',
-      fontWeight: '700',
-    },
-    backLink: {
-      marginTop: '16px',
-      color: '#94A3B8',
-      textDecoration: 'none',
-      fontSize: '13px',
-      fontWeight: '600',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      transition: 'color 0.2s',
-    },
-  };
-
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.logoContainer}>
-          <div style={styles.logoWrapper}>
-            <Icon d={ICONS.store} size={28} color="#1E293B" strokeWidth={2.5} />
+    <div className="login-page">
+      <div className="login-card">
+        {/* Logo */}
+        <div className="logo-section">
+          <div className="logo-icon">
+            <Icon name="store" size={28} color="#1E293B" strokeWidth={2.5} />
           </div>
-          <h1 style={styles.brandName}>
-            Kum<span style={styles.brandAccent}>sika</span>
+          <h1 className="brand-name">
+            <span className="brand-dark">Ku</span>
+            <span className="brand-gold">msika</span>
           </h1>
-          <p style={styles.brandTagline}>Malawi's Smart Marketplace</p>
+          <p className="brand-tagline">Malawi's Smart Marketplace</p>
         </div>
 
-        <div style={styles.header}>
-          <h2 style={styles.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
-          <p style={styles.subtitle}>
+        {/* Header */}
+        <div className="header">
+          <h2 className="title">{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+          <p className="subtitle">
             {isLogin ? 'Sign in to continue' : 'Join the community today'}
           </p>
         </div>
 
+        {/* Error */}
         {errorMsg && (
-          <div style={styles.errorAlert}>
-            <span>⚠️</span>
-            <span style={styles.errorText}>{errorMsg}</span>
-            <button style={styles.errorClose} onClick={() => setErrorMsg('')}>×</button>
+          <div className="error-alert">
+            <span className="error-icon">⚠️</span>
+            <span className="error-text">{errorMsg}</span>
+            <button className="error-close" onClick={() => setErrorMsg('')}>×</button>
           </div>
         )}
 
+        {/* Method Tabs - Login only */}
         {isLogin && (
-          <div style={styles.methodTabs}>
+          <div className="method-tabs">
             <button
-              style={{ ...styles.methodTab, ...(activeMethod === 'email' ? styles.methodTabActive : {}) }}
+              className={`method-tab ${activeMethod === 'email' ? 'active' : ''}`}
               onClick={() => { setActiveMethod('email'); setOtpSent(false); }}
             >
-              <Icon d={ICONS.mail} size={16} color={activeMethod === 'email' ? '#FFFFFF' : '#64748B'} strokeWidth={1.75} />
+              <Icon name="mail" size={16} color={activeMethod === 'email' ? '#FFFFFF' : '#64748B'} strokeWidth={1.75} />
               Email
             </button>
             <button
-              style={{ ...styles.methodTab, ...(activeMethod === 'phone' ? styles.methodTabActive : {}) }}
+              className={`method-tab ${activeMethod === 'phone' ? 'active' : ''}`}
               onClick={() => { setActiveMethod('phone'); setOtpSent(false); }}
             >
-              <Icon d={ICONS.phone} size={16} color={activeMethod === 'phone' ? '#FFFFFF' : '#64748B'} strokeWidth={1.75} />
+              <Icon name="phone" size={16} color={activeMethod === 'phone' ? '#FFFFFF' : '#64748B'} strokeWidth={1.75} />
               Phone
             </button>
           </div>
         )}
 
-        <form onSubmit={handleEmailLogin} style={styles.form}>
+        <form onSubmit={handleEmailLogin} className="login-form">
           {isLogin ? (
             activeMethod === 'email' ? (
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Email Address</label>
-                <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>
-                    <Icon d={ICONS.mail} size={18} color="#94A3B8" strokeWidth={1.75} />
+              <div className="form-group">
+                <label className="label">Email Address</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">
+                    <Icon name="mail" size={18} color="#94A3B8" strokeWidth={1.75} />
                   </span>
                   <input
                     type="email"
@@ -609,7 +309,7 @@ const Login = () => {
                     placeholder="name@example.com"
                     value={formData.email}
                     onChange={handleChange}
-                    style={styles.input}
+                    className="input-field"
                     required
                     disabled={loading}
                     autoFocus
@@ -617,11 +317,11 @@ const Login = () => {
                 </div>
               </div>
             ) : (
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Phone Number</label>
-                <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>
-                    <Icon d={ICONS.phone} size={18} color="#94A3B8" strokeWidth={1.75} />
+              <div className="form-group">
+                <label className="label">Phone Number</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">
+                    <Icon name="phone" size={18} color="#94A3B8" strokeWidth={1.75} />
                   </span>
                   <input
                     type="tel"
@@ -629,32 +329,32 @@ const Login = () => {
                     placeholder="+265 999 000 000"
                     value={formData.phone}
                     onChange={handleChange}
-                    style={styles.input}
+                    className="input-field"
                     required
                     disabled={loading || otpSent}
                   />
                   {!otpSent ? (
                     <button
                       type="button"
-                      style={styles.otpButton}
+                      className="otp-btn"
                       onClick={handleSendOTP}
                       disabled={loading || !formData.phone}
                     >
                       Send OTP
                     </button>
                   ) : (
-                    <span style={styles.otpTimer}>{otpTimer}s</span>
+                    <span className="otp-timer">{otpTimer}s</span>
                   )}
                 </div>
               </div>
             )
           ) : (
             <>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Full Name</label>
-                <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>
-                    <Icon d={ICONS.user} size={18} color="#94A3B8" strokeWidth={1.75} />
+              <div className="form-group">
+                <label className="label">Full Name</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">
+                    <Icon name="user" size={18} color="#94A3B8" strokeWidth={1.75} />
                   </span>
                   <input
                     type="text"
@@ -662,17 +362,17 @@ const Login = () => {
                     placeholder="e.g. Kondwani Banda"
                     value={formData.fullName}
                     onChange={handleChange}
-                    style={styles.input}
+                    className="input-field"
                     required
                     disabled={loading}
                   />
                 </div>
               </div>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Email Address</label>
-                <div style={styles.inputWrapper}>
-                  <span style={styles.inputIcon}>
-                    <Icon d={ICONS.mail} size={18} color="#94A3B8" strokeWidth={1.75} />
+              <div className="form-group">
+                <label className="label">Email Address</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">
+                    <Icon name="mail" size={18} color="#94A3B8" strokeWidth={1.75} />
                   </span>
                   <input
                     type="email"
@@ -680,7 +380,7 @@ const Login = () => {
                     placeholder="name@example.com"
                     value={formData.email}
                     onChange={handleChange}
-                    style={styles.input}
+                    className="input-field"
                     required
                     disabled={loading}
                   />
@@ -690,11 +390,11 @@ const Login = () => {
           )}
 
           {(isLogin && activeMethod === 'email') || !isLogin ? (
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Password</label>
-              <div style={styles.inputWrapper}>
-                <span style={styles.inputIcon}>
-                  <Icon d={ICONS.lock} size={18} color="#94A3B8" strokeWidth={1.75} />
+            <div className="form-group">
+              <label className="label">Password</label>
+              <div className="input-wrapper">
+                <span className="input-icon">
+                  <Icon name="lock" size={18} color="#94A3B8" strokeWidth={1.75} />
                 </span>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -702,49 +402,49 @@ const Login = () => {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  style={{ ...styles.input, paddingRight: '42px' }}
+                  className="input-field password-input"
                   required
                   disabled={loading}
                 />
                 <button
                   type="button"
+                  className="eye-btn"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
                 >
-                  <Icon d={showPassword ? ICONS.eyeOff : ICONS.eye} size={18} color="#94A3B8" strokeWidth={1.75} />
+                  <Icon name={showPassword ? 'eyeOff' : 'eye'} size={18} color="#94A3B8" strokeWidth={1.75} />
                 </button>
               </div>
             </div>
           ) : null}
 
           {isLogin && activeMethod === 'phone' && otpSent && (
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Enter OTP Code</label>
-              <div style={styles.inputWrapper}>
+            <div className="form-group">
+              <label className="label">Enter OTP Code</label>
+              <div className="input-wrapper">
                 <input
                   type="text"
                   name="otp"
                   placeholder="Enter 6-digit code"
                   value={formData.otp}
                   onChange={handleChange}
-                  style={styles.input}
+                  className="input-field"
                   maxLength="6"
                   autoFocus
                 />
                 <button
                   type="button"
-                  style={styles.otpButton}
+                  className="otp-btn verify-btn"
                   onClick={handleVerifyOTP}
                   disabled={loading || !formData.otp}
                 >
                   Verify
                 </button>
               </div>
-              <p style={styles.otpResend}>
+              <p className="otp-resend">
                 Didn't receive code?{' '}
                 <button
                   type="button"
-                  style={styles.otpResendLink}
+                  className="otp-resend-link"
                   onClick={handleSendOTP}
                   disabled={otpTimer > 0}
                 >
@@ -755,17 +455,17 @@ const Login = () => {
           )}
 
           {isLogin && activeMethod === 'email' && (
-            <div style={styles.rememberContainer}>
-              <label style={styles.rememberLabel}>
+            <div className="remember-row">
+              <label className="remember-label">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  style={styles.rememberCheckbox}
+                  className="remember-check"
                 />
                 Remember me
               </label>
-              <Link to="/forgot-password" style={styles.forgotLink}>
+              <Link to="/forgot-password" className="forgot-link">
                 Forgot password?
               </Link>
             </div>
@@ -774,68 +474,568 @@ const Login = () => {
           {(isLogin && activeMethod === 'email') || !isLogin ? (
             <button
               type="submit"
-              style={{ ...styles.submitButton, ...(loading ? styles.submitButtonDisabled : {}) }}
+              className={`submit-btn ${loading ? 'disabled' : ''}`}
               disabled={loading}
             >
-              {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
+              {loading ? (
+                <span className="btn-spinner" />
+              ) : (
+                isLogin ? 'Sign In' : 'Create Account'
+              )}
             </button>
           ) : null}
         </form>
 
+        {/* Social Login - Login only */}
         {isLogin && (
           <>
-            <div style={styles.divider}>
-              <span style={styles.dividerLine}></span>
-              <span style={styles.dividerText}>or continue with</span>
-              <span style={styles.dividerLine}></span>
+            <div className="divider">
+              <span className="divider-line" />
+              <span className="divider-text">or continue with</span>
+              <span className="divider-line" />
             </div>
 
-            <div style={styles.socialButtons}>
+            <div className="social-buttons">
               <button
                 type="button"
-                style={styles.socialButton}
+                className="social-btn"
                 onClick={() => handleSocialLogin('google')}
                 disabled={loading}
               >
-                <Icon d={ICONS.google} size={20} color="#EA4335" strokeWidth={2} />
+                <Icon name="google" size={20} color="#EA4335" strokeWidth={2} />
                 Google
               </button>
               <button
                 type="button"
-                style={styles.socialButton}
+                className="social-btn"
                 onClick={() => handleSocialLogin('facebook')}
                 disabled={loading}
               >
-                <Icon d={ICONS.facebook} size={20} color="#1877F2" strokeWidth={2} />
+                <Icon name="facebook" size={20} color="#1877F2" strokeWidth={2} />
                 Facebook
               </button>
             </div>
           </>
         )}
 
-        <div style={styles.toggleContainer}>
+        {/* Toggle Login/Register */}
+        <div className="toggle-row">
           <button
             type="button"
+            className="toggle-btn"
             onClick={() => {
               setIsLogin(!isLogin);
               setErrorMsg('');
               setOtpSent(false);
             }}
-            style={styles.toggleButton}
           >
             {isLogin ? (
-              <>Don't have an account? <span style={styles.toggleLink}>Sign Up</span></>
+              <>Don't have an account? <span className="toggle-link">Sign Up</span></>
             ) : (
-              <>Already have an account? <span style={styles.toggleLink}>Sign In</span></>
+              <>Already have an account? <span className="toggle-link">Sign In</span></>
             )}
           </button>
         </div>
       </div>
 
-      <Link to="/" style={styles.backLink}>
-        <Icon d={ICONS.arrowLeft} size={16} color="#94A3B8" strokeWidth={1.75} />
+      <Link to="/" className="back-link">
+        <Icon name="arrowLeft" size={16} color="#94A3B8" strokeWidth={1.75} />
         Back to Marketplace
       </Link>
+
+      <style jsx>{`
+        .login-page {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: #F8FAFC;
+          padding: 24px 16px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* ===== CARD ===== */
+        .login-card {
+          width: 100%;
+          max-width: 400px;
+          background: #FFFFFF;
+          padding: 32px 24px;
+          border-radius: 16px;
+          border: 1px solid #F1F5F9;
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+        }
+
+        /* ===== LOGO ===== */
+        .logo-section {
+          text-align: center;
+          margin-bottom: 24px;
+        }
+
+        .logo-icon {
+          width: 48px;
+          height: 48px;
+          background: linear-gradient(135deg, #F59E0B, #D97706);
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 10px;
+          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+        }
+
+        .brand-name {
+          font-size: 22px;
+          font-weight: 800;
+          margin: 0;
+          font-family: 'Georgia', serif;
+        }
+
+        .brand-dark {
+          color: #1E293B;
+        }
+
+        .brand-gold {
+          color: #F59E0B;
+        }
+
+        .brand-tagline {
+          font-size: 11px;
+          color: #94A3B8;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          margin: 2px 0 0;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+
+        .title {
+          font-size: 20px;
+          font-weight: 700;
+          color: #1E293B;
+          margin: 0;
+        }
+
+        .subtitle {
+          font-size: 13px;
+          color: #94A3B8;
+          margin: 2px 0 0;
+        }
+
+        /* ===== ERROR ===== */
+        .error-alert {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: #FEF2F2;
+          padding: 10px 14px;
+          border-radius: 10px;
+          border: 1px solid #FECACA;
+          margin-bottom: 16px;
+        }
+
+        .error-icon {
+          font-size: 14px;
+        }
+
+        .error-text {
+          flex: 1;
+          font-size: 13px;
+          color: #991B1B;
+        }
+
+        .error-close {
+          background: none;
+          border: none;
+          font-size: 18px;
+          color: #991B1B;
+          cursor: pointer;
+          padding: 0 4px;
+        }
+
+        /* ===== METHOD TABS ===== */
+        .method-tabs {
+          display: flex;
+          gap: 6px;
+          margin-bottom: 20px;
+          background: #F1F5F9;
+          border-radius: 10px;
+          padding: 4px;
+        }
+
+        .method-tab {
+          flex: 1;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          font-size: 13px;
+          font-weight: 600;
+          color: #64748B;
+          cursor: pointer;
+          font-family: inherit;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: all 0.2s;
+        }
+
+        .method-tab.active {
+          background: #1E293B;
+          color: #FFFFFF;
+          box-shadow: 0 2px 8px rgba(30, 41, 59, 0.12);
+        }
+
+        /* ===== FORM ===== */
+        .login-form {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #475569;
+        }
+
+        .input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 12px;
+          display: flex;
+          align-items: center;
+          pointer-events: none;
+        }
+
+        .input-field {
+          width: 100%;
+          padding: 10px 14px 10px 40px;
+          border: 2px solid #E2E8F0;
+          border-radius: 10px;
+          font-size: 14px;
+          color: #1E293B;
+          outline: none;
+          box-sizing: border-box;
+          background: #FFFFFF;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .input-field:focus {
+          border-color: #F59E0B;
+          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+        }
+
+        .input-field::placeholder {
+          color: #94A3B8;
+        }
+
+        .input-field:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .password-input {
+          padding-right: 42px;
+        }
+
+        .eye-btn {
+          position: absolute;
+          right: 12px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .otp-btn {
+          position: absolute;
+          right: 4px;
+          padding: 6px 14px;
+          background: #1E293B;
+          border: none;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #FFFFFF;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .otp-btn:hover:not(:disabled) {
+          background: #F59E0B;
+        }
+
+        .otp-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .otp-timer {
+          position: absolute;
+          right: 12px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #94A3B8;
+        }
+
+        .otp-resend {
+          font-size: 12px;
+          color: #94A3B8;
+          margin: 4px 0 0;
+        }
+
+        .otp-resend-link {
+          background: none;
+          border: none;
+          color: #F59E0B;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+        }
+
+        .otp-resend-link:disabled {
+          color: #94A3B8;
+          cursor: not-allowed;
+        }
+
+        .verify-btn {
+          background: #10B981;
+        }
+
+        .verify-btn:hover:not(:disabled) {
+          background: #059669;
+        }
+
+        /* ===== REMEMBER ===== */
+        .remember-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .remember-label {
+          font-size: 13px;
+          color: #64748B;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+        }
+
+        .remember-check {
+          width: 16px;
+          height: 16px;
+          accent-color: #F59E0B;
+          cursor: pointer;
+        }
+
+        .forgot-link {
+          font-size: 13px;
+          color: #F59E0B;
+          text-decoration: none;
+          font-weight: 500;
+        }
+
+        .forgot-link:hover {
+          text-decoration: underline;
+        }
+
+        /* ===== SUBMIT ===== */
+        .submit-btn {
+          width: 100%;
+          padding: 12px;
+          background: #1E293B;
+          border: none;
+          border-radius: 10px;
+          font-size: 15px;
+          font-weight: 700;
+          color: #FFFFFF;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 48px;
+        }
+
+        .submit-btn:hover:not(.disabled) {
+          background: #F59E0B;
+          transform: scale(0.98);
+        }
+
+        .submit-btn.disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .btn-spinner {
+          width: 20px;
+          height: 20px;
+          border: 2px solid rgba(255,255,255,0.2);
+          border-top-color: #FFFFFF;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* ===== DIVIDER ===== */
+        .divider {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-top: 20px;
+        }
+
+        .divider-line {
+          flex: 1;
+          height: 1px;
+          background: #E2E8F0;
+        }
+
+        .divider-text {
+          font-size: 11px;
+          color: #94A3B8;
+          font-weight: 500;
+          white-space: nowrap;
+        }
+
+        /* ===== SOCIAL ===== */
+        .social-buttons {
+          display: flex;
+          gap: 10px;
+          margin-top: 12px;
+        }
+
+        .social-btn {
+          flex: 1;
+          padding: 10px;
+          border: 2px solid #E2E8F0;
+          border-radius: 10px;
+          background: #FFFFFF;
+          font-size: 13px;
+          font-weight: 600;
+          color: #1E293B;
+          cursor: pointer;
+          font-family: inherit;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: all 0.2s;
+        }
+
+        .social-btn:hover:not(:disabled) {
+          background: #F8FAFC;
+          border-color: #CBD5E1;
+        }
+
+        .social-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* ===== TOGGLE ===== */
+        .toggle-row {
+          margin-top: 16px;
+          padding-top: 14px;
+          border-top: 1px solid #E2E8F0;
+          text-align: center;
+        }
+
+        .toggle-btn {
+          background: none;
+          border: none;
+          font-size: 13px;
+          color: #64748B;
+          cursor: pointer;
+          font-family: inherit;
+          font-weight: 500;
+        }
+
+        .toggle-link {
+          color: #F59E0B;
+          font-weight: 700;
+        }
+
+        /* ===== BACK LINK ===== */
+        .back-link {
+          margin-top: 16px;
+          color: #94A3B8;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: color 0.2s;
+        }
+
+        .back-link:hover {
+          color: #64748B;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 480px) {
+          .login-card {
+            padding: 24px 16px;
+          }
+          .brand-name {
+            font-size: 20px;
+          }
+          .social-buttons {
+            flex-direction: column;
+          }
+          .method-tab {
+            font-size: 12px;
+            padding: 6px 10px;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .login-card {
+            padding: 20px 14px;
+          }
+          .title {
+            font-size: 18px;
+          }
+          .input-field {
+            font-size: 13px;
+            padding: 8px 12px 8px 36px;
+          }
+          .submit-btn {
+            font-size: 14px;
+            padding: 10px;
+            min-height: 44px;
+          }
+        }
+      `}</style>
     </div>
   );
 };

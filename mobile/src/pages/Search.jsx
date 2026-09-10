@@ -3,48 +3,76 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { listingsAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
-import PrimaryButton from '../components/PrimaryButton';
-import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
 import { useAuth } from '../context/AuthContext';
 
-const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path d={d} />
-  </svg>
-);
+// ============================================================
+// LUCIDE-STYLE ICONS
+// ============================================================
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+  const icons = {
+    arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+    search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+    tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+    dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
+    filter: "M3 6h18M6 12h12M10 18h4",
+    clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
+    mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
+    star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+    heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
+    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+    plus: "M12 4v16m8-8H4",
+    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+    sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+  };
 
-const ICONS = {
-  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
-  tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
-  dollar: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
-  filter: "M3 6h18M6 12h12M10 18h4",
-  clock: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2",
-  mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
-  star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
-  heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
-  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
-  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-  plus: "M12 4v16m8-8H4",
-  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
-  logout: "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+  const d = icons[name] || icons.store;
+  
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d={d} />
+    </svg>
+  );
 };
 
+// ============================================================
+// CONSTANTS
+// ============================================================
+const CATEGORIES = [
+  'All',
+  'Products',
+  'Services',
+  'Farm Inputs',
+  'Food & Groceries',
+  'Construction Materials',
+  'Electronics',
+  'Clothing & Fashion',
+  'Vehicles & Parts',
+  'Furniture',
+  'Tools & Equipment',
+  'Other'
+];
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const Search = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { showToast, success, error } = useToast();
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,26 +82,10 @@ const Search = () => {
   const [results, setResults] = useState([]);
   const [totalResults, setTotalResults] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const searchInputRef = useRef(null);
 
   const isMobile = windowWidth <= 768;
-
-  const categories = [
-    'All',
-    'Products',
-    'Services',
-    'Farm Inputs',
-    'Food & Groceries',
-    'Construction Materials',
-    'Electronics',
-    'Clothing & Fashion',
-    'Vehicles & Parts',
-    'Furniture',
-    'Tools & Equipment',
-    'Other'
-  ];
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -93,27 +105,10 @@ const Search = () => {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      success('Logged out successfully');
-      navigate('/');
-    } catch (err) {
-      console.error('Logout error:', err);
-      showToast('Failed to logout', 'error');
-    }
-  };
 
   const performSearch = async (page = 0, query = searchQuery) => {
     setLoading(true);
@@ -164,7 +159,7 @@ const Search = () => {
 
   const formatPrice = (price) => {
     if (!price) return 'Price on request';
-    return `MWK ${price.toLocaleString()}`;
+    return `MK ${price.toLocaleString()}`;
   };
 
   const handleBottomNav = (id) => {
@@ -176,31 +171,61 @@ const Search = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Searching..." />;
+    return (
+      <div className="loading-skeleton">
+        <div className="skeleton-search" />
+        <div className="skeleton-filters" />
+        <div className="skeleton-results">
+          {[1,2,3].map(i => <div key={i} className="skeleton-result" />)}
+        </div>
+        <style jsx>{`
+          .loading-skeleton {
+            min-height: 100vh;
+            background: #F8FAFC;
+            padding: 16px 16px 80px;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          .skeleton-search {
+            height: 60px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-filters {
+            height: 40px;
+            background: #E2E8F0;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          .skeleton-results {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .skeleton-result {
+            height: 100px;
+            background: #E2E8F0;
+            border-radius: 12px;
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+        `}</style>
+      </div>
+    );
   }
 
   return (
     <div className="search-page">
-      {/* Navbar */}
-      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
-        <div className="navbar-inner">
-          <Link to="/landing" className="logo">
-            <span className="logo-icon">K</span>
-            <span className="logo-text">Kumsika</span>
-          </Link>
-          <div className="nav-actions">
-            <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
-            <button onClick={handleLogout} className="logout-btn">
-              <Icon d={ICONS.logout} size={16} color="#EF4444" strokeWidth={1.75} />
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <div className="main-content">
         {/* Back Button */}
         <button className="back-btn" onClick={() => navigate('/dashboard')}>
-          <Icon d={ICONS.arrowLeft} size={16} color="#64748B" strokeWidth={1.75} />
+          <Icon name="arrowLeft" size={16} color="#64748B" strokeWidth={1.75} />
           Back
         </button>
 
@@ -208,7 +233,7 @@ const Search = () => {
         <div className="search-header">
           <div className="search-header-content">
             <div className="header-icon">
-              <Icon d={ICONS.search} size={28} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="search" size={28} color="#F59E0B" strokeWidth={1.75} />
             </div>
             <h1 className="search-title">Search</h1>
             <p className="search-subtitle">Find products and services in your area</p>
@@ -216,25 +241,25 @@ const Search = () => {
 
           <form onSubmit={handleSearch} className="search-form">
             <div className="search-input-wrapper">
-              <Icon d={ICONS.search} size={18} color="#94A3B8" strokeWidth={1.75} />
+              <Icon name="search" size={18} color="#94A3B8" strokeWidth={1.75} />
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search products or services..."
+                placeholder="Search Mitundu marketplace..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input"
                 autoComplete="off"
               />
               <button type="submit" className="search-btn">
-                <Icon d={ICONS.search} size={16} color="#FFFFFF" strokeWidth={1.75} />
+                <Icon name="search" size={16} color="#FFFFFF" strokeWidth={2} />
                 Search
               </button>
             </div>
           </form>
 
           <button className="filter-toggle" onClick={() => setShowFilters(!showFilters)}>
-            <Icon d={ICONS.filter} size={14} color="#64748B" strokeWidth={1.75} />
+            <Icon name="filter" size={14} color="#64748B" strokeWidth={1.75} />
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
 
@@ -248,13 +273,13 @@ const Search = () => {
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     className="filter-select"
                   >
-                    {categories.map(cat => (
+                    {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
                 <div className="filter-group">
-                  <label className="filter-label">Min Price (MWK)</label>
+                  <label className="filter-label">Min Price (MK)</label>
                   <input
                     type="number"
                     value={minPrice}
@@ -264,7 +289,7 @@ const Search = () => {
                   />
                 </div>
                 <div className="filter-group">
-                  <label className="filter-label">Max Price (MWK)</label>
+                  <label className="filter-label">Max Price (MK)</label>
                   <input
                     type="number"
                     value={maxPrice}
@@ -276,7 +301,7 @@ const Search = () => {
               </div>
               <div className="filter-actions">
                 <button className="btn-apply" onClick={() => performSearch(0)}>
-                  Apply Filters
+                  Apply
                 </button>
                 <button className="btn-clear" onClick={clearFilters}>
                   Clear All
@@ -313,7 +338,7 @@ const Search = () => {
                         )}
                         {listing.location_area && (
                           <span className="badge badge-location">
-                            <Icon d={ICONS.mapPin} size={10} color="#1E40AF" strokeWidth={1.75} />
+                            <Icon name="mapPin" size={10} color="#1E40AF" strokeWidth={1.75} />
                             {listing.location_area}
                           </span>
                         )}
@@ -339,13 +364,13 @@ const Search = () => {
           </>
         ) : searchQuery || selectedCategory ? (
           <div className="empty-state">
-            <Icon d={ICONS.search} size={48} color="#CBD5E1" strokeWidth={1.5} />
+            <Icon name="search" size={48} color="#CBD5E1" strokeWidth={1.5} />
             <h3 className="empty-title">No results found</h3>
             <p className="empty-text">Try adjusting your search or filters</p>
           </div>
         ) : (
           <div className="empty-state">
-            <Icon d={ICONS.search} size={48} color="#CBD5E1" strokeWidth={1.5} />
+            <Icon name="search" size={48} color="#CBD5E1" strokeWidth={1.5} />
             <h3 className="empty-title">Search for products and services</h3>
             <p className="empty-text">Enter a search term above to get started</p>
           </div>
@@ -364,11 +389,11 @@ const Search = () => {
           ].map((item) => {
             const active = item.id === 'search';
             return (
-              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
-                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
-                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
+                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
@@ -388,90 +413,6 @@ const Search = () => {
           .search-page {
             padding-bottom: 0;
           }
-        }
-
-        /* ===== NAVBAR ===== */
-        .navbar {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-          transition: all 0.2s;
-        }
-
-        .navbar-scrolled {
-          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
-        }
-
-        .navbar-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 10px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        }
-
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-          background: #1E293B;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #F59E0B;
-          font-weight: 700;
-          font-size: 16px;
-        }
-
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
-          letter-spacing: -0.5px;
-        }
-
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .greeting {
-          font-size: 13px;
-          color: #64748B;
-          display: none;
-        }
-
-        @media (min-width: 640px) {
-          .greeting { display: inline; }
-        }
-
-        .logout-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          border: none;
-          background: #FEF2F2;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-          background: #FEE2E2;
         }
 
         /* ===== MAIN CONTENT ===== */
@@ -580,8 +521,8 @@ const Search = () => {
         }
 
         .search-btn {
-          padding: 8px 20px;
-          background: linear-gradient(135deg, #1E293B, #F59E0B);
+          padding: 8px 16px;
+          background: #1E293B;
           border: none;
           border-radius: 10px;
           color: #FFFFFF;
@@ -596,15 +537,15 @@ const Search = () => {
         }
 
         .search-btn:hover {
+          background: #F59E0B;
           transform: scale(0.98);
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
 
         /* ===== FILTER TOGGLE ===== */
         .filter-toggle {
           background: #F8FAFC;
           border: 1px solid #F1F5F9;
-          padding: 6px 16px;
+          padding: 6px 14px;
           border-radius: 8px;
           cursor: pointer;
           font-size: 13px;
@@ -727,8 +668,8 @@ const Search = () => {
 
         .result-card {
           background: #FFFFFF;
-          border-radius: 14px;
-          padding: 16px 18px;
+          border-radius: 12px;
+          padding: 14px 16px;
           border: 1px solid #F1F5F9;
           cursor: pointer;
           transition: all 0.2s;
@@ -737,12 +678,12 @@ const Search = () => {
         .result-card:hover {
           border-color: #E2E8F0;
           transform: translateY(-2px);
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         }
 
         .result-content {
           display: flex;
-          gap: 14px;
+          gap: 12px;
         }
 
         .result-info {
@@ -751,8 +692,8 @@ const Search = () => {
         }
 
         .result-title {
-          font-size: 16px;
-          font-weight: 700;
+          font-size: 15px;
+          font-weight: 600;
           color: #1E293B;
           margin: 0 0 2px;
         }
@@ -800,10 +741,10 @@ const Search = () => {
         }
 
         .result-image {
-          width: 72px;
-          height: 72px;
+          width: 64px;
+          height: 64px;
           object-fit: cover;
-          border-radius: 10px;
+          border-radius: 8px;
           flex-shrink: 0;
           background: #F1F5F9;
         }
@@ -819,7 +760,7 @@ const Search = () => {
           text-align: center;
           padding: 48px 20px;
           background: #FFFFFF;
-          border-radius: 14px;
+          border-radius: 12px;
           border: 1px solid #F1F5F9;
         }
 
@@ -851,7 +792,7 @@ const Search = () => {
           z-index: 100;
         }
 
-        .nav-item {
+        .nav-btn {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -864,7 +805,7 @@ const Search = () => {
           min-width: 44px;
         }
 
-        .nav-icon {
+        .nav-icon-wrap {
           width: 34px;
           height: 34px;
           border-radius: 10px;
@@ -874,7 +815,7 @@ const Search = () => {
           transition: all 0.2s;
         }
 
-        .nav-icon-active {
+        .nav-icon-wrap.active {
           background: #1E293B;
         }
 
@@ -884,7 +825,7 @@ const Search = () => {
           color: #94A3B8;
         }
 
-        .nav-label-active {
+        .nav-label.active {
           color: #1E293B;
           font-weight: 600;
         }
@@ -905,10 +846,13 @@ const Search = () => {
           }
           .result-image {
             width: 100%;
-            height: 120px;
+            height: 100px;
           }
           .result-card {
             padding: 12px 14px;
+          }
+          .result-title {
+            font-size: 14px;
           }
         }
 
@@ -941,6 +885,18 @@ const Search = () => {
           .btn-clear {
             width: 100%;
             justify-content: center;
+          }
+          .result-image {
+            height: 80px;
+          }
+        }
+
+        @media (min-width: 481px) and (max-width: 768px) {
+          .filter-row {
+            flex-wrap: wrap;
+          }
+          .filter-group {
+            min-width: 160px;
           }
         }
       `}</style>

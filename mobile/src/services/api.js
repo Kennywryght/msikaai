@@ -12,7 +12,9 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  // ✅ Removed `withCredentials: true` — auth is via Supabase Bearer tokens,
+  // not cookies. Keeping it true forces stricter CORS preflight requirements
+  // and was contributing to the net::ERR_FAILED errors.
 });
 
 // ============================================
@@ -37,17 +39,17 @@ api.interceptors.request.use(
     if (config.method === 'get' && config.cache !== false) {
       const cacheKey = `${config.url}${config.params ? JSON.stringify(config.params) : ''}`;
       const cachedData = cacheService.get(cacheKey);
-      
+
       if (cachedData) {
         console.log(`📦 Cache hit for: ${config.url}`);
-        // Return cached data
+        // Short-circuit with cached data via rejected promise
         return Promise.reject({
           __cached: true,
           data: cachedData,
-          config: config
+          config: config,
         });
       }
-      
+
       // Store cache key for later
       config._cacheKey = cacheKey;
     }
@@ -65,35 +67,48 @@ api.interceptors.request.use(
 // ============================================
 api.interceptors.response.use(
   (response) => {
-    console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`);
-    
+    console.log(
+      `✅ ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`
+    );
+
     // ✅ Cache GET requests
     if (response.config.method === 'get' && response.config._cacheKey) {
       const cacheTTL = response.config.cacheTTL || 5 * 60 * 1000; // 5 minutes
       cacheService.set(response.config._cacheKey, response.data, cacheTTL);
       console.log(`📦 Cached: ${response.config._cacheKey}`);
     }
-    
+
     return response;
   },
   (error) => {
-    // ✅ Handle cached responses
+    // ✅ Handle cached responses — resolve with cached data instead of rejecting
     if (error.__cached) {
       console.log(`📦 Using cached data for: ${error.config.url}`);
       return Promise.resolve({
         data: error.data,
         __cached: true,
-        config: error.config
+        config: error.config,
       });
     }
-    
-    console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - Error:`, error.response?.status);
-    console.error(`❌ Response data:`, error.response?.data);
 
-    if (error.response?.status === 401) {
-      console.log('🔒 Unauthorized - clearing stale legacy tokens (if any)');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
+    const method = error.config?.method?.toUpperCase() ?? 'GET';
+    const url = error.config?.url ?? '(unknown)';
+
+    // ✅ Distinguish between HTTP errors and network/CORS failures
+    if (error.response) {
+      // Server responded with a non-2xx status
+      console.error(`❌ ${method} ${url} → HTTP ${error.response.status}`);
+      if (error.response.status === 401) {
+        console.log('🔒 Unauthorized - clearing stale legacy tokens (if any)');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
+      }
+    } else if (error.request) {
+      // Request was sent but no response received (network/CORS/backend down)
+      console.warn(`🌐 ${method} ${url} → no response (network/CORS/backend down)`);
+    } else {
+      // Something else blew up setting up the request
+      console.error(`❌ ${method} ${url} → request setup error:`, error.message);
     }
 
     return Promise.reject(error);
@@ -106,8 +121,8 @@ api.interceptors.response.use(
 export const clearCache = () => cacheService.clear();
 export const invalidateCache = (pattern) => {
   const keys = cacheService.keys();
-  const toRemove = keys.filter(key => key.includes(pattern));
-  toRemove.forEach(key => cacheService.delete(key));
+  const toRemove = keys.filter((key) => key.includes(pattern));
+  toRemove.forEach((key) => cacheService.delete(key));
   return toRemove.length;
 };
 export const getCacheStats = () => cacheService.getInfo();
@@ -183,7 +198,10 @@ export const listingsAPI = {
   },
   getByBusiness: (businessId, params) => {
     console.log('📤 Calling /listings/business/' + businessId);
-    return api.get(`/listings/business/${businessId}`, { params, cacheTTL: 5 * 60 * 1000 });
+    return api.get(`/listings/business/${businessId}`, {
+      params,
+      cacheTTL: 5 * 60 * 1000,
+    });
   },
   getById: (id) => {
     console.log('📤 Calling /listings/' + id);
@@ -210,7 +228,9 @@ export const paymentAPI = {
   getPlans: async () => {
     try {
       console.log('📤 Calling /payment/plans');
-      const response = await api.get('/payment/plans', { cacheTTL: 60 * 60 * 1000 });
+      const response = await api.get('/payment/plans', {
+        cacheTTL: 60 * 60 * 1000,
+      });
       return response;
     } catch (error) {
       console.error('Get plans error:', error);
@@ -240,7 +260,9 @@ export const paymentAPI = {
   getSubscription: async (userId) => {
     try {
       console.log('📤 Calling /payment/subscription/' + userId);
-      const response = await api.get(`/payment/subscription/${userId}`, { cacheTTL: 5 * 60 * 1000 });
+      const response = await api.get(`/payment/subscription/${userId}`, {
+        cacheTTL: 5 * 60 * 1000,
+      });
       return response;
     } catch (error) {
       console.error('Get subscription error:', error);
@@ -260,7 +282,9 @@ export const paymentAPI = {
   canCreateListing: async (userId) => {
     try {
       console.log('📤 Calling /payment/can-create-listing/' + userId);
-      const response = await api.get(`/payment/can-create-listing/${userId}`, { cacheTTL: 2 * 60 * 1000 });
+      const response = await api.get(`/payment/can-create-listing/${userId}`, {
+        cacheTTL: 2 * 60 * 1000,
+      });
       return response;
     } catch (error) {
       console.error('Check listing permission error:', error);
@@ -279,7 +303,9 @@ export const reviewsAPI = {
   },
   getByBusiness: (businessId) => {
     console.log('📤 Calling /reviews/business/' + businessId);
-    return api.get(`/reviews/business/${businessId}`, { cacheTTL: 5 * 60 * 1000 });
+    return api.get(`/reviews/business/${businessId}`, {
+      cacheTTL: 5 * 60 * 1000,
+    });
   },
   getByListing: (listingId) => {
     console.log('📤 Calling /reviews/listing/' + listingId);
@@ -316,22 +342,21 @@ export const voiceAPI = {
   processVoice: (formData) => {
     console.log('📤 Calling /ai/voice/process');
     return api.post('/ai/voice/process', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
   createListing: (formData) => {
     console.log('📤 Calling /ai/voice/create-listing');
     return api.post('/ai/voice/create-listing', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
   getPrompts: (language) => {
     console.log('📤 Calling /ai/voice/prompts with language:', language);
-    return api.get('/ai/voice/prompts', { params: { language }, cacheTTL: 60 * 60 * 1000 });
+    return api.get('/ai/voice/prompts', {
+      params: { language },
+      cacheTTL: 60 * 60 * 1000,
+    });
   },
 };
 
@@ -342,9 +367,7 @@ export const adAPI = {
   generate: (formData) => {
     console.log('📤 Calling /ai/ads/generate');
     return api.post('/ai/ads/generate', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
   batchGenerate: (data) => {
@@ -405,7 +428,10 @@ export const analyticsAPI = {
   },
   getBusinessAnalytics: (businessId, params) => {
     console.log('📤 Getting business analytics for:', businessId);
-    return api.get(`/analytics/business/${businessId}`, { params, cacheTTL: 5 * 60 * 1000 });
+    return api.get(`/analytics/business/${businessId}`, {
+      params,
+      cacheTTL: 5 * 60 * 1000,
+    });
   },
   getPopularListings: (params) => {
     console.log('📤 Getting popular listings');
@@ -413,7 +439,10 @@ export const analyticsAPI = {
   },
   getUserActivity: (userId, params) => {
     console.log('📤 Getting user activity for:', userId);
-    return api.get(`/analytics/user/${userId}`, { params, cacheTTL: 5 * 60 * 1000 });
+    return api.get(`/analytics/user/${userId}`, {
+      params,
+      cacheTTL: 5 * 60 * 1000,
+    });
   },
 };
 
@@ -437,7 +466,10 @@ export const exportAPI = {
 export const notificationsAPI = {
   getNotifications: (userId, params) => {
     console.log('📤 Getting notifications for:', userId);
-    return api.get(`/notifications/user/${userId}`, { params, cacheTTL: 2 * 60 * 1000 });
+    return api.get(`/notifications/user/${userId}`, {
+      params,
+      cacheTTL: 2 * 60 * 1000,
+    });
   },
   markAsRead: (id, userId) => {
     console.log('📤 Marking notification as read:', id);
@@ -463,7 +495,10 @@ export const matchingAPI = {
   },
   getBusinessNeeds: (businessId, params) => {
     console.log('📤 Getting needs for business:', businessId);
-    return api.get(`/matching/business-needs/${businessId}`, { params, cacheTTL: 5 * 60 * 1000 });
+    return api.get(`/matching/business-needs/${businessId}`, {
+      params,
+      cacheTTL: 5 * 60 * 1000,
+    });
   },
   getNeeds: (params) => {
     console.log('📤 Getting all needs:', params);
@@ -480,19 +515,17 @@ export const matchingAPI = {
 // ============================================
 export const uploadWithAuth = async (url, formData) => {
   const token = localStorage.getItem('access_token') || '';
-  
+
   if (!token) {
     throw new Error('No authentication token found. Please log in.');
   }
-  
+
   const response = await fetch(`${API_URL}${url}`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-    body: formData
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
   });
-  
+
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}`;
     try {
@@ -503,21 +536,21 @@ export const uploadWithAuth = async (url, formData) => {
     }
     throw new Error(errorMessage);
   }
-  
+
   return response.json();
 };
 
 export const getWithAuth = async (url) => {
   const token = localStorage.getItem('access_token') || '';
-  
+
   const response = await fetch(`${API_URL}${url}`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-    }
+    },
   });
-  
+
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}`;
     try {
@@ -528,6 +561,6 @@ export const getWithAuth = async (url) => {
     }
     throw new Error(errorMessage);
   }
-  
+
   return response.json();
 };

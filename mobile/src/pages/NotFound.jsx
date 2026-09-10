@@ -4,61 +4,58 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 
-const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path d={d} />
-  </svg>
-);
+// ============================================================
+// LUCIDE-STYLE ICONS
+// ============================================================
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+  const icons = {
+    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+    search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+    arrowLeft: "M19 12H5M12 19l-7-7 7-7",
+    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+    dashboard: "M3 12h3m6-6h3m-9 12h3m6-6h3m-6 6h3M3 6h3M3 18h3M12 6h3M12 18h3M21 6h3M21 18h3M12 12h3M21 12h3",
+    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+    plus: "M12 4v16m8-8H4",
+    sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+  };
 
-const ICONS = {
-  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
-  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
-  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-  dashboard: "M3 12h3m6-6h3m-9 12h3m6-6h3m-6 6h3M3 6h3M3 18h3M12 6h3M12 18h3M21 6h3M21 18h3M12 12h3M21 12h3",
+  const d = icons[name] || icons.store;
+  
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d={d} />
+    </svg>
+  );
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const NotFound = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { showToast, success } = useToast();
-  const [isScrolled, setIsScrolled] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
 
   const isMobile = windowWidth <= 768;
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      success('Logged out successfully');
-      navigate('/');
-    } catch (err) {
-      console.error('Logout error:', err);
-      showToast('Failed to logout', 'error');
-    }
-  };
 
   const handleBottomNav = (id) => {
     if (id === 'home') navigate('/landing');
@@ -70,27 +67,9 @@ const NotFound = () => {
 
   return (
     <div className="not-found">
-      {/* Navbar */}
-      <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
-        <div className="navbar-inner">
-          <Link to="/" className="logo">
-            <span className="logo-icon">K</span>
-            <span className="logo-text">Kumsika</span>
-          </Link>
-          {user && (
-            <div className="nav-actions">
-              <span className="greeting">👋 {user?.email?.split('@')[0] || 'User'}</span>
-              <button onClick={handleLogout} className="logout-btn">
-                <Icon d={ICONS.home} size={16} color="#EF4444" strokeWidth={1.75} />
-              </button>
-            </div>
-          )}
-        </div>
-      </nav>
-
       <div className="main-content">
         <div className="error-container">
-          {/* Animated 404 */}
+          {/* 404 Number */}
           <div className="error-number">
             <span className="digit">4</span>
             <span className="digit zero">0</span>
@@ -106,12 +85,12 @@ const NotFound = () => {
 
           <div className="error-actions">
             <Link to={user ? '/dashboard' : '/'} className="btn-primary">
-              <Icon d={user ? ICONS.dashboard : ICONS.home} size={16} color="#FFFFFF" strokeWidth={1.75} />
+              <Icon name={user ? 'dashboard' : 'home'} size={16} color="#FFFFFF" strokeWidth={1.75} />
               {user ? 'Go to Dashboard' : 'Go Home'}
             </Link>
 
             <Link to="/search" className="btn-secondary">
-              <Icon d={ICONS.search} size={16} color="#1E293B" strokeWidth={1.75} />
+              <Icon name="search" size={16} color="#1E293B" strokeWidth={1.75} />
               Browse Listings
             </Link>
           </div>
@@ -130,15 +109,15 @@ const NotFound = () => {
             <p className="suggestions-title">You might be looking for:</p>
             <div className="suggestions-grid">
               <Link to="/search" className="suggestion-item">
-                <Icon d={ICONS.search} size={14} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="search" size={14} color="#F59E0B" strokeWidth={1.75} />
                 <span>Browse products</span>
               </Link>
               <Link to="/landing" className="suggestion-item">
-                <Icon d={ICONS.home} size={14} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="home" size={14} color="#F59E0B" strokeWidth={1.75} />
                 <span>Home page</span>
               </Link>
               <Link to={user ? '/dashboard' : '/login'} className="suggestion-item">
-                <Icon d={ICONS.store} size={14} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="store" size={14} color="#F59E0B" strokeWidth={1.75} />
                 <span>{user ? 'Dashboard' : 'Sign in'}</span>
               </Link>
             </div>
@@ -152,17 +131,17 @@ const NotFound = () => {
           {[
             { id: 'home', label: 'Home', icon: 'home' },
             { id: 'search', label: 'Search', icon: 'search' },
-            { id: 'sell', label: 'Sell', icon: 'store' },
-            { id: 'messages', label: 'Chat', icon: 'home' },
-            { id: 'profile', label: 'Profile', icon: 'home' },
+            { id: 'sell', label: 'Sell', icon: 'plus' },
+            { id: 'messages', label: 'Chat', icon: 'message' },
+            { id: 'profile', label: 'Profile', icon: 'user' },
           ].map((item) => {
-            const active = item.id === 'search';
+            const active = item.id === 'home';
             return (
-              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
-                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
-                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
+                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
@@ -182,90 +161,6 @@ const NotFound = () => {
           .not-found {
             padding-bottom: 0;
           }
-        }
-
-        /* ===== NAVBAR ===== */
-        .navbar {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          background: rgba(255, 255, 255, 0.92);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-          transition: all 0.2s;
-        }
-
-        .navbar-scrolled {
-          box-shadow: 0 2px 16px rgba(0,0,0,0.04);
-        }
-
-        .navbar-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 10px 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          text-decoration: none;
-        }
-
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-          background: #1E293B;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #F59E0B;
-          font-weight: 700;
-          font-size: 16px;
-        }
-
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
-          letter-spacing: -0.5px;
-        }
-
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .greeting {
-          font-size: 13px;
-          color: #64748B;
-          display: none;
-        }
-
-        @media (min-width: 640px) {
-          .greeting { display: inline; }
-        }
-
-        .logout-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          border: none;
-          background: #FEF2F2;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .logout-btn:hover {
-          background: #FEE2E2;
         }
 
         /* ===== MAIN CONTENT ===== */
@@ -297,7 +192,7 @@ const NotFound = () => {
           justify-content: center;
           gap: 4px;
           margin-bottom: 8px;
-          font-family: "Fraunces", Georgia, serif;
+          font-family: 'Georgia', serif;
         }
 
         .digit {
@@ -331,7 +226,7 @@ const NotFound = () => {
           font-weight: 700;
           color: #1E293B;
           margin: 0 0 8px;
-          font-family: "Fraunces", Georgia, serif;
+          font-family: 'Georgia', serif;
         }
 
         .error-description {
@@ -352,7 +247,7 @@ const NotFound = () => {
 
         .btn-primary {
           padding: 12px 24px;
-          background: linear-gradient(135deg, #1E293B, #F59E0B);
+          background: #1E293B;
           border: none;
           border-radius: 12px;
           color: #FFFFFF;
@@ -370,8 +265,9 @@ const NotFound = () => {
         }
 
         .btn-primary:hover {
+          background: #F59E0B;
           transform: scale(0.98);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
         }
 
         .btn-secondary {
@@ -451,7 +347,7 @@ const NotFound = () => {
           padding: 12px 8px;
           background: #FFFFFF;
           border: 1px solid #F1F5F9;
-          border-radius: 12px;
+          border-radius: 10px;
           text-decoration: none;
           color: #1E293B;
           font-size: 12px;
@@ -484,7 +380,7 @@ const NotFound = () => {
           z-index: 100;
         }
 
-        .nav-item {
+        .nav-btn {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -497,7 +393,7 @@ const NotFound = () => {
           min-width: 44px;
         }
 
-        .nav-icon {
+        .nav-icon-wrap {
           width: 34px;
           height: 34px;
           border-radius: 10px;
@@ -507,7 +403,7 @@ const NotFound = () => {
           transition: all 0.2s;
         }
 
-        .nav-icon-active {
+        .nav-icon-wrap.active {
           background: #1E293B;
         }
 
@@ -517,7 +413,7 @@ const NotFound = () => {
           color: #94A3B8;
         }
 
-        .nav-label-active {
+        .nav-label.active {
           color: #1E293B;
           font-weight: 600;
         }
@@ -541,6 +437,9 @@ const NotFound = () => {
           .digit {
             font-size: 60px;
           }
+          .error-title {
+            font-size: 22px;
+          }
         }
 
         @media (max-width: 380px) {
@@ -555,11 +454,35 @@ const NotFound = () => {
             padding: 10px 20px;
             font-size: 14px;
           }
+          .error-title {
+            font-size: 20px;
+          }
         }
 
         @media (min-width: 481px) and (max-width: 768px) {
           .suggestions-grid {
             grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        /* Reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+          .digit.zero {
+            animation: none;
+          }
+          .suggestion-item {
+            transition: none;
+          }
+          .suggestion-item:hover {
+            transform: none;
+          }
+          .btn-primary,
+          .btn-secondary {
+            transition: none;
+          }
+          .btn-primary:hover,
+          .btn-secondary:hover {
+            transform: none;
           }
         }
       `}</style>

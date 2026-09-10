@@ -3,44 +3,52 @@ import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from '../context/TranslationContext';
 
-const Icon = ({ d, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path d={d} />
-  </svg>
-);
+// ============================================================
+// LUCIDE-STYLE ICONS
+// ============================================================
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+  const icons = {
+    sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
+    heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
+    mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6",
+    phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z",
+    trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
+    check: "M20 6L9 17l-5-5",
+    users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87",
+    bot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
+    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
+    search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+    plus: "M12 4v16m8-8H4",
+    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
+    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+    mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
+    award: "M12 15l-3.5 2 1.33-4.5-3.33-2.5h4.17L12 6l1.33 4h4.17l-3.33 2.5L15.5 17 12 15z",
+  };
 
-const ICONS = {
-  store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-  sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
-  mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
-  bot: "M12 2a2 2 0 012 2v2h4a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h4V4a2 2 0 012-2zM9 12h.01M15 12h.01M10 16h4",
-  heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
-  users: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87",
-  arrowRight: "M5 12h14M12 5l7 7-7 7",
-  check: "M20 6L9 17l-5-5",
-  mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6",
-  phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z",
-  arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-  globe: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z",
-  award: "M12 15l-3.5 2 1.33-4.5-3.33-2.5h4.17L12 6l1.33 4h4.17l-3.33 2.5L15.5 17 12 15z",
-  trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
-  home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
-  search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
-  plus: "M12 4v16m8-8H4",
-  message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
-  user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+  const d = icons[name] || icons.store;
+  
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d={d} />
+    </svg>
+  );
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const About = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -61,11 +69,11 @@ const About = () => {
 
   return (
     <div className="about-page">
-      {/* Hero */}
+      {/* ===== HERO ===== */}
       <section className="hero">
         <div className="hero-content">
           <div className="hero-badge">
-            <Icon d={ICONS.sparkles} size={28} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="sparkles" size={28} color="#F59E0B" strokeWidth={1.75} />
           </div>
           <h1 className="hero-title">
             About <span className="hero-highlight">Kumsika</span>
@@ -76,12 +84,12 @@ const About = () => {
         </div>
       </section>
 
-      {/* Main Content */}
+      {/* ===== MAIN CONTENT ===== */}
       <div className="main-content">
         {/* Mission */}
         <section className="section">
           <div className="section-header">
-            <Icon d={ICONS.heart} size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="heart" size={22} color="#F59E0B" strokeWidth={1.75} />
             <h2 className="section-title">Our Mission</h2>
           </div>
           <div className="card">
@@ -97,7 +105,7 @@ const About = () => {
         {/* Developer & Contact */}
         <section className="section">
           <div className="section-header">
-            <Icon d={ICONS.mail} size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="mail" size={22} color="#F59E0B" strokeWidth={1.75} />
             <h2 className="section-title">Developer and Contact</h2>
           </div>
           <div className="contact-card">
@@ -105,7 +113,7 @@ const About = () => {
               Have questions, feedback or custom development inquiries? Get in touch directly:
             </p>
             <div className="contact-item">
-              <Icon d={ICONS.mail} size={18} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="mail" size={18} color="#F59E0B" strokeWidth={1.75} />
               <span>
                 <strong>Email:</strong>{' '}
                 <a href="mailto:kennedybanda940@gmail.com" className="contact-link">
@@ -114,7 +122,7 @@ const About = () => {
               </span>
             </div>
             <div className="contact-item">
-              <Icon d={ICONS.phone} size={18} color="#10B981" strokeWidth={1.75} />
+              <Icon name="phone" size={18} color="#10B981" strokeWidth={1.75} />
               <span>
                 <strong>WhatsApp:</strong>{' '}
                 <a 
@@ -133,7 +141,7 @@ const About = () => {
         {/* Impact Stats */}
         <section className="section">
           <div className="section-header">
-            <Icon d={ICONS.trendingUp} size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="trendingUp" size={22} color="#F59E0B" strokeWidth={1.75} />
             <h2 className="section-title">Our Impact</h2>
           </div>
           <div className="stats-grid">
@@ -159,27 +167,27 @@ const About = () => {
         {/* Values */}
         <section className="section">
           <div className="section-header">
-            <Icon d={ICONS.check} size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="check" size={22} color="#F59E0B" strokeWidth={1.75} />
             <h2 className="section-title">Our Values</h2>
           </div>
           <div className="values-grid">
             <div className="value-card">
               <div className="value-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-                <Icon d={ICONS.users} size={22} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="users" size={22} color="#F59E0B" strokeWidth={1.75} />
               </div>
               <h4 className="value-title">Community First</h4>
               <p className="value-desc">Built for and with the people of Malawi</p>
             </div>
             <div className="value-card">
               <div className="value-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
-                <Icon d={ICONS.bot} size={22} color="#3B82F6" strokeWidth={1.75} />
+                <Icon name="bot" size={22} color="#3B82F6" strokeWidth={1.75} />
               </div>
               <h4 className="value-title">AI for Everyone</h4>
               <p className="value-desc">Voice and text AI that works in Chichewa</p>
             </div>
             <div className="value-card">
               <div className="value-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-                <Icon d={ICONS.store} size={22} color="#10B981" strokeWidth={1.75} />
+                <Icon name="store" size={22} color="#10B981" strokeWidth={1.75} />
               </div>
               <h4 className="value-title">Local Commerce</h4>
               <p className="value-desc">Supporting local businesses and traders</p>
@@ -190,7 +198,7 @@ const About = () => {
         {/* Team */}
         <section className="section">
           <div className="section-header">
-            <Icon d={ICONS.users} size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="users" size={22} color="#F59E0B" strokeWidth={1.75} />
             <h2 className="section-title">Built with Love</h2>
           </div>
           <div className="team-grid">
@@ -213,7 +221,7 @@ const About = () => {
         </section>
       </div>
 
-      {/* Bottom Nav */}
+      {/* ===== BOTTOM NAV ===== */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -225,18 +233,18 @@ const About = () => {
           ].map((item) => {
             const active = item.id === 'home';
             return (
-              <button key={item.id} className="nav-item" onClick={() => handleBottomNav(item.id)}>
-                <div className={`nav-icon ${active ? 'nav-icon-active' : ''}`}>
-                  <Icon d={ICONS[item.icon]} size={20} color={active ? '#FFF' : '#94A3B8'} strokeWidth={1.75} />
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
+                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'nav-label-active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
         </div>
       )}
 
-      {/* Footer */}
+      {/* ===== FOOTER ===== */}
       <footer className="footer">
         <div className="footer-inner">
           <p className="footer-text">© {new Date().getFullYear()} Kumsika — Built for Malawi 🇲🇼</p>
@@ -260,8 +268,8 @@ const About = () => {
 
         /* ===== HERO ===== */
         .hero {
-          background: linear-gradient(135deg, #1E293B 0%, #334155 50%, #475569 100%);
-          padding: 60px 20px 64px;
+          background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
+          padding: 64px 20px 72px;
           text-align: center;
           position: relative;
           overflow: hidden;
@@ -271,12 +279,24 @@ const About = () => {
         .hero::before {
           content: '';
           position: absolute;
-          width: 400px;
-          height: 400px;
+          width: 500px;
+          height: 500px;
           background: radial-gradient(circle, rgba(245, 158, 11, 0.06) 0%, transparent 70%);
           border-radius: 50%;
-          top: -150px;
-          right: -100px;
+          top: -200px;
+          right: -150px;
+          pointer-events: none;
+        }
+
+        .hero::after {
+          content: '';
+          position: absolute;
+          width: 300px;
+          height: 300px;
+          background: radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, transparent 70%);
+          border-radius: 50%;
+          bottom: -100px;
+          left: -100px;
           pointer-events: none;
         }
 
@@ -291,15 +311,21 @@ const About = () => {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 56px;
-          height: 56px;
-          background: rgba(245, 158, 11, 0.12);
-          border-radius: 16px;
+          width: 60px;
+          height: 60px;
+          background: rgba(245, 158, 11, 0.1);
+          border-radius: 18px;
           margin-bottom: 16px;
+          animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
         }
 
         .hero-title {
-          font-size: clamp(30px, 4.5vw, 40px);
+          font-size: clamp(32px, 4.5vw, 42px);
           font-weight: 800;
           color: #FFFFFF;
           margin: 0 0 8px;
@@ -314,7 +340,7 @@ const About = () => {
 
         .hero-subtitle {
           font-size: clamp(16px, 1.4vw, 18px);
-          color: rgba(255, 255, 255, 0.8);
+          color: rgba(255, 255, 255, 0.7);
           margin: 0;
           line-height: 1.7;
           max-width: 600px;
@@ -325,19 +351,23 @@ const About = () => {
         .main-content {
           max-width: 1000px;
           margin: 0 auto;
-          padding: 32px 16px 40px;
+          padding: 36px 16px 48px;
         }
 
         /* ===== SECTION ===== */
         .section {
-          margin-bottom: 36px;
+          margin-bottom: 40px;
+        }
+
+        .section:last-child {
+          margin-bottom: 0;
         }
 
         .section-header {
           display: flex;
           align-items: center;
           gap: 10px;
-          margin-bottom: 12px;
+          margin-bottom: 14px;
         }
 
         .section-title {
@@ -351,8 +381,9 @@ const About = () => {
         .card {
           background: #FFFFFF;
           border-radius: 14px;
-          padding: 20px 24px;
+          padding: 22px 26px;
           border: 1px solid #F1F5F9;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .card-text {
@@ -366,8 +397,9 @@ const About = () => {
         .contact-card {
           background: #FFFFFF;
           border-radius: 14px;
-          padding: 20px 24px;
+          padding: 22px 26px;
           border: 1px solid #F1F5F9;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .contact-text {
@@ -420,16 +452,18 @@ const About = () => {
 
         .stat-item {
           background: #FFFFFF;
-          border-radius: 14px;
-          padding: 18px 14px;
+          border-radius: 12px;
+          padding: 20px 14px;
           border: 1px solid #F1F5F9;
           text-align: center;
           transition: all 0.2s;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .stat-item:hover {
           border-color: #E2E8F0;
           transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         }
 
         .stat-number {
@@ -454,11 +488,12 @@ const About = () => {
 
         .value-card {
           background: #FFFFFF;
-          border-radius: 14px;
-          padding: 20px 18px;
+          border-radius: 12px;
+          padding: 22px 18px;
           border: 1px solid #F1F5F9;
           text-align: center;
           transition: all 0.2s;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .value-card:hover {
@@ -500,16 +535,18 @@ const About = () => {
 
         .team-card {
           background: #FFFFFF;
-          border-radius: 14px;
-          padding: 20px 16px;
+          border-radius: 12px;
+          padding: 22px 16px;
           border: 1px solid #F1F5F9;
           text-align: center;
           transition: all 0.2s;
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
         .team-card:hover {
           border-color: #E2E8F0;
           transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         }
 
         .team-avatar {
@@ -522,7 +559,7 @@ const About = () => {
           justify-content: center;
           margin: 0 auto 12px;
           font-size: clamp(28px, 3vw, 32px);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
         }
 
         .team-name {
@@ -553,7 +590,7 @@ const About = () => {
           z-index: 100;
         }
 
-        .nav-item {
+        .nav-btn {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -566,7 +603,7 @@ const About = () => {
           min-width: 44px;
         }
 
-        .nav-icon {
+        .nav-icon-wrap {
           width: 34px;
           height: 34px;
           border-radius: 10px;
@@ -576,7 +613,7 @@ const About = () => {
           transition: all 0.2s;
         }
 
-        .nav-icon-active {
+        .nav-icon-wrap.active {
           background: #1E293B;
         }
 
@@ -586,7 +623,7 @@ const About = () => {
           color: #94A3B8;
         }
 
-        .nav-label-active {
+        .nav-label.active {
           color: #1E293B;
           font-weight: 600;
         }
@@ -594,8 +631,9 @@ const About = () => {
         /* ===== FOOTER ===== */
         .footer {
           background: #1E293B;
-          padding: 20px 16px;
+          padding: 24px 16px;
           text-align: center;
+          border-top: 1px solid rgba(255, 255, 255, 0.04);
         }
 
         .footer-inner {
@@ -605,14 +643,15 @@ const About = () => {
 
         .footer-text {
           font-size: 14px;
-          color: rgba(255, 255, 255, 0.4);
+          color: rgba(255, 255, 255, 0.3);
           margin: 0;
+          letter-spacing: 0.3px;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 380px) {
           .hero {
-            padding: 40px 16px 44px;
+            padding: 44px 16px 48px;
           }
           .hero-title {
             font-size: 26px;
@@ -621,7 +660,7 @@ const About = () => {
             gap: 8px;
           }
           .stat-item {
-            padding: 12px 8px;
+            padding: 14px 8px;
           }
           .stat-number {
             font-size: 20px;
@@ -632,20 +671,34 @@ const About = () => {
           .team-grid {
             grid-template-columns: 1fr 1fr;
           }
-        }
-
-        @media (max-width: 480px) {
           .card {
             padding: 16px 18px;
           }
           .contact-card {
             padding: 16px 18px;
           }
+        }
+
+        @media (max-width: 480px) {
+          .card {
+            padding: 18px 20px;
+          }
+          .contact-card {
+            padding: 18px 20px;
+          }
           .value-card {
-            padding: 16px 14px;
+            padding: 18px 16px;
           }
           .team-card {
-            padding: 16px 14px;
+            padding: 18px 14px;
+          }
+          .hero-badge {
+            width: 48px;
+            height: 48px;
+          }
+          .hero-badge svg {
+            width: 22px;
+            height: 22px;
           }
         }
 
@@ -655,6 +708,31 @@ const About = () => {
           }
           .team-grid {
             grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        /* Reduced motion preference */
+        @media (prefers-reduced-motion: reduce) {
+          .hero-badge {
+            animation: none;
+          }
+          .stat-item {
+            transition: none;
+          }
+          .stat-item:hover {
+            transform: none;
+          }
+          .value-card {
+            transition: none;
+          }
+          .value-card:hover {
+            transform: none;
+          }
+          .team-card {
+            transition: none;
+          }
+          .team-card:hover {
+            transform: none;
           }
         }
       `}</style>
