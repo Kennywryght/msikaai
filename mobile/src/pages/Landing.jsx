@@ -31,17 +31,14 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     wheat: "M12 22V8M12 8c0-3 2-5 5-5-1 3-2 5-5 5zM12 8c0-3-2-5-5-5 1 3 2 5 5 5zM12 14c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4zM12 14c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4z",
     hammer: "M14.5 4.5l5 5L17 12l-5-5 2.5-2.5zM3 21l7.5-7.5M13 8L6 15l-1 4 4-1 7-7",
     wrench: "M14.7 6.3a4 4 0 11-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 015.4-5.4z",
-    bag: "M6 2l1.5 5M18 2l-1.5 5M4 7h16l-1.5 13a2 2 0 01-2 1.8H7.5a2 2 0 01-2-1.8L4 7zM9 11v3M15 11v3",
     coffee: "M8 3v3m4-3v3m4-3v3M4 14h16a2 2 0 002-2v-1a2 2 0 00-2-2H4a2 2 0 00-2 2v1a2 2 0 002 2zm0 0v4a4 4 0 004 4h8a4 4 0 004-4v-4",
     shirt: "M16 3l4 4-3 3-2-2v13H9V8L7 10 4 7l4-4 2 2h4l2-2z",
-    tool: "M14.7 6.3a4 4 0 11-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 015.4-5.4z",
     layers: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
-    refresh: "M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15",
     bell: "M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0",
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -61,7 +58,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 };
 
 // ============================================================
-// CATEGORIES WITH LUCIDE ICONS
+// CATEGORIES
 // ============================================================
 const CATEGORIES = [
   { label: 'All', icon: 'layers' },
@@ -73,28 +70,20 @@ const CATEGORIES = [
 ];
 
 // ============================================================
-// BOARD ITEMS
-// ============================================================
-const BOARD_ITEMS = [
-  { label: 'Tomatoes', price: 'MK500-700', emoji: '🍅', color: '#F59E0B' },
-  { label: 'Maize', price: 'MK350', emoji: '🌽', color: '#10B981' },
-  { label: 'Onions', price: 'MK800', emoji: '🧅', color: '#8B5CF6' },
-  { label: 'Cabbage', price: 'MK400', emoji: '🥬', color: '#3B82F6' },
-];
-
-// ============================================================
 // MAIN COMPONENT
 // ============================================================
 const Landing = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { showToast, success } = useToast();
-  
+  const { success } = useToast();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [allListings, setAllListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 375
+  );
   const [likedItems, setLikedItems] = useState({});
   const [comments, setComments] = useState({});
   const [showComments, setShowComments] = useState({});
@@ -102,9 +91,8 @@ const Landing = () => {
   const [replyText, setReplyText] = useState({});
   const [commentText, setCommentText] = useState({});
   const [activeTab, setActiveTab] = useState('all');
-  
-  const searchInputRef = useRef(null);
 
+  const searchInputRef = useRef(null);
   const isMobile = windowWidth <= 768;
 
   useEffect(() => {
@@ -119,14 +107,14 @@ const Landing = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Load comments from localStorage
+  // Local comments persistence (still client-side; will move to backend later)
   useEffect(() => {
-    const savedComments = localStorage.getItem('listingComments');
-    if (savedComments) {
+    const saved = localStorage.getItem('listingComments');
+    if (saved) {
       try {
-        setComments(JSON.parse(savedComments));
-      } catch (e) {
-        console.error('Error loading comments:', e);
+        setComments(JSON.parse(saved));
+      } catch (err) {
+        console.error('Error loading comments:', err);
       }
     }
   }, []);
@@ -138,7 +126,7 @@ const Landing = () => {
   }, [comments]);
 
   const handleLike = (itemId) => {
-    setLikedItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
+    setLikedItems((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
   const handleAddComment = (itemId) => {
@@ -149,23 +137,18 @@ const Landing = () => {
       id: Date.now().toString(),
       user: user?.email?.split('@')[0] || 'Anonymous',
       userId: user?.id || 'unknown',
-      text: text,
+      text,
       timestamp: Date.now(),
       replies: [],
     };
 
-    setComments(prev => ({
+    setComments((prev) => ({
       ...prev,
-      [itemId]: [...(prev[itemId] || []), newComment]
+      [itemId]: [...(prev[itemId] || []), newComment],
     }));
 
-    setCommentText(prev => ({ ...prev, [itemId]: '' }));
+    setCommentText((prev) => ({ ...prev, [itemId]: '' }));
     success('💬 Comment added!');
-
-    const listing = allListings.find(l => l.id === itemId);
-    if (listing && listing.businesses?.id && listing.businesses.id !== user?.id) {
-      sendNotification(listing.businesses.id, 'comment', `New comment on "${listing.title}"`);
-    }
   };
 
   const handleAddReply = (itemId, commentId) => {
@@ -176,143 +159,137 @@ const Landing = () => {
       id: Date.now().toString(),
       user: user?.email?.split('@')[0] || 'Anonymous',
       userId: user?.id || 'unknown',
-      text: text,
+      text,
       timestamp: Date.now(),
     };
 
-    setComments(prev => ({
+    setComments((prev) => ({
       ...prev,
-      [itemId]: prev[itemId].map(c => 
-        c.id === commentId 
-          ? { ...c, replies: [...(c.replies || []), newReply] }
-          : c
-      )
+      [itemId]: prev[itemId].map((c) =>
+        c.id === commentId ? { ...c, replies: [...(c.replies || []), newReply] } : c
+      ),
     }));
 
-    setReplyText(prev => ({ ...prev, [`${itemId}-${commentId}`]: '' }));
-    setReplyTo(prev => ({ ...prev, [`${itemId}-${commentId}`]: false }));
+    setReplyText((prev) => ({ ...prev, [`${itemId}-${commentId}`]: '' }));
+    setReplyTo((prev) => ({ ...prev, [`${itemId}-${commentId}`]: false }));
     success('💬 Reply added!');
-
-    const comment = comments[itemId]?.find(c => c.id === commentId);
-    if (comment && comment.userId !== user?.id) {
-      sendNotification(comment.userId, 'reply', `Someone replied to your comment`);
-    }
   };
 
   const toggleComments = (itemId) => {
-    setShowComments(prev => ({ 
-      ...prev, 
-      [itemId]: !prev[itemId] 
-    }));
+    setShowComments((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
   const toggleReply = (itemId, commentId) => {
     const key = `${itemId}-${commentId}`;
-    setReplyTo(prev => ({ ...prev, [key]: !prev[key] }));
+    setReplyTo((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const sendNotification = async (recipientId, type, message) => {
-    try {
-      await notificationsAPI.create({
-        userId: recipientId,
-        type: type,
-        title: type === 'comment' ? 'New Comment' : 'New Reply',
-        description: message,
-        read: false,
-      });
-    } catch (err) {
-      console.error('Error sending notification:', err);
-    }
-  };
-
+  // Fetch real data — no fake likes / comments / ratings
   useEffect(() => {
     let mounted = true;
+
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [listingsRes, bizResponse] = await Promise.all([
-          listingsAPI.search({ limit: 50 }),
-          businessAPI.getAll({ limit: 20 }).catch(() => ({ data: { businesses: [] } }))
+        const [listingsRes, bizRes] = await Promise.all([
+          listingsAPI.search({ limit: 50 }).catch(() => ({ data: { listings: [] } })),
+          businessAPI.getAll({ limit: 20 }).catch(() => ({ data: { businesses: [] } })),
         ]);
-        
+
         if (!mounted) return;
-        
+
         let listingsData = listingsRes.data?.listings || [];
-        
-        if (listingsData.length === 0 && bizResponse.data?.businesses?.length > 0) {
-          listingsData = bizResponse.data.businesses.map((b) => ({
+
+        // Fallback: if no listings yet, surface businesses as cards
+        if (listingsData.length === 0 && bizRes.data?.businesses?.length > 0) {
+          listingsData = bizRes.data.businesses.map((b) => ({
             id: `biz-${b.id}`,
             title: b.business_name,
-            description: b.description || 'Business in Mitundu',
+            description: b.description || '',
             category: b.category,
             price: null,
             images: b.logo_url ? [b.logo_url] : [],
             businesses: { business_name: b.business_name, id: b.id },
             created_at: b.created_at,
             is_business: true,
-            location_area: b.location_text || 'Mitundu Trading Centre',
+            location_area: b.location_text || '',
             delivery_available: b.delivery_available || false,
             business_id: b.id,
-            likes: Math.floor(Math.random() * 20),
-            comments_count: Math.floor(Math.random() * 5),
+            // ✅ No fake likes / comments_count / rating
           }));
         }
-        
-        listingsData = listingsData.map(item => ({
-          ...item,
-          likes: item.likes || Math.floor(Math.random() * 15),
-          comments_count: item.comments_count || Math.floor(Math.random() * 5),
-        }));
-        
+
+        // ✅ Remove the fake `Math.random()` decorations from before
         if (mounted) setAllListings(listingsData);
       } catch (err) {
         console.error('Error fetching data:', err);
+        if (mounted) setAllListings([]);
       } finally {
         if (mounted) setLoading(false);
       }
     };
-    
+
     fetchData();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const filteredListings = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     const isService = (item) => {
-      const serviceCategories = ['Plumber', 'Electrician', 'Carpenter', 'Mechanic', 'Tailor', 'Hairdresser', 'Services'];
-      return serviceCategories.some(cat => item.category?.toLowerCase().includes(cat.toLowerCase()));
+      const serviceCategories = [
+        'Plumber',
+        'Electrician',
+        'Carpenter',
+        'Mechanic',
+        'Tailor',
+        'Hairdresser',
+        'Services',
+      ];
+      return serviceCategories.some((cat) =>
+        item.category?.toLowerCase().includes(cat.toLowerCase())
+      );
     };
 
     return allListings.filter((item) => {
-      const categoryMatch = selectedCategory === 'All' || 
+      const categoryMatch =
+        selectedCategory === 'All' ||
         item.category?.toLowerCase().includes(selectedCategory.toLowerCase());
-      const searchMatch = !query ||
+      const searchMatch =
+        !query ||
         item.title?.toLowerCase().includes(query) ||
         item.category?.toLowerCase().includes(query) ||
         item.businesses?.business_name?.toLowerCase().includes(query);
-      
+
       let tabMatch = true;
       if (activeTab === 'goods') tabMatch = !isService(item);
       else if (activeTab === 'services') tabMatch = isService(item);
-      
+
       return categoryMatch && searchMatch && tabMatch;
     });
   }, [allListings, selectedCategory, searchQuery, activeTab]);
 
-  const handleSearch = useCallback((e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  }, [searchQuery, navigate]);
+  const handleSearch = useCallback(
+    (e) => {
+      e.preventDefault();
+      if (searchQuery.trim()) {
+        navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      }
+    },
+    [searchQuery, navigate]
+  );
 
-  const handleListingClick = useCallback((item) => {
-    if (item.is_business) {
-      navigate(`/search?q=${encodeURIComponent(item.title)}`);
-    } else {
-      navigate(`/listing/${item.id}`);
-    }
-  }, [navigate]);
+  const handleListingClick = useCallback(
+    (item) => {
+      if (item.is_business) {
+        navigate(`/search?q=${encodeURIComponent(item.title)}`);
+      } else {
+        navigate(`/listing/${item.id}`);
+      }
+    },
+    [navigate]
+  );
 
   const formatPrice = useCallback((price) => {
     if (!price) return 'Price on request';
@@ -330,7 +307,7 @@ const Landing = () => {
   const getTotalCommentCount = (itemId) => {
     const itemComments = comments[itemId] || [];
     let count = itemComments.length;
-    itemComments.forEach(c => {
+    itemComments.forEach((c) => {
       count += (c.replies || []).length;
     });
     return count;
@@ -351,22 +328,25 @@ const Landing = () => {
       <div className="loading-skeleton">
         <div className="skeleton-hero" />
         <div className="skeleton-categories">
-          {[1,2,3,4,5,6].map(i => <div key={i} className="skeleton-chip" />)}
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="skeleton-chip" />
+          ))}
         </div>
-        <div className="skeleton-board" />
         <div className="skeleton-feed">
-          {[1,2,3,4].map(i => <div key={i} className="skeleton-card" />)}
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton-card" />
+          ))}
         </div>
         <style jsx>{`
           .loading-skeleton {
             min-height: 100vh;
-            background: #F8FAFC;
+            background: #f8fafc;
             padding: 16px;
             padding-bottom: 80px;
           }
           .skeleton-hero {
             height: 120px;
-            background: #E2E8F0;
+            background: #e2e8f0;
             border-radius: 16px;
             margin-bottom: 16px;
             animation: pulse 1.5s ease-in-out infinite;
@@ -379,15 +359,8 @@ const Landing = () => {
           .skeleton-chip {
             width: 70px;
             height: 32px;
-            background: #E2E8F0;
+            background: #e2e8f0;
             border-radius: 16px;
-            animation: pulse 1.5s ease-in-out infinite;
-          }
-          .skeleton-board {
-            height: 80px;
-            background: #E2E8F0;
-            border-radius: 16px;
-            margin-bottom: 16px;
             animation: pulse 1.5s ease-in-out infinite;
           }
           .skeleton-feed {
@@ -397,7 +370,7 @@ const Landing = () => {
           }
           .skeleton-card {
             height: 80px;
-            background: #E2E8F0;
+            background: #e2e8f0;
             border-radius: 12px;
             animation: pulse 1.5s ease-in-out infinite;
           }
@@ -417,11 +390,14 @@ const Landing = () => {
         <div className="header-content">
           <div className="hero">
             <h1 className="hero-title">
-              Find what you need,<br />
+              Find what you need,
+              <br />
               <span className="hero-highlight">right here.</span>
             </h1>
-            <p className="hero-desc">Local products, services, and tradespeople in Mitundu</p>
-            
+            <p className="hero-desc">
+              Local products, services, and tradespeople in Mitundu
+            </p>
+
             <form onSubmit={handleSearch} className="search-form">
               <div className="search-wrapper">
                 <Icon name="search" size={18} color="#94A3B8" strokeWidth={1.75} />
@@ -453,7 +429,12 @@ const Landing = () => {
                 className={`category-chip ${active ? 'active' : ''}`}
                 onClick={() => setSelectedCategory(cat.label)}
               >
-                <Icon name={cat.icon} size={14} color={active ? '#F59E0B' : '#94A3B8'} strokeWidth={1.75} />
+                <Icon
+                  name={cat.icon}
+                  size={14}
+                  color={active ? '#F59E0B' : '#94A3B8'}
+                  strokeWidth={1.75}
+                />
                 <span>{cat.label}</span>
               </button>
             );
@@ -461,49 +442,42 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ===== BOARD ===== */}
-      <div className="board-section">
-        <div className="board-header">
-          <div className="board-title-wrap">
-            <Icon name="sparkles" size={16} color="#F59E0B" strokeWidth={1.75} />
-            <h3 className="board-title">Today's Board</h3>
-          </div>
-          <span className="board-time">Updated 7:40am</span>
-        </div>
-        <div className="board-grid">
-          {BOARD_ITEMS.map((item, index) => (
-            <div key={index} className="board-item" style={{ borderColor: item.color }}>
-              <span className="board-emoji">{item.emoji}</span>
-              <div className="board-info">
-                <span className="board-label">{item.label}</span>
-                <span className="board-price" style={{ color: item.color }}>{item.price}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ===== TABS ===== */}
       <div className="tabs-section">
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
           onClick={() => setActiveTab('all')}
         >
-          <Icon name="layers" size={14} color={activeTab === 'all' ? '#F59E0B' : '#94A3B8'} strokeWidth={1.75} />
+          <Icon
+            name="layers"
+            size={14}
+            color={activeTab === 'all' ? '#F59E0B' : '#94A3B8'}
+            strokeWidth={1.75}
+          />
           All
         </button>
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'goods' ? 'active' : ''}`}
           onClick={() => setActiveTab('goods')}
         >
-          <Icon name="store" size={14} color={activeTab === 'goods' ? '#F59E0B' : '#94A3B8'} strokeWidth={1.75} />
+          <Icon
+            name="store"
+            size={14}
+            color={activeTab === 'goods' ? '#F59E0B' : '#94A3B8'}
+            strokeWidth={1.75}
+          />
           Goods
         </button>
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'services' ? 'active' : ''}`}
           onClick={() => setActiveTab('services')}
         >
-          <Icon name="wrench" size={14} color={activeTab === 'services' ? '#F59E0B' : '#94A3B8'} strokeWidth={1.75} />
+          <Icon
+            name="wrench"
+            size={14}
+            color={activeTab === 'services' ? '#F59E0B' : '#94A3B8'}
+            strokeWidth={1.75}
+          />
           Services
         </button>
       </div>
@@ -527,16 +501,31 @@ const Landing = () => {
               const itemComments = comments[item.id] || [];
               const showCommentsForItem = showComments[item.id] || false;
               const totalComments = getTotalCommentCount(item.id);
+              const realLikeCount = item.likes ?? 0;
+              const realCommentCount = item.comments_count ?? 0;
 
               return (
                 <div key={item.id} className="feed-card">
-                  <div className="feed-card-main" onClick={() => handleListingClick(item)}>
+                  <div
+                    className="feed-card-main"
+                    onClick={() => handleListingClick(item)}
+                  >
                     <div className="feed-image">
                       {item.images && item.images.length > 0 ? (
-                        <img src={item.images[0]} alt={item.title} className="feed-img" loading="lazy" />
+                        <img
+                          src={item.images[0]}
+                          alt={item.title}
+                          className="feed-img"
+                          loading="lazy"
+                        />
                       ) : (
                         <div className="feed-placeholder">
-                          <Icon name="store" size={24} color="#CBD5E1" strokeWidth={1.5} />
+                          <Icon
+                            name="store"
+                            size={24}
+                            color="#CBD5E1"
+                            strokeWidth={1.5}
+                          />
                         </div>
                       )}
                       {item.delivery_available && (
@@ -552,37 +541,70 @@ const Landing = () => {
                       </div>
                       <div className="feed-meta">
                         <span className="feed-seller">
-                          <Icon name="user" size={10} color="#94A3B8" strokeWidth={1.75} />
+                          <Icon
+                            name="user"
+                            size={10}
+                            color="#94A3B8"
+                            strokeWidth={1.75}
+                          />
                           {item.businesses?.business_name || 'Local seller'}
                         </span>
-                        <span className="feed-rating">
-                          <Icon name="star" size={10} color="#F59E0B" strokeWidth={2} />
-                          4.8
-                        </span>
-                        <span className="feed-location">
-                          <Icon name="mapPin" size={10} color="#94A3B8" strokeWidth={1.75} />
-                          {item.location_area || 'Near you'}
-                        </span>
+
+                        {/* ✅ Only show rating if it exists in the data */}
+                        {item.rating != null && item.rating > 0 && (
+                          <span className="feed-rating">
+                            <Icon
+                              name="star"
+                              size={10}
+                              color="#F59E0B"
+                              strokeWidth={2}
+                            />
+                            {Number(item.rating).toFixed(1)}
+                          </span>
+                        )}
+
+                        {item.location_area && (
+                          <span className="feed-location">
+                            <Icon
+                              name="mapPin"
+                              size={10}
+                              color="#94A3B8"
+                              strokeWidth={1.75}
+                            />
+                            {item.location_area}
+                          </span>
+                        )}
                       </div>
                       <div className="feed-actions">
-                        <button 
+                        <button
                           className="action-btn like-btn"
-                          onClick={(e) => { e.stopPropagation(); handleLike(item.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLike(item.id);
+                          }}
                         >
-                          <Icon 
-                            name="heart" 
-                            size={14} 
-                            color={isLiked ? '#EF4444' : '#94A3B8'} 
+                          <Icon
+                            name="heart"
+                            size={14}
+                            color={isLiked ? '#EF4444' : '#94A3B8'}
                             strokeWidth={isLiked ? 2.5 : 1.5}
                           />
-                          <span>{item.likes + (isLiked ? 1 : 0)}</span>
+                          <span>{realLikeCount + (isLiked ? 1 : 0)}</span>
                         </button>
-                        <button 
+                        <button
                           className="action-btn comment-btn"
-                          onClick={(e) => { e.stopPropagation(); toggleComments(item.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleComments(item.id);
+                          }}
                         >
-                          <Icon name="message" size={14} color="#94A3B8" strokeWidth={1.75} />
-                          <span>{item.comments_count + totalComments}</span>
+                          <Icon
+                            name="message"
+                            size={14}
+                            color="#94A3B8"
+                            strokeWidth={1.75}
+                          />
+                          <span>{realCommentCount + totalComments}</span>
                         </button>
                       </div>
                     </div>
@@ -590,17 +612,27 @@ const Landing = () => {
 
                   {/* Comments */}
                   {showCommentsForItem && (
-                    <div className="feed-comments" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="feed-comments"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <div className="comment-input-wrap">
                         <input
                           type="text"
                           placeholder="Write a comment..."
                           value={commentText[item.id] || ''}
-                          onChange={(e) => setCommentText(prev => ({ ...prev, [item.id]: e.target.value }))}
-                          onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(item.id); }}
+                          onChange={(e) =>
+                            setCommentText((prev) => ({
+                              ...prev,
+                              [item.id]: e.target.value,
+                            }))
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleAddComment(item.id);
+                          }}
                           className="comment-input"
                         />
-                        <button 
+                        <button
                           className="comment-send"
                           onClick={() => handleAddComment(item.id)}
                         >
@@ -616,14 +648,21 @@ const Landing = () => {
                             <div key={comment.id} className="comment-item">
                               <div className="comment-head">
                                 <span className="comment-user">{comment.user}</span>
-                                <span className="comment-time">{formatTime(comment.timestamp)}</span>
+                                <span className="comment-time">
+                                  {formatTime(comment.timestamp)}
+                                </span>
                               </div>
                               <p className="comment-text">{comment.text}</p>
-                              <button 
+                              <button
                                 className="reply-trigger"
                                 onClick={() => toggleReply(item.id, comment.id)}
                               >
-                                <Icon name="reply" size={10} color="#94A3B8" strokeWidth={1.75} />
+                                <Icon
+                                  name="reply"
+                                  size={10}
+                                  color="#94A3B8"
+                                  strokeWidth={1.75}
+                                />
                                 Reply
                               </button>
 
@@ -633,20 +672,30 @@ const Landing = () => {
                                     type="text"
                                     placeholder={`Reply to ${comment.user}...`}
                                     value={replyText[`${item.id}-${comment.id}`] || ''}
-                                    onChange={(e) => setReplyText(prev => ({ 
-                                      ...prev, 
-                                      [`${item.id}-${comment.id}`]: e.target.value 
-                                    }))}
-                                    onKeyDown={(e) => { 
-                                      if (e.key === 'Enter') handleAddReply(item.id, comment.id); 
+                                    onChange={(e) =>
+                                      setReplyText((prev) => ({
+                                        ...prev,
+                                        [`${item.id}-${comment.id}`]: e.target.value,
+                                      }))
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter')
+                                        handleAddReply(item.id, comment.id);
                                     }}
                                     className="reply-input"
                                   />
-                                  <button 
+                                  <button
                                     className="reply-send"
-                                    onClick={() => handleAddReply(item.id, comment.id)}
+                                    onClick={() =>
+                                      handleAddReply(item.id, comment.id)
+                                    }
                                   >
-                                    <Icon name="send" size={12} color="#FFFFFF" strokeWidth={2} />
+                                    <Icon
+                                      name="send"
+                                      size={12}
+                                      color="#FFFFFF"
+                                      strokeWidth={2}
+                                    />
                                   </button>
                                 </div>
                               )}
@@ -656,8 +705,12 @@ const Landing = () => {
                                   {comment.replies.map((reply) => (
                                     <div key={reply.id} className="reply-item">
                                       <div className="reply-head">
-                                        <span className="reply-user">{reply.user}</span>
-                                        <span className="reply-time">{formatTime(reply.timestamp)}</span>
+                                        <span className="reply-user">
+                                          {reply.user}
+                                        </span>
+                                        <span className="reply-time">
+                                          {formatTime(reply.timestamp)}
+                                        </span>
                                       </div>
                                       <p className="reply-text">{reply.text}</p>
                                     </div>
@@ -677,7 +730,11 @@ const Landing = () => {
             <div className="empty-state">
               <Icon name="store" size={48} color="#CBD5E1" strokeWidth={1.5} />
               <h3 className="empty-title">No listings found</h3>
-              <p className="empty-desc">Try adjusting your filters</p>
+              <p className="empty-desc">
+                {searchQuery || selectedCategory !== 'All'
+                  ? 'Try adjusting your filters'
+                  : 'Be the first to post something!'}
+              </p>
             </div>
           )}
         </div>
@@ -695,11 +752,22 @@ const Landing = () => {
           ].map((item) => {
             const active = item.id === 'home';
             return (
-              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+              <button
+                key={item.id}
+                className="nav-btn"
+                onClick={() => handleBottomNav(item.id)}
+              >
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon
+                    name={item.icon}
+                    size={20}
+                    color={active ? '#FFFFFF' : '#94A3B8'}
+                    strokeWidth={1.75}
+                  />
                 </div>
-                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>
+                  {item.label}
+                </span>
               </button>
             );
           })}
@@ -709,21 +777,22 @@ const Landing = () => {
       <style jsx>{`
         .app {
           min-height: 100vh;
-          background: #F8FAFC;
+          background: #f8fafc;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          color: #1e293b;
           padding-bottom: 80px;
         }
 
         @media (min-width: 769px) {
-          .app { padding-bottom: 0; }
+          .app {
+            padding-bottom: 0;
+          }
         }
 
-        /* ===== HEADER / HERO ===== */
         .header {
-          background: #FFFFFF;
+          background: #ffffff;
           padding: 16px 16px 0;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid #f1f5f9;
         }
 
         .header-content {
@@ -744,16 +813,15 @@ const Landing = () => {
         }
 
         .hero-highlight {
-          color: #F59E0B;
+          color: #f59e0b;
         }
 
         .hero-desc {
           font-size: 14px;
-          color: #94A3B8;
+          color: #94a3b8;
           margin: 0 0 16px;
         }
 
-        /* ===== SEARCH ===== */
         .search-form {
           max-width: 500px;
         }
@@ -762,7 +830,7 @@ const Landing = () => {
           display: flex;
           align-items: center;
           gap: 10px;
-          background: #F1F5F9;
+          background: #f1f5f9;
           border-radius: 12px;
           padding: 4px 4px 4px 14px;
           border: 2px solid transparent;
@@ -770,9 +838,9 @@ const Landing = () => {
         }
 
         .search-wrapper:focus-within {
-          border-color: #F59E0B;
-          background: #FFFFFF;
-          box-shadow: 0 0 0 4px rgba(245,158,11,0.08);
+          border-color: #f59e0b;
+          background: #ffffff;
+          box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.08);
         }
 
         .search-input {
@@ -783,19 +851,19 @@ const Landing = () => {
           padding: 10px 0;
           font-size: 15px;
           font-family: inherit;
-          color: #1E293B;
+          color: #1e293b;
         }
 
         .search-input::placeholder {
-          color: #94A3B8;
+          color: #94a3b8;
         }
 
         .search-btn {
           padding: 8px 14px;
-          background: #1E293B;
+          background: #1e293b;
           border: none;
           border-radius: 10px;
-          color: #FFFFFF;
+          color: #ffffff;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -804,14 +872,13 @@ const Landing = () => {
         }
 
         .search-btn:hover {
-          background: #F59E0B;
+          background: #f59e0b;
         }
 
-        /* ===== CATEGORIES ===== */
         .categories-section {
           padding: 12px 16px;
-          background: #FFFFFF;
-          border-bottom: 1px solid #F1F5F9;
+          background: #ffffff;
+          border-bottom: 1px solid #f1f5f9;
         }
 
         .categories-scroll {
@@ -831,11 +898,11 @@ const Landing = () => {
           gap: 6px;
           padding: 6px 14px;
           border-radius: 20px;
-          background: #F8FAFC;
-          border: 1px solid #F1F5F9;
+          background: #f8fafc;
+          border: 1px solid #f1f5f9;
           font-size: 12px;
           font-weight: 500;
-          color: #94A3B8;
+          color: #94a3b8;
           cursor: pointer;
           white-space: nowrap;
           transition: all 0.2s;
@@ -843,89 +910,21 @@ const Landing = () => {
         }
 
         .category-chip:hover {
-          background: #F1F5F9;
+          background: #f1f5f9;
         }
 
         .category-chip.active {
-          background: rgba(245,158,11,0.08);
-          border-color: #F59E0B;
-          color: #F59E0B;
+          background: rgba(245, 158, 11, 0.08);
+          border-color: #f59e0b;
+          color: #f59e0b;
         }
 
-        /* ===== BOARD ===== */
-        .board-section {
-          padding: 14px 16px;
-          background: #FFFFFF;
-          border-bottom: 1px solid #F1F5F9;
-        }
-
-        .board-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
-        }
-
-        .board-title-wrap {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .board-title {
-          font-size: 14px;
-          font-weight: 600;
-          margin: 0;
-        }
-
-        .board-time {
-          font-size: 11px;
-          color: #94A3B8;
-        }
-
-        .board-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-          gap: 8px;
-        }
-
-        .board-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          background: #F8FAFC;
-          border-radius: 10px;
-          border-left: 3px solid;
-        }
-
-        .board-emoji {
-          font-size: 18px;
-        }
-
-        .board-info {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .board-label {
-          font-size: 11px;
-          font-weight: 500;
-          color: #1E293B;
-        }
-
-        .board-price {
-          font-size: 11px;
-          font-weight: 600;
-        }
-
-        /* ===== TABS ===== */
         .tabs-section {
           display: flex;
           gap: 4px;
           padding: 10px 16px;
-          background: #FFFFFF;
-          border-bottom: 1px solid #F1F5F9;
+          background: #ffffff;
+          border-bottom: 1px solid #f1f5f9;
         }
 
         .tab-btn {
@@ -938,22 +937,21 @@ const Landing = () => {
           background: transparent;
           font-size: 13px;
           font-weight: 500;
-          color: #94A3B8;
+          color: #94a3b8;
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
         }
 
         .tab-btn:hover {
-          background: #F8FAFC;
+          background: #f8fafc;
         }
 
         .tab-btn.active {
-          background: rgba(245,158,11,0.08);
-          color: #F59E0B;
+          background: rgba(245, 158, 11, 0.08);
+          color: #f59e0b;
         }
 
-        /* ===== LISTINGS ===== */
         .listings {
           padding: 14px 16px;
           max-width: 1200px;
@@ -981,8 +979,8 @@ const Landing = () => {
 
         .listings-count {
           font-size: 12px;
-          color: #94A3B8;
-          background: #F1F5F9;
+          color: #94a3b8;
+          background: #f1f5f9;
           padding: 1px 10px;
           border-radius: 12px;
         }
@@ -991,8 +989,8 @@ const Landing = () => {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1px solid #F1F5F9;
-          background: #FFFFFF;
+          border: 1px solid #f1f5f9;
+          background: #ffffff;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -1001,7 +999,7 @@ const Landing = () => {
         }
 
         .filter-btn:hover {
-          background: #F8FAFC;
+          background: #f8fafc;
         }
 
         .listings-feed {
@@ -1011,15 +1009,15 @@ const Landing = () => {
         }
 
         .feed-card {
-          background: #FFFFFF;
+          background: #ffffff;
           border-radius: 12px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid #f1f5f9;
           overflow: hidden;
           transition: all 0.2s;
         }
 
         .feed-card:hover {
-          box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
         }
 
         .feed-card-main {
@@ -1034,7 +1032,7 @@ const Landing = () => {
           height: 68px;
           border-radius: 10px;
           flex-shrink: 0;
-          background: #F8FAFC;
+          background: #f8fafc;
           overflow: hidden;
           position: relative;
         }
@@ -1057,7 +1055,7 @@ const Landing = () => {
           position: absolute;
           bottom: 4px;
           right: 4px;
-          background: #10B981;
+          background: #10b981;
           border-radius: 4px;
           padding: 2px 4px;
           display: flex;
@@ -1093,7 +1091,7 @@ const Landing = () => {
         .feed-price {
           font-size: 13px;
           font-weight: 700;
-          color: #10B981;
+          color: #10b981;
           flex-shrink: 0;
         }
 
@@ -1102,27 +1100,20 @@ const Landing = () => {
           align-items: center;
           gap: 10px;
           font-size: 11px;
-          color: #94A3B8;
+          color: #94a3b8;
           margin: 2px 0;
         }
 
-        .feed-seller {
+        .feed-seller,
+        .feed-rating,
+        .feed-location {
           display: flex;
           align-items: center;
           gap: 3px;
         }
 
         .feed-rating {
-          display: flex;
-          align-items: center;
-          gap: 3px;
-          color: #F59E0B;
-        }
-
-        .feed-location {
-          display: flex;
-          align-items: center;
-          gap: 3px;
+          color: #f59e0b;
         }
 
         .feed-actions {
@@ -1138,7 +1129,7 @@ const Landing = () => {
           background: none;
           border: none;
           font-size: 11px;
-          color: #94A3B8;
+          color: #94a3b8;
           cursor: pointer;
           font-family: inherit;
           padding: 2px 4px;
@@ -1147,21 +1138,20 @@ const Landing = () => {
         }
 
         .action-btn:hover {
-          background: #F8FAFC;
+          background: #f8fafc;
         }
 
         .like-btn:hover {
-          color: #EF4444;
+          color: #ef4444;
         }
 
         .comment-btn:hover {
-          color: #F59E0B;
+          color: #f59e0b;
         }
 
-        /* ===== COMMENTS ===== */
         .feed-comments {
           padding: 10px 12px 12px;
-          border-top: 1px solid #F1F5F9;
+          border-top: 1px solid #f1f5f9;
         }
 
         .comment-input-wrap {
@@ -1173,30 +1163,30 @@ const Landing = () => {
         .comment-input {
           flex: 1;
           padding: 6px 12px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid #e2e8f0;
           border-radius: 8px;
           font-size: 12px;
           font-family: inherit;
-          color: #1E293B;
+          color: #1e293b;
           outline: none;
-          background: #FFFFFF;
+          background: #ffffff;
           transition: all 0.2s;
         }
 
         .comment-input:focus {
-          border-color: #F59E0B;
+          border-color: #f59e0b;
         }
 
         .comment-input::placeholder {
-          color: #94A3B8;
+          color: #94a3b8;
         }
 
         .comment-send {
           padding: 6px 10px;
-          background: #1E293B;
+          background: #1e293b;
           border: none;
           border-radius: 8px;
-          color: #FFFFFF;
+          color: #ffffff;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -1205,7 +1195,7 @@ const Landing = () => {
         }
 
         .comment-send:hover {
-          background: #F59E0B;
+          background: #f59e0b;
         }
 
         .comment-list {
@@ -1213,25 +1203,16 @@ const Landing = () => {
           overflow-y: auto;
         }
 
-        .comment-list::-webkit-scrollbar {
-          width: 2px;
-        }
-
-        .comment-list::-webkit-scrollbar-thumb {
-          background: #E2E8F0;
-          border-radius: 4px;
-        }
-
         .no-comments {
           font-size: 11px;
-          color: #94A3B8;
+          color: #94a3b8;
           text-align: center;
           padding: 4px 0;
         }
 
         .comment-item {
           padding: 6px 0;
-          border-bottom: 1px solid #F8FAFC;
+          border-bottom: 1px solid #f8fafc;
         }
 
         .comment-item:last-child {
@@ -1247,17 +1228,17 @@ const Landing = () => {
         .comment-user {
           font-weight: 600;
           font-size: 11px;
-          color: #1E293B;
+          color: #1e293b;
         }
 
         .comment-time {
           font-size: 9px;
-          color: #94A3B8;
+          color: #94a3b8;
         }
 
         .comment-text {
           font-size: 12px;
-          color: #64748B;
+          color: #64748b;
           margin: 2px 0;
         }
 
@@ -1265,7 +1246,7 @@ const Landing = () => {
           background: none;
           border: none;
           font-size: 10px;
-          color: #94A3B8;
+          color: #94a3b8;
           cursor: pointer;
           font-family: inherit;
           display: flex;
@@ -1276,7 +1257,7 @@ const Landing = () => {
         }
 
         .reply-trigger:hover {
-          color: #F59E0B;
+          color: #f59e0b;
         }
 
         .reply-input-wrap {
@@ -1288,25 +1269,25 @@ const Landing = () => {
         .reply-input {
           flex: 1;
           padding: 4px 10px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid #e2e8f0;
           border-radius: 6px;
           font-size: 11px;
           font-family: inherit;
-          color: #1E293B;
+          color: #1e293b;
           outline: none;
-          background: #FFFFFF;
+          background: #ffffff;
         }
 
         .reply-input:focus {
-          border-color: #F59E0B;
+          border-color: #f59e0b;
         }
 
         .reply-send {
           padding: 4px 8px;
-          background: #1E293B;
+          background: #1e293b;
           border: none;
           border-radius: 6px;
-          color: #FFFFFF;
+          color: #ffffff;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -1315,13 +1296,13 @@ const Landing = () => {
         }
 
         .reply-send:hover {
-          background: #F59E0B;
+          background: #f59e0b;
         }
 
         .replies {
           margin-left: 16px;
           padding-left: 10px;
-          border-left: 1px solid #F1F5F9;
+          border-left: 1px solid #f1f5f9;
         }
 
         .reply-item {
@@ -1337,21 +1318,20 @@ const Landing = () => {
         .reply-user {
           font-weight: 600;
           font-size: 10px;
-          color: #64748B;
+          color: #64748b;
         }
 
         .reply-time {
           font-size: 8px;
-          color: #94A3B8;
+          color: #94a3b8;
         }
 
         .reply-text {
           font-size: 11px;
-          color: #94A3B8;
+          color: #94a3b8;
           margin: 1px 0;
         }
 
-        /* ===== EMPTY ===== */
         .empty-state {
           text-align: center;
           padding: 40px 20px;
@@ -1360,25 +1340,24 @@ const Landing = () => {
         .empty-title {
           font-size: 16px;
           font-weight: 600;
-          color: #1E293B;
+          color: #1e293b;
           margin: 8px 0 4px;
         }
 
         .empty-desc {
           font-size: 13px;
-          color: #94A3B8;
+          color: #94a3b8;
           margin: 0;
         }
 
-        /* ===== BOTTOM NAV ===== */
         .bottom-nav {
           position: fixed;
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(255,255,255,0.96);
+          background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226,232,240,0.4);
+          border-top: 1px solid rgba(226, 232, 240, 0.4);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -1409,30 +1388,26 @@ const Landing = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: #1e293b;
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: #94a3b8;
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: #1e293b;
           font-weight: 600;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
           .header {
             padding: 12px 12px 0;
           }
           .hero-title {
             font-size: 22px;
-          }
-          .board-grid {
-            grid-template-columns: repeat(2, 1fr);
           }
           .feed-card-main {
             padding: 10px;
@@ -1458,9 +1433,6 @@ const Landing = () => {
         }
 
         @media (max-width: 380px) {
-          .board-grid {
-            grid-template-columns: 1fr 1fr;
-          }
           .feed-image {
             width: 48px;
             height: 48px;
@@ -1471,9 +1443,18 @@ const Landing = () => {
           }
         }
 
-        @media (min-width: 481px) and (max-width: 768px) {
-          .board-grid {
-            grid-template-columns: repeat(3, 1fr);
+        @media (prefers-reduced-motion: reduce) {
+          .skeleton-hero,
+          .skeleton-chip,
+          .skeleton-card {
+            animation: none;
+          }
+          .feed-card,
+          .action-btn,
+          .nav-icon-wrap,
+          .category-chip,
+          .tab-btn {
+            transition: none;
           }
         }
       `}</style>
