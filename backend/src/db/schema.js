@@ -200,6 +200,102 @@ export const sessions = pgTable('sessions', {
 });
 
 // ============================================
+// RELATIONS
+// ============================================
+export const profilesRelations = relations(profiles, ({ many, one }) => ({
+  businesses: many(businesses),
+  subscription: one(subscriptions, {
+    fields: [profiles.id],
+    references: [subscriptions.userId],
+  }),
+  notifications: many(notifications),
+  needs: many(needs),
+  orders: many(orders),
+  analyticsEvents: many(analyticsEvents),
+  payments: many(payments),
+  sessions: many(sessions),
+}));
+
+export const businessesRelations = relations(businesses, ({ one, many }) => ({
+  owner: one(profiles, {
+    fields: [businesses.userId],
+    references: [profiles.id],
+  }),
+  listings: many(listings),
+  analyticsEvents: many(analyticsEvents),
+}));
+
+export const listingsRelations = relations(listings, ({ one, many }) => ({
+  business: one(businesses, {
+    fields: [listings.businessId],
+    references: [businesses.id],
+  }),
+  orders: many(orders),
+  analyticsEvents: many(analyticsEvents),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(profiles, {
+    fields: [subscriptions.userId],
+    references: [profiles.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(profiles, {
+    fields: [notifications.userId],
+    references: [profiles.id],
+  }),
+}));
+
+export const needsRelations = relations(needs, ({ one }) => ({
+  user: one(profiles, {
+    fields: [needs.userId],
+    references: [profiles.id],
+  }),
+}));
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+  user: one(profiles, {
+    fields: [orders.userId],
+    references: [profiles.id],
+  }),
+  listing: one(listings, {
+    fields: [orders.listingId],
+    references: [listings.id],
+  }),
+}));
+
+export const analyticsEventsRelations = relations(analyticsEvents, ({ one }) => ({
+  user: one(profiles, {
+    fields: [analyticsEvents.userId],
+    references: [profiles.id],
+  }),
+  business: one(businesses, {
+    fields: [analyticsEvents.businessId],
+    references: [businesses.id],
+  }),
+  listing: one(listings, {
+    fields: [analyticsEvents.listingId],
+    references: [listings.id],
+  }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  user: one(profiles, {
+    fields: [payments.userId],
+    references: [profiles.id],
+  }),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(profiles, {
+    fields: [sessions.userId],
+    references: [profiles.id],
+  }),
+}));
+
+// ============================================
 // EXPORT ALL TABLES
 // ============================================
 export default {
