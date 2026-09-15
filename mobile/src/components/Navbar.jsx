@@ -84,7 +84,8 @@ const NOTIFICATION_ICONS = {
 // NAVBAR COMPONENT
 // ============================================================
 const Navbar = () => {
-  const { user, signOut, isAuthenticated } = useAuth();
+  // ✅ FIX 1: use `logout` (not `signOut` — that isn't in AuthContext)
+  const { user, logout, isAuthenticated } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,6 +95,7 @@ const Navbar = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const notificationRef = useRef(null);
   const bellRef = useRef(null);
@@ -137,7 +139,7 @@ const Navbar = () => {
   }, [isMobileMenuOpen]);
 
   // ============================================================
-  // FETCH NOTIFICATIONS — hardened
+  // FETCH NOTIFICATIONS
   // ============================================================
   const fetchNotifications = async () => {
     if (!user?.id) return;
@@ -171,11 +173,33 @@ const Navbar = () => {
     fetchNotifications();
   }, [isAuthenticated, user?.id]);
 
-  // Handlers
+  // ============================================================
+  // SIGN OUT — ✅ FIXED: use `logout` + error handling
+  // ============================================================
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/login');
-    setIsMobileMenuOpen(false);
+    if (signingOut) return;
+    setSigningOut(true);
+
+    try {
+      // ✅ `logout` is the correct function from AuthContext
+      if (typeof logout === 'function') {
+        await logout();
+      }
+
+      // Close the drawer immediately
+      setIsMobileMenuOpen(false);
+      setIsNotificationsOpen(false);
+
+      // Navigate to login
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Sign out failed:', err);
+      // Even if logout throws, still send the user to login
+      setIsMobileMenuOpen(false);
+      navigate('/login', { replace: true });
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   const handleNotificationClick = async (id) => {
@@ -210,13 +234,9 @@ const Navbar = () => {
   // ============================================================
   // DISPLAY HELPERS
   // ============================================================
-  // ✅ Prefer full_name; fall back to email prefix, then 'User'
   const displayName =
-    user?.full_name?.trim() ||
-    user?.email?.split('@')[0] ||
-    'User';
+    user?.full_name?.trim() || user?.email?.split('@')[0] || 'User';
 
-  // ✅ First letter of the name for the avatar (falls back to email letter)
   const avatarLetter = (
     user?.full_name?.[0] ||
     user?.email?.[0] ||
@@ -274,7 +294,7 @@ const Navbar = () => {
     <>
       <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
         <div className="navbar-inner">
-          {/* ===== LEFT: LOGO (pinned to the very left) ===== */}
+          {/* ===== LEFT: LOGO ===== */}
           <Link to={isAuthenticated ? '/landing' : '/'} className="logo">
             <div className="logo-icon">
               <span className="logo-icon-text">K</span>
@@ -284,7 +304,7 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* ===== RIGHT: bell + avatar + hamburger (pinned to the very right) ===== */}
+          {/* ===== RIGHT: bell + avatar + hamburger ===== */}
           <div className="nav-right">
             {/* Notification Bell */}
             {isAuthenticated && (
@@ -294,6 +314,7 @@ const Navbar = () => {
                   onClick={toggleNotifications}
                   className="icon-btn"
                   aria-label="Notifications"
+                  aria-expanded={isNotificationsOpen}
                 >
                   <Icon name="bell" size={20} color="#64748B" strokeWidth={1.75} />
                   {unreadCount > 0 && <span className="bell-dot" />}
@@ -309,7 +330,11 @@ const Navbar = () => {
                         )}
                       </h4>
                       {unreadCount > 0 && (
-                        <button className="mark-all-btn" onClick={markAllAsRead}>
+                        <button
+                          type="button"
+                          className="mark-all-btn"
+                          onClick={markAllAsRead}
+                        >
                           Mark all read
                         </button>
                       )}
@@ -327,12 +352,17 @@ const Navbar = () => {
                             NOTIFICATION_ICONS[notification.type] ||
                             NOTIFICATION_ICONS.default;
                           return (
-                            <div
+                            <button
+                              type="button"
                               key={notification.id}
                               className={`notification-item ${
-                                !notification.read ? 'notification-item-unread' : ''
+                                !notification.read
+                                  ? 'notification-item-unread'
+                                  : ''
                               }`}
-                              onClick={() => handleNotificationClick(notification.id)}
+                              onClick={() =>
+                                handleNotificationClick(notification.id)
+                              }
                             >
                               <div className="notification-avatar">{icon}</div>
                               <div className="notification-content">
@@ -342,9 +372,11 @@ const Navbar = () => {
                                     <span className="notification-unread-dot" />
                                   )}
                                 </p>
-                                <p className="notification-item-desc">
-                                  {notification.description}
-                                </p>
+                                {notification.description && (
+                                  <p className="notification-item-desc">
+                                    {notification.description}
+                                  </p>
+                                )}
                                 <p className="notification-time">
                                   <Icon
                                     name="clock"
@@ -355,13 +387,15 @@ const Navbar = () => {
                                   {notification.time_ago || 'Just now'}
                                 </p>
                               </div>
-                            </div>
+                            </button>
                           );
                         })
                       ) : (
                         <div className="notification-empty">
                           <div className="notification-empty-icon">🔔</div>
-                          <h4 className="notification-empty-title">All caught up!</h4>
+                          <h4 className="notification-empty-title">
+                            All caught up!
+                          </h4>
                           <p className="notification-empty-desc">
                             No new notifications
                           </p>
@@ -372,6 +406,7 @@ const Navbar = () => {
                     {notifications.length > 0 && (
                       <div className="notification-footer">
                         <button
+                          type="button"
                           className="view-all-btn"
                           onClick={() => {
                             setIsNotificationsOpen(false);
@@ -387,9 +422,10 @@ const Navbar = () => {
               </div>
             )}
 
-            {/* Avatar (when logged in) */}
+            {/* Avatar */}
             {isAuthenticated && (
               <button
+                type="button"
                 onClick={() => navigate('/profile')}
                 className="avatar-btn"
                 aria-label="Profile"
@@ -398,7 +434,7 @@ const Navbar = () => {
               </button>
             )}
 
-            {/* Login / Signup links (when logged out) */}
+            {/* Auth buttons */}
             {!isAuthenticated && (
               <div className="auth-buttons">
                 <Link to="/login" className="auth-link">
@@ -410,11 +446,13 @@ const Navbar = () => {
               </div>
             )}
 
-            {/* ✅ Hamburger — ALWAYS visible, at the very right */}
+            {/* Hamburger */}
             <button
+              type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="hamburger-btn"
               aria-label="Toggle menu"
+              aria-expanded={isMobileMenuOpen}
             >
               <Icon
                 name={isMobileMenuOpen ? 'close' : 'menu'}
@@ -427,9 +465,12 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* ===== SIDE DRAWER (narrow) ===== */}
+      {/* ===== SIDE DRAWER ===== */}
       {isMobileMenuOpen && (
-        <div className="drawer-overlay" onClick={() => setIsMobileMenuOpen(false)}>
+        <div
+          className="drawer-overlay"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
           <aside className="drawer" onClick={(e) => e.stopPropagation()}>
             {/* Drawer Header */}
             <div className="drawer-header">
@@ -440,6 +481,7 @@ const Navbar = () => {
                 </span>
               </div>
               <button
+                type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="drawer-close"
                 aria-label="Close"
@@ -448,7 +490,7 @@ const Navbar = () => {
               </button>
             </div>
 
-            {/* ===== User Info (FIXED: full name + full email) ===== */}
+            {/* User Info */}
             {isAuthenticated && user && (
               <div className="drawer-user">
                 <div className="drawer-user-avatar">{avatarLetter}</div>
@@ -504,7 +546,12 @@ const Navbar = () => {
                     className="drawer-item"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <Icon name="user" size={16} color="#64748B" strokeWidth={1.75} />
+                    <Icon
+                      name="user"
+                      size={16}
+                      color="#64748B"
+                      strokeWidth={1.75}
+                    />
                     Login
                   </Link>
                   <Link
@@ -512,7 +559,12 @@ const Navbar = () => {
                     className="drawer-item drawer-item-primary"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <Icon name="plus" size={16} color="#F59E0B" strokeWidth={1.75} />
+                    <Icon
+                      name="plus"
+                      size={16}
+                      color="#F59E0B"
+                      strokeWidth={1.75}
+                    />
                     Sign Up
                   </Link>
                 </>
@@ -524,14 +576,18 @@ const Navbar = () => {
               <span className="drawer-version">v2.0.0</span>
               {isAuthenticated && (
                 <button
-                  onClick={() => {
-                    handleSignOut();
-                    setIsMobileMenuOpen(false);
-                  }}
+                  type="button"
+                  onClick={handleSignOut}
                   className="drawer-signout"
+                  disabled={signingOut}
                 >
-                  <Icon name="logout" size={14} color="#EF4444" strokeWidth={1.75} />
-                  Sign Out
+                  <Icon
+                    name="logout"
+                    size={14}
+                    color="#EF4444"
+                    strokeWidth={1.75}
+                  />
+                  {signingOut ? 'Signing out...' : 'Sign Out'}
                 </button>
               )}
             </div>
@@ -566,7 +622,6 @@ const Navbar = () => {
           box-shadow: 0 2px 20px rgba(30, 41, 59, 0.04);
         }
 
-        /* ✅ Full-bleed inner row — stretches edge to edge */
         .navbar-inner {
           width: 100%;
           min-width: 0;
@@ -579,7 +634,7 @@ const Navbar = () => {
           height: 100%;
         }
 
-        /* ===== LOGO — hugs the very left ===== */
+        /* ===== LOGO ===== */
         .logo {
           display: flex;
           align-items: center;
@@ -618,7 +673,7 @@ const Navbar = () => {
           color: #f59e0b;
         }
 
-        /* ===== RIGHT SIDE — hugs the very right ===== */
+        /* ===== RIGHT SIDE ===== */
         .nav-right {
           display: flex;
           align-items: center;
@@ -731,7 +786,6 @@ const Navbar = () => {
           background: #f59e0b;
         }
 
-        /* ✅ Hamburger — always visible, always last on the right */
         .hamburger-btn {
           width: 40px;
           height: 40px;
@@ -750,7 +804,9 @@ const Navbar = () => {
           background: #f8fafc;
         }
 
-        /* ===== NOTIFICATION DROPDOWN ===== */
+        /* ============================================
+           NOTIFICATION DROPDOWN — ✅ FIXED RESPONSIVENESS
+           ============================================ */
         .bell-wrapper {
           position: relative;
         }
@@ -759,9 +815,9 @@ const Navbar = () => {
           position: absolute;
           top: calc(100% + 8px);
           right: 0;
-          width: 340px;
-          max-width: calc(100vw - 32px);
-          max-height: calc(100vh - 100px);
+          /* ✅ Fluid width that never overflows the viewport */
+          width: min(360px, calc(100vw - 24px));
+          max-height: min(480px, calc(100vh - 100px));
           background: #ffffff;
           border-radius: 16px;
           border: 1px solid #f1f5f9;
@@ -791,6 +847,7 @@ const Navbar = () => {
           padding: 14px 16px;
           border-bottom: 1px solid #f1f5f9;
           flex-shrink: 0;
+          gap: 8px;
         }
 
         .notification-title {
@@ -801,6 +858,7 @@ const Navbar = () => {
           display: flex;
           align-items: center;
           gap: 8px;
+          min-width: 0;
         }
 
         .notification-badge {
@@ -810,6 +868,7 @@ const Navbar = () => {
           background: #f59e0b;
           padding: 2px 8px;
           border-radius: 10px;
+          flex-shrink: 0;
         }
 
         .mark-all-btn {
@@ -823,6 +882,8 @@ const Navbar = () => {
           padding: 4px 10px;
           border-radius: 6px;
           transition: all 0.2s;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
 
         .mark-all-btn:hover {
@@ -832,7 +893,8 @@ const Navbar = () => {
         .notification-list {
           flex: 1;
           overflow-y: auto;
-          max-height: 380px;
+          overflow-x: hidden;
+          min-height: 0;
         }
 
         .notification-list::-webkit-scrollbar {
@@ -876,8 +938,15 @@ const Navbar = () => {
           gap: 12px;
           padding: 12px 16px;
           cursor: pointer;
-          transition: all 0.15s;
+          transition: background 0.15s;
           border-bottom: 1px solid #f8fafc;
+          background: transparent;
+          border-left: 3px solid transparent;
+          border-right: none;
+          border-top: none;
+          width: 100%;
+          text-align: left;
+          font-family: inherit;
         }
 
         .notification-item:last-child {
@@ -918,6 +987,9 @@ const Navbar = () => {
           display: flex;
           align-items: center;
           gap: 6px;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          line-height: 1.3;
         }
 
         .notification-unread-dot {
@@ -933,6 +1005,8 @@ const Navbar = () => {
           color: #64748b;
           margin: 0 0 4px;
           line-height: 1.4;
+          word-break: break-word;
+          overflow-wrap: anywhere;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
@@ -945,6 +1019,7 @@ const Navbar = () => {
           gap: 4px;
           font-size: 11px;
           color: #94a3b8;
+          margin: 0;
         }
 
         .notification-empty {
@@ -994,7 +1069,7 @@ const Navbar = () => {
           background: #f1f5f9;
         }
 
-        /* ===== SIDE DRAWER (NARROW) ===== */
+        /* ===== SIDE DRAWER ===== */
         .drawer-overlay {
           position: fixed;
           inset: 0;
@@ -1015,7 +1090,6 @@ const Navbar = () => {
           }
         }
 
-        /* ✅ Narrow drawer: max 240px, and shrinks on small phones */
         .drawer {
           width: 240px;
           max-width: 72vw;
@@ -1090,7 +1164,6 @@ const Navbar = () => {
           background: #f1f5f9;
         }
 
-        /* ===== DRAWER USER CARD — full name + full email, no truncation ===== */
         .drawer-user {
           display: flex;
           align-items: flex-start;
@@ -1129,7 +1202,6 @@ const Navbar = () => {
           gap: 1px;
         }
 
-        /* ✅ Full name — wraps if long, no truncation */
         .drawer-user-name {
           font-size: 13px;
           font-weight: 700;
@@ -1140,7 +1212,6 @@ const Navbar = () => {
           overflow-wrap: anywhere;
         }
 
-        /* ✅ Full email — wraps mid-word if needed, no truncation */
         .drawer-user-email {
           font-size: 10px;
           color: #94a3b8;
@@ -1249,11 +1320,18 @@ const Navbar = () => {
           min-height: 36px;
         }
 
-        .drawer-signout:hover {
+        .drawer-signout:hover:not(:disabled) {
           background: #fee2e2;
         }
 
-        /* ===== RESPONSIVE ===== */
+        .drawer-signout:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
         @media (max-width: 480px) {
           .navbar-inner {
             padding: 0 14px;
@@ -1276,6 +1354,36 @@ const Navbar = () => {
             height: 28px;
             font-size: 12px;
           }
+
+          /* ✅ Make notification dropdown full-width-ish on phones */
+          .notification-dropdown {
+            position: fixed;
+            top: 68px;
+            right: 12px;
+            left: 12px;
+            width: auto;
+            max-height: calc(100vh - 92px);
+            border-radius: 14px;
+          }
+
+          .notification-item {
+            padding: 12px 14px;
+            gap: 10px;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .navbar-inner {
+            padding: 0 10px;
+          }
+          .logo-text {
+            font-size: 15px;
+          }
+          .auth-link,
+          .auth-link-primary {
+            padding: 5px 9px;
+            font-size: 12px;
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1287,7 +1395,6 @@ const Navbar = () => {
           .drawer {
             animation: none;
           }
-          .nav-item,
           .icon-btn,
           .avatar,
           .auth-link,
@@ -1296,7 +1403,8 @@ const Navbar = () => {
           .drawer-item,
           .drawer-signout,
           .view-all-btn,
-          .mark-all-btn {
+          .mark-all-btn,
+          .notification-item {
             transition: none;
           }
         }
