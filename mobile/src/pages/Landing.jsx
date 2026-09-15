@@ -27,7 +27,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     clock: "M12 6v6l4 2M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
     check: "M20 6L9 17l-5-5",
     sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
-    reply: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
     wheat: "M12 22V8M12 8c0-3 2-5 5-5-1 3-2 5-5 5zM12 8c0-3-2-5-5-5 1 3 2 5 5 5zM12 14c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4zM12 14c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4z",
     hammer: "M14.5 4.5l5 5L17 12l-5-5 2.5-2.5zM3 21l7.5-7.5M13 8L6 15l-1 4 4-1 7-7",
     wrench: "M14.7 6.3a4 4 0 11-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 015.4-5.4z",
@@ -58,16 +57,19 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 };
 
 // ============================================================
-// CATEGORIES
+// CATEGORIES — each carries its own accent, like stalls at a market
 // ============================================================
 const CATEGORIES = [
-  { label: 'All', icon: 'layers' },
-  { label: 'Food', icon: 'coffee' },
-  { label: 'Clothing', icon: 'shirt' },
-  { label: 'Services', icon: 'wrench' },
-  { label: 'Farm Inputs', icon: 'wheat' },
-  { label: 'Hardware', icon: 'hammer' },
+  { label: 'All', icon: 'layers', color: '#E8A33D' },
+  { label: 'Food', icon: 'coffee', color: '#C9603C' },
+  { label: 'Clothing', icon: 'shirt', color: '#8B5A83' },
+  { label: 'Services', icon: 'wrench', color: '#3E5C76' },
+  { label: 'Farm Inputs', icon: 'wheat', color: '#5B7B5E' },
+  { label: 'Hardware', icon: 'hammer', color: '#6B7280' },
 ];
+
+const NEW_WINDOW_MS = 48 * 60 * 60 * 1000; // 48 hours
+const ASPECT_RATIOS = ['4 / 5', '4 / 6.6', '4 / 4.2', '4 / 5.8'];
 
 // ============================================================
 // MAIN COMPONENT
@@ -79,17 +81,13 @@ const Landing = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [allListings, setAllListings] = useState([]);
+  const [featuredBusinesses, setFeaturedBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [windowWidth, setWindowWidth] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 375
   );
   const [likedItems, setLikedItems] = useState({});
-  const [comments, setComments] = useState({});
-  const [showComments, setShowComments] = useState({});
-  const [replyTo, setReplyTo] = useState({});
-  const [replyText, setReplyText] = useState({});
-  const [commentText, setCommentText] = useState({});
   const [activeTab, setActiveTab] = useState('all');
 
   const searchInputRef = useRef(null);
@@ -107,81 +105,8 @@ const Landing = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Local comments persistence (still client-side; will move to backend later)
-  useEffect(() => {
-    const saved = localStorage.getItem('listingComments');
-    if (saved) {
-      try {
-        setComments(JSON.parse(saved));
-      } catch (err) {
-        console.error('Error loading comments:', err);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (Object.keys(comments).length > 0) {
-      localStorage.setItem('listingComments', JSON.stringify(comments));
-    }
-  }, [comments]);
-
   const handleLike = (itemId) => {
     setLikedItems((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
-  };
-
-  const handleAddComment = (itemId) => {
-    const text = commentText[itemId]?.trim();
-    if (!text) return;
-
-    const newComment = {
-      id: Date.now().toString(),
-      user: user?.email?.split('@')[0] || 'Anonymous',
-      userId: user?.id || 'unknown',
-      text,
-      timestamp: Date.now(),
-      replies: [],
-    };
-
-    setComments((prev) => ({
-      ...prev,
-      [itemId]: [...(prev[itemId] || []), newComment],
-    }));
-
-    setCommentText((prev) => ({ ...prev, [itemId]: '' }));
-    success('💬 Comment added!');
-  };
-
-  const handleAddReply = (itemId, commentId) => {
-    const text = replyText[`${itemId}-${commentId}`]?.trim();
-    if (!text) return;
-
-    const newReply = {
-      id: Date.now().toString(),
-      user: user?.email?.split('@')[0] || 'Anonymous',
-      userId: user?.id || 'unknown',
-      text,
-      timestamp: Date.now(),
-    };
-
-    setComments((prev) => ({
-      ...prev,
-      [itemId]: prev[itemId].map((c) =>
-        c.id === commentId ? { ...c, replies: [...(c.replies || []), newReply] } : c
-      ),
-    }));
-
-    setReplyText((prev) => ({ ...prev, [`${itemId}-${commentId}`]: '' }));
-    setReplyTo((prev) => ({ ...prev, [`${itemId}-${commentId}`]: false }));
-    success('💬 Reply added!');
-  };
-
-  const toggleComments = (itemId) => {
-    setShowComments((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
-  };
-
-  const toggleReply = (itemId, commentId) => {
-    const key = `${itemId}-${commentId}`;
-    setReplyTo((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   // Fetch real data — no fake likes / comments / ratings
@@ -199,10 +124,11 @@ const Landing = () => {
         if (!mounted) return;
 
         let listingsData = listingsRes.data?.listings || [];
+        const businessesData = bizRes.data?.businesses || [];
 
         // Fallback: if no listings yet, surface businesses as cards
-        if (listingsData.length === 0 && bizRes.data?.businesses?.length > 0) {
-          listingsData = bizRes.data.businesses.map((b) => ({
+        if (listingsData.length === 0 && businessesData.length > 0) {
+          listingsData = businessesData.map((b) => ({
             id: `biz-${b.id}`,
             title: b.business_name,
             description: b.description || '',
@@ -220,7 +146,10 @@ const Landing = () => {
         }
 
         // ✅ Remove the fake `Math.random()` decorations from before
-        if (mounted) setAllListings(listingsData);
+        if (mounted) {
+          setAllListings(listingsData);
+          setFeaturedBusinesses(businessesData);
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
         if (mounted) setAllListings([]);
@@ -291,10 +220,24 @@ const Landing = () => {
     [navigate]
   );
 
+  const handleBusinessClick = useCallback(
+    (business) => {
+      navigate(`/search?q=${encodeURIComponent(business.business_name)}`);
+    },
+    [navigate]
+  );
+
   const formatPrice = useCallback((price) => {
     if (!price) return 'Price on request';
     return `MK ${Number(price).toLocaleString()}`;
   }, []);
+
+  const isRecent = useCallback((item) => {
+    if (!item.created_at) return false;
+    return Date.now() - new Date(item.created_at).getTime() < NEW_WINDOW_MS;
+  }, []);
+
+  const getAspect = useCallback((index) => ASPECT_RATIOS[index % ASPECT_RATIOS.length], []);
 
   const handleBottomNav = (id) => {
     if (id === 'home') navigate('/landing');
@@ -302,25 +245,6 @@ const Landing = () => {
     else if (id === 'sell') navigate('/create-listing');
     else if (id === 'messages') navigate('/messages');
     else if (id === 'profile') navigate('/profile');
-  };
-
-  const getTotalCommentCount = (itemId) => {
-    const itemComments = comments[itemId] || [];
-    let count = itemComments.length;
-    itemComments.forEach((c) => {
-      count += (c.replies || []).length;
-    });
-    return count;
-  };
-
-  const formatTime = (timestamp) => {
-    if (!timestamp) return 'Just now';
-    const diff = Date.now() - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m`;
-    if (minutes < 1440) return `${Math.floor(minutes / 60)}h`;
-    return `${Math.floor(minutes / 1440)}d`;
   };
 
   if (loading) {
@@ -332,46 +256,46 @@ const Landing = () => {
             <div key={i} className="skeleton-chip" />
           ))}
         </div>
-        <div className="skeleton-feed">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="skeleton-grid">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="skeleton-card" />
           ))}
         </div>
         <style jsx>{`
           .loading-skeleton {
             min-height: 100vh;
-            background: #f8fafc;
-            padding: 16px;
+            background: #fbf8f2;
             padding-bottom: 80px;
           }
           .skeleton-hero {
-            height: 120px;
-            background: #e2e8f0;
-            border-radius: 16px;
-            margin-bottom: 16px;
+            height: 150px;
+            background: linear-gradient(135deg, #244f43, #1c2b26);
+            margin-bottom: 24px;
             animation: pulse 1.5s ease-in-out infinite;
           }
           .skeleton-categories {
             display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
+            gap: 16px;
+            padding: 0 16px;
+            margin-bottom: 16px;
           }
           .skeleton-chip {
-            width: 70px;
-            height: 32px;
-            background: #e2e8f0;
-            border-radius: 16px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #e7e2d4;
             animation: pulse 1.5s ease-in-out infinite;
           }
-          .skeleton-feed {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+          .skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 0 16px;
           }
           .skeleton-card {
-            height: 80px;
-            background: #e2e8f0;
-            border-radius: 12px;
+            aspect-ratio: 4 / 5;
+            background: #e7e2d4;
+            border-radius: 16px;
             animation: pulse 1.5s ease-in-out infinite;
           }
           @keyframes pulse {
@@ -385,38 +309,38 @@ const Landing = () => {
 
   return (
     <div className="app">
-      {/* ===== HERO / SEARCH ===== */}
-      <header className="header">
-        <div className="header-content">
-          <div className="hero">
-            <h1 className="hero-title">
-              Find what you need,
-              <br />
-              <span className="hero-highlight">right here.</span>
-            </h1>
-            <p className="hero-desc">
-              Local products, services, and tradespeople in Mitundu
-            </p>
-
-            <form onSubmit={handleSearch} className="search-form">
-              <div className="search-wrapper">
-                <Icon name="search" size={18} color="#94A3B8" strokeWidth={1.75} />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Search Mitundu marketplace..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="search-input"
-                />
-                <button type="submit" className="search-btn">
-                  <Icon name="search" size={16} color="#FFFFFF" strokeWidth={2} />
-                </button>
-              </div>
-            </form>
-          </div>
+      {/* ===== HERO ===== */}
+      <div className="hero-block">
+        <div className="hero-inner">
+          <h1 className="hero-title">
+            Find what you need,
+            <br />
+            <span className="hero-highlight">right here.</span>
+          </h1>
+          <p className="hero-desc">
+            Local products, services, and tradespeople in Mitundu
+          </p>
         </div>
-      </header>
+      </div>
+
+      <div className="search-card-wrap">
+        <form onSubmit={handleSearch} className="search-form">
+          <div className="search-wrapper">
+            <Icon name="search" size={18} color="#8A9A93" strokeWidth={1.75} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search Mitundu marketplace..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            <button type="submit" className="search-btn">
+              <Icon name="search" size={16} color="#FBF8F2" strokeWidth={2} />
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* ===== CATEGORIES ===== */}
       <div className="categories-section">
@@ -426,16 +350,26 @@ const Landing = () => {
             return (
               <button
                 key={cat.label}
-                className={`category-chip ${active ? 'active' : ''}`}
+                className="category-chip"
                 onClick={() => setSelectedCategory(cat.label)}
               >
-                <Icon
-                  name={cat.icon}
-                  size={14}
-                  color={active ? '#F59E0B' : '#94A3B8'}
-                  strokeWidth={1.75}
-                />
-                <span>{cat.label}</span>
+                <span
+                  className="category-circle"
+                  style={{ background: active ? cat.color : `${cat.color}1F` }}
+                >
+                  <Icon
+                    name={cat.icon}
+                    size={17}
+                    color={active ? '#FBF8F2' : cat.color}
+                    strokeWidth={1.75}
+                  />
+                </span>
+                <span
+                  className="category-label"
+                  style={{ color: active ? cat.color : '#6B7A73' }}
+                >
+                  {cat.label}
+                </span>
               </button>
             );
           })}
@@ -448,39 +382,47 @@ const Landing = () => {
           className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
           onClick={() => setActiveTab('all')}
         >
-          <Icon
-            name="layers"
-            size={14}
-            color={activeTab === 'all' ? '#F59E0B' : '#94A3B8'}
-            strokeWidth={1.75}
-          />
           All
         </button>
         <button
           className={`tab-btn ${activeTab === 'goods' ? 'active' : ''}`}
           onClick={() => setActiveTab('goods')}
         >
-          <Icon
-            name="store"
-            size={14}
-            color={activeTab === 'goods' ? '#F59E0B' : '#94A3B8'}
-            strokeWidth={1.75}
-          />
           Goods
         </button>
         <button
           className={`tab-btn ${activeTab === 'services' ? 'active' : ''}`}
           onClick={() => setActiveTab('services')}
         >
-          <Icon
-            name="wrench"
-            size={14}
-            color={activeTab === 'services' ? '#F59E0B' : '#94A3B8'}
-            strokeWidth={1.75}
-          />
           Services
         </button>
       </div>
+
+      {/* ===== FEATURED BUSINESSES ===== */}
+      {featuredBusinesses.length > 0 && (
+        <div className="featured-section">
+          <h2 className="featured-title">Businesses near you</h2>
+          <div className="featured-scroll">
+            {featuredBusinesses.map((biz) => (
+              <button
+                key={biz.id}
+                className="featured-card"
+                onClick={() => handleBusinessClick(biz)}
+              >
+                <div className="featured-logo">
+                  {biz.logo_url ? (
+                    <img src={biz.logo_url} alt={biz.business_name} />
+                  ) : (
+                    <Icon name="store" size={18} color="#C7BFA8" strokeWidth={1.5} />
+                  )}
+                </div>
+                <div className="featured-name">{biz.business_name}</div>
+                {biz.category && <div className="featured-cat">{biz.category}</div>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ===== LISTINGS ===== */}
       <section className="listings">
@@ -490,254 +432,110 @@ const Landing = () => {
             <span className="listings-count">{filteredListings.length}</span>
           </div>
           <button className="filter-btn" onClick={() => {}}>
-            <Icon name="filter" size={16} color="#94A3B8" strokeWidth={1.75} />
+            <Icon name="filter" size={16} color="#6B7A73" strokeWidth={1.75} />
           </button>
         </div>
 
-        <div className="listings-feed">
-          {filteredListings.length > 0 ? (
-            filteredListings.map((item) => {
+        {filteredListings.length > 0 ? (
+          <div className="listings-grid">
+            {filteredListings.map((item, index) => {
               const isLiked = likedItems[item.id] || false;
-              const itemComments = comments[item.id] || [];
-              const showCommentsForItem = showComments[item.id] || false;
-              const totalComments = getTotalCommentCount(item.id);
               const realLikeCount = item.likes ?? 0;
-              const realCommentCount = item.comments_count ?? 0;
+              const isBusiness = item.is_business || !!item.business_id;
 
               return (
-                <div key={item.id} className="feed-card">
-                  <div
-                    className="feed-card-main"
-                    onClick={() => handleListingClick(item)}
-                  >
-                    <div className="feed-image">
-                      {item.images && item.images.length > 0 ? (
-                        <img
-                          src={item.images[0]}
-                          alt={item.title}
-                          className="feed-img"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="feed-placeholder">
-                          <Icon
-                            name="store"
-                            size={24}
-                            color="#CBD5E1"
-                            strokeWidth={1.5}
-                          />
-                        </div>
-                      )}
-                      {item.delivery_available && (
-                        <span className="feed-delivery">
-                          <Icon name="truck" size={8} color="#FFF" strokeWidth={2} />
-                        </span>
-                      )}
-                    </div>
-                    <div className="feed-content">
-                      <div className="feed-top">
-                        <h3 className="feed-title">{item.title}</h3>
-                        <span className="feed-price">{formatPrice(item.price)}</span>
+                <div
+                  key={item.id}
+                  className="feed-card"
+                  onClick={() => handleListingClick(item)}
+                >
+                  <div className="feed-image" style={{ aspectRatio: getAspect(index) }}>
+                    {item.images && item.images.length > 0 ? (
+                      <img
+                        src={item.images[0]}
+                        alt={item.title}
+                        className="feed-img"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="feed-placeholder">
+                        <Icon name="store" size={28} color="#C7BFA8" strokeWidth={1.5} />
                       </div>
-                      <div className="feed-meta">
-                        <span className="feed-seller">
-                          <Icon
-                            name="user"
-                            size={10}
-                            color="#94A3B8"
-                            strokeWidth={1.75}
-                          />
-                          {item.businesses?.business_name || 'Local seller'}
-                        </span>
+                    )}
 
-                        {/* ✅ Only show rating if it exists in the data */}
-                        {item.rating != null && item.rating > 0 && (
-                          <span className="feed-rating">
-                            <Icon
-                              name="star"
-                              size={10}
-                              color="#F59E0B"
-                              strokeWidth={2}
-                            />
-                            {Number(item.rating).toFixed(1)}
+                    <div className="badge-row">
+                      <div className="badge-row-left">
+                        {isRecent(item) && <span className="badge feed-new">New</span>}
+                      </div>
+                      <div className="badge-row-right">
+                        {item.delivery_available && (
+                          <span className="badge feed-delivery">
+                            <Icon name="truck" size={10} color="#FBF8F2" strokeWidth={2} />
                           </span>
                         )}
-
-                        {item.location_area && (
-                          <span className="feed-location">
-                            <Icon
-                              name="mapPin"
-                              size={10}
-                              color="#94A3B8"
-                              strokeWidth={1.75}
-                            />
-                            {item.location_area}
-                          </span>
-                        )}
-                      </div>
-                      <div className="feed-actions">
-                        <button
-                          className="action-btn like-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleLike(item.id);
-                          }}
-                        >
-                          <Icon
-                            name="heart"
-                            size={14}
-                            color={isLiked ? '#EF4444' : '#94A3B8'}
-                            strokeWidth={isLiked ? 2.5 : 1.5}
-                          />
-                          <span>{realLikeCount + (isLiked ? 1 : 0)}</span>
-                        </button>
-                        <button
-                          className="action-btn comment-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleComments(item.id);
-                          }}
-                        >
-                          <Icon
-                            name="message"
-                            size={14}
-                            color="#94A3B8"
-                            strokeWidth={1.75}
-                          />
-                          <span>{realCommentCount + totalComments}</span>
-                        </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Comments */}
-                  {showCommentsForItem && (
-                    <div
-                      className="feed-comments"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="comment-input-wrap">
-                        <input
-                          type="text"
-                          placeholder="Write a comment..."
-                          value={commentText[item.id] || ''}
-                          onChange={(e) =>
-                            setCommentText((prev) => ({
-                              ...prev,
-                              [item.id]: e.target.value,
-                            }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleAddComment(item.id);
-                          }}
-                          className="comment-input"
-                        />
-                        <button
-                          className="comment-send"
-                          onClick={() => handleAddComment(item.id)}
-                        >
-                          <Icon name="send" size={14} color="#FFFFFF" strokeWidth={2} />
-                        </button>
-                      </div>
+                  <div className="feed-content">
+                    <h3 className="feed-title">{item.title}</h3>
 
-                      <div className="comment-list">
-                        {itemComments.length === 0 ? (
-                          <p className="no-comments">No comments yet</p>
-                        ) : (
-                          itemComments.map((comment) => (
-                            <div key={comment.id} className="comment-item">
-                              <div className="comment-head">
-                                <span className="comment-user">{comment.user}</span>
-                                <span className="comment-time">
-                                  {formatTime(comment.timestamp)}
-                                </span>
-                              </div>
-                              <p className="comment-text">{comment.text}</p>
-                              <button
-                                className="reply-trigger"
-                                onClick={() => toggleReply(item.id, comment.id)}
-                              >
-                                <Icon
-                                  name="reply"
-                                  size={10}
-                                  color="#94A3B8"
-                                  strokeWidth={1.75}
-                                />
-                                Reply
-                              </button>
-
-                              {replyTo[`${item.id}-${comment.id}`] && (
-                                <div className="reply-input-wrap">
-                                  <input
-                                    type="text"
-                                    placeholder={`Reply to ${comment.user}...`}
-                                    value={replyText[`${item.id}-${comment.id}`] || ''}
-                                    onChange={(e) =>
-                                      setReplyText((prev) => ({
-                                        ...prev,
-                                        [`${item.id}-${comment.id}`]: e.target.value,
-                                      }))
-                                    }
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter')
-                                        handleAddReply(item.id, comment.id);
-                                    }}
-                                    className="reply-input"
-                                  />
-                                  <button
-                                    className="reply-send"
-                                    onClick={() =>
-                                      handleAddReply(item.id, comment.id)
-                                    }
-                                  >
-                                    <Icon
-                                      name="send"
-                                      size={12}
-                                      color="#FFFFFF"
-                                      strokeWidth={2}
-                                    />
-                                  </button>
-                                </div>
-                              )}
-
-                              {(comment.replies || []).length > 0 && (
-                                <div className="replies">
-                                  {comment.replies.map((reply) => (
-                                    <div key={reply.id} className="reply-item">
-                                      <div className="reply-head">
-                                        <span className="reply-user">
-                                          {reply.user}
-                                        </span>
-                                        <span className="reply-time">
-                                          {formatTime(reply.timestamp)}
-                                        </span>
-                                      </div>
-                                      <p className="reply-text">{reply.text}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
+                    <div className="feed-price-row">
+                      <span className="feed-price">{formatPrice(item.price)}</span>
+                      {item.rating != null && item.rating > 0 && (
+                        <span className="feed-rating">
+                          <Icon name="star" size={11} color="#E8A33D" strokeWidth={2} />
+                          {Number(item.rating).toFixed(1)}
+                        </span>
+                      )}
                     </div>
-                  )}
+
+                    <div className="feed-meta-row">
+                      {isBusiness && <span className="business-tag">Business</span>}
+                      <span className="feed-seller-text">
+                        {item.businesses?.business_name || 'Local seller'}
+                      </span>
+                      {item.location_area && (
+                        <>
+                          <span className="feed-dot" />
+                          <span className="feed-location-text">{item.location_area}</span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="feed-footer">
+                      <button
+                        className="like-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLike(item.id);
+                        }}
+                      >
+                        <Icon
+                          name="heart"
+                          size={13}
+                          color={isLiked ? '#EF4444' : '#8A9A93'}
+                          strokeWidth={isLiked ? 2.5 : 1.5}
+                        />
+                        <span>{realLikeCount + (isLiked ? 1 : 0)}</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               );
-            })
-          ) : (
-            <div className="empty-state">
-              <Icon name="store" size={48} color="#CBD5E1" strokeWidth={1.5} />
-              <h3 className="empty-title">No listings found</h3>
-              <p className="empty-desc">
-                {searchQuery || selectedCategory !== 'All'
-                  ? 'Try adjusting your filters'
-                  : 'Be the first to post something!'}
-              </p>
-            </div>
-          )}
-        </div>
+            })}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <Icon name="store" size={48} color="#C7BFA8" strokeWidth={1.5} />
+            <h3 className="empty-title">No listings found</h3>
+            <p className="empty-desc">
+              {searchQuery || selectedCategory !== 'All'
+                ? 'Try adjusting your filters'
+                : 'Be the first to post something!'}
+            </p>
+          </div>
+        )}
       </section>
 
       {/* ===== BOTTOM NAV ===== */}
@@ -761,7 +559,7 @@ const Landing = () => {
                   <Icon
                     name={item.icon}
                     size={20}
-                    color={active ? '#FFFFFF' : '#94A3B8'}
+                    color={active ? '#FBF8F2' : '#8A9A93'}
                     strokeWidth={1.75}
                   />
                 </div>
@@ -775,11 +573,13 @@ const Landing = () => {
       )}
 
       <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&display=swap');
+
         .app {
           min-height: 100vh;
-          background: #f8fafc;
+          background: #fbf8f2;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1e293b;
+          color: #16231f;
           padding-bottom: 80px;
         }
 
@@ -789,58 +589,61 @@ const Landing = () => {
           }
         }
 
-        .header {
-          background: #ffffff;
-          padding: 16px 16px 0;
-          border-bottom: 1px solid #f1f5f9;
+        .hero-block {
+          background: linear-gradient(135deg, #244f43 0%, #16231f 100%);
+          padding: 30px 16px 56px;
         }
 
-        .header-content {
+        .hero-inner {
           max-width: 1200px;
           margin: 0 auto;
         }
 
-        .hero {
-          padding: 4px 0 20px;
-        }
-
         .hero-title {
-          font-size: clamp(24px, 3.5vw, 32px);
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          margin: 0 0 4px;
-          line-height: 1.2;
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 600;
+          font-size: clamp(26px, 4vw, 38px);
+          letter-spacing: -0.01em;
+          margin: 0 0 8px;
+          line-height: 1.15;
+          color: #fbf8f2;
         }
 
         .hero-highlight {
-          color: #f59e0b;
+          color: #e8a33d;
         }
 
         .hero-desc {
           font-size: 14px;
-          color: #94a3b8;
-          margin: 0 0 16px;
+          color: rgba(251, 248, 242, 0.72);
+          margin: 0;
+        }
+
+        .search-card-wrap {
+          max-width: 1200px;
+          margin: -30px auto 0;
+          padding: 0 16px;
+          position: relative;
         }
 
         .search-form {
-          max-width: 500px;
+          max-width: 560px;
         }
 
         .search-wrapper {
           display: flex;
           align-items: center;
           gap: 10px;
-          background: #f1f5f9;
-          border-radius: 12px;
-          padding: 4px 4px 4px 14px;
+          background: #ffffff;
+          border-radius: 14px;
+          padding: 6px 6px 6px 16px;
+          box-shadow: 0 14px 30px rgba(22, 35, 31, 0.2);
           border: 2px solid transparent;
           transition: all 0.2s;
         }
 
         .search-wrapper:focus-within {
-          border-color: #f59e0b;
-          background: #ffffff;
-          box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.08);
+          border-color: #e8a33d;
         }
 
         .search-input {
@@ -848,22 +651,21 @@ const Landing = () => {
           border: none;
           outline: none;
           background: transparent;
-          padding: 10px 0;
+          padding: 11px 0;
           font-size: 15px;
           font-family: inherit;
-          color: #1e293b;
+          color: #16231f;
         }
 
         .search-input::placeholder {
-          color: #94a3b8;
+          color: #8a9a93;
         }
 
         .search-btn {
-          padding: 8px 14px;
-          background: #1e293b;
+          padding: 9px 15px;
+          background: #16231f;
           border: none;
           border-radius: 10px;
-          color: #ffffff;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -872,18 +674,17 @@ const Landing = () => {
         }
 
         .search-btn:hover {
-          background: #f59e0b;
+          background: #e8a33d;
         }
 
         .categories-section {
-          padding: 12px 16px;
-          background: #ffffff;
-          border-bottom: 1px solid #f1f5f9;
+          padding: 22px 16px 8px;
+          background: #fbf8f2;
         }
 
         .categories-scroll {
           display: flex;
-          gap: 6px;
+          gap: 18px;
           overflow-x: auto;
           scrollbar-width: none;
         }
@@ -894,66 +695,142 @@ const Landing = () => {
 
         .category-chip {
           display: flex;
+          flex-direction: column;
           align-items: center;
           gap: 6px;
-          padding: 6px 14px;
-          border-radius: 20px;
-          background: #f8fafc;
-          border: 1px solid #f1f5f9;
-          font-size: 12px;
-          font-weight: 500;
-          color: #94a3b8;
+          background: none;
+          border: none;
           cursor: pointer;
-          white-space: nowrap;
-          transition: all 0.2s;
           font-family: inherit;
+          flex-shrink: 0;
         }
 
-        .category-chip:hover {
-          background: #f1f5f9;
+        .category-circle {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s;
         }
 
-        .category-chip.active {
-          background: rgba(245, 158, 11, 0.08);
-          border-color: #f59e0b;
-          color: #f59e0b;
+        .category-label {
+          font-size: 11px;
+          font-weight: 600;
+          white-space: nowrap;
+          transition: color 0.2s;
         }
 
         .tabs-section {
           display: flex;
-          gap: 4px;
-          padding: 10px 16px;
-          background: #ffffff;
-          border-bottom: 1px solid #f1f5f9;
+          gap: 8px;
+          padding: 10px 16px 14px;
+          background: #fbf8f2;
         }
 
         .tab-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 14px;
-          border-radius: 8px;
-          border: none;
+          padding: 7px 16px;
+          border-radius: 20px;
+          border: 1.5px solid #e7e2d4;
           background: transparent;
           font-size: 13px;
-          font-weight: 500;
-          color: #94a3b8;
+          font-weight: 600;
+          color: #6b7a73;
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
         }
 
         .tab-btn:hover {
-          background: #f8fafc;
+          border-color: #e8a33d;
         }
 
         .tab-btn.active {
-          background: rgba(245, 158, 11, 0.08);
-          color: #f59e0b;
+          background: #16231f;
+          border-color: #16231f;
+          color: #fbf8f2;
+        }
+
+        .featured-section {
+          padding: 6px 16px 18px;
+          background: #fbf8f2;
+        }
+
+        .featured-title {
+          font-size: 13px;
+          font-weight: 700;
+          margin: 0 0 10px;
+          color: #16231f;
+        }
+
+        .featured-scroll {
+          display: flex;
+          gap: 10px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+
+        .featured-scroll::-webkit-scrollbar {
+          display: none;
+        }
+
+        .featured-card {
+          flex: 0 0 auto;
+          width: 104px;
+          background: #ffffff;
+          border: 1px solid #eee7d6;
+          border-radius: 14px;
+          padding: 10px 8px;
+          text-align: center;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s;
+        }
+
+        .featured-card:hover {
+          border-color: #e8a33d;
+        }
+
+        .featured-logo {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          margin: 0 auto 6px;
+          background: #fbf8f2;
+          border: 1px solid #eee7d6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        .featured-logo img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .featured-name {
+          font-size: 11px;
+          font-weight: 600;
+          color: #16231f;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .featured-cat {
+          font-size: 9px;
+          color: #8a9a93;
+          margin-top: 2px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .listings {
-          padding: 14px 16px;
+          padding: 4px 16px 14px;
           max-width: 1200px;
           margin: 0 auto;
         }
@@ -979,8 +856,8 @@ const Landing = () => {
 
         .listings-count {
           font-size: 12px;
-          color: #94a3b8;
-          background: #f1f5f9;
+          color: #8a9a93;
+          background: #eee7d6;
           padding: 1px 10px;
           border-radius: 12px;
         }
@@ -989,7 +866,7 @@ const Landing = () => {
           width: 32px;
           height: 32px;
           border-radius: 8px;
-          border: 1px solid #f1f5f9;
+          border: 1px solid #eee7d6;
           background: #ffffff;
           cursor: pointer;
           display: flex;
@@ -999,48 +876,55 @@ const Landing = () => {
         }
 
         .filter-btn:hover {
-          background: #f8fafc;
+          background: #f3efe2;
         }
 
-        .listings-feed {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
+        .listings-grid {
+          column-count: 2;
+          column-gap: 12px;
+        }
+
+        @media (min-width: 640px) {
+          .listings-grid {
+            column-count: 3;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          .listings-grid {
+            column-count: 4;
+          }
         }
 
         .feed-card {
           background: #ffffff;
-          border-radius: 12px;
-          border: 1px solid #f1f5f9;
+          border-radius: 16px;
+          border: 1px solid #eee7d6;
           overflow: hidden;
-          transition: all 0.2s;
+          cursor: pointer;
+          break-inside: avoid;
+          -webkit-column-break-inside: avoid;
+          margin-bottom: 12px;
+          transition: box-shadow 0.2s, transform 0.2s;
         }
 
         .feed-card:hover {
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-        }
-
-        .feed-card-main {
-          display: flex;
-          gap: 12px;
-          padding: 12px;
-          cursor: pointer;
+          box-shadow: 0 10px 26px rgba(22, 35, 31, 0.12);
+          transform: translateY(-2px);
         }
 
         .feed-image {
-          width: 68px;
-          height: 68px;
-          border-radius: 10px;
-          flex-shrink: 0;
-          background: #f8fafc;
-          overflow: hidden;
           position: relative;
+          width: 100%;
+          background: #f3efe2;
+          overflow: hidden;
         }
 
         .feed-img {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          display: block;
         }
 
         .feed-placeholder {
@@ -1051,285 +935,142 @@ const Landing = () => {
           justify-content: center;
         }
 
-        .feed-delivery {
+        .badge-row {
           position: absolute;
-          bottom: 4px;
-          right: 4px;
-          background: #10b981;
-          border-radius: 4px;
-          padding: 2px 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .feed-content {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-        }
-
-        .feed-top {
+          top: 8px;
+          left: 8px;
+          right: 8px;
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
+          pointer-events: none;
+        }
+
+        .badge {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 700;
+        }
+
+        .feed-new {
+          background: #c9603c;
+          color: #fbf8f2;
+          padding: 3px 7px;
+        }
+
+        .feed-delivery {
+          background: #244f43;
+          width: 20px;
+          height: 20px;
+          border-radius: 6px;
+        }
+
+        .feed-content {
+          padding: 10px 12px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
         }
 
         .feed-title {
           font-size: 13px;
           font-weight: 600;
           margin: 0;
+          line-height: 1.3;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
           overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          flex: 1;
-          padding-right: 8px;
+        }
+
+        .feed-price-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 6px;
         }
 
         .feed-price {
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 700;
-          color: #10b981;
-          flex-shrink: 0;
-        }
-
-        .feed-meta {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-size: 11px;
-          color: #94a3b8;
-          margin: 2px 0;
-        }
-
-        .feed-seller,
-        .feed-rating,
-        .feed-location {
-          display: flex;
-          align-items: center;
-          gap: 3px;
+          color: #c9603c;
         }
 
         .feed-rating {
-          color: #f59e0b;
-        }
-
-        .feed-actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 2px;
-        }
-
-        .action-btn {
           display: flex;
           align-items: center;
-          gap: 3px;
-          background: none;
-          border: none;
+          gap: 2px;
           font-size: 11px;
-          color: #94a3b8;
-          cursor: pointer;
-          font-family: inherit;
-          padding: 2px 4px;
-          border-radius: 4px;
-          transition: all 0.2s;
-        }
-
-        .action-btn:hover {
-          background: #f8fafc;
-        }
-
-        .like-btn:hover {
-          color: #ef4444;
-        }
-
-        .comment-btn:hover {
-          color: #f59e0b;
-        }
-
-        .feed-comments {
-          padding: 10px 12px 12px;
-          border-top: 1px solid #f1f5f9;
-        }
-
-        .comment-input-wrap {
-          display: flex;
-          gap: 6px;
-          margin-bottom: 8px;
-        }
-
-        .comment-input {
-          flex: 1;
-          padding: 6px 12px;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          font-size: 12px;
-          font-family: inherit;
-          color: #1e293b;
-          outline: none;
-          background: #ffffff;
-          transition: all 0.2s;
-        }
-
-        .comment-input:focus {
-          border-color: #f59e0b;
-        }
-
-        .comment-input::placeholder {
-          color: #94a3b8;
-        }
-
-        .comment-send {
-          padding: 6px 10px;
-          background: #1e293b;
-          border: none;
-          border-radius: 8px;
-          color: #ffffff;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .comment-send:hover {
-          background: #f59e0b;
-        }
-
-        .comment-list {
-          max-height: 140px;
-          overflow-y: auto;
-        }
-
-        .no-comments {
-          font-size: 11px;
-          color: #94a3b8;
-          text-align: center;
-          padding: 4px 0;
-        }
-
-        .comment-item {
-          padding: 6px 0;
-          border-bottom: 1px solid #f8fafc;
-        }
-
-        .comment-item:last-child {
-          border-bottom: none;
-        }
-
-        .comment-head {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
-
-        .comment-user {
           font-weight: 600;
+          color: #e8a33d;
+          flex-shrink: 0;
+        }
+
+        .feed-meta-row {
+          display: flex;
+          align-items: center;
+          gap: 5px;
           font-size: 11px;
-          color: #1e293b;
+          color: #8a9a93;
+          flex-wrap: wrap;
         }
 
-        .comment-time {
+        .feed-seller-text,
+        .feed-location-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 100px;
+        }
+
+        .feed-dot {
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: #d8d0bb;
+          flex-shrink: 0;
+        }
+
+        .business-tag {
           font-size: 9px;
-          color: #94a3b8;
+          font-weight: 700;
+          color: #e8a33d;
+          background: rgba(232, 163, 61, 0.14);
+          padding: 1px 6px;
+          border-radius: 5px;
+          flex-shrink: 0;
         }
 
-        .comment-text {
-          font-size: 12px;
-          color: #64748b;
-          margin: 2px 0;
+        .feed-footer {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          margin-top: 2px;
+          padding-top: 6px;
+          border-top: 1px solid #f3efe2;
         }
 
-        .reply-trigger {
-          background: none;
-          border: none;
-          font-size: 10px;
-          color: #94a3b8;
-          cursor: pointer;
-          font-family: inherit;
+        .like-btn {
           display: flex;
           align-items: center;
           gap: 4px;
-          padding: 2px 0;
-          transition: all 0.2s;
-        }
-
-        .reply-trigger:hover {
-          color: #f59e0b;
-        }
-
-        .reply-input-wrap {
-          display: flex;
-          gap: 6px;
-          margin: 4px 0 4px 16px;
-        }
-
-        .reply-input {
-          flex: 1;
-          padding: 4px 10px;
-          border: 1px solid #e2e8f0;
-          border-radius: 6px;
-          font-size: 11px;
-          font-family: inherit;
-          color: #1e293b;
-          outline: none;
-          background: #ffffff;
-        }
-
-        .reply-input:focus {
-          border-color: #f59e0b;
-        }
-
-        .reply-send {
-          padding: 4px 8px;
-          background: #1e293b;
+          background: none;
           border: none;
-          border-radius: 6px;
-          color: #ffffff;
+          font-size: 11px;
+          color: #8a9a93;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          font-family: inherit;
+          padding: 2px 4px;
+          border-radius: 6px;
           transition: all 0.2s;
         }
 
-        .reply-send:hover {
-          background: #f59e0b;
-        }
-
-        .replies {
-          margin-left: 16px;
-          padding-left: 10px;
-          border-left: 1px solid #f1f5f9;
-        }
-
-        .reply-item {
-          padding: 4px 0;
-        }
-
-        .reply-head {
-          display: flex;
-          gap: 6px;
-          align-items: center;
-        }
-
-        .reply-user {
-          font-weight: 600;
-          font-size: 10px;
-          color: #64748b;
-        }
-
-        .reply-time {
-          font-size: 8px;
-          color: #94a3b8;
-        }
-
-        .reply-text {
-          font-size: 11px;
-          color: #94a3b8;
-          margin: 1px 0;
+        .like-btn:hover {
+          background: #f3efe2;
+          color: #ef4444;
         }
 
         .empty-state {
@@ -1340,13 +1081,13 @@ const Landing = () => {
         .empty-title {
           font-size: 16px;
           font-weight: 600;
-          color: #1e293b;
+          color: #16231f;
           margin: 8px 0 4px;
         }
 
         .empty-desc {
           font-size: 13px;
-          color: #94a3b8;
+          color: #8a9a93;
           margin: 0;
         }
 
@@ -1357,7 +1098,7 @@ const Landing = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid rgba(238, 231, 214, 0.7);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -1388,58 +1129,41 @@ const Landing = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1e293b;
+          background: #244f43;
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94a3b8;
+          color: #8a9a93;
         }
 
         .nav-label.active {
-          color: #1e293b;
+          color: #16231f;
           font-weight: 600;
         }
 
         @media (max-width: 480px) {
-          .header {
-            padding: 12px 12px 0;
+          .hero-block {
+            padding: 24px 12px 52px;
           }
           .hero-title {
-            font-size: 22px;
+            font-size: 24px;
           }
-          .feed-card-main {
-            padding: 10px;
-            gap: 10px;
+          .listings {
+            padding: 4px 12px 12px;
           }
-          .feed-image {
-            width: 56px;
-            height: 56px;
+          .listings-grid {
+            column-gap: 10px;
+          }
+          .feed-card {
+            margin-bottom: 10px;
           }
           .feed-title {
             font-size: 12px;
           }
           .feed-price {
-            font-size: 12px;
-          }
-          .tabs-section {
-            padding: 8px 12px;
-          }
-          .tab-btn {
-            font-size: 12px;
-            padding: 4px 10px;
-          }
-        }
-
-        @media (max-width: 380px) {
-          .feed-image {
-            width: 48px;
-            height: 48px;
-          }
-          .feed-meta {
-            font-size: 10px;
-            gap: 6px;
+            font-size: 13px;
           }
         }
 
@@ -1450,10 +1174,11 @@ const Landing = () => {
             animation: none;
           }
           .feed-card,
-          .action-btn,
+          .like-btn,
           .nav-icon-wrap,
-          .category-chip,
-          .tab-btn {
+          .category-circle,
+          .tab-btn,
+          .featured-card {
             transition: none;
           }
         }
