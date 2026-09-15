@@ -88,32 +88,22 @@ const Navbar = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(
-    typeof window !== 'undefined' ? window.innerWidth : 375
-  );
+
   const notificationRef = useRef(null);
   const bellRef = useRef(null);
   const lastFetchRef = useRef(0);
-
-  const isMobile = windowWidth <= 768;
 
   // Scroll effect
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Resize effect
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Close menus on route change
@@ -138,7 +128,7 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Lock body scroll when mobile menu open
+  // Lock body scroll when drawer open
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
     return () => {
@@ -147,7 +137,7 @@ const Navbar = () => {
   }, [isMobileMenuOpen]);
 
   // ============================================================
-  // FETCH NOTIFICATIONS — hardened against network / undefined
+  // FETCH NOTIFICATIONS — hardened
   // ============================================================
   const fetchNotifications = async () => {
     if (!user?.id) return;
@@ -155,14 +145,10 @@ const Navbar = () => {
     setLoadingNotifications(true);
     try {
       const response = await notificationsAPI.getNotifications(user.id);
-
-      // ✅ Safe access — response.data may be undefined on errored responses
       const list = response?.data?.notifications ?? [];
       const ok = response?.data?.success ?? true;
-
       setNotifications(ok && Array.isArray(list) ? list : []);
     } catch (err) {
-      // ✅ Network / backend down — degrade silently, don't crash the Navbar
       if (err?.response) {
         console.warn('Notifications failed (server):', err.response.status);
       } else if (err?.request) {
@@ -176,14 +162,12 @@ const Navbar = () => {
     }
   };
 
-  // Auto-fetch with a 30s backoff to prevent retry storms during outages
+  // Auto-fetch with 30s backoff
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
-
     const now = Date.now();
     if (now - lastFetchRef.current < 30_000) return;
     lastFetchRef.current = now;
-
     fetchNotifications();
   }, [isAuthenticated, user?.id]);
 
@@ -223,14 +207,26 @@ const Navbar = () => {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Nav items
-  const desktopNavItems = [
-    { label: 'Home', path: '/landing', icon: 'home' },
-    { label: 'Search', path: '/search', icon: 'search' },
-    { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
-  ];
+  // ============================================================
+  // DISPLAY HELPERS
+  // ============================================================
+  // ✅ Prefer full_name; fall back to email prefix, then 'User'
+  const displayName =
+    user?.full_name?.trim() ||
+    user?.email?.split('@')[0] ||
+    'User';
 
-  const mobileNavSections = [
+  // ✅ First letter of the name for the avatar (falls back to email letter)
+  const avatarLetter = (
+    user?.full_name?.[0] ||
+    user?.email?.[0] ||
+    'U'
+  ).toUpperCase();
+
+  // ============================================================
+  // DRAWER NAV SECTIONS
+  // ============================================================
+  const drawerNavSections = [
     {
       label: 'Main',
       items: [
@@ -278,7 +274,7 @@ const Navbar = () => {
     <>
       <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
         <div className="navbar-inner">
-          {/* Logo */}
+          {/* ===== LEFT: LOGO (pinned to the very left) ===== */}
           <Link to={isAuthenticated ? '/landing' : '/'} className="logo">
             <div className="logo-icon">
               <span className="logo-icon-text">K</span>
@@ -288,30 +284,7 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          {isAuthenticated && (
-            <div className="desktop-nav">
-              {desktopNavItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`nav-item ${
-                    isActive(item.path) ? 'nav-item-active' : ''
-                  }`}
-                >
-                  <Icon
-                    name={item.icon}
-                    size={16}
-                    color="currentColor"
-                    strokeWidth={1.75}
-                  />
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {/* Right Section */}
+          {/* ===== RIGHT: bell + avatar + hamburger (pinned to the very right) ===== */}
           <div className="nav-right">
             {/* Notification Bell */}
             {isAuthenticated && (
@@ -414,18 +387,19 @@ const Navbar = () => {
               </div>
             )}
 
-            {/* Auth Buttons or Avatar */}
-            {isAuthenticated ? (
+            {/* Avatar (when logged in) */}
+            {isAuthenticated && (
               <button
                 onClick={() => navigate('/profile')}
                 className="avatar-btn"
                 aria-label="Profile"
               >
-                <div className="avatar">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
-                </div>
+                <div className="avatar">{avatarLetter}</div>
               </button>
-            ) : (
+            )}
+
+            {/* Login / Signup links (when logged out) */}
+            {!isAuthenticated && (
               <div className="auth-buttons">
                 <Link to="/login" className="auth-link">
                   Login
@@ -436,7 +410,7 @@ const Navbar = () => {
               </div>
             )}
 
-            {/* Hamburger */}
+            {/* ✅ Hamburger — ALWAYS visible, at the very right */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="hamburger-btn"
@@ -453,66 +427,71 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* ===== SIDE DRAWER (narrow) ===== */}
       {isMobileMenuOpen && (
-        <div className="mobile-overlay" onClick={() => setIsMobileMenuOpen(false)}>
-          <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
-            {/* Mobile Header */}
-            <div className="mobile-header">
-              <div className="mobile-logo">
-                <div className="mobile-logo-icon">K</div>
+        <div className="drawer-overlay" onClick={() => setIsMobileMenuOpen(false)}>
+          <aside className="drawer" onClick={(e) => e.stopPropagation()}>
+            {/* Drawer Header */}
+            <div className="drawer-header">
+              <div className="drawer-logo">
+                <div className="drawer-logo-icon">K</div>
                 <span>
-                  Ku<span className="mobile-logo-accent">msika</span>
+                  Ku<span className="drawer-logo-accent">msika</span>
                 </span>
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="mobile-close"
+                className="drawer-close"
                 aria-label="Close"
               >
-                <Icon name="close" size={20} color="#1E293B" strokeWidth={1.75} />
+                <Icon name="close" size={18} color="#1E293B" strokeWidth={1.75} />
               </button>
             </div>
 
-            {/* User Info */}
+            {/* ===== User Info (FIXED: full name + full email) ===== */}
             {isAuthenticated && user && (
-              <div className="mobile-user-info">
-                <div className="mobile-user-avatar">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
-                </div>
-                <div className="mobile-user-details">
-                  <span className="mobile-user-name">
-                    {user?.email?.split('@')[0] || 'User'}
+              <div className="drawer-user">
+                <div className="drawer-user-avatar">{avatarLetter}</div>
+                <div className="drawer-user-details">
+                  <span
+                    className="drawer-user-name"
+                    title={user?.full_name || user?.email}
+                  >
+                    {displayName}
                   </span>
-                  <span className="mobile-user-email">{user?.email}</span>
+                  {user?.email && (
+                    <span className="drawer-user-email" title={user.email}>
+                      {user.email}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Navigation Sections */}
-            <div className="mobile-nav">
+            {/* Nav Sections */}
+            <nav className="drawer-nav">
               {isAuthenticated ? (
-                mobileNavSections.map((section) => (
-                  <div key={section.label} className="mobile-nav-section">
-                    <span className="mobile-section-label">{section.label}</span>
+                drawerNavSections.map((section) => (
+                  <div key={section.label} className="drawer-section">
+                    <span className="drawer-section-label">{section.label}</span>
                     {section.items.map((item) => (
                       <Link
                         key={item.path}
                         to={item.path}
-                        className={`mobile-nav-item ${
-                          isActive(item.path) ? 'mobile-nav-item-active' : ''
+                        className={`drawer-item ${
+                          isActive(item.path) ? 'drawer-item-active' : ''
                         }`}
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <Icon
                           name={item.icon}
-                          size={18}
+                          size={16}
                           color="currentColor"
                           strokeWidth={1.75}
                         />
                         <span>{item.label}</span>
                         {item.path === '/notifications' && unreadCount > 0 && (
-                          <span className="mobile-badge">{unreadCount}</span>
+                          <span className="drawer-badge">{unreadCount}</span>
                         )}
                       </Link>
                     ))}
@@ -522,41 +501,41 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/login"
-                    className="mobile-nav-item"
+                    className="drawer-item"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <Icon name="user" size={18} color="#64748B" strokeWidth={1.75} />
+                    <Icon name="user" size={16} color="#64748B" strokeWidth={1.75} />
                     Login
                   </Link>
                   <Link
                     to="/register"
-                    className="mobile-nav-item mobile-nav-item-primary"
+                    className="drawer-item drawer-item-primary"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <Icon name="plus" size={18} color="#F59E0B" strokeWidth={1.75} />
+                    <Icon name="plus" size={16} color="#F59E0B" strokeWidth={1.75} />
                     Sign Up
                   </Link>
                 </>
               )}
-            </div>
+            </nav>
 
-            {/* Mobile Bottom */}
-            <div className="mobile-bottom">
-              <span className="mobile-version">v2.0.0</span>
+            {/* Drawer Footer */}
+            <div className="drawer-footer">
+              <span className="drawer-version">v2.0.0</span>
               {isAuthenticated && (
                 <button
                   onClick={() => {
                     handleSignOut();
                     setIsMobileMenuOpen(false);
                   }}
-                  className="mobile-signout-btn"
+                  className="drawer-signout"
                 >
-                  <Icon name="logout" size={16} color="#EF4444" strokeWidth={1.75} />
+                  <Icon name="logout" size={14} color="#EF4444" strokeWidth={1.75} />
                   Sign Out
                 </button>
               )}
             </div>
-          </div>
+          </aside>
         </div>
       )}
 
@@ -567,6 +546,11 @@ const Navbar = () => {
           top: 0;
           left: 0;
           right: 0;
+          width: 100vw;
+          max-width: 100vw;
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
           z-index: 1000;
           background: rgba(255, 255, 255, 0.95);
           backdrop-filter: blur(20px);
@@ -575,7 +559,6 @@ const Navbar = () => {
           height: 60px;
           display: flex;
           align-items: center;
-          transition: all 0.2s ease;
         }
 
         .navbar-scrolled {
@@ -583,11 +566,12 @@ const Navbar = () => {
           box-shadow: 0 2px 20px rgba(30, 41, 59, 0.04);
         }
 
+        /* ✅ Full-bleed inner row — stretches edge to edge */
         .navbar-inner {
           width: 100%;
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 16px;
+          min-width: 0;
+          box-sizing: border-box;
+          padding: 0 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -595,7 +579,7 @@ const Navbar = () => {
           height: 100%;
         }
 
-        /* ===== LOGO ===== */
+        /* ===== LOGO — hugs the very left ===== */
         .logo {
           display: flex;
           align-items: center;
@@ -634,48 +618,11 @@ const Navbar = () => {
           color: #f59e0b;
         }
 
-        /* ===== DESKTOP NAV ===== */
-        .desktop-nav {
-          display: none;
-          align-items: center;
-          gap: 4px;
-        }
-
-        @media (min-width: 769px) {
-          .desktop-nav {
-            display: flex;
-          }
-        }
-
-        .nav-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 14px;
-          border-radius: 10px;
-          font-size: 13px;
-          font-weight: 500;
-          color: #64748b;
-          text-decoration: none;
-          transition: all 0.2s;
-        }
-
-        .nav-item:hover {
-          background: #f8fafc;
-          color: #1e293b;
-        }
-
-        .nav-item-active {
-          color: #f59e0b;
-          background: rgba(245, 158, 11, 0.08);
-        }
-
-        /* ===== RIGHT SECTION ===== */
+        /* ===== RIGHT SIDE — hugs the very right ===== */
         .nav-right {
           display: flex;
           align-items: center;
           gap: 6px;
-          margin-left: auto;
           flex-shrink: 0;
         }
 
@@ -784,6 +731,7 @@ const Navbar = () => {
           background: #f59e0b;
         }
 
+        /* ✅ Hamburger — always visible, always last on the right */
         .hamburger-btn {
           width: 40px;
           height: 40px;
@@ -795,16 +743,11 @@ const Navbar = () => {
           align-items: center;
           justify-content: center;
           transition: all 0.2s;
+          margin-left: 4px;
         }
 
         .hamburger-btn:hover {
           background: #f8fafc;
-        }
-
-        @media (min-width: 769px) {
-          .hamburger-btn {
-            display: none;
-          }
         }
 
         /* ===== NOTIFICATION DROPDOWN ===== */
@@ -816,7 +759,7 @@ const Navbar = () => {
           position: absolute;
           top: calc(100% + 8px);
           right: 0;
-          width: 360px;
+          width: 340px;
           max-width: calc(100vw - 32px);
           max-height: calc(100vh - 100px);
           background: #ffffff;
@@ -845,13 +788,13 @@ const Navbar = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 16px 18px;
+          padding: 14px 16px;
           border-bottom: 1px solid #f1f5f9;
           flex-shrink: 0;
         }
 
         .notification-title {
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 700;
           color: #1e293b;
           margin: 0;
@@ -889,7 +832,7 @@ const Navbar = () => {
         .notification-list {
           flex: 1;
           overflow-y: auto;
-          max-height: 400px;
+          max-height: 380px;
         }
 
         .notification-list::-webkit-scrollbar {
@@ -931,7 +874,7 @@ const Navbar = () => {
           display: flex;
           align-items: flex-start;
           gap: 12px;
-          padding: 12px 18px;
+          padding: 12px 16px;
           cursor: pointer;
           transition: all 0.15s;
           border-bottom: 1px solid #f8fafc;
@@ -1028,7 +971,7 @@ const Navbar = () => {
         }
 
         .notification-footer {
-          padding: 10px 18px;
+          padding: 10px 16px;
           border-top: 1px solid #f1f5f9;
           flex-shrink: 0;
         }
@@ -1051,8 +994,8 @@ const Navbar = () => {
           background: #f1f5f9;
         }
 
-        /* ===== MOBILE MENU ===== */
-        .mobile-overlay {
+        /* ===== SIDE DRAWER (NARROW) ===== */
+        .drawer-overlay {
           position: fixed;
           inset: 0;
           background: rgba(15, 23, 42, 0.5);
@@ -1072,9 +1015,10 @@ const Navbar = () => {
           }
         }
 
-        .mobile-menu {
-          width: 85%;
-          max-width: 340px;
+        /* ✅ Narrow drawer: max 240px, and shrinks on small phones */
+        .drawer {
+          width: 240px;
+          max-width: 72vw;
           height: 100%;
           background: #ffffff;
           display: flex;
@@ -1093,46 +1037,46 @@ const Navbar = () => {
           }
         }
 
-        .mobile-header {
+        .drawer-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 16px 18px;
+          padding: 14px 14px;
           border-bottom: 1px solid #f1f5f9;
           flex-shrink: 0;
         }
 
-        .mobile-logo {
+        .drawer-logo {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 700;
           color: #1e293b;
           font-family: 'Georgia', serif;
         }
 
-        .mobile-logo-icon {
-          width: 32px;
-          height: 32px;
+        .drawer-logo-icon {
+          width: 28px;
+          height: 28px;
           background: #1e293b;
-          border-radius: 10px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: #f59e0b;
-          font-size: 15px;
+          font-size: 13px;
           font-weight: 700;
         }
 
-        .mobile-logo-accent {
+        .drawer-logo-accent {
           color: #f59e0b;
         }
 
-        .mobile-close {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+        .drawer-close {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
           border: none;
           background: #f8fafc;
           cursor: pointer;
@@ -1142,153 +1086,159 @@ const Navbar = () => {
           transition: all 0.2s;
         }
 
-        .mobile-close:hover {
+        .drawer-close:hover {
           background: #f1f5f9;
         }
 
-        .mobile-user-info {
+        /* ===== DRAWER USER CARD — full name + full email, no truncation ===== */
+        .drawer-user {
           display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 14px 18px;
-          margin: 12px 16px;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 10px 12px;
+          margin: 10px 10px 4px;
           background: linear-gradient(
             135deg,
             rgba(245, 158, 11, 0.06),
             rgba(245, 158, 11, 0.02)
           );
-          border-radius: 12px;
+          border-radius: 10px;
           border: 1px solid rgba(245, 158, 11, 0.15);
           flex-shrink: 0;
         }
 
-        .mobile-user-avatar {
-          width: 40px;
-          height: 40px;
+        .drawer-user-avatar {
+          width: 34px;
+          height: 34px;
           border-radius: 50%;
           background: linear-gradient(135deg, #f59e0b, #d97706);
           color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 15px;
+          font-size: 13px;
           font-weight: 700;
           flex-shrink: 0;
         }
 
-        .mobile-user-details {
+        .drawer-user-details {
           flex: 1;
           min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
         }
 
-        .mobile-user-name {
-          font-size: 14px;
+        /* ✅ Full name — wraps if long, no truncation */
+        .drawer-user-name {
+          font-size: 13px;
           font-weight: 700;
           color: #1e293b;
           display: block;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          line-height: 1.25;
+          word-break: break-word;
+          overflow-wrap: anywhere;
         }
 
-        .mobile-user-email {
-          font-size: 11px;
+        /* ✅ Full email — wraps mid-word if needed, no truncation */
+        .drawer-user-email {
+          font-size: 10px;
           color: #94a3b8;
           display: block;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          line-height: 1.3;
+          word-break: break-all;
+          overflow-wrap: anywhere;
         }
 
-        .mobile-nav {
+        .drawer-nav {
           flex: 1;
           overflow-y: auto;
-          padding: 0 16px;
+          padding: 6px 10px 10px;
         }
 
-        .mobile-nav-section {
-          margin-bottom: 16px;
+        .drawer-section {
+          margin-bottom: 12px;
         }
 
-        .mobile-section-label {
+        .drawer-section-label {
           display: block;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 700;
           color: #94a3b8;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          padding: 8px 4px 4px;
+          padding: 6px 6px 4px;
         }
 
-        .mobile-nav-item {
+        .drawer-item {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 12px;
-          border-radius: 10px;
-          font-size: 14px;
+          gap: 10px;
+          padding: 9px 10px;
+          border-radius: 8px;
+          font-size: 13px;
           font-weight: 500;
           color: #64748b;
           text-decoration: none;
           transition: all 0.15s;
           margin-bottom: 2px;
-          min-height: 44px;
+          min-height: 38px;
         }
 
-        .mobile-nav-item:hover {
+        .drawer-item:hover {
           background: #f8fafc;
           color: #1e293b;
         }
 
-        .mobile-nav-item-active {
+        .drawer-item-active {
           color: #f59e0b;
           background: rgba(245, 158, 11, 0.08);
           font-weight: 600;
         }
 
-        .mobile-nav-item-primary {
+        .drawer-item-primary {
           color: #f59e0b;
         }
 
-        .mobile-badge {
+        .drawer-badge {
           margin-left: auto;
-          min-width: 20px;
-          height: 20px;
-          padding: 0 6px;
-          border-radius: 10px;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 5px;
+          border-radius: 9px;
           background: #f59e0b;
           color: #ffffff;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 700;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
-        .mobile-bottom {
-          padding: 16px;
+        .drawer-footer {
+          padding: 12px 12px;
           border-top: 1px solid #f1f5f9;
           flex-shrink: 0;
         }
 
-        .mobile-version {
+        .drawer-version {
           display: block;
           text-align: center;
-          font-size: 10px;
+          font-size: 9px;
           color: #cbd5e1;
-          margin-bottom: 10px;
+          margin-bottom: 8px;
           font-family: 'SF Mono', monospace;
         }
 
-        .mobile-signout-btn {
+        .drawer-signout {
           width: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          padding: 12px;
-          border-radius: 12px;
-          font-size: 14px;
+          gap: 6px;
+          padding: 9px;
+          border-radius: 10px;
+          font-size: 12px;
           font-weight: 600;
           color: #ef4444;
           background: #fef2f2;
@@ -1296,17 +1246,17 @@ const Navbar = () => {
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
-          min-height: 44px;
+          min-height: 36px;
         }
 
-        .mobile-signout-btn:hover {
+        .drawer-signout:hover {
           background: #fee2e2;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
           .navbar-inner {
-            padding: 0 12px;
+            padding: 0 14px;
           }
           .logo-text {
             font-size: 16px;
@@ -1315,6 +1265,17 @@ const Navbar = () => {
             width: 32px;
             height: 32px;
           }
+          .icon-btn,
+          .avatar-btn,
+          .hamburger-btn {
+            width: 36px;
+            height: 36px;
+          }
+          .avatar {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1322,8 +1283,8 @@ const Navbar = () => {
             animation: none;
           }
           .notification-dropdown,
-          .mobile-overlay,
-          .mobile-menu {
+          .drawer-overlay,
+          .drawer {
             animation: none;
           }
           .nav-item,
@@ -1332,8 +1293,8 @@ const Navbar = () => {
           .auth-link,
           .auth-link-primary,
           .hamburger-btn,
-          .mobile-nav-item,
-          .mobile-signout-btn,
+          .drawer-item,
+          .drawer-signout,
           .view-all-btn,
           .mark-all-btn {
             transition: none;
