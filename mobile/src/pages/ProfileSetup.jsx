@@ -8,19 +8,29 @@ import { useToast } from '../components/ToastContainer';
 // ============================================================
 // LUCIDE-STYLE ICONS
 // ============================================================
-const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+const Icon = ({
+  name,
+  size = 20,
+  color = 'currentColor',
+  strokeWidth = 1.75,
+  className = '',
+}) => {
   const icons = {
-    arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-    arrowRight: "M5 12h14M12 5l7 7-7 7",
-    store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-    user: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 7a4 4 0 100-8 4 4 0 000 8z",
-    camera: "M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 13a3 3 0 100-6 3 3 0 000 6z",
-    mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z",
-    tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
-    check: "M20 6L9 17l-5-5",
-    sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
-    info: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
-    shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+    arrowLeft: 'M19 12H5M12 19l-7-7 7-7',
+    arrowRight: 'M5 12h14M12 5l7 7-7 7',
+    store:
+      'M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9',
+    user: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 7a4 4 0 100-8 4 4 0 000 8z',
+    camera:
+      'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 13a3 3 0 100-6 3 3 0 000 6z',
+    mapPin:
+      'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z',
+    tag: 'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01',
+    check: 'M20 6L9 17l-5-5',
+    sparkles:
+      'M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z',
+    info: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
   };
 
   const d = icons[name] || icons.store;
@@ -44,21 +54,28 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 };
 
 // ============================================================
-// CATEGORIES
+// CATEGORIES — labels MUST match the DB constraint exactly
 // ============================================================
 const CATEGORIES = [
-  { id: 'food', label: 'Food & Groceries', emoji: '🍲' },
-  { id: 'clothing', label: 'Clothing & Fashion', emoji: '👕' },
-  { id: 'farm', label: 'Farm Inputs', emoji: '🌾' },
-  { id: 'construction', label: 'Construction', emoji: '🏗️' },
-  { id: 'plumber', label: 'Plumbing', emoji: '🔧' },
-  { id: 'electrician', label: 'Electrical', emoji: '⚡' },
-  { id: 'carpenter', label: 'Carpentry', emoji: '🔨' },
-  { id: 'tailor', label: 'Tailoring', emoji: '🧵' },
-  { id: 'salon', label: 'Salon & Barber', emoji: '💇' },
-  { id: 'mechanic', label: 'Mechanic', emoji: '🚗' },
-  { id: 'electronics', label: 'Electronics', emoji: '📱' },
-  { id: 'other', label: 'Other', emoji: '✨' },
+  { id: 'food',         label: 'Food & Groceries',    emoji: '🍲' },
+  { id: 'clothing',     label: 'Clothing & Fashion',  emoji: '👕' },
+  { id: 'farm',         label: 'Farm Inputs',         emoji: '🌾' },
+  { id: 'construction', label: 'Construction',        emoji: '🏗️' },
+  { id: 'plumbing',     label: 'Plumbing',            emoji: '🔧' },
+  { id: 'electrical',   label: 'Electrical',          emoji: '⚡' },
+  { id: 'carpentry',    label: 'Carpentry',           emoji: '🔨' },
+  { id: 'tailoring',    label: 'Tailoring',           emoji: '🧵' },
+  { id: 'salon',        label: 'Salon & Barber',      emoji: '💇' },
+  { id: 'mechanic',     label: 'Mechanic',            emoji: '🚗' },
+  { id: 'electronics',  label: 'Electronics',         emoji: '📱' },
+  { id: 'hardware',     label: 'Hardware',            emoji: '🛠️' },
+  { id: 'home',         label: 'Home & Garden',       emoji: '🏠' },
+  { id: 'health',       label: 'Health & Beauty',     emoji: '💅' },
+  { id: 'transport',    label: 'Transport',           emoji: '🚚' },
+  { id: 'ict',          label: 'ICT',                 emoji: '💻' },
+  { id: 'services',     label: 'Services',            emoji: '🧰' },
+  { id: 'retail',       label: 'Retail',              emoji: '🏪' },
+  { id: 'other',        label: 'Other',               emoji: '✨' },
 ];
 
 const LOCATIONS = [
@@ -79,9 +96,12 @@ const ProfileSetup = () => {
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
   const { showToast, success } = useToast();
+
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 375
+  );
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const fileInputRef = useRef(null);
@@ -104,7 +124,7 @@ const ProfileSetup = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePhotoUpload = (e) => {
@@ -138,11 +158,8 @@ const ProfileSetup = () => {
     else navigate(-1);
   };
 
-  // Skipping should actually skip. Previously this just navigated
-  // to /landing without ever marking onboarding_completed, which
-  // meant the ProtectedRoute gate in App.jsx would immediately
-  // bounce the user right back to /role-selection — so "skip"
-  // didn't skip anything. Now it marks onboarding as done first.
+  // Skipping marks onboarding as done so the guard doesn't bounce
+  // the user right back to /role-selection.
   const handleSkip = async () => {
     try {
       if (updateProfile) {
@@ -155,32 +172,29 @@ const ProfileSetup = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setLoading(true);
 
     try {
+      // ✅ Send ONLY what the backend expects.
+      // Do NOT include `location` — the backend doesn't read it.
+      // Use `locationText` instead, which the backend maps to `address`.
       const payload = {
         userId: user?.id,
-        businessName: formData.businessName,
-        category: formData.category,
-        location: formData.location,
-        description: formData.description,
-        phone: formData.phone,
+        businessName: formData.businessName.trim(),
+        category: formData.category, // already a label that matches DB constraint
+        description: formData.description?.trim() || '',
+        phone: formData.phone?.trim() || '',
+        locationText: formData.location || '',
       };
 
-      // Call API to create business
-      if (businessAPI?.create) {
-        await businessAPI.create(payload);
-      } else if (updateProfile) {
-        await updateProfile(payload);
-      }
+      console.log('📤 Sending business create payload:', payload);
 
-      // Mark onboarding as finished regardless of which branch
-      // above ran, as a separate call — `payload`'s field names
-      // (businessName, category, etc.) match a businesses-table
-      // shape, not necessarily the profiles-table columns
-      // updateProfile writes to, so onboarding_completed is set
-      // explicitly here rather than folded into that payload.
+      const response = await businessAPI.create(payload);
+
+      console.log('✅ Business create response:', response?.data);
+
+      // Mark onboarding complete
       if (updateProfile) {
         await updateProfile({ onboarding_completed: true });
       }
@@ -188,8 +202,23 @@ const ProfileSetup = () => {
       success('Profile created! Welcome to Kumsika 🎉');
       navigate('/dashboard', { replace: true });
     } catch (err) {
-      console.error('Error creating profile:', err);
-      showToast('Failed to save profile. Please try again.', 'error');
+      console.error('❌ Error creating profile:', err);
+
+      // ✅ Show the server's real error message
+      const serverMessage =
+        err?.response?.data?.error ||
+        err?.message ||
+        'Failed to save profile. Please try again.';
+
+      // If the backend sent back an allowed categories list, log it
+      if (err?.response?.data?.allowedCategories) {
+        console.warn(
+          'Allowed categories per server:',
+          err.response.data.allowedCategories
+        );
+      }
+
+      showToast(serverMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -200,12 +229,22 @@ const ProfileSetup = () => {
       <div className="setup-card">
         {/* Header */}
         <div className="card-header">
-          <button className="back-btn" onClick={handleBack}>
-            <Icon name="arrowLeft" size={18} color="#64748B" strokeWidth={1.75} />
+          <button className="back-btn" onClick={handleBack} type="button">
+            <Icon
+              name="arrowLeft"
+              size={18}
+              color="#64748B"
+              strokeWidth={1.75}
+            />
           </button>
           <div className="header-content">
             <div className="header-badge">
-              <Icon name="sparkles" size={14} color="#F59E0B" strokeWidth={1.75} />
+              <Icon
+                name="sparkles"
+                size={14}
+                color="#F59E0B"
+                strokeWidth={1.75}
+              />
               <span>Step {step} of 2</span>
             </div>
             <h1 className="card-title">
@@ -239,10 +278,19 @@ const ProfileSetup = () => {
                 onClick={() => fileInputRef.current?.click()}
               >
                 {photoPreview ? (
-                  <img src={photoPreview} alt="Preview" className="photo-preview" />
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
+                    className="photo-preview"
+                  />
                 ) : (
                   <div className="photo-placeholder">
-                    <Icon name="camera" size={24} color="#94A3B8" strokeWidth={1.5} />
+                    <Icon
+                      name="camera"
+                      size={24}
+                      color="#94A3B8"
+                      strokeWidth={1.5}
+                    />
                     <span>Add photo</span>
                   </div>
                 )}
@@ -254,7 +302,9 @@ const ProfileSetup = () => {
                   style={{ display: 'none' }}
                 />
               </div>
-              <p className="photo-hint">Optional — helps build trust with buyers</p>
+              <p className="photo-hint">
+                Optional — helps build trust with buyers
+              </p>
             </div>
 
             {/* Business Name */}
@@ -282,12 +332,16 @@ const ProfileSetup = () => {
                 Category <span className="required">*</span>
               </label>
               <div className="category-grid">
-                {CATEGORIES.slice(0, 8).map(cat => (
+                {CATEGORIES.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
-                    className={`category-chip ${formData.category === cat.label ? 'active' : ''}`}
-                    onClick={() => setFormData(prev => ({ ...prev, category: cat.label }))}
+                    className={`category-chip ${
+                      formData.category === cat.label ? 'active' : ''
+                    }`}
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, category: cat.label }))
+                    }
                   >
                     <span className="category-emoji">{cat.emoji}</span>
                     <span className="category-label">{cat.label}</span>
@@ -299,7 +353,12 @@ const ProfileSetup = () => {
             {/* Location */}
             <div className="form-group">
               <label className="form-label">
-                <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon
+                  name="mapPin"
+                  size={14}
+                  color="#94A3B8"
+                  strokeWidth={1.75}
+                />
                 Location
               </label>
               <select
@@ -309,8 +368,10 @@ const ProfileSetup = () => {
                 className="form-select"
               >
                 <option value="">Select location</option>
-                {LOCATIONS.map(loc => (
-                  <option key={loc} value={loc}>{loc}</option>
+                {LOCATIONS.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {loc}
+                  </option>
                 ))}
               </select>
             </div>
@@ -322,9 +383,7 @@ const ProfileSetup = () => {
           <div className="step-content">
             {/* Description */}
             <div className="form-group">
-              <label className="form-label">
-                Description
-              </label>
+              <label className="form-label">Description</label>
               <textarea
                 name="description"
                 value={formData.description}
@@ -334,14 +393,14 @@ const ProfileSetup = () => {
                 rows={4}
                 autoFocus
               />
-              <p className="field-hint">Optional — a short description helps customers find you</p>
+              <p className="field-hint">
+                Optional — a short description helps customers find you
+              </p>
             </div>
 
             {/* Phone */}
             <div className="form-group">
-              <label className="form-label">
-                Phone / WhatsApp
-              </label>
+              <label className="form-label">Phone / WhatsApp</label>
               <input
                 type="tel"
                 name="phone"
@@ -386,7 +445,9 @@ const ProfileSetup = () => {
             {/* Trust Note */}
             <div className="trust-note">
               <Icon name="shield" size={16} color="#3B82F6" strokeWidth={1.75} />
-              <span>Your information is only shared with interested buyers</span>
+              <span>
+                Your information is only shared with interested buyers
+              </span>
             </div>
           </div>
         )}
@@ -396,20 +457,29 @@ const ProfileSetup = () => {
           {step === 1 ? (
             <>
               <button
-                className={`continue-btn ${formData.businessName && formData.category ? 'active' : ''}`}
+                type="button"
+                className={`continue-btn ${
+                  formData.businessName && formData.category ? 'active' : ''
+                }`}
                 onClick={handleNext}
                 disabled={!formData.businessName || !formData.category}
               >
                 Continue
-                <Icon name="arrowRight" size={16} color="#FFFFFF" strokeWidth={2} />
+                <Icon
+                  name="arrowRight"
+                  size={16}
+                  color="#FFFFFF"
+                  strokeWidth={2}
+                />
               </button>
-              <button className="skip-btn" onClick={handleSkip}>
+              <button type="button" className="skip-btn" onClick={handleSkip}>
                 Skip for now
               </button>
             </>
           ) : (
             <>
               <button
+                type="button"
                 className={`continue-btn ${loading ? '' : 'active'}`}
                 onClick={handleSubmit}
                 disabled={loading}
@@ -422,11 +492,16 @@ const ProfileSetup = () => {
                 ) : (
                   <>
                     Complete Setup
-                    <Icon name="check" size={16} color="#FFFFFF" strokeWidth={2.5} />
+                    <Icon
+                      name="check"
+                      size={16}
+                      color="#FFFFFF"
+                      strokeWidth={2.5}
+                    />
                   </>
                 )}
               </button>
-              <button className="skip-btn" onClick={handleSkip}>
+              <button type="button" className="skip-btn" onClick={handleSkip}>
                 Do this later
               </button>
             </>
@@ -437,33 +512,38 @@ const ProfileSetup = () => {
       <style jsx>{`
         .profile-setup {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: #f8fafc;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+            sans-serif;
+          color: #1e293b;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 20px 16px;
         }
 
-        /* ===== CARD ===== */
         .setup-card {
           max-width: 520px;
           width: 100%;
-          background: #FFFFFF;
+          background: #ffffff;
           border-radius: 20px;
           padding: 24px 24px 28px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid #f1f5f9;
           box-shadow: 0 4px 24px rgba(30, 41, 59, 0.04);
           animation: fadeInUp 0.5s ease-out;
         }
 
         @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
-        /* ===== HEADER ===== */
         .card-header {
           margin-bottom: 20px;
         }
@@ -473,7 +553,7 @@ const ProfileSetup = () => {
           height: 36px;
           border-radius: 10px;
           border: none;
-          background: #F8FAFC;
+          background: #f8fafc;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -483,7 +563,7 @@ const ProfileSetup = () => {
         }
 
         .back-btn:hover {
-          background: #F1F5F9;
+          background: #f1f5f9;
         }
 
         .header-content {
@@ -498,7 +578,7 @@ const ProfileSetup = () => {
           padding: 4px 12px;
           border-radius: 20px;
           font-size: 12px;
-          color: #F59E0B;
+          color: #f59e0b;
           font-weight: 600;
           margin-bottom: 10px;
         }
@@ -506,7 +586,7 @@ const ProfileSetup = () => {
         .card-title {
           font-size: clamp(22px, 3vw, 26px);
           font-weight: 700;
-          color: #1E293B;
+          color: #1e293b;
           margin: 0 0 6px;
           font-family: 'Georgia', serif;
           letter-spacing: -0.02em;
@@ -514,14 +594,12 @@ const ProfileSetup = () => {
 
         .card-subtitle {
           font-size: 14px;
-          color: #94A3B8;
-          margin: 0;
+          color: #94a3b8;
+          margin: 0 auto;
           line-height: 1.5;
           max-width: 360px;
-          margin: 0 auto;
         }
 
-        /* ===== PROGRESS ===== */
         .progress-bar {
           margin-bottom: 22px;
         }
@@ -529,29 +607,31 @@ const ProfileSetup = () => {
         .progress-track {
           width: 100%;
           height: 4px;
-          background: #F1F5F9;
+          background: #f1f5f9;
           border-radius: 2px;
           overflow: hidden;
         }
 
         .progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, #F59E0B, #D97706);
+          background: linear-gradient(90deg, #f59e0b, #d97706);
           border-radius: 2px;
           transition: width 0.4s ease;
         }
 
-        /* ===== STEP CONTENT ===== */
         .step-content {
           animation: fadeIn 0.3s ease-out;
         }
 
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
-        /* ===== PHOTO UPLOAD ===== */
         .photo-section {
           display: flex;
           flex-direction: column;
@@ -563,19 +643,19 @@ const ProfileSetup = () => {
           width: 88px;
           height: 88px;
           border-radius: 50%;
-          border: 2px dashed #E2E8F0;
+          border: 2px dashed #e2e8f0;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           overflow: hidden;
           transition: all 0.2s;
-          background: #F8FAFC;
+          background: #f8fafc;
         }
 
         .photo-upload:hover {
-          border-color: #F59E0B;
-          background: #FEFCF5;
+          border-color: #f59e0b;
+          background: #fefcf5;
         }
 
         .photo-preview {
@@ -589,18 +669,17 @@ const ProfileSetup = () => {
           flex-direction: column;
           align-items: center;
           gap: 4px;
-          color: #94A3B8;
+          color: #94a3b8;
           font-size: 11px;
         }
 
         .photo-hint {
           font-size: 12px;
-          color: #94A3B8;
+          color: #94a3b8;
           margin: 8px 0 0;
           text-align: center;
         }
 
-        /* ===== FORM ===== */
         .form-group {
           margin-bottom: 16px;
         }
@@ -616,7 +695,7 @@ const ProfileSetup = () => {
         }
 
         .required {
-          color: #EF4444;
+          color: #ef4444;
         }
 
         .form-input,
@@ -624,12 +703,12 @@ const ProfileSetup = () => {
         .form-select {
           width: 100%;
           padding: 11px 14px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid #e2e8f0;
           border-radius: 10px;
           font-size: 14px;
-          color: #1E293B;
+          color: #1e293b;
           outline: none;
-          background: #FFFFFF;
+          background: #ffffff;
           font-family: inherit;
           transition: all 0.2s;
           box-sizing: border-box;
@@ -638,7 +717,7 @@ const ProfileSetup = () => {
         .form-input:focus,
         .form-textarea:focus,
         .form-select:focus {
-          border-color: #F59E0B;
+          border-color: #f59e0b;
           box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
         }
 
@@ -658,11 +737,10 @@ const ProfileSetup = () => {
 
         .field-hint {
           font-size: 12px;
-          color: #94A3B8;
+          color: #94a3b8;
           margin: 6px 0 0;
         }
 
-        /* ===== CATEGORY GRID ===== */
         .category-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
@@ -674,9 +752,9 @@ const ProfileSetup = () => {
           align-items: center;
           gap: 8px;
           padding: 10px 12px;
-          border: 1.5px solid #E2E8F0;
+          border: 1.5px solid #e2e8f0;
           border-radius: 10px;
-          background: #FFFFFF;
+          background: #ffffff;
           cursor: pointer;
           transition: all 0.2s;
           font-family: inherit;
@@ -684,12 +762,12 @@ const ProfileSetup = () => {
         }
 
         .category-chip:hover {
-          border-color: #CBD5E1;
-          background: #F8FAFC;
+          border-color: #cbd5e1;
+          background: #f8fafc;
         }
 
         .category-chip.active {
-          border-color: #F59E0B;
+          border-color: #f59e0b;
           background: rgba(245, 158, 11, 0.04);
           box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.06);
         }
@@ -709,16 +787,15 @@ const ProfileSetup = () => {
         }
 
         .category-chip.active .category-label {
-          color: #1E293B;
+          color: #1e293b;
           font-weight: 600;
         }
 
-        /* ===== SUMMARY ===== */
         .summary-card {
-          background: #F8FAFC;
+          background: #f8fafc;
           border-radius: 12px;
           padding: 16px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid #f1f5f9;
           margin-bottom: 12px;
         }
 
@@ -728,10 +805,10 @@ const ProfileSetup = () => {
           gap: 6px;
           font-size: 13px;
           font-weight: 600;
-          color: #10B981;
+          color: #10b981;
           margin-bottom: 12px;
           padding-bottom: 10px;
-          border-bottom: 1px solid #E2E8F0;
+          border-bottom: 1px solid #e2e8f0;
         }
 
         .summary-list {
@@ -749,12 +826,12 @@ const ProfileSetup = () => {
         }
 
         .summary-key {
-          color: #94A3B8;
+          color: #94a3b8;
           flex-shrink: 0;
         }
 
         .summary-value {
-          color: #1E293B;
+          color: #1e293b;
           font-weight: 500;
           text-align: right;
           overflow: hidden;
@@ -762,7 +839,6 @@ const ProfileSetup = () => {
           white-space: nowrap;
         }
 
-        /* ===== TRUST NOTE ===== */
         .trust-note {
           display: flex;
           align-items: center;
@@ -772,11 +848,10 @@ const ProfileSetup = () => {
           border-radius: 10px;
           border: 1px solid rgba(59, 130, 246, 0.12);
           font-size: 12px;
-          color: #1E40AF;
+          color: #1e40af;
           line-height: 1.4;
         }
 
-        /* ===== ACTIONS ===== */
         .actions {
           display: flex;
           flex-direction: column;
@@ -787,12 +862,12 @@ const ProfileSetup = () => {
         .continue-btn {
           width: 100%;
           padding: 14px;
-          background: #E2E8F0;
+          background: #e2e8f0;
           border: none;
           border-radius: 12px;
           font-size: 15px;
           font-weight: 700;
-          color: #94A3B8;
+          color: #94a3b8;
           cursor: not-allowed;
           transition: all 0.25s ease;
           font-family: inherit;
@@ -804,13 +879,13 @@ const ProfileSetup = () => {
         }
 
         .continue-btn.active {
-          background: #1E293B;
-          color: #FFFFFF;
+          background: #1e293b;
+          color: #ffffff;
           cursor: pointer;
         }
 
         .continue-btn.active:hover:not(:disabled) {
-          background: #F59E0B;
+          background: #f59e0b;
           transform: scale(0.98);
           box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
         }
@@ -824,7 +899,7 @@ const ProfileSetup = () => {
           padding: 10px;
           background: none;
           border: none;
-          color: #94A3B8;
+          color: #94a3b8;
           font-size: 13px;
           font-weight: 500;
           cursor: pointer;
@@ -834,23 +909,24 @@ const ProfileSetup = () => {
         }
 
         .skip-btn:hover {
-          color: #1E293B;
+          color: #1e293b;
         }
 
         .btn-spinner {
           width: 18px;
           height: 18px;
           border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #FFFFFF;
+          border-top-color: #ffffff;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
           .setup-card {
             padding: 20px 16px 24px;
