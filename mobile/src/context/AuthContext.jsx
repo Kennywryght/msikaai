@@ -34,9 +34,6 @@ export const AuthProvider = ({ children }) => {
   const refreshTimer = useRef(null);
   const initialized = useRef(false);
 
-  // ✅ Always call useToast() — AuthProvider is nested inside ToastProvider in App.jsx,
-  // so the hook will always find its context. Wrapping hook calls in try/catch
-  // violates the Rules of Hooks and caused async stack crashes.
   const { showToast, success, error } = useToast();
 
   // ============================================================
@@ -69,7 +66,9 @@ export const AuthProvider = ({ children }) => {
         const result = await Promise.race([sessionPromise, timeoutPromise]);
 
         if (result.timedOut) {
-          console.warn(`⚠️ Supabase getSession() timed out after ${AUTH_TIMEOUT_MS}ms`);
+          console.warn(
+            `⚠️ Supabase getSession() timed out after ${AUTH_TIMEOUT_MS}ms`
+          );
         }
 
         const sessionUser = result.data?.session?.user ?? null;
@@ -108,42 +107,41 @@ export const AuthProvider = ({ children }) => {
 
     if (!isSupabaseConfigured) return;
 
-    // Auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('🔄 Auth state changed:', event);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Auth state changed:', event);
 
-        if (event === 'TOKEN_REFRESHED') {
-          setSession(session);
-          if (session?.access_token) {
-            localStorage.setItem('access_token', session.access_token);
-            localStorage.setItem('refresh_token', session.refresh_token);
-          }
-          return;
+      if (event === 'TOKEN_REFRESHED') {
+        setSession(session);
+        if (session?.access_token) {
+          localStorage.setItem('access_token', session.access_token);
+          localStorage.setItem('refresh_token', session.refresh_token);
         }
+        return;
+      }
 
-        if (event === 'SIGNED_IN') {
-          setSession(session);
-          setIsAuthenticated(true);
-          if (session?.user) {
-            await fetchUserProfile(session.user);
-            scheduleTokenRefresh(session);
-          }
-          success('Welcome back! 👋');
+      if (event === 'SIGNED_IN') {
+        setSession(session);
+        setIsAuthenticated(true);
+        if (session?.user) {
+          await fetchUserProfile(session.user);
+          scheduleTokenRefresh(session);
         }
+        success('Welcome back! 👋');
+      }
 
-        if (event === 'SIGNED_OUT') {
-          clearAuth();
-          success('Signed out successfully');
-        }
+      if (event === 'SIGNED_OUT') {
+        clearAuth();
+        success('Signed out successfully');
+      }
 
-        if (event === 'USER_UPDATED') {
-          if (session?.user) {
-            await fetchUserProfile(session.user);
-          }
+      if (event === 'USER_UPDATED') {
+        if (session?.user) {
+          await fetchUserProfile(session.user);
         }
       }
-    );
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -290,6 +288,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       setLoading(true);
+
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
@@ -304,41 +303,26 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              full_name: fullName,
-              email: email.trim().toLowerCase(),
-              phone: phone || null,
-              role: role,
-              status: 'active',
-              onboarding_completed: false,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-          ]);
+      // ✅ The `handle_new_user` trigger on auth.users automatically
+      //    creates the row in public.profiles. Do NOT insert manually
+      //    here — it would conflict with the trigger's insert and
+      //    fail with a unique constraint or RLS error.
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-        }
+      if (data.session?.access_token) {
+        // Email confirmation is disabled — user is signed in immediately
+        localStorage.setItem('access_token', data.session.access_token);
+        localStorage.setItem('refresh_token', data.session.refresh_token);
 
-        // ✅ Only set session state if Supabase actually returned one.
-        // If email confirmation is required, data.session will be null
-        // and the SIGNED_IN event will fire later after the user confirms.
-        if (data.session?.access_token) {
-          localStorage.setItem('access_token', data.session.access_token);
-          localStorage.setItem('refresh_token', data.session.refresh_token);
-
-          await fetchUserProfile(data.user);
-          setSession(data.session);
-          setIsAuthenticated(true);
-          scheduleTokenRefresh(data.session);
-        } else {
-          console.log('📧 Awaiting email confirmation — session will arrive via SIGNED_IN event');
-        }
+        await fetchUserProfile(data.user);
+        setSession(data.session);
+        setIsAuthenticated(true);
+        scheduleTokenRefresh(data.session);
+      } else {
+        // Email confirmation is required — the SIGNED_IN event will
+        // fire once the user confirms via the email link.
+        console.log(
+          '📧 Awaiting email confirmation — session will arrive via SIGNED_IN event'
+        );
       }
 
       return { success: true, user: data.user };
