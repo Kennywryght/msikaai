@@ -32,6 +32,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     sparkle: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z",
     flame: "M12 2s4 5 4 9a4 4 0 11-8 0c0-1.5.7-2.7 1.5-3.5C10 6 12 2 12 2z",
     crown: "M3 8l4 4 5-7 5 7 4-4v10a1 1 0 01-1 1H4a1 1 0 01-1-1V8z",
+    chevronLeft: "M15 18l-6-6 6-6",
+    chevronRight: "M9 18l6-6-6-6",
   };
   const d = icons[name] || icons.store;
   return (
@@ -68,16 +70,6 @@ const getCategoryColor = (category) => {
   return '#BC5B34';
 };
 
-/* ---------- Premium resolution ----------
- * A listing is "premium" when any of these are true:
- *   - item.is_premium === true
- *   - item.is_featured === true
- *   - item.premium_until is a future ISO date
- *   - item.businesses?.is_premium === true (business-level premium)
- * Only premium listings are eligible for the Spotlight strip.
- * If NO premium listings exist, we fall back to the 8 newest so the
- * strip isn't empty while the premium flow is being built.
- */
 const isPremium = (item) => {
   if (!item) return false;
   if (item.is_premium === true) return true;
@@ -89,6 +81,111 @@ const isPremium = (item) => {
     if (!Number.isNaN(t) && t > Date.now()) return true;
   }
   return false;
+};
+
+/* ---------- Photo slider (used by every card) ---------- */
+const PhotoSlider = ({
+  images = [],
+  alt = '',
+  className = '',
+  showArrows = true,
+  showDots = true,
+  onImageClick,
+  eager = false,
+}) => {
+  const [idx, setIdx] = useState(0);
+  const startXRef = useRef(null);
+  const total = images.length;
+  const safeIdx = total ? Math.min(idx, total - 1) : 0;
+
+  const go = useCallback((n) => {
+    if (!total) return;
+    setIdx(((n % total) + total) % total);
+  }, [total]);
+
+  const next = useCallback((e) => { e?.stopPropagation?.(); go(safeIdx + 1); }, [go, safeIdx]);
+  const prev = useCallback((e) => { e?.stopPropagation?.(); go(safeIdx - 1); }, [go, safeIdx]);
+
+  const onTouchStart = (e) => { startXRef.current = e.touches[0].clientX; };
+  const onTouchEnd = (e) => {
+    if (startXRef.current == null) return;
+    const dx = e.changedTouches[0].clientX - startXRef.current;
+    if (Math.abs(dx) > 40) {
+      if (dx < 0) next(); else prev();
+    }
+    startXRef.current = null;
+  };
+
+  if (!total) {
+    return (
+      <div className={`pslider ${className}`}>
+        <div className="pslider-empty">
+          <Icon name="store" size={26} color="#C9BB98" strokeWidth={1.3} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`pslider ${className}`}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <div className="pslider-track" style={{ transform: `translateX(-${safeIdx * 100}%)` }}>
+        {images.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt={`${alt} ${i + 1}`}
+            className="pslider-img"
+            loading={eager && i === 0 ? 'eager' : 'lazy'}
+            draggable={false}
+            onClick={onImageClick}
+          />
+        ))}
+      </div>
+
+      {total > 1 && showArrows && (
+        <>
+          <button
+            type="button"
+            className="pslider-arrow left"
+            onClick={prev}
+            aria-label="Previous photo"
+          >
+            <Icon name="chevronLeft" size={14} color="#F7F1E3" strokeWidth={2.4} />
+          </button>
+          <button
+            type="button"
+            className="pslider-arrow right"
+            onClick={next}
+            aria-label="Next photo"
+          >
+            <Icon name="chevronRight" size={14} color="#F7F1E3" strokeWidth={2.4} />
+          </button>
+        </>
+      )}
+
+      {total > 1 && showDots && (
+        <div className="pslider-dots" onClick={(e) => e.stopPropagation()}>
+          {images.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              className={`pslider-dot ${i === safeIdx ? 'active' : ''}`}
+              onClick={() => go(i)}
+              aria-label={`Photo ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+
+      {total > 1 && (
+        <span className="pslider-count">{safeIdx + 1}/{total}</span>
+      )}
+    </div>
+  );
 };
 
 /* ---------- Reusable compact card ---------- */
@@ -105,16 +202,14 @@ const ProductCard = ({
 
   return (
     <article className="pcard">
-      <div className="pcard-media" style={{ aspectRatio: aspect }} onClick={() => onOpen(item)}>
-        {item.images?.length ? (
-          <img src={item.images[0]} alt={item.title} className="pcard-img" loading="lazy" />
-        ) : (
-          <div className="pcard-placeholder">
-            <Icon name="store" size={26} color="#C9BB98" strokeWidth={1.3} />
-          </div>
-        )}
+      <div className="pcard-media" style={{ aspectRatio: aspect }}>
+        <PhotoSlider
+          images={item.images || []}
+          alt={item.title}
+          className="pcard-slider"
+          onImageClick={() => onOpen(item)}
+        />
 
-        {/* Category chip — now on every listing */}
         {item.category && (
           <span
             className="pcard-cat"
@@ -212,14 +307,14 @@ const FeaturedCard = ({ item, user, openingChatId, onLike, onOpen, onMessage, on
 
   return (
     <article className="fcard">
-      <div className="fcard-media" onClick={() => onOpen(item)}>
-        {item.images?.length ? (
-          <img src={item.images[0]} alt={item.title} className="fcard-img" loading="lazy" />
-        ) : (
-          <div className="fcard-placeholder">
-            <Icon name="store" size={40} color="#C9BB98" strokeWidth={1.2} />
-          </div>
-        )}
+      <div className="fcard-media">
+        <PhotoSlider
+          images={item.images || []}
+          alt={item.title}
+          className="fcard-slider"
+          onImageClick={() => onOpen(item)}
+          eager
+        />
 
         <div className="fcard-top">
           <span className={`fchip fchip-spotlight ${premium ? 'is-premium' : ''}`}>
@@ -292,23 +387,24 @@ const FeaturedCard = ({ item, user, openingChatId, onLike, onOpen, onMessage, on
   );
 };
 
-/* ---------- Spotlight tile (hero strip) ---------- */
+/* ---------- Spotlight tile — info NOW BELOW the image ---------- */
 const SpotlightTile = ({ item, onOpen }) => {
   const catColor = getCategoryColor(item.category);
   const premium = isPremium(item);
   return (
     <button className={`spot-tile ${premium ? 'is-premium' : ''}`} onClick={() => onOpen(item)}>
       <div className="spot-media">
-        {item.images?.length ? (
-          <img src={item.images[0]} alt={item.title} loading="lazy" />
-        ) : (
-          <div className="spot-placeholder">
-            <Icon name="store" size={22} color="#C9BB98" strokeWidth={1.4} />
-          </div>
+        <PhotoSlider
+          images={item.images || []}
+          alt={item.title}
+          className="spot-slider"
+          showArrows={false}
+        />
+        {item.category && (
+          <span className="spot-cat" style={{ background: `${catColor}E6` }}>
+            {item.category}
+          </span>
         )}
-        <span className="spot-cat" style={{ background: `${catColor}E6` }}>
-          {item.category || 'New'}
-        </span>
         {premium && (
           <span className="spot-premium" title="Premium listing">
             <Icon name="crown" size={10} color="#201F1B" strokeWidth={2.2} />
@@ -494,19 +590,16 @@ const Landing = () => {
     });
   }, [allListings, selectedCategory, searchQuery, activeTab, isService]);
 
-  /* ---------- Spotlight: premium only ---------- */
   const spotlight = useMemo(() => {
     const premium = baseFiltered.filter(isPremium);
     const pool = premium.length
       ? premium
-      : // fallback so the strip isn't empty before premium exists
-        [...baseFiltered]
+      : [...baseFiltered]
           .filter((l) => l.created_at)
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
           .slice(0, SPOTLIGHT_MAX);
     return pool
       .sort((a, b) => {
-        // premium first, then newest
         const pa = isPremium(a) ? 1 : 0;
         const pb = isPremium(b) ? 1 : 0;
         if (pa !== pb) return pb - pa;
@@ -523,7 +616,6 @@ const Landing = () => {
     );
     const pool = recent.length ? recent : baseFiltered;
     if (pool.length < 3) return null;
-    // prefer premium when picking the featured item
     const premiumPool = pool.filter(isPremium);
     const chooseFrom = premiumPool.length ? premiumPool : pool;
     return [...chooseFrom].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))[0] || null;
@@ -626,7 +718,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ============ SPOTLIGHT (premium) ============ */}
+      {/* ============ SPOTLIGHT ============ */}
       {spotlight.length > 0 && (
         <div className="spotlight-section">
           <div className="spotlight-header">
@@ -799,7 +891,7 @@ const Landing = () => {
         </section>
       )}
 
-      {/* ============ COMMENTS POP-UP (taller) ============ */}
+      {/* ============ COMMENTS POP-UP ============ */}
       {commentsListing && (
         <div className="pop-overlay" onClick={() => setCommentsListing(null)} role="dialog" aria-modal="true">
           <div className="pop" onClick={(e) => e.stopPropagation()}>
@@ -960,6 +1052,87 @@ const Landing = () => {
         }
         .search-btn:hover { background: #BC5B34; transform: translateY(-1px); }
 
+        /* ---------- Photo slider ---------- */
+        .pslider {
+          position: absolute; inset: 0;
+          overflow: hidden;
+          background: #F0E9D6;
+          touch-action: pan-y;
+          user-select: none;
+        }
+        .pslider-track {
+          display: flex;
+          height: 100%;
+          width: 100%;
+          transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+          will-change: transform;
+        }
+        .pslider-img {
+          flex: 0 0 100%;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          -webkit-user-drag: none;
+        }
+        .pslider-empty {
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .pslider-arrow {
+          position: absolute; top: 50%;
+          transform: translateY(-50%);
+          width: 26px; height: 26px;
+          border: none; cursor: pointer;
+          border-radius: 999px;
+          background: rgba(22, 38, 31, 0.55);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          display: flex; align-items: center; justify-content: center;
+          opacity: 0;
+          transition: opacity 0.2s, background 0.2s;
+          z-index: 3;
+        }
+        .pslider:hover .pslider-arrow { opacity: 1; }
+        .pslider-arrow:hover { background: rgba(22, 38, 31, 0.78); }
+        .pslider-arrow.left { left: 6px; }
+        .pslider-arrow.right { right: 6px; }
+        @media (hover: none) {
+          .pslider-arrow { opacity: 0.7; }
+        }
+        .pslider-dots {
+          position: absolute;
+          left: 0; right: 0; bottom: 6px;
+          display: flex; justify-content: center; align-items: center;
+          gap: 4px;
+          z-index: 3;
+        }
+        .pslider-dot {
+          width: 5px; height: 5px;
+          border-radius: 999px;
+          background: rgba(247, 241, 227, 0.55);
+          border: none; padding: 0; cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .pslider-dot.active {
+          width: 14px;
+          background: #F7F1E3;
+        }
+        .pslider-count {
+          position: absolute;
+          right: 8px; top: 8px;
+          padding: 3px 7px;
+          border-radius: 6px;
+          background: rgba(22, 38, 31, 0.6);
+          color: #F7F1E3;
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          z-index: 3;
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+        }
+
         /* ---------- Spotlight ---------- */
         .spotlight-section {
           max-width: 1200px;
@@ -1029,15 +1202,7 @@ const Landing = () => {
             0 1px 2px rgba(22, 38, 31, 0.05),
             0 10px 22px rgba(22, 38, 31, 0.1);
         }
-        .spot-media img {
-          width: 100%; height: 100%; object-fit: cover; display: block;
-          transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
-        }
-        .spot-tile:hover .spot-media img { transform: scale(1.06); }
-        .spot-placeholder {
-          width: 100%; height: 100%;
-          display: flex; align-items: center; justify-content: center;
-        }
+        .spot-slider { border-radius: 14px; }
         .spot-cat {
           position: absolute; top: 8px; left: 8px;
           font-size: 9px; font-weight: 700;
@@ -1046,6 +1211,7 @@ const Landing = () => {
           letter-spacing: 0.04em;
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
+          z-index: 4;
         }
         .spot-premium {
           position: absolute; top: 8px; right: 8px;
@@ -1054,6 +1220,7 @@ const Landing = () => {
           border-radius: 6px;
           background: #F0D9A8;
           box-shadow: 0 2px 6px rgba(22, 38, 31, 0.25);
+          z-index: 4;
         }
         .spot-info {
           padding: 8px 2px 0;
@@ -1140,7 +1307,6 @@ const Landing = () => {
           border-radius: 18px;
           overflow: hidden;
           background: #F0E9D6;
-          cursor: pointer;
           box-shadow:
             0 2px 6px rgba(22, 38, 31, 0.06),
             0 22px 44px rgba(22, 38, 31, 0.14);
@@ -1155,26 +1321,12 @@ const Landing = () => {
             0 4px 8px rgba(22, 38, 31, 0.08),
             0 28px 56px rgba(22, 38, 31, 0.2);
         }
-        .fcard-img {
-          position: absolute; inset: 0;
-          width: 100%; height: 100%;
-          object-fit: cover; display: block;
-          animation: driftIn 24s ease-in-out infinite alternate;
-          z-index: 0;
-        }
-        @keyframes driftIn {
-          from { transform: scale(1.02); }
-          to { transform: scale(1.1); }
-        }
-        .fcard-placeholder {
-          position: absolute; inset: 0;
-          display: flex; align-items: center; justify-content: center;
-        }
+        .fcard-slider { border-radius: 18px; }
         .fcard-top {
           position: absolute; top: 12px; left: 12px; right: 12px;
           display: flex; gap: 6px; align-items: flex-start;
           pointer-events: none;
-          z-index: 2;
+          z-index: 4;
         }
         .fchip {
           display: inline-flex; align-items: center; gap: 5px;
@@ -1204,7 +1356,7 @@ const Landing = () => {
         .fcard-heart {
           position: absolute;
           top: 12px; right: 12px;
-          z-index: 3;
+          z-index: 5;
           display: inline-flex; align-items: center; gap: 4px;
           padding: 7px 11px;
           border: none; cursor: pointer;
@@ -1373,18 +1525,7 @@ const Landing = () => {
           width: 100%;
           background: #F0E9D6;
           overflow: hidden;
-          cursor: pointer;
         }
-        .pcard-img {
-          width: 100%; height: 100%; object-fit: cover; display: block;
-          transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
-        }
-        .pcard:hover .pcard-img { transform: scale(1.05); }
-        .pcard-placeholder {
-          width: 100%; height: 100%;
-          display: flex; align-items: center; justify-content: center;
-        }
-        /* Category chip on every listing */
         .pcard-cat {
           position: absolute;
           top: 8px; left: 8px;
@@ -1400,6 +1541,7 @@ const Landing = () => {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          z-index: 4;
         }
         .pcard-heart {
           position: absolute;
@@ -1412,6 +1554,7 @@ const Landing = () => {
           -webkit-backdrop-filter: blur(6px);
           display: flex; align-items: center; justify-content: center;
           transition: background 0.2s, transform 0.15s;
+          z-index: 5;
         }
         .pcard-heart:hover { background: rgba(22, 38, 31, 0.72); transform: scale(1.06); }
         .pcard-heart.liked { background: rgba(188, 91, 52, 0.92); animation: heartPop 0.35s ease; }
@@ -1429,6 +1572,7 @@ const Landing = () => {
           background: rgba(22, 38, 31, 0.75);
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
+          z-index: 4;
         }
         .pcard-body {
           padding: 10px 12px 11px;
@@ -1544,7 +1688,7 @@ const Landing = () => {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
-        /* ---------- Comments pop-up (taller) ---------- */
+        /* ---------- Comments pop-up ---------- */
         .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
@@ -1558,7 +1702,7 @@ const Landing = () => {
         .pop {
           width: 100%;
           max-width: 560px;
-          height: 88vh;              /* ★ taller */
+          height: 88vh;
           max-height: 88vh;
           background: #FFFDF8;
           border-top-left-radius: 20px;
@@ -1680,12 +1824,14 @@ const Landing = () => {
           .fcard-title { font-size: 15px; }
           .fcard-price { font-size: 14.5px; }
           .fcard-glass { left: 10px; right: 10px; bottom: 10px; padding: 11px 13px 10px; }
+          .pslider-arrow { display: none; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .pcard, .pcard-img, .pcard-heart, .pcard-icon-btn, .pcard-msg,
-          .fcard-media, .fcard-img, .fcard-heart, .fcard-action, .fcard-msg,
-          .spot-tile, .spot-media img, .search-btn, .filter-btn, .biz-card,
+          .pslider-track { transition: none; }
+          .pcard, .pcard-heart, .pcard-icon-btn, .pcard-msg,
+          .fcard-media, .fcard-heart, .fcard-action, .fcard-msg,
+          .spot-tile, .search-btn, .filter-btn, .biz-card,
           .nav-icon-wrap, .pop, .pop-overlay { transition: none; animation: none; }
         }
       `}</style>

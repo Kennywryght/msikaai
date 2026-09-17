@@ -175,6 +175,31 @@ export const listingsAPI = {
     api.put(`/listings/${id}/comments/${commentId}`, { content }, { cache: false }),
   deleteComment: (id, commentId) =>
     api.delete(`/listings/${id}/comments/${commentId}`, { cache: false }),
+
+  // ===== ★ BOOST / PREMIUM =====
+  /**
+   * Boost a listing into the Spotlight (direct / admin path).
+   * Sellers normally go through paymentAPI.initiatePayment({ purpose: 'listing_boost' }).
+   * @param {string} id - listing id
+   * @param {object} opts - { durationDays?: number, paymentRef?: string }
+   */
+  boost: (id, opts = {}) =>
+    api.post(
+      `/listings/${id}/boost`,
+      {
+        duration_days: opts.durationDays ?? 7,
+        payment_ref: opts.paymentRef ?? null,
+      },
+      { cache: false }
+    ),
+
+  /** Remove the boost before it expires. */
+  unboost: (id) =>
+    api.delete(`/listings/${id}/boost`, { cache: false }),
+
+  /** Get current boost / premium status for a listing. */
+  getBoostStatus: (id) =>
+    api.get(`/listings/${id}/boost`, { cache: false }),
 };
 
 // ============================================
@@ -226,7 +251,7 @@ export const messagesAPI = {
       { cache: false }
     ),
 
-  // ✅ Upload an image for chat — returns Cloudinary URL
+  // Upload an image for chat — returns Cloudinary URL
   uploadImage: (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -254,6 +279,21 @@ export const paymentAPI = {
   canCreateListing: (userId) =>
     api.get(`/payment/can-create-listing/${userId}`, {
       cacheTTL: 2 * 60 * 1000,
+    }),
+
+  // ★ BOOST PRICING
+  // Hardcoded fallback so the Boost modal has prices before the backend endpoint exists.
+  // Swap the body for `api.get('/payment/boost-plans', { cacheTTL: 60 * 60 * 1000 })`
+  // once your backend serves them.
+  getBoostPricing: () =>
+    Promise.resolve({
+      data: {
+        plans: [
+          { days: 7, amount: 2000, currency: 'MWK', label: '7 days' },
+          { days: 14, amount: 3500, currency: 'MWK', label: '14 days' },
+          { days: 30, amount: 6000, currency: 'MWK', label: '30 days' },
+        ],
+      },
     }),
 };
 
@@ -387,7 +427,7 @@ export const notificationsAPI = {
     api.delete(`/notifications/${id}`, { data: { userId } }),
   create: (data) => api.post('/notifications/create', data),
 
-  // ✅ Web push endpoints
+  // Web push endpoints
   getPushPublicKey: () =>
     api.get('/notifications/push/public-key', { cacheTTL: 60 * 60 * 1000 }),
 
