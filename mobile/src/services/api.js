@@ -15,12 +15,43 @@ const api = axios.create({
 });
 
 // ============================================
+// TOKEN HELPERS
+// ============================================
+
+// Pull the freshest access token available (Supabase session > localStorage)
+async function getAccessToken() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) return session.access_token;
+  } catch (err) {
+    console.warn('⚠️ Could not read Supabase session:', err?.message);
+  }
+  return localStorage.getItem('access_token') || null;
+}
+
+// Try to refresh the Supabase session; returns new token or null
+async function tryRefreshSession() {
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error || !data?.session?.access_token) return null;
+    // Keep the mirror copies in sync
+    localStorage.setItem('access_token', data.session.access_token);
+    if (data.session.refresh_token) {
+      localStorage.setItem('refresh_token', data.session.refresh_token);
+    }
+    return data.session.access_token;
+  } catch (err) {
+    console.warn('⚠️ Session refresh failed:', err?.message);
+    return null;
+  }
+}
+
+// ============================================
 // REQUEST INTERCEPTOR
 // ============================================
 api.interceptors.request.use(
   async (config) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
+    const token = await getAccessToken();
 
     console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
 
@@ -28,6 +59,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // GET cache handling
     if (config.method === 'get' && config.cache !== false) {
       const cacheKey = `${config.url}${config.params ? JSON.stringify(config.params) : ''}`;
       const cachedData = cacheService.get(cacheKey);
@@ -68,7 +100,8 @@ api.interceptors.response.use(
 
     return response;
   },
-  (error) => {
+  async (error) => {
+    // Cached GET short-circuit
     if (error.__cached) {
       return Promise.resolve({
         data: error.data,
@@ -77,15 +110,49 @@ api.interceptors.response.use(
       });
     }
 
-    const method = error.config?.method?.toUpperCase() ?? 'GET';
-    const url = error.config?.url ?? '(unknown)';
+    const originalRequest = error.config || {};
+    const method = originalRequest.method?.toUpperCase() ?? 'GET';
+    const url = originalRequest.url ?? '(unknown)';
 
+    // =========================================
+    // 401 HANDLING — refresh once, then retry
+    // =========================================
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      console.warn(`🔐 401 on ${method} ${url} — attempting session refresh…`);
+
+      const newToken = await tryRefreshSession();
+
+      if (newToken) {
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        console.log(`🔁 Retrying ${method} ${url} with refreshed token`);
+        return api(originalRequest);
+      }
+
+      // Refresh failed — clear session and bounce to login
+      console.error(`❌ Session refresh failed — signing out`);
+      try {
+        await supabase.auth.signOut();
+      } catch {}
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+
+      // Only redirect if we're in a browser and not already on /login
+      if (typeof window !== 'undefined') {
+        const here = window.location.pathname + window.location.search;
+        if (!here.startsWith('/login')) {
+          window.location.href = `/login?from=${encodeURIComponent(here)}`;
+        }
+      }
+
+      return Promise.reject(error);
+    }
+
+    // Log other failures
     if (error.response) {
       console.error(`❌ ${method} ${url} → HTTP ${error.response.status}`);
-      if (error.response.status === 401) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
-      }
     } else if (error.request) {
       console.warn(`🌐 ${method} ${url} → no response (network/CORS/backend down)`);
     } else {
@@ -163,7 +230,7 @@ export const listingsAPI = {
   getComments: (id, params) =>
     api.get(`/listings/${id}/comments`, {
       params,
-      cache: false, // always fresh — comments change often
+      cache: false,
     }),
   addComment: (id, content, parentId = null) =>
     api.post(
@@ -176,13 +243,7 @@ export const listingsAPI = {
   deleteComment: (id, commentId) =>
     api.delete(`/listings/${id}/comments/${commentId}`, { cache: false }),
 
-  // ===== ★ BOOST / PREMIUM =====
-  /**
-   * Boost a listing into the Spotlight (direct / admin path).
-   * Sellers normally go through paymentAPI.initiatePayment({ purpose: 'listing_boost' }).
-   * @param {string} id - listing id
-   * @param {object} opts - { durationDays?: number, paymentRef?: string }
-   */
+  // ===== BOOST / PREMIUM =====
   boost: (id, opts = {}) =>
     api.post(
       `/listings/${id}/boost`,
@@ -192,18 +253,14 @@ export const listingsAPI = {
       },
       { cache: false }
     ),
-
-  /** Remove the boost before it expires. */
   unboost: (id) =>
     api.delete(`/listings/${id}/boost`, { cache: false }),
-
-  /** Get current boost / premium status for a listing. */
   getBoostStatus: (id) =>
     api.get(`/listings/${id}/boost`, { cache: false }),
 };
 
 // ============================================
-// COMMENTS API (top-level comment actions)
+// COMMENTS API
 // ============================================
 export const commentsAPI = {
   getById: (commentId) =>
@@ -222,28 +279,23 @@ export const commentsAPI = {
 // MESSAGES API
 // ============================================
 export const messagesAPI = {
-  // List all conversations for current user
   getConversations: (params) =>
     api.get('/messages/conversations', { params, cacheTTL: 20 * 1000 }),
 
-  // Get a single conversation + its messages
   getConversation: (conversationId, params) =>
     api.get(`/messages/conversations/${conversationId}`, {
       params,
-      cache: false, // never cache active conversations
+      cache: false,
     }),
 
-  // Find or create a conversation with another user
   createConversation: (otherUserId, listingId = null) =>
     api.post('/messages/conversations', { otherUserId, listingId }),
 
-  // Send a message in a conversation (text, imageUrl, or both)
   sendMessage: (conversationId, content) =>
     api.post(`/messages/conversations/${conversationId}`, content, {
       cache: false,
     }),
 
-  // Mark a conversation as read for current user
   markConversationRead: (conversationId) =>
     api.put(
       `/messages/conversations/${conversationId}/read`,
@@ -251,7 +303,6 @@ export const messagesAPI = {
       { cache: false }
     ),
 
-  // Upload an image for chat — returns Cloudinary URL
   uploadImage: (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -259,7 +310,6 @@ export const messagesAPI = {
     return api.post('/messages/upload-image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       cache: false,
-      // Longer timeout for uploads
       timeout: 60 * 1000,
     });
   },
@@ -281,10 +331,6 @@ export const paymentAPI = {
       cacheTTL: 2 * 60 * 1000,
     }),
 
-  // ★ BOOST PRICING
-  // Hardcoded fallback so the Boost modal has prices before the backend endpoint exists.
-  // Swap the body for `api.get('/payment/boost-plans', { cacheTTL: 60 * 60 * 1000 })`
-  // once your backend serves them.
   getBoostPricing: () =>
     Promise.resolve({
       data: {
@@ -427,7 +473,6 @@ export const notificationsAPI = {
     api.delete(`/notifications/${id}`, { data: { userId } }),
   create: (data) => api.post('/notifications/create', data),
 
-  // Web push endpoints
   getPushPublicKey: () =>
     api.get('/notifications/push/public-key', { cacheTTL: 60 * 60 * 1000 }),
 
@@ -460,7 +505,7 @@ export const matchingAPI = {
 // FILE UPLOAD HELPERS
 // ============================================
 export const uploadWithAuth = async (url, formData) => {
-  const token = localStorage.getItem('access_token') || '';
+  const token = await getAccessToken();
   if (!token) {
     throw new Error('No authentication token found. Please log in.');
   }
@@ -486,7 +531,7 @@ export const uploadWithAuth = async (url, formData) => {
 };
 
 export const getWithAuth = async (url) => {
-  const token = localStorage.getItem('access_token') || '';
+  const token = await getAccessToken();
   const response = await fetch(`${API_URL}${url}`, {
     method: 'GET',
     headers: {
