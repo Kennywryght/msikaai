@@ -47,6 +47,102 @@ async function tryRefreshSession() {
 }
 
 // ============================================
+// RESPONSE NORMALIZERS
+// The backend returns camelCase (businessName, userId, contactPhone,
+// locationArea, createdAt, etc.) while the UI is written for snake_case
+// (business_name, user_id, contact_phone, location_area, created_at).
+// Normalizing once here means every consumer of the API stays simple.
+// ============================================
+
+const isBlobUrl = (url) =>
+  typeof url === 'string' && url.startsWith('blob:');
+
+const normalizeBusiness = (b) => {
+  if (!b) return b;
+  const phone = b.phone ?? b.phone_number ?? null;
+  const whatsapp =
+    b.whatsappNumber ?? b.whatsapp_number ?? b.whatsapp ?? phone ?? null;
+
+  return {
+    ...b,
+    // snake_case aliases for the fields the UI reads
+    user_id: b.userId ?? b.user_id ?? null,
+    business_name: b.businessName ?? b.business_name ?? null,
+    logo_url: b.logoUrl ?? b.logo_url ?? null,
+    whatsapp_number: whatsapp,
+    phone,
+    address: b.address ?? null,
+    location_text: b.locationText ?? b.location_text ?? null,
+    rating: Number(b.rating ?? 0) || 0,
+    review_count: b.reviewCount ?? b.review_count ?? 0,
+    delivery_available:
+      b.deliveryAvailable ?? b.delivery_available ?? false,
+    is_premium: b.isPremium ?? b.is_premium ?? false,
+    is_featured: b.isFeatured ?? b.is_featured ?? false,
+    verified: b.verified ?? false,
+  };
+};
+
+const normalizeListing = (raw) => {
+  if (!raw) return raw;
+
+  const rawImages = Array.isArray(raw.images) ? raw.images : [];
+  // Drop dead blob: URLs — they only work in the tab that created them
+  const images = rawImages.filter((src) => !isBlobUrl(src));
+
+  return {
+    ...raw,
+
+    // Top-level snake_case aliases
+    business_id: raw.businessId ?? raw.business_id ?? null,
+    sub_category: raw.subCategory ?? raw.sub_category ?? null,
+    price_type: raw.priceType ?? raw.price_type ?? null,
+    location_area: raw.locationArea ?? raw.location_area ?? null,
+    delivery_available:
+      raw.deliveryAvailable ?? raw.delivery_available ?? false,
+    delivery_fee: raw.deliveryFee ?? raw.delivery_fee ?? null,
+    contact_phone: raw.contactPhone ?? raw.contact_phone ?? null,
+    view_count: raw.viewCount ?? raw.view_count ?? 0,
+    contact_count: raw.contactCount ?? raw.contact_count ?? 0,
+    created_at: raw.createdAt ?? raw.created_at ?? null,
+    updated_at: raw.updatedAt ?? raw.updated_at ?? null,
+    is_premium: raw.isPremium ?? raw.is_premium ?? false,
+    is_featured:
+      raw.featured ?? raw.isFeatured ?? raw.is_featured ?? false,
+    premium_until: raw.premiumUntil ?? raw.premium_until ?? null,
+
+    // Engagement counts
+    likes: raw.likes ?? 0,
+    liked_by_me: raw.likedByMe ?? raw.liked_by_me ?? false,
+    comment_count: raw.commentCount ?? raw.comment_count ?? 0,
+
+    // Nested business object
+    businesses: raw.businesses
+      ? normalizeBusiness(raw.businesses)
+      : raw.business
+      ? normalizeBusiness(raw.business)
+      : undefined,
+
+    // Cleaned image list
+    images,
+  };
+};
+
+const normalizeComment = (c) => {
+  if (!c) return c;
+  return {
+    ...c,
+    listing_id: c.listingId ?? c.listing_id ?? null,
+    user_id: c.userId ?? c.user_id ?? null,
+    parent_id: c.parentId ?? c.parent_id ?? null,
+    created_at: c.createdAt ?? c.created_at ?? null,
+    likes: c.likes ?? 0,
+    liked_by_me: c.likedByMe ?? c.liked_by_me ?? false,
+    users: c.users ?? c.user ?? null,
+  };
+};
+
+// ============================================
 // REQUEST INTERCEPTOR
 // ============================================
 api.interceptors.request.use(
@@ -139,7 +235,6 @@ api.interceptors.response.use(
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
 
-      // Only redirect if we're in a browser and not already on /login
       if (typeof window !== 'undefined') {
         const here = window.location.pathname + window.location.search;
         if (!here.startsWith('/login')) {
@@ -204,21 +299,72 @@ export const businessAPI = {
 };
 
 // ============================================
-// LISTINGS API
+// LISTINGS API (with normalizers applied)
 // ============================================
 export const listingsAPI = {
   create: (data) => api.post('/listings/create', data),
-  getByBusiness: (businessId, params) =>
-    api.get(`/listings/business/${businessId}`, {
+
+  getByBusiness: async (businessId, params) => {
+    const res = await api.get(`/listings/business/${businessId}`, {
       params,
       cacheTTL: 5 * 60 * 1000,
-    }),
-  getById: (id) =>
-    api.get(`/listings/${id}`, { cacheTTL: 10 * 60 * 1000 }),
+    });
+    if (Array.isArray(res?.data?.listings)) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          listings: res.data.listings.map(normalizeListing),
+        },
+      };
+    }
+    return res;
+  },
+
+  getById: async (id) => {
+    const res = await api.get(`/listings/${id}`, { cacheTTL: 10 * 60 * 1000 });
+
+    // Common shape: { listing: {...} }
+    if (res?.data?.listing) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          listing: normalizeListing(res.data.listing),
+        },
+      };
+    }
+
+    // Fallback: the listing is the top-level object
+    if (res?.data?.id) {
+      return {
+        ...res,
+        data: { listing: normalizeListing(res.data) },
+      };
+    }
+
+    return res;
+  },
+
   update: (id, data) => api.put(`/listings/${id}`, data),
   delete: (id) => api.delete(`/listings/${id}`),
-  search: (params) =>
-    api.get('/listings/search', { params, cacheTTL: 3 * 60 * 1000 }),
+
+  search: async (params) => {
+    const res = await api.get('/listings/search', {
+      params,
+      cacheTTL: 3 * 60 * 1000,
+    });
+    if (Array.isArray(res?.data?.listings)) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          listings: res.data.listings.map(normalizeListing),
+        },
+      };
+    }
+    return res;
+  },
 
   // ===== LIKES (persisted) =====
   like: (id) => api.post(`/listings/${id}/like`, {}, { cache: false }),
@@ -227,17 +373,32 @@ export const listingsAPI = {
     api.get(`/listings/${id}/likes`, { params, cacheTTL: 60 * 1000 }),
 
   // ===== COMMENTS =====
-  getComments: (id, params) =>
-    api.get(`/listings/${id}/comments`, {
+  getComments: async (id, params) => {
+    const res = await api.get(`/listings/${id}/comments`, {
       params,
       cache: false,
-    }),
-  addComment: (id, content, parentId = null) =>
-    api.post(
+    });
+    const raw = res?.data?.comments || res?.data || [];
+    if (Array.isArray(raw)) {
+      return {
+        ...res,
+        data: { comments: raw.map(normalizeComment) },
+      };
+    }
+    return res;
+  },
+  addComment: async (id, content, parentId = null) => {
+    const res = await api.post(
       `/listings/${id}/comments`,
       { content, parent_id: parentId },
       { cache: false }
-    ),
+    );
+    const saved = res?.data?.comment || res?.data;
+    if (saved) {
+      return { ...res, data: { comment: normalizeComment(saved) } };
+    }
+    return res;
+  },
   updateComment: (id, commentId, content) =>
     api.put(`/listings/${id}/comments/${commentId}`, { content }, { cache: false }),
   deleteComment: (id, commentId) =>
