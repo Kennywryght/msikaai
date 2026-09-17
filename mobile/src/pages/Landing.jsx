@@ -6,7 +6,7 @@ import { listingsAPI, businessAPI, messagesAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
 
-/* ---------- Icons (unchanged set, add a few) ---------- */
+/* ---------- Icons ---------- */
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
     home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
@@ -29,7 +29,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     close: "M6 18L18 6M6 6l12 12",
     comment: "M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z",
     mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z M12 13a3 3 0 100-6 3 3 0 000 6z",
-    check: "M20 6L9 17l-5-5",
   };
   const d = icons[name] || icons.store;
   return (
@@ -54,7 +53,6 @@ const CATEGORIES = [
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 const ASPECT_RATIOS = ['4 / 5', '4 / 6.6', '4 / 4.2', '4 / 5.8'];
 
-/* ---------- Category color resolver ---------- */
 const getCategoryColor = (category) => {
   if (!category) return '#6B6259';
   const c = category.toLowerCase();
@@ -79,7 +77,7 @@ const Landing = () => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [activeTab, setActiveTab] = useState('all');
   const [openingChatId, setOpeningChatId] = useState(null);
-  const [openCommentsId, setOpenCommentsId] = useState(null);
+  const [commentsListing, setCommentsListing] = useState(null); // ★ full-screen comments target
 
   const searchInputRef = useRef(null);
   const isMobile = windowWidth <= 768;
@@ -94,7 +92,24 @@ const Landing = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  /* ---------- ★ LIKE PERSISTENCE ---------- */
+  /* ---------- Lock body scroll while comments sheet is open ---------- */
+  useEffect(() => {
+    if (commentsListing) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [commentsListing]);
+
+  /* ---------- Esc closes the sheet ---------- */
+  useEffect(() => {
+    if (!commentsListing) return;
+    const onKey = (e) => { if (e.key === 'Escape') setCommentsListing(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [commentsListing]);
+
+  /* ---------- LIKE ---------- */
   const handleLike = useCallback(async (e, item) => {
     e.stopPropagation();
     if (!isAuthenticated) { showToast('Please sign in to like', 'warning'); return; }
@@ -266,7 +281,7 @@ const Landing = () => {
           .skeleton-hero { height: 260px; background: linear-gradient(160deg, #24453B, #16261F); }
           .skeleton-search { height: 52px; margin: -26px 20px 20px; border-radius: 12px; background: #FFFDF8; box-shadow: 0 12px 24px rgba(22,38,31,0.12); }
           .skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 20px; }
-          .skeleton-card { aspect-ratio: 4 / 5; background: #ECE3CC; border-radius: 6px; animation: pulse 1.6s ease-in-out infinite; }
+          .skeleton-card { aspect-ratio: 4 / 5; background: #ECE3CC; border-radius: 12px; animation: pulse 1.6s ease-in-out infinite; }
           @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
         `}</style>
       </div>
@@ -293,7 +308,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ============ ★ STICKY SEARCH (pins just below the top bar at 64px) ============ */}
+      {/* ============ STICKY SEARCH ============ */}
       <div className="search-sticky">
         <div className="search-sticky-inner">
           <form onSubmit={handleSearch} className="search-form">
@@ -374,7 +389,7 @@ const Landing = () => {
         </div>
       )}
 
-      {/* ============ LISTINGS ============ */}
+      {/* ============ LISTINGS (Option B — glass overlay cards) ============ */}
       <section className="listings">
         <div className="listings-header">
           <div className="listings-header-left">
@@ -391,136 +406,98 @@ const Landing = () => {
             {filteredListings.map((item, index) => {
               const isLiked = !!item.liked_by_me;
               const likeCount = item.likes ?? 0;
-              const isBusiness = item.is_business || !!item.business_id;
               const sellerUserId = item.businesses?.user_id || item.businesses?.userId || item.businesses?.owner_id || null;
               const canMessage = !!sellerUserId && sellerUserId !== user?.id;
               const commentCount = item.comment_count ?? 0;
-              const commentsOpen = openCommentsId === item.id;
               const catColor = getCategoryColor(item.category);
-              const sellerName = item.businesses?.business_name || 'Local seller';
-              const sellerInitial = sellerName.trim().charAt(0).toUpperCase() || 'L';
 
               return (
-                <article key={item.id} className="card">
-                  {/* -------- Image -------- */}
+                <article key={item.id} className="bcard">
                   <div
-                    className="card-media"
+                    className="bcard-media"
                     style={{ aspectRatio: getAspect(index) }}
                     onClick={() => handleListingClick(item)}
                   >
                     {item.images?.length ? (
-                      <img src={item.images[0]} alt={item.title} className="card-img" loading="lazy" />
+                      <img src={item.images[0]} alt={item.title} className="bcard-img" loading="lazy" />
                     ) : (
-                      <div className="card-placeholder">
+                      <div className="bcard-placeholder">
                         <Icon name="store" size={28} color="#C9BB98" strokeWidth={1.3} />
                       </div>
                     )}
 
-                    {/* top overlay row */}
-                    <div className="card-media-top">
-                      {isRecent(item) && <span className="chip chip-new">NEW</span>}
+                    {/* Top row: New badge + category chip */}
+                    <div className="bcard-top">
+                      {isRecent(item) && <span className="bchip bchip-new">NEW</span>}
                       {item.category && (
-                        <span className="chip chip-cat" style={{ background: `${catColor}E6` }}>
+                        <span className="bchip bchip-cat" style={{ background: `${catColor}E6` }}>
                           {item.category}
                         </span>
                       )}
                     </div>
 
-                    {/* bottom overlay row */}
-                    <div className="card-media-bottom">
-                      {item.delivery_available && (
-                        <span className="chip chip-delivery" title="Delivery available">
-                          <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
-                          Delivery
+                    {/* Floating heart (top-right) */}
+                    <button
+                      className={`bcard-heart ${isLiked ? 'liked' : ''}`}
+                      onClick={(e) => handleLike(e, item)}
+                      aria-label={isLiked ? 'Unlike' : 'Like'}
+                    >
+                      <Icon name="heart" size={14} color={isLiked ? '#F7F1E3' : '#F7F1E3'} strokeWidth={isLiked ? 2.6 : 1.8} />
+                      {likeCount > 0 && <span>{likeCount}</span>}
+                    </button>
+
+                    {/* Bottom glass panel */}
+                    <div className="bcard-glass" onClick={(e) => e.stopPropagation()}>
+                      <div className="bcard-glass-row">
+                        <h3 className="bcard-title" onClick={() => handleListingClick(item)}>
+                          {item.title}
+                        </h3>
+                        <span className="bcard-price">
+                          {item.price != null && item.price !== '' ? formatPrice(item.price) : 'On request'}
                         </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* -------- Body -------- */}
-                  <div className="card-body">
-                    <h3 className="card-title" onClick={() => handleListingClick(item)}>
-                      {item.title}
-                    </h3>
-
-                    {item.price != null && item.price !== '' ? (
-                      <div className="card-price">
-                        <span className="price-value">{formatPrice(item.price)}</span>
                       </div>
-                    ) : (
-                      <div className="card-price card-price-muted">Price on request</div>
-                    )}
 
-                    <div className="card-seller">
-                      <span className="seller-avatar" style={{ background: `${catColor}1F`, color: catColor }}>
-                        {sellerInitial}
-                      </span>
-                      <span className="seller-name">{sellerName}</span>
-                      {item.rating != null && item.rating > 0 && (
-                        <span className="seller-rating">
-                          <Icon name="star" size={11} color="#D99A3B" strokeWidth={2.2} />
-                          {Number(item.rating).toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-
-                    {item.location_area && (
-                      <div className="card-location">
-                        <Icon name="mapPin" size={11} color="#B0A88F" strokeWidth={1.8} />
-                        <span>{item.location_area}</span>
+                      <div className="bcard-meta">
+                        <span className="bcard-seller">{item.businesses?.business_name || 'Local seller'}</span>
+                        {item.location_area && (
+                          <>
+                            <span className="bcard-dot" />
+                            <span className="bcard-loc">
+                              <Icon name="mapPin" size={10} color="#EFE6CE" strokeWidth={1.9} />
+                              {item.location_area}
+                            </span>
+                          </>
+                        )}
+                        {item.delivery_available && (
+                          <span className="bcard-delivery" title="Delivery available">
+                            <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
+                          </span>
+                        )}
                       </div>
-                    )}
 
-                    {/* -------- Footer actions -------- */}
-                    <div className="card-actions">
-                      <button
-                        className={`action-btn like-btn ${isLiked ? 'liked' : ''}`}
-                        onClick={(e) => handleLike(e, item)}
-                        aria-label={isLiked ? 'Unlike' : 'Like'}
-                      >
-                        <Icon name="heart" size={15} color={isLiked ? '#BC5B34' : '#9C9482'} strokeWidth={isLiked ? 2.5 : 1.7} />
-                        {likeCount > 0 && <span>{likeCount}</span>}
-                      </button>
-
-                      <button
-                        className="action-btn comment-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenCommentsId(commentsOpen ? null : item.id);
-                        }}
-                        aria-label="Comments"
-                      >
-                        <Icon name="comment" size={14} color={commentsOpen ? '#24453B' : '#9C9482'} strokeWidth={1.8} />
-                        {commentCount > 0 && <span>{commentCount}</span>}
-                      </button>
-
-                      {canMessage && (
+                      <div className="bcard-actions">
                         <button
-                          type="button"
-                          className="action-btn msg-btn"
-                          onClick={(e) => handleQuickMessage(e, item)}
-                          disabled={openingChatId === item.id}
-                          aria-label="Message seller"
+                          className="bcard-action"
+                          onClick={(e) => { e.stopPropagation(); setCommentsListing(item); }}
+                          aria-label="Comments"
                         >
-                          <Icon name="message" size={13} color="#F7F1E3" strokeWidth={2} />
-                          <span>{openingChatId === item.id ? '…' : 'Message'}</span>
+                          <Icon name="comment" size={13} color="#F7F1E3" strokeWidth={1.9} />
+                          <span>{commentCount > 0 ? commentCount : 'Comment'}</span>
                         </button>
-                      )}
-                    </div>
 
-                    {commentsOpen && (
-                      <div className="card-comments" onClick={(e) => e.stopPropagation()}>
-                        <CommentSection
-                          listingId={item.id}
-                          compact
-                          onCountChange={(count) => {
-                            setAllListings((prev) =>
-                              prev.map((l) => (l.id === item.id ? { ...l, comment_count: count } : l))
-                            );
-                          }}
-                        />
+                        {canMessage && (
+                          <button
+                            className="bcard-action bcard-msg"
+                            onClick={(e) => handleQuickMessage(e, item)}
+                            disabled={openingChatId === item.id}
+                            aria-label="Message seller"
+                          >
+                            <Icon name="message" size={12} color="#201F1B" strokeWidth={2} />
+                            <span>{openingChatId === item.id ? '…' : 'Message'}</span>
+                          </button>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </article>
               );
@@ -536,6 +513,44 @@ const Landing = () => {
           </div>
         )}
       </section>
+
+      {/* ============ ★ FULL-SCREEN COMMENTS SHEET ============ */}
+      {commentsListing && (
+        <div className="sheet-overlay" onClick={() => setCommentsListing(null)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="sheet-head">
+              <button
+                className="sheet-close"
+                onClick={() => setCommentsListing(null)}
+                aria-label="Close"
+              >
+                <Icon name="close" size={18} color="#201F1B" strokeWidth={2} />
+              </button>
+              <div className="sheet-head-text">
+                <div className="sheet-head-title">{commentsListing.title}</div>
+                <div className="sheet-head-sub">
+                  {commentsListing.businesses?.business_name || 'Local seller'}
+                  {commentsListing.location_area ? ` · ${commentsListing.location_area}` : ''}
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="sheet-body">
+              <CommentSection
+                listingId={commentsListing.id}
+                onCountChange={(count) => {
+                  setAllListings((prev) =>
+                    prev.map((l) => (l.id === commentsListing.id ? { ...l, comment_count: count } : l))
+                  );
+                  setCommentsListing((c) => (c ? { ...c, comment_count: count } : c));
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ============ BOTTOM NAV ============ */}
       {isMobile && (
@@ -561,7 +576,7 @@ const Landing = () => {
       )}
 
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600;700&display=swap');
 
         .app {
           min-height: 100vh;
@@ -581,8 +596,7 @@ const Landing = () => {
         }
         .hero-texture {
           position: absolute; inset: 0;
-          background-image:
-            radial-gradient(rgba(217, 154, 59, 0.16) 1px, transparent 1px);
+          background-image: radial-gradient(rgba(217, 154, 59, 0.16) 1px, transparent 1px);
           background-size: 18px 18px;
           opacity: 0.55;
           mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
@@ -605,22 +619,17 @@ const Landing = () => {
           font-weight: 500;
           font-size: clamp(32px, 5vw, 48px);
           letter-spacing: -0.02em;
-          margin: 0 0 14px;
-          line-height: 1.08;
-          color: #F7F1E3;
-          max-width: 520px;
+          margin: 0 0 14px; line-height: 1.08;
+          color: #F7F1E3; max-width: 520px;
         }
-        .hero-title em {
-          font-style: italic; font-weight: 500;
-          color: #D99A3B;
-        }
+        .hero-title em { font-style: italic; font-weight: 500; color: #D99A3B; }
         .hero-desc {
           font-size: 15px; line-height: 1.5;
           color: rgba(247, 241, 227, 0.68);
           margin: 0; max-width: 400px;
         }
 
-        /* ---------- ★ STICKY SEARCH ---------- */
+        /* ---------- Sticky search ---------- */
         .search-sticky {
           position: sticky;
           top: 64px;
@@ -734,7 +743,7 @@ const Landing = () => {
 
         /* ---------- Listings grid ---------- */
         .listings { padding: 10px 20px 16px; max-width: 1200px; margin: 0 auto; }
-        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
         .listings-header-left { display: flex; align-items: baseline; gap: 8px; }
         .listings-title {
           font-family: 'Fraunces', Georgia, serif;
@@ -753,182 +762,258 @@ const Landing = () => {
         .listings-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px 14px;
+          gap: 12px;
         }
-        @media (min-width: 640px) { .listings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; } }
-        @media (min-width: 1024px) { .listings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
+        @media (min-width: 640px) { .listings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
+        @media (min-width: 1024px) { .listings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
 
-        /* ---------- ★ Modern editorial card ---------- */
-        .card {
-          display: flex; flex-direction: column;
-          background: #FFFDF8;
-          border-radius: 14px;
-          overflow: hidden;
-          box-shadow:
-            0 1px 2px rgba(22, 38, 31, 0.04),
-            0 0 0 1px rgba(239, 230, 206, 0.85);
-          transition: box-shadow 0.28s ease, transform 0.28s ease;
-        }
-        .card:hover {
-          transform: translateY(-3px);
-          box-shadow:
-            0 2px 4px rgba(22, 38, 31, 0.05),
-            0 20px 40px rgba(22, 38, 31, 0.12),
-            0 0 0 1px rgba(217, 199, 158, 0.9);
-        }
+        /* ---------- ★ Option B: Glass overlay card ---------- */
+        .bcard { position: relative; }
 
-        /* -------- Media -------- */
-        .card-media {
+        .bcard-media {
           position: relative;
           width: 100%;
-          background: #F0E9D6;
+          border-radius: 16px;
           overflow: hidden;
+          background: #F0E9D6;
           cursor: pointer;
+          isolation: isolate;
+          box-shadow:
+            0 1px 2px rgba(22, 38, 31, 0.06),
+            0 12px 26px rgba(22, 38, 31, 0.1);
+          transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
         }
-        .card-img {
-          width: 100%; height: 100%; object-fit: cover; display: block;
-          transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+        .bcard:hover .bcard-media {
+          transform: translateY(-3px);
+          box-shadow:
+            0 2px 4px rgba(22, 38, 31, 0.08),
+            0 20px 40px rgba(22, 38, 31, 0.16);
         }
-        .card:hover .card-img { transform: scale(1.06); }
-        .card-placeholder {
+
+        .bcard-img {
+          position: absolute; inset: 0;
           width: 100%; height: 100%;
+          object-fit: cover; display: block;
+          transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+          z-index: 0;
+        }
+        .bcard:hover .bcard-img { transform: scale(1.07); }
+
+        .bcard-placeholder {
+          position: absolute; inset: 0;
           display: flex; align-items: center; justify-content: center;
+          background: #F0E9D6;
+          z-index: 0;
         }
 
-        .card-media-top {
+        .bcard-top {
           position: absolute; top: 10px; left: 10px; right: 10px;
-          display: flex; align-items: flex-start; gap: 6px;
+          display: flex; gap: 6px; align-items: flex-start;
           pointer-events: none;
+          z-index: 2;
         }
-        .chip {
+        .bchip {
           display: inline-flex; align-items: center; gap: 4px;
-          font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+          padding: 4px 8px; border-radius: 7px;
+          font-size: 9.5px; font-weight: 700;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          letter-spacing: 0.05em;
+        }
+        .bchip-new {
+          background: rgba(36, 69, 59, 0.9);
+          color: #F7F1E3;
           text-transform: uppercase;
-          padding: 4px 8px; border-radius: 6px;
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
         }
-        .chip-new {
-          background: rgba(36, 69, 59, 0.92);
+        .bchip-cat {
           color: #F7F1E3;
-        }
-        .chip-cat {
-          margin-left: auto;
-          color: #F7F1E3;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.02em;
           text-transform: none;
           font-weight: 600;
           font-size: 10px;
-        }
-        .card-media-bottom {
-          position: absolute; bottom: 10px; left: 10px; right: 10px;
-          display: flex; justify-content: flex-start;
-          pointer-events: none;
-        }
-        .chip-delivery {
-          background: rgba(22, 38, 31, 0.82);
-          color: #F7F1E3;
-          letter-spacing: 0.04em;
-          text-transform: none;
-          font-size: 10px;
-          font-weight: 600;
         }
 
-        /* -------- Body -------- */
-        .card-body {
-          padding: 12px 13px 11px;
-          display: flex; flex-direction: column; gap: 6px;
+        /* Floating heart */
+        .bcard-heart {
+          position: absolute;
+          top: 10px; right: 10px;
+          z-index: 3;
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 6px 9px;
+          border: none; cursor: pointer;
+          border-radius: 999px;
+          background: rgba(22, 38, 31, 0.55);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          color: #F7F1E3;
+          font-size: 11px; font-weight: 600;
+          font-family: inherit;
+          transition: background 0.2s, transform 0.15s;
         }
-        .card-title {
-          font-size: 13.5px; font-weight: 600; line-height: 1.3;
-          color: #201F1B; margin: 0; cursor: pointer;
+        .bcard-heart:hover { background: rgba(22, 38, 31, 0.75); transform: translateY(-1px); }
+        .bcard-heart.liked { background: rgba(188, 91, 52, 0.92); }
+        .bcard-heart.liked:hover { background: rgba(188, 91, 52, 1); }
+
+        /* Glass overlay panel */
+        .bcard-glass {
+          position: absolute;
+          left: 8px; right: 8px; bottom: 8px;
+          z-index: 2;
+          padding: 11px 12px 10px;
+          border-radius: 12px;
+          background: rgba(22, 38, 31, 0.55);
+          backdrop-filter: blur(14px) saturate(140%);
+          -webkit-backdrop-filter: blur(14px) saturate(140%);
+          border: 1px solid rgba(247, 241, 227, 0.14);
+          color: #F7F1E3;
+          display: flex; flex-direction: column; gap: 7px;
+          transition: background 0.25s ease;
+        }
+        .bcard:hover .bcard-glass {
+          background: rgba(22, 38, 31, 0.68);
+        }
+
+        .bcard-glass-row {
+          display: flex; align-items: flex-start; gap: 8px;
+        }
+        .bcard-title {
+          flex: 1;
+          font-size: 12.5px; font-weight: 600; line-height: 1.28;
+          color: #FFFDF8; margin: 0;
+          cursor: pointer;
           display: -webkit-box; -webkit-line-clamp: 2;
           -webkit-box-orient: vertical; overflow: hidden;
           letter-spacing: -0.005em;
         }
-        .card-title:hover { color: #24453B; }
+        .bcard-title:hover { color: #F0D9A8; }
 
-        .card-price { display: flex; align-items: baseline; gap: 6px; }
-        .price-value {
+        .bcard-price {
           font-family: 'Fraunces', Georgia, serif;
-          font-size: 17px; font-weight: 600;
-          color: #24453B;
-          letter-spacing: -0.015em;
+          font-size: 13.5px; font-weight: 600;
+          color: #F0D9A8;
+          white-space: nowrap;
+          letter-spacing: -0.01em;
           font-variant-numeric: tabular-nums;
-        }
-        .card-price-muted {
-          font-size: 12px; color: #9C9482; font-style: italic;
+          padding-top: 1px;
         }
 
-        .card-seller {
-          display: flex; align-items: center; gap: 7px;
-          font-size: 11.5px; color: #6B6259;
-          margin-top: 2px;
+        .bcard-meta {
+          display: flex; align-items: center; gap: 5px;
+          font-size: 10.5px;
+          color: rgba(247, 241, 227, 0.78);
+          overflow: hidden;
         }
-        .seller-avatar {
-          width: 20px; height: 20px; border-radius: 50%;
-          display: inline-flex; align-items: center; justify-content: center;
-          font-size: 10px; font-weight: 700;
+        .bcard-seller {
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          max-width: 90px;
+        }
+        .bcard-dot {
+          width: 3px; height: 3px; border-radius: 50%;
+          background: rgba(247, 241, 227, 0.5); flex-shrink: 0;
+        }
+        .bcard-loc {
+          display: inline-flex; align-items: center; gap: 3px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .bcard-delivery {
+          margin-left: auto;
+          display: inline-flex; align-items: center;
+          padding: 2px 5px;
+          border-radius: 5px;
+          background: rgba(247, 241, 227, 0.14);
+        }
+
+        .bcard-actions {
+          display: flex; align-items: center; gap: 6px;
+          padding-top: 6px;
+          border-top: 1px solid rgba(247, 241, 227, 0.14);
+        }
+        .bcard-action {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 5px 8px;
+          background: rgba(247, 241, 227, 0.12);
+          border: none; cursor: pointer;
+          border-radius: 8px;
+          font-family: inherit;
+          font-size: 11px; font-weight: 600;
+          color: #F7F1E3;
+          transition: background 0.18s, transform 0.15s;
+        }
+        .bcard-action:hover { background: rgba(247, 241, 227, 0.22); }
+        .bcard-action:active { transform: scale(0.97); }
+
+        .bcard-msg {
+          margin-left: auto;
+          background: #F7F1E3;
+          color: #201F1B;
+        }
+        .bcard-msg:hover { background: #F0D9A8; }
+        .bcard-msg:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ---------- ★ Full-screen comments sheet ---------- */
+        .sheet-overlay {
+          position: fixed; inset: 0;
+          z-index: 200;
+          background: rgba(22, 38, 31, 0.5);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          display: flex; align-items: stretch; justify-content: center;
+          animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .sheet {
+          width: 100%;
+          max-width: 640px;
+          background: #FFFDF8;
+          display: flex; flex-direction: column;
+          box-shadow: 0 24px 60px rgba(22, 38, 31, 0.35);
+          animation: sheetUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+          overflow: hidden;
+        }
+        @media (min-width: 640px) {
+          .sheet { border-radius: 18px; margin: 24px 0; }
+        }
+        @keyframes sheetUp {
+          from { transform: translateY(24px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        .sheet-head {
+          display: flex; align-items: center; gap: 10px;
+          padding: 12px 14px;
+          border-bottom: 1px solid #EFE6CE;
+          background: #FFFDF8;
           flex-shrink: 0;
         }
-        .seller-name {
+        .sheet-close {
+          width: 34px; height: 34px;
+          border-radius: 9px;
+          border: 1px solid #EFE6CE;
+          background: #FFFDF8;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer;
+          transition: background 0.18s, border-color 0.18s;
+          flex-shrink: 0;
+        }
+        .sheet-close:hover { background: #F7F1E3; border-color: #D9C79E; }
+        .sheet-head-text { min-width: 0; flex: 1; }
+        .sheet-head-title {
+          font-size: 14px; font-weight: 600; color: #201F1B;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-          max-width: 110px; font-weight: 500;
+          letter-spacing: -0.005em;
         }
-        .seller-rating {
-          display: inline-flex; align-items: center; gap: 3px;
-          margin-left: auto; font-size: 11px; font-weight: 600; color: #201F1B;
-        }
-
-        .card-location {
-          display: flex; align-items: center; gap: 4px;
-          font-size: 10.5px; color: #9C9482;
-        }
-        .card-location span {
+        .sheet-head-sub {
+          font-size: 11px; color: #9C9482; margin-top: 1px;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
-        /* -------- Actions footer -------- */
-        .card-actions {
-          display: flex; align-items: center; gap: 4px;
-          margin-top: 6px; padding-top: 8px;
-          border-top: 1px solid #F2EBD9;
-        }
-        .action-btn {
-          display: inline-flex; align-items: center; gap: 4px;
-          background: none; border: none;
-          padding: 5px 7px; border-radius: 8px;
-          font-size: 11.5px; font-weight: 500;
-          color: #7C7A70; cursor: pointer;
-          font-family: inherit;
-          transition: background 0.15s, color 0.15s, transform 0.1s;
-        }
-        .action-btn:hover { background: rgba(217, 154, 59, 0.09); color: #201F1B; }
-        .action-btn:active { transform: scale(0.96); }
-
-        .like-btn.liked { color: #BC5B34; font-weight: 600; }
-
-        .msg-btn {
-          margin-left: auto;
-          background: #24453B;
-          color: #F7F1E3;
-          padding: 5px 10px;
-          font-weight: 600;
-          font-size: 11px;
-          border-radius: 8px;
-          transition: background 0.2s, transform 0.15s;
-        }
-        .msg-btn:hover:not(:disabled) { background: #BC5B34; color: #F7F1E3; }
-        .msg-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
-        .card-comments {
-          margin-top: 8px; padding-top: 8px;
-          border-top: 1px solid #F2EBD9;
-          animation: slideDown 0.22s ease;
-        }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
+        .sheet-body {
+          flex: 1;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          padding: 14px 14px 24px;
+          background: #FFFDF8;
         }
 
         .empty-state { text-align: center; padding: 56px 20px; }
@@ -971,16 +1056,17 @@ const Landing = () => {
           .tabs-section { padding: 16px 16px 0; }
           .featured-section { padding: 18px 16px 4px; }
           .listings { padding: 10px 16px 12px; }
-          .listings-grid { gap: 12px; }
-          .card-title { font-size: 12.5px; }
-          .price-value { font-size: 15.5px; }
-          .seller-name { max-width: 80px; }
+          .listings-grid { gap: 10px; }
+          .bcard-title { font-size: 12px; }
+          .bcard-price { font-size: 12.5px; }
+          .bcard-glass { left: 6px; right: 6px; bottom: 6px; padding: 10px 11px 9px; }
+          .bcard-heart { top: 8px; right: 8px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .card, .card-img, .search-btn, .filter-btn, .featured-card,
-          .action-btn, .msg-btn, .nav-icon-wrap { transition: none; }
-          .card-comments { animation: none; }
+          .bcard-media, .bcard-img, .bcard-heart, .bcard-glass,
+          .bcard-action, .search-btn, .filter-btn, .featured-card,
+          .nav-icon-wrap, .sheet, .sheet-overlay { transition: none; animation: none; }
         }
       `}</style>
     </div>
