@@ -31,6 +31,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z M12 13a3 3 0 100-6 3 3 0 000 6z",
     sparkle: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z",
     flame: "M12 2s4 5 4 9a4 4 0 11-8 0c0-1.5.7-2.7 1.5-3.5C10 6 12 2 12 2z",
+    crown: "M3 8l4 4 5-7 5 7 4-4v10a1 1 0 01-1 1H4a1 1 0 01-1-1V8z",
   };
   const d = icons[name] || icons.store;
   return (
@@ -54,6 +55,7 @@ const CATEGORIES = [
 
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 const ASPECT_RATIOS = ['4 / 5', '4 / 6.4', '4 / 4.4', '4 / 5.4'];
+const SPOTLIGHT_MAX = 8;
 
 const getCategoryColor = (category) => {
   if (!category) return '#6B6259';
@@ -64,6 +66,29 @@ const getCategoryColor = (category) => {
   if (c.includes('farm') || c.includes('wheat') || c.includes('seed') || c.includes('fert')) return '#5B7B5E';
   if (c.includes('hardware') || c.includes('tool') || c.includes('hammer')) return '#6B6259';
   return '#BC5B34';
+};
+
+/* ---------- Premium resolution ----------
+ * A listing is "premium" when any of these are true:
+ *   - item.is_premium === true
+ *   - item.is_featured === true
+ *   - item.premium_until is a future ISO date
+ *   - item.businesses?.is_premium === true (business-level premium)
+ * Only premium listings are eligible for the Spotlight strip.
+ * If NO premium listings exist, we fall back to the 8 newest so the
+ * strip isn't empty while the premium flow is being built.
+ */
+const isPremium = (item) => {
+  if (!item) return false;
+  if (item.is_premium === true) return true;
+  if (item.is_featured === true) return true;
+  if (item.businesses?.is_premium === true) return true;
+  if (item.businesses?.is_featured === true) return true;
+  if (item.premium_until) {
+    const t = new Date(item.premium_until).getTime();
+    if (!Number.isNaN(t) && t > Date.now()) return true;
+  }
+  return false;
 };
 
 /* ---------- Reusable compact card ---------- */
@@ -87,6 +112,17 @@ const ProductCard = ({
           <div className="pcard-placeholder">
             <Icon name="store" size={26} color="#C9BB98" strokeWidth={1.3} />
           </div>
+        )}
+
+        {/* Category chip — now on every listing */}
+        {item.category && (
+          <span
+            className="pcard-cat"
+            style={{ background: `${catColor}E6` }}
+            title={item.category}
+          >
+            {item.category}
+          </span>
         )}
 
         <button
@@ -172,6 +208,7 @@ const FeaturedCard = ({ item, user, openingChatId, onLike, onOpen, onMessage, on
   const canMessage = !!sellerUserId && sellerUserId !== user?.id;
   const commentCount = item.comment_count ?? 0;
   const catColor = getCategoryColor(item.category);
+  const premium = isPremium(item);
 
   return (
     <article className="fcard">
@@ -185,9 +222,9 @@ const FeaturedCard = ({ item, user, openingChatId, onLike, onOpen, onMessage, on
         )}
 
         <div className="fcard-top">
-          <span className="fchip fchip-spotlight">
-            <Icon name="sparkle" size={11} color="#F0D9A8" strokeWidth={2} />
-            Spotlight
+          <span className={`fchip fchip-spotlight ${premium ? 'is-premium' : ''}`}>
+            <Icon name={premium ? 'crown' : 'sparkle'} size={11} color="#F0D9A8" strokeWidth={2} />
+            {premium ? 'Premium' : 'Spotlight'}
           </span>
           {item.category && (
             <span className="fchip fchip-cat" style={{ background: `${catColor}E0` }}>
@@ -258,8 +295,9 @@ const FeaturedCard = ({ item, user, openingChatId, onLike, onOpen, onMessage, on
 /* ---------- Spotlight tile (hero strip) ---------- */
 const SpotlightTile = ({ item, onOpen }) => {
   const catColor = getCategoryColor(item.category);
+  const premium = isPremium(item);
   return (
-    <button className="spot-tile" onClick={() => onOpen(item)}>
+    <button className={`spot-tile ${premium ? 'is-premium' : ''}`} onClick={() => onOpen(item)}>
       <div className="spot-media">
         {item.images?.length ? (
           <img src={item.images[0]} alt={item.title} loading="lazy" />
@@ -271,6 +309,11 @@ const SpotlightTile = ({ item, onOpen }) => {
         <span className="spot-cat" style={{ background: `${catColor}E6` }}>
           {item.category || 'New'}
         </span>
+        {premium && (
+          <span className="spot-premium" title="Premium listing">
+            <Icon name="crown" size={10} color="#201F1B" strokeWidth={2.2} />
+          </span>
+        )}
       </div>
       <div className="spot-info">
         <div className="spot-title">{item.title}</div>
@@ -404,7 +447,7 @@ const Landing = () => {
             category: b.category,
             price: null,
             images: b.logo_url ? [b.logo_url] : [],
-            businesses: { business_name: b.business_name, id: b.id, user_id: b.user_id },
+            businesses: { business_name: b.business_name, id: b.id, user_id: b.user_id, is_premium: b.is_premium },
             created_at: b.created_at,
             is_business: true,
             location_area: b.location_text || '',
@@ -451,22 +494,39 @@ const Landing = () => {
     });
   }, [allListings, selectedCategory, searchQuery, activeTab, isService]);
 
-  /* ---------- Split into sections ---------- */
+  /* ---------- Spotlight: premium only ---------- */
   const spotlight = useMemo(() => {
-    const recent = [...baseFiltered]
-      .filter((l) => l.created_at)
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    return recent.slice(0, 6);
+    const premium = baseFiltered.filter(isPremium);
+    const pool = premium.length
+      ? premium
+      : // fallback so the strip isn't empty before premium exists
+        [...baseFiltered]
+          .filter((l) => l.created_at)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, SPOTLIGHT_MAX);
+    return pool
+      .sort((a, b) => {
+        // premium first, then newest
+        const pa = isPremium(a) ? 1 : 0;
+        const pb = isPremium(b) ? 1 : 0;
+        if (pa !== pb) return pb - pa;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      })
+      .slice(0, SPOTLIGHT_MAX);
   }, [baseFiltered]);
 
+  const spotlightHasPremium = useMemo(() => spotlight.some(isPremium), [spotlight]);
+
   const featured = useMemo(() => {
-    // most liked recent listing (last 48h) — fall back to most liked overall
     const recent = baseFiltered.filter(
       (l) => l.created_at && Date.now() - new Date(l.created_at).getTime() < NEW_WINDOW_MS
     );
     const pool = recent.length ? recent : baseFiltered;
     if (pool.length < 3) return null;
-    return [...pool].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))[0] || null;
+    // prefer premium when picking the featured item
+    const premiumPool = pool.filter(isPremium);
+    const chooseFrom = premiumPool.length ? premiumPool : pool;
+    return [...chooseFrom].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))[0] || null;
   }, [baseFiltered]);
 
   const featuredId = featured?.id;
@@ -566,12 +626,22 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ============ SPOTLIGHT STRIP ============ */}
+      {/* ============ SPOTLIGHT (premium) ============ */}
       {spotlight.length > 0 && (
         <div className="spotlight-section">
           <div className="spotlight-header">
-            <h2 className="spotlight-heading">Spotlight</h2>
-            <span className="spotlight-sub">Just arrived</span>
+            <h2 className="spotlight-heading">
+              Spotlight
+              {spotlightHasPremium && (
+                <span className="spotlight-premium-badge">
+                  <Icon name="crown" size={10} color="#F0D9A8" strokeWidth={2.2} />
+                  Premium
+                </span>
+              )}
+            </h2>
+            <span className="spotlight-sub">
+              {spotlightHasPremium ? 'Featured sellers' : 'Just arrived'}
+            </span>
           </div>
           <div className="spotlight-scroll">
             {spotlight.map((item) => (
@@ -581,7 +651,7 @@ const Landing = () => {
         </div>
       )}
 
-      {/* ============ CATEGORY PILL BAR (segmented, sliding) ============ */}
+      {/* ============ CATEGORY PILL BAR ============ */}
       <div className="cats-wrap">
         <div className="cats-bar">
           {CATEGORIES.map((cat) => {
@@ -729,7 +799,7 @@ const Landing = () => {
         </section>
       )}
 
-      {/* ============ COMMENTS POP-UP ============ */}
+      {/* ============ COMMENTS POP-UP (taller) ============ */}
       {commentsListing && (
         <div className="pop-overlay" onClick={() => setCommentsListing(null)} role="dialog" aria-modal="true">
           <div className="pop" onClick={(e) => e.stopPropagation()}>
@@ -906,11 +976,23 @@ const Landing = () => {
           font-weight: 600; font-size: 16px;
           margin: 0; color: #201F1B;
           letter-spacing: -0.01em;
+          display: inline-flex; align-items: center; gap: 8px;
+        }
+        .spotlight-premium-badge {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 3px 7px; border-radius: 6px;
+          background: #24453B;
+          color: #F0D9A8;
+          font-family: 'Work Sans', sans-serif;
+          font-size: 9.5px; font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
         }
         .spotlight-sub {
           font-size: 11px; color: #9C9482;
           font-weight: 500;
           letter-spacing: 0.02em;
+          margin-left: auto;
         }
         .spotlight-scroll {
           display: flex; gap: 12px;
@@ -928,8 +1010,15 @@ const Landing = () => {
           font-family: inherit;
           scroll-snap-align: start;
           transition: transform 0.25s ease;
+          position: relative;
         }
         .spot-tile:hover { transform: translateY(-2px); }
+        .spot-tile.is-premium .spot-media {
+          box-shadow:
+            0 1px 2px rgba(22, 38, 31, 0.05),
+            0 12px 26px rgba(36, 69, 59, 0.16),
+            0 0 0 1.5px rgba(217, 154, 59, 0.55);
+        }
         .spot-media {
           position: relative;
           width: 100%; aspect-ratio: 4 / 5;
@@ -957,6 +1046,14 @@ const Landing = () => {
           letter-spacing: 0.04em;
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
+        }
+        .spot-premium {
+          position: absolute; top: 8px; right: 8px;
+          width: 20px; height: 20px;
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 6px;
+          background: #F0D9A8;
+          box-shadow: 0 2px 6px rgba(22, 38, 31, 0.25);
         }
         .spot-info {
           padding: 8px 2px 0;
@@ -1029,7 +1126,7 @@ const Landing = () => {
           height: 2px; background: #BC5B34; border-radius: 2px;
         }
 
-        /* ---------- Featured card (2-col) ---------- */
+        /* ---------- Featured card ---------- */
         .featured-wrap {
           max-width: 1200px;
           margin: 16px auto 0;
@@ -1092,6 +1189,10 @@ const Landing = () => {
           color: #F0D9A8;
           text-transform: uppercase;
           letter-spacing: 0.1em;
+        }
+        .fchip-spotlight.is-premium {
+          background: rgba(217, 154, 59, 0.95);
+          color: #201F1B;
         }
         .fchip-cat {
           color: #F7F1E3;
@@ -1283,6 +1384,23 @@ const Landing = () => {
           width: 100%; height: 100%;
           display: flex; align-items: center; justify-content: center;
         }
+        /* Category chip on every listing */
+        .pcard-cat {
+          position: absolute;
+          top: 8px; left: 8px;
+          display: inline-flex; align-items: center;
+          padding: 3px 7px; border-radius: 6px;
+          font-size: 9px; font-weight: 700;
+          color: #F7F1E3;
+          letter-spacing: 0.04em;
+          text-transform: none;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          max-width: 90%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
         .pcard-heart {
           position: absolute;
           top: 8px; right: 8px;
@@ -1426,7 +1544,7 @@ const Landing = () => {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
-        /* ---------- Comments pop-up ---------- */
+        /* ---------- Comments pop-up (taller) ---------- */
         .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
@@ -1440,7 +1558,8 @@ const Landing = () => {
         .pop {
           width: 100%;
           max-width: 560px;
-          max-height: 78vh;
+          height: 88vh;              /* ★ taller */
+          max-height: 88vh;
           background: #FFFDF8;
           border-top-left-radius: 20px;
           border-top-right-radius: 20px;
@@ -1454,7 +1573,13 @@ const Landing = () => {
           to { transform: translateY(0); opacity: 1; }
         }
         @media (min-width: 640px) {
-          .pop { margin-bottom: 24px; border-radius: 20px; }
+          .pop {
+            height: auto;
+            max-height: 86vh;
+            min-height: 70vh;
+            margin-bottom: 24px;
+            border-radius: 20px;
+          }
         }
         .pop-handle {
           width: 42px; height: 4px;
