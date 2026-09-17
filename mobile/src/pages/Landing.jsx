@@ -281,7 +281,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ============ ★ STICKY SEARCH (persists down entire page) ============ */}
+      {/* ============ ★ STICKY SEARCH (pins just below the top of the viewport) ============ */}
       <div className="search-sticky">
         <div className="search-sticky-inner">
           <form onSubmit={handleSearch} className="search-form">
@@ -581,7 +581,7 @@ const Landing = () => {
           margin: 0; max-width: 400px;
         }
 
-        /* ---------- ★ STICKY SEARCH ---------- */
+        /* ---------- ★ STICKY SEARCH (pins to top of viewport) ---------- */
         .search-sticky {
           position: sticky;
           top: 0;
@@ -590,6 +590,8 @@ const Landing = () => {
           margin-top: -30px;
           padding-bottom: 12px;
           background: linear-gradient(to bottom, #F7F1E3 78%, rgba(247, 241, 227, 0.85));
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
         }
         .search-sticky-inner { max-width: 1200px; margin: 0 auto; }
         .search-form { max-width: 620px; }
