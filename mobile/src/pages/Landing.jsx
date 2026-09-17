@@ -309,22 +309,24 @@ const Landing = () => {
 
       {/* ============ SEARCH ============ */}
       <div className="search-card-wrap">
-        <form onSubmit={handleSearch} className="search-form">
-          <div className="search-wrapper">
-            <Icon name="search" size={17} color="#7C9083" strokeWidth={1.75} />
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search the marketplace..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-            <button type="submit" className="search-btn" aria-label="Search">
-              <Icon name="search" size={16} color="#F7F1E3" strokeWidth={2} />
-            </button>
-          </div>
-        </form>
+        <div className="search-card-wrap-inner">
+          <form onSubmit={handleSearch} className="search-form">
+            <div className="search-wrapper">
+              <Icon name="search" size={17} color="#7C9083" strokeWidth={1.75} />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search the marketplace..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+              <button type="submit" className="search-btn" aria-label="Search">
+                <Icon name="search" size={16} color="#F7F1E3" strokeWidth={2} />
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       {/* ============ CATEGORIES ============ */}
@@ -571,7 +573,16 @@ const Landing = () => {
         .hero-desc { font-size: 14.5px; line-height: 1.5; color: rgba(247, 241, 227, 0.7); margin: 0; max-width: 380px; }
 
         /* ---------- Search ---------- */
-        .search-card-wrap { max-width: 1200px; margin: -28px auto 0; padding: 0 20px; position: relative; }
+        .search-card-wrap {
+          position: sticky;
+          top: 0;
+          z-index: 40;
+          margin-top: -28px;
+          padding: 0 20px 14px;
+          background: #F7F1E3;
+          box-shadow: 0 6px 14px rgba(32, 31, 27, 0.04);
+        }
+        .search-card-wrap-inner { max-width: 1200px; margin: 0 auto; }
         .search-form { max-width: 560px; }
         .search-wrapper {
           display: flex; align-items: center; gap: 10px;
@@ -778,7 +789,7 @@ const Landing = () => {
         @media (max-width: 480px) {
           .hero-block { padding: 30px 16px 52px; }
           .hero-title { font-size: 25px; }
-          .search-card-wrap { padding: 0 16px; }
+          .search-card-wrap { padding: 0 16px 14px; }
           .categories-section { padding: 24px 16px 4px; }
           .tabs-section { padding: 16px 16px 0; }
           .featured-section { padding: 18px 16px 4px; }
