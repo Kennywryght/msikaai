@@ -13,7 +13,7 @@ import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
 
 // ============================================================
-// ICONS
+// ICONS (unchanged)
 // ============================================================
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
@@ -23,6 +23,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     mapPin: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0zM12 10a3 3 0 100-6 3 3 0 000 6z',
     phone: 'M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z',
     whatsapp: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5zM16 12v1.5M12 12v1.5M8 12v1.5',
+    facebook: 'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z',
     star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
     clock: 'M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2',
     user: 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 7a4 4 0 100-8 4 4 0 000 8z',
@@ -88,8 +89,6 @@ const daysUntil = (date) => {
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
 };
 
-/* ★ Robust seller-id resolution — checks every common location so the
- *   Message button always has a target when the seller exists. */
 const resolveSellerUserId = (item) => {
   if (!item) return null;
   return (
@@ -105,8 +104,43 @@ const resolveSellerUserId = (item) => {
   );
 };
 
+const resolveSellerPhone = (item) => {
+  if (!item) return null;
+  return (
+    item.contact_phone ||
+    item.businesses?.phone ||
+    item.businesses?.whatsapp_number ||
+    item.businesses?.whatsapp ||
+    null
+  );
+};
+
+const resolveSellerFacebook = (item) => {
+  if (!item) return null;
+  const raw =
+    item.businesses?.facebook_page ||
+    item.businesses?.facebook_url ||
+    item.businesses?.facebook ||
+    item.facebook_page ||
+    item.facebook_url ||
+    null;
+  if (!raw) return null;
+
+  // Normalize into an m.me/<username> URL
+  const cleaned = String(raw).trim();
+  // If it's already a full URL
+  if (/^https?:\/\//i.test(cleaned)) {
+    // Convert facebook.com/<user> → m.me/<user>
+    const m = cleaned.match(/facebook\.com\/(?:pages\/[^/]+\/)?([^/?#]+)/i);
+    if (m && m[1]) return `https://m.me/${m[1]}`;
+    return cleaned;
+  }
+  // Otherwise treat as username
+  return `https://m.me/${cleaned.replace(/^@/, '')}`;
+};
+
 // ============================================================
-// BOOST MODAL — payment aware
+// BOOST MODAL (unchanged — payment aware)
 // ============================================================
 const BOOST_PLANS = [
   { days: 7, label: '7 days', price: 'MK 2,000', amount: 2000, popular: true },
@@ -123,12 +157,9 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
   const [paymentRef, setPaymentRef] = useState(null);
   const pollTimerRef = useRef(null);
 
-  useEffect(
-    () => () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    },
-    []
-  );
+  useEffect(() => () => {
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+  }, []);
 
   const selectedPlan = BOOST_PLANS.find((p) => p.days === days) || BOOST_PLANS[0];
 
@@ -180,11 +211,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
     } catch (err) {
       const status = err?.response?.status;
       const serverMsg = err?.response?.data?.error;
-      if (
-        status === 404 ||
-        status === 501 ||
-        /not configured|not implemented/i.test(serverMsg || '')
-      ) {
+      if (status === 404 || status === 501 || /not configured|not implemented/i.test(serverMsg || '')) {
         setMessage(
           'Boost payments are being set up. Our team will activate your listing within 24 hours and contact you about payment.'
         );
@@ -305,7 +332,6 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
               </div>
             </>
           )}
-
           {stage === 'processing' && (
             <div className="boost-status">
               <span className="boost-status-spinner" />
@@ -437,10 +463,7 @@ const ListingDetails = () => {
   const [liking, setLiking] = useState(false);
 
   const isMobile = windowWidth <= 768;
-  const isDev =
-    typeof import.meta !== 'undefined' && import.meta.env?.DEV === true;
-
-  // ★ NO auth gate — buyers can view listings signed-out
+  const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV === true;
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -457,22 +480,17 @@ const ListingDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Lock scroll when comments pop-up is open
   useEffect(() => {
     if (showComments) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = prev;
-      };
+      return () => { document.body.style.overflow = prev; };
     }
   }, [showComments]);
 
   useEffect(() => {
     if (!showComments) return;
-    const onKey = (e) => {
-      if (e.key === 'Escape') setShowComments(false);
-    };
+    const onKey = (e) => { if (e.key === 'Escape') setShowComments(false); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [showComments]);
@@ -484,11 +502,8 @@ const ListingDetails = () => {
       const response = await listingsAPI.getById(id);
       if (response?.data?.listing) {
         setListing(response.data.listing);
-
         if (user?.id) {
-          analyticsAPI
-            .trackView({ listingId: id })
-            .catch((err) => console.warn('Analytics trackView failed:', err?.message));
+          analyticsAPI.trackView({ listingId: id }).catch(() => {});
           analyticsAPI
             .trackUserActivity(user.id, 'view_listing', {
               listingId: id,
@@ -517,7 +532,6 @@ const ListingDetails = () => {
     }
   };
 
-  // ★ Sign-in gate for actions — sends user back here after login
   const requireAuth = useCallback(
     (reason = 'continue') => {
       if (user) return true;
@@ -528,7 +542,7 @@ const ListingDetails = () => {
     [user, navigate, location.pathname]
   );
 
-  // ★ LIKE (buyer action — persisted)
+  // ---- LIKE ----
   const handleLike = async () => {
     if (!requireAuth('like this listing')) return;
     if (liking) return;
@@ -538,13 +552,7 @@ const ListingDetails = () => {
 
     setLiking(true);
     setListing((prev) =>
-      prev
-        ? {
-            ...prev,
-            liked_by_me: !wasLiked,
-            likes: prevLikes + (wasLiked ? -1 : 1),
-          }
-        : prev
+      prev ? { ...prev, liked_by_me: !wasLiked, likes: prevLikes + (wasLiked ? -1 : 1) } : prev
     );
 
     try {
@@ -561,10 +569,7 @@ const ListingDetails = () => {
     }
   };
 
-  const handleOpenComments = () => {
-    // Anyone can view comments; only posting requires auth
-    setShowComments(true);
-  };
+  const handleOpenComments = () => setShowComments(true);
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
@@ -606,7 +611,9 @@ const ListingDetails = () => {
     return '⭐'.repeat(fullStars) + '☆'.repeat(emptyStars);
   };
 
-  /* ★ Message seller — robust seller id + returns to /messages after chat closes */
+  // ============================================================
+  // ★ MESSAGE SELLER — the in-app chat
+  // ============================================================
   const handleMessageSeller = async () => {
     if (!requireAuth('message the seller')) return;
 
@@ -656,16 +663,18 @@ const ListingDetails = () => {
     }
   };
 
-  const openWhatsApp = () => {
+  // ============================================================
+  // ★ CONTACT THE SELLER ON WHATSAPP — opens a DIRECT chat
+  //    with the seller (not the share flow)
+  // ============================================================
+  const handleContactWhatsApp = () => {
     if (!requireAuth('contact the seller')) return;
-    const phone =
-      listing.contact_phone ||
-      listing.businesses?.phone ||
-      listing.businesses?.whatsapp_number;
+    const phone = resolveSellerPhone(listing);
     if (!phone) {
-      showToast('This seller has not provided a phone number yet.', 'warning');
+      showToast('This seller has not provided a WhatsApp number yet.', 'warning');
       return;
     }
+
     if (user?.id) {
       analyticsAPI.trackContact({ listingId: id }).catch(() => {});
       analyticsAPI
@@ -676,21 +685,51 @@ const ListingDetails = () => {
         })
         .catch(() => {});
     }
-    const cleanPhone = phone.replace(/\D/g, '');
-    const formattedPhone = cleanPhone.startsWith('0') ? cleanPhone.slice(1) : cleanPhone;
-    const message = `Hi, I'm interested in your listing: ${listing.title} on Kumsika.`;
-    window.open(
-      `https://wa.me/265${formattedPhone}?text=${encodeURIComponent(message)}`,
-      '_blank'
-    );
+
+    const cleanPhone = String(phone).replace(/\D/g, '');
+    const withCountryCode = cleanPhone.startsWith('265')
+      ? cleanPhone
+      : cleanPhone.startsWith('0')
+      ? `265${cleanPhone.slice(1)}`
+      : `265${cleanPhone}`;
+
+    const message = `Hi, I'm interested in your listing: "${listing.title}" on Kumsika.`;
+    const url = `https://wa.me/${withCountryCode}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank', 'noopener');
   };
 
+  // ============================================================
+  // ★ CONTACT THE SELLER ON FACEBOOK MESSENGER
+  // ============================================================
+  const handleContactFacebook = () => {
+    if (!requireAuth('contact the seller')) return;
+    const messengerUrl = resolveSellerFacebook(listing);
+    if (!messengerUrl) {
+      showToast(
+        'This seller has not linked a Facebook page yet.',
+        'warning'
+      );
+      return;
+    }
+    if (user?.id) {
+      analyticsAPI.trackContact({ listingId: id }).catch(() => {});
+      analyticsAPI
+        .trackUserActivity(user.id, 'contact_business', {
+          listingId: id,
+          businessId: listing.businesses?.id,
+          method: 'facebook',
+        })
+        .catch(() => {});
+    }
+    window.open(messengerUrl, '_blank', 'noopener');
+  };
+
+  // ============================================================
+  // ★ CALL THE SELLER (direct)
+  // ============================================================
   const openPhoneDialer = () => {
     if (!requireAuth('call the seller')) return;
-    const phone =
-      listing.contact_phone ||
-      listing.businesses?.phone ||
-      listing.businesses?.whatsapp_number;
+    const phone = resolveSellerPhone(listing);
     if (!phone) {
       showToast('This seller has not provided a phone number yet.', 'warning');
       return;
@@ -708,6 +747,9 @@ const ListingDetails = () => {
     window.open(`tel:${phone}`, '_blank');
   };
 
+  // ============================================================
+  // ★ SHARE THE LISTING (public — share the URL with anyone)
+  // ============================================================
   const shareOnWhatsApp = () => {
     const url = `${window.location.origin}/listing/${listing.id}`;
     const message = `🛒 ${listing.title}\n🏪 ${
@@ -730,9 +772,7 @@ const ListingDetails = () => {
     const url = `${window.location.origin}/listing/${listing.id}`;
     const text = `${listing.title} - Check this out on Kumsika`;
     window.open(
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-        text
-      )}&url=${encodeURIComponent(url)}`,
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
       '_blank'
     );
   };
@@ -757,7 +797,6 @@ const ListingDetails = () => {
     else if (navId === 'profile') navigate('/profile');
   };
 
-  // Seller-only dev toggle
   const devTogglePremium = () => {
     setListing((prev) => {
       if (!prev) return prev;
@@ -767,9 +806,7 @@ const ListingDetails = () => {
         : {
             ...prev,
             is_premium: true,
-            premium_until: new Date(
-              Date.now() + 7 * 24 * 60 * 60 * 1000
-            ).toISOString(),
+            premium_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           };
     });
     success('Dev toggle applied (not saved to server)');
@@ -826,11 +863,8 @@ const ListingDetails = () => {
     );
   }
 
-  const sellerPhone =
-    listing.contact_phone ||
-    listing.businesses?.phone ||
-    listing.businesses?.whatsapp_number;
-
+  const sellerPhone = resolveSellerPhone(listing);
+  const sellerFacebook = resolveSellerFacebook(listing);
   const sellerUserId = resolveSellerUserId(listing);
   const isOwnListing = user?.id && sellerUserId === user.id;
   const canMessageSeller = user && sellerUserId && !isOwnListing;
@@ -869,7 +903,6 @@ const ListingDetails = () => {
             </button>
           </div>
         )}
-
         {isOwnListing && premium && (
           <div className={`boost-card boost-card-active ${daysLeft <= 2 ? 'expiring' : ''}`}>
             <div className="boost-card-icon active">
@@ -897,7 +930,6 @@ const ListingDetails = () => {
             </button>
           </div>
         )}
-
         {isDev && isOwnListing && (
           <button className="dev-toggle" onClick={devTogglePremium}>
             <Icon name="zap" size={12} color="#7A5A16" strokeWidth={2.4} />
@@ -921,9 +953,7 @@ const ListingDetails = () => {
                       alt={`${listing.title} ${i + 1}`}
                       className="gallery-image"
                       loading={i === 0 ? 'eager' : 'lazy'}
-                      onError={(e) => {
-                        e.target.style.opacity = 0;
-                      }}
+                      onError={(e) => { e.target.style.opacity = 0; }}
                     />
                   ))}
                 </div>
@@ -932,9 +962,7 @@ const ListingDetails = () => {
                     <button
                       type="button"
                       className="gallery-arrow left"
-                      onClick={() =>
-                        setImageIdx((imageIdx - 1 + images.length) % images.length)
-                      }
+                      onClick={() => setImageIdx((imageIdx - 1 + images.length) % images.length)}
                       aria-label="Previous photo"
                     >
                       <Icon name="chevronLeft" size={16} color="#FFFFFF" strokeWidth={2.4} />
@@ -947,9 +975,7 @@ const ListingDetails = () => {
                     >
                       <Icon name="chevronRight" size={16} color="#FFFFFF" strokeWidth={2.4} />
                     </button>
-                    <span className="gallery-count">
-                      {imageIdx + 1}/{images.length}
-                    </span>
+                    <span className="gallery-count">{imageIdx + 1}/{images.length}</span>
                   </>
                 )}
               </div>
@@ -978,7 +1004,6 @@ const ListingDetails = () => {
 
           <h1 className="listing-title">{listing.title}</h1>
 
-          {/* Price — the loudest thing on the page */}
           {listing.price != null && listing.price !== '' && (
             <div className="price-block">
               <span className="price-value">{formatPrice(listing.price)}</span>
@@ -989,9 +1014,7 @@ const ListingDetails = () => {
           )}
 
           <div className="badge-group">
-            <span className="badge badge-category">
-              {listing.category || 'General'}
-            </span>
+            <span className="badge badge-category">{listing.category || 'General'}</span>
             {listing.sub_category && (
               <span className="badge badge-sub">{listing.sub_category}</span>
             )}
@@ -1009,28 +1032,16 @@ const ListingDetails = () => {
             )}
           </div>
 
-          {/* ★ LIKE + COMMENT ROW — buyer engagement */}
           <div className="engage-row">
             <button
               className={`engage-btn like ${isLiked ? 'active' : ''}`}
               onClick={handleLike}
-              aria-label={isLiked ? 'Unlike' : 'Like'}
               disabled={liking}
             >
-              <Icon
-                name="heart"
-                size={17}
-                color={isLiked ? '#BC5B34' : '#6B6259'}
-                strokeWidth={isLiked ? 2.6 : 1.8}
-              />
+              <Icon name="heart" size={17} color={isLiked ? '#BC5B34' : '#6B6259'} strokeWidth={isLiked ? 2.6 : 1.8} />
               <span>{likeCount > 0 ? likeCount : 'Like'}</span>
             </button>
-
-            <button
-              className="engage-btn comment"
-              onClick={handleOpenComments}
-              aria-label="Comments"
-            >
+            <button className="engage-btn comment" onClick={handleOpenComments}>
               <Icon name="comment" size={16} color="#6B6259" strokeWidth={1.8} />
               <span>
                 {commentCount > 0
@@ -1072,108 +1083,119 @@ const ListingDetails = () => {
           </div>
         </div>
 
-        {/* ============ SELLER CARD ============ */}
-        {listing.businesses && (
+        {/* ============ ★ SELLER CARD — contact actions ============ */}
+        {listing.businesses && !isOwnListing && (
           <div className="contact-card">
             <h3 className="section-title">
               <Icon name="store" size={20} color="#F59E0B" strokeWidth={1.75} />
-              {isOwnListing ? 'Your business' : 'Meet the seller'}
+              Contact the seller
             </h3>
 
             <p className="business-name">{listing.businesses.business_name}</p>
 
             {listing.businesses.rating > 0 && (
               <p className="business-rating">
-                {renderStars(listing.businesses.rating)} (
-                {listing.businesses.rating.toFixed(1)})
+                {renderStars(listing.businesses.rating)} ({listing.businesses.rating.toFixed(1)})
               </p>
             )}
 
-            {sellerPhone && isOwnListing && (
-              <p className="contact-phone">
+            <div className="contact-actions">
+              {isAnonymous ? (
+                <button
+                  className="contact-btn primary wide"
+                  onClick={() => navigate('/login', { state: { from: location.pathname } })}
+                >
+                  <Icon name="user" size={16} color="#FFFFFF" strokeWidth={2} />
+                  Sign in to contact the seller
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="contact-btn primary"
+                    onClick={handleMessageSeller}
+                    disabled={openingChat}
+                  >
+                    {openingChat ? (
+                      <>
+                        <span className="btn-spinner" />
+                        Opening…
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="message" size={16} color="#FFFFFF" strokeWidth={2} />
+                        Message on Kumsika
+                      </>
+                    )}
+                  </button>
+
+                  {sellerPhone && (
+                    <button className="contact-btn whatsapp" onClick={handleContactWhatsApp}>
+                      <Icon name="whatsapp" size={16} color="#FFFFFF" strokeWidth={2} />
+                      WhatsApp the seller
+                    </button>
+                  )}
+
+                  {sellerFacebook && (
+                    <button className="contact-btn facebook" onClick={handleContactFacebook}>
+                      <Icon name="facebook" size={16} color="#FFFFFF" strokeWidth={2} />
+                      Message on Facebook
+                    </button>
+                  )}
+
+                  {sellerPhone && (
+                    <button className="contact-btn call" onClick={openPhoneDialer}>
+                      <Icon name="phone" size={16} color="#FFFFFF" strokeWidth={2} />
+                      Call the seller
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {sellerPhone && (
+              <p className="contact-phone-row">
                 <Icon name="phone" size={14} color="#94A3B8" strokeWidth={1.75} />
                 <span>{sellerPhone}</span>
               </p>
             )}
             {listing.businesses.address && (
-              <p className="contact-address">
+              <p className="contact-phone-row">
                 <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
                 <span>{listing.businesses.address}</span>
               </p>
             )}
+          </div>
+        )}
 
-            {/* Seller-only: edit */}
-            {isOwnListing && (
-              <div className="contact-buttons">
-                <button
-                  className="btn-message"
-                  onClick={() => navigate(`/create-listing?edit=${listing.id}`)}
-                >
-                  <Icon name="pencil" size={16} color="#FFFFFF" strokeWidth={1.75} />
-                  Edit listing
-                </button>
-              </div>
+        {/* ============ OWNER-ONLY: business + edit ============ */}
+        {listing.businesses && isOwnListing && (
+          <div className="contact-card">
+            <h3 className="section-title">
+              <Icon name="store" size={20} color="#F59E0B" strokeWidth={1.75} />
+              Your business
+            </h3>
+            <p className="business-name">{listing.businesses.business_name}</p>
+            {sellerPhone && (
+              <p className="contact-phone-row">
+                <Icon name="phone" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <span>{sellerPhone}</span>
+              </p>
             )}
-
-            {/* Buyer CTAs (desktop — mobile has sticky bar) */}
-            {!isOwnListing && (
-              <div className="contact-buttons">
-                {isAnonymous ? (
-                  <button
-                    className="btn-message"
-                    onClick={() =>
-                      navigate('/login', { state: { from: location.pathname } })
-                    }
-                  >
-                    <Icon name="user" size={16} color="#FFFFFF" strokeWidth={1.75} />
-                    Sign in to contact seller
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      className="btn-message"
-                      onClick={handleMessageSeller}
-                      disabled={openingChat}
-                    >
-                      {openingChat ? (
-                        <>
-                          <span className="btn-spinner" />
-                          Opening…
-                        </>
-                      ) : (
-                        <>
-                          <Icon
-                            name="message"
-                            size={16}
-                            color="#FFFFFF"
-                            strokeWidth={1.75}
-                          />
-                          Message seller
-                        </>
-                      )}
-                    </button>
-
-                    {sellerPhone && (
-                      <>
-                        <button className="btn-call" onClick={openPhoneDialer}>
-                          <Icon name="phone" size={16} color="#FFFFFF" strokeWidth={1.75} />
-                          Call now
-                        </button>
-                        <button className="btn-whatsapp" onClick={openWhatsApp}>
-                          <Icon
-                            name="whatsapp"
-                            size={16}
-                            color="#FFFFFF"
-                            strokeWidth={1.75}
-                          />
-                          WhatsApp
-                        </button>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
+            {listing.businesses.address && (
+              <p className="contact-phone-row">
+                <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <span>{listing.businesses.address}</span>
+              </p>
             )}
+            <div className="contact-actions">
+              <button
+                className="contact-btn primary"
+                onClick={() => navigate(`/create-listing?edit=${listing.id}`)}
+              >
+                <Icon name="pencil" size={16} color="#FFFFFF" strokeWidth={2} />
+                Edit listing
+              </button>
+            </div>
           </div>
         )}
 
@@ -1207,9 +1229,7 @@ const ListingDetails = () => {
                   className="form-select"
                 >
                   {[5, 4, 3, 2, 1].map((num) => (
-                    <option key={num} value={num}>
-                      {num} Stars
-                    </option>
+                    <option key={num} value={num}>{num} Stars</option>
                   ))}
                 </select>
               </div>
@@ -1217,20 +1237,14 @@ const ListingDetails = () => {
                 <label className="form-label">Comment</label>
                 <textarea
                   value={reviewData.comment}
-                  onChange={(e) =>
-                    setReviewData({ ...reviewData, comment: e.target.value })
-                  }
+                  onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
                   className="form-textarea"
                   placeholder="Share your experience..."
                   required
                 />
               </div>
               <div className="form-actions">
-                <button
-                  type="submit"
-                  className="btn-submit-review"
-                  disabled={submitting}
-                >
+                <button type="submit" className="btn-submit-review" disabled={submitting}>
                   {submitting ? 'Submitting...' : 'Submit review'}
                 </button>
                 <button
@@ -1263,16 +1277,21 @@ const ListingDetails = () => {
           )}
         </div>
 
-        {/* ============ SHARE (small, bottom) ============ */}
+        {/* ============ ★ SHARE (public broadcast only — no "contact" here) ============ */}
         <div className="share-card">
           <h3 className="section-title">
             <Icon name="share" size={18} color="#F59E0B" strokeWidth={1.75} />
             {isOwnListing ? 'Promote this listing' : 'Share this listing'}
           </h3>
+          <p className="share-sub">
+            {isOwnListing
+              ? 'Share this listing with your customers on WhatsApp, Facebook, or Twitter.'
+              : 'Share this listing with friends on WhatsApp, Facebook, or Twitter.'}
+          </p>
           <div className="share-buttons">
             <button className="share-btn whatsapp" onClick={shareOnWhatsApp}>
               <Icon name="whatsapp" size={14} color="#FFFFFF" strokeWidth={1.75} />
-              WhatsApp
+              Share
             </button>
             <button className="share-btn facebook" onClick={shareOnFacebook}>
               <Icon name="share" size={14} color="#FFFFFF" strokeWidth={1.75} />
@@ -1290,15 +1309,13 @@ const ListingDetails = () => {
         </div>
       </div>
 
-      {/* ============ ★ STICKY CONTACT BAR (mobile, buyer only) ============ */}
+      {/* ============ STICKY CONTACT BAR (mobile, buyer only) ============ */}
       {isMobile && !isOwnListing && (
         <div className="sticky-contact">
           {isAnonymous ? (
             <button
               className="sticky-btn primary wide"
-              onClick={() =>
-                navigate('/login', { state: { from: location.pathname } })
-              }
+              onClick={() => navigate('/login', { state: { from: location.pathname } })}
             >
               <Icon name="user" size={16} color="#FFFFFF" strokeWidth={2} />
               Sign in to contact seller
@@ -1320,22 +1337,31 @@ const ListingDetails = () => {
                 )}
               </button>
               {sellerPhone && (
-                <>
-                  <button
-                    className="sticky-btn whatsapp"
-                    onClick={openWhatsApp}
-                    aria-label="WhatsApp"
-                  >
-                    <Icon name="whatsapp" size={18} color="#FFFFFF" strokeWidth={2} />
-                  </button>
-                  <button
-                    className="sticky-btn call"
-                    onClick={openPhoneDialer}
-                    aria-label="Call"
-                  >
-                    <Icon name="phone" size={16} color="#FFFFFF" strokeWidth={2} />
-                  </button>
-                </>
+                <button
+                  className="sticky-btn whatsapp"
+                  onClick={handleContactWhatsApp}
+                  aria-label="WhatsApp the seller"
+                >
+                  <Icon name="whatsapp" size={18} color="#FFFFFF" strokeWidth={2} />
+                </button>
+              )}
+              {sellerFacebook && (
+                <button
+                  className="sticky-btn facebook"
+                  onClick={handleContactFacebook}
+                  aria-label="Message the seller on Facebook"
+                >
+                  <Icon name="facebook" size={16} color="#FFFFFF" strokeWidth={2} />
+                </button>
+              )}
+              {sellerPhone && (
+                <button
+                  className="sticky-btn call"
+                  onClick={openPhoneDialer}
+                  aria-label="Call the seller"
+                >
+                  <Icon name="phone" size={16} color="#FFFFFF" strokeWidth={2} />
+                </button>
               )}
             </>
           )}
@@ -1344,12 +1370,7 @@ const ListingDetails = () => {
 
       {/* ============ COMMENTS POP-UP ============ */}
       {showComments && (
-        <div
-          className="pop-overlay"
-          onClick={() => setShowComments(false)}
-          role="dialog"
-          aria-modal="true"
-        >
+        <div className="pop-overlay" onClick={() => setShowComments(false)} role="dialog" aria-modal="true">
           <div className="pop" onClick={(e) => e.stopPropagation()}>
             <div className="pop-handle" />
             <div className="pop-preview">
@@ -1369,11 +1390,7 @@ const ListingDetails = () => {
                   {listing.location_area ? ` · ${listing.location_area}` : ''}
                 </div>
               </div>
-              <button
-                className="pop-close"
-                onClick={() => setShowComments(false)}
-                aria-label="Close"
-              >
+              <button className="pop-close" onClick={() => setShowComments(false)} aria-label="Close">
                 <Icon name="close" size={16} color="#201F1B" strokeWidth={2.2} />
               </button>
             </div>
@@ -1381,9 +1398,7 @@ const ListingDetails = () => {
               <CommentSection
                 listingId={listing.id}
                 onCountChange={(count) => {
-                  setListing((prev) =>
-                    prev ? { ...prev, comment_count: count } : prev
-                  );
+                  setListing((prev) => (prev ? { ...prev, comment_count: count } : prev));
                 }}
               />
             </div>
@@ -1404,9 +1419,7 @@ const ListingDetails = () => {
                   ? {
                       ...prev,
                       is_premium: true,
-                      premium_until: new Date(
-                        Date.now() + 7 * 24 * 60 * 60 * 1000
-                      ).toISOString(),
+                      premium_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
                     }
                   : prev
               );
@@ -1427,22 +1440,11 @@ const ListingDetails = () => {
           ].map((item) => {
             const active = item.id === 'search';
             return (
-              <button
-                key={item.id}
-                className="nav-btn"
-                onClick={() => handleBottomNav(item.id)}
-              >
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon
-                    name={item.icon}
-                    size={20}
-                    color={active ? '#FFFFFF' : '#94A3B8'}
-                    strokeWidth={1.75}
-                  />
+                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'active' : ''}`}>
-                  {item.label}
-                </span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
@@ -1457,12 +1459,8 @@ const ListingDetails = () => {
           color: #1e293b;
           padding-bottom: 80px;
         }
-        @media (min-width: 769px) {
-          .listing-details { padding-bottom: 0; }
-        }
-        .listing-details.has-sticky-bar {
-          padding-bottom: 148px;
-        }
+        @media (min-width: 769px) { .listing-details { padding-bottom: 0; } }
+        .listing-details.has-sticky-bar { padding-bottom: 148px; }
 
         .main-content {
           max-width: 800px;
@@ -1500,7 +1498,6 @@ const ListingDetails = () => {
           background: #F0D9A8;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
-          box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08);
         }
         .boost-card-icon.active { background: rgba(255, 255, 255, 0.22); }
         .boost-card-text { flex: 1; min-width: 0; }
@@ -1537,19 +1534,14 @@ const ListingDetails = () => {
           font-size: 11px; font-weight: 700;
           letter-spacing: 0.04em;
           cursor: pointer; font-family: inherit;
-          transition: background 0.15s;
         }
-        .dev-toggle:hover { background: #FDE68A; }
 
         /* ====== LISTING CARD ====== */
         .listing-card {
           background: #ffffff; border-radius: 12px;
           padding: 16px 18px;
           border: 1px solid #f1f5f9; margin-bottom: 16px;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
-
-        /* Gallery */
         .gallery { margin-bottom: 16px; }
         .gallery-viewport {
           position: relative; width: 100%;
@@ -1560,7 +1552,6 @@ const ListingDetails = () => {
         .gallery-track {
           display: flex; height: 100%; width: 100%;
           transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
-          will-change: transform;
         }
         .gallery-image {
           flex: 0 0 100%; width: 100%; height: 100%;
@@ -1573,13 +1564,7 @@ const ListingDetails = () => {
           border: none; cursor: pointer; border-radius: 50%;
           background: rgba(15, 23, 42, 0.55);
           backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
           display: flex; align-items: center; justify-content: center;
-          transition: background 0.2s, transform 0.15s;
-        }
-        .gallery-arrow:hover {
-          background: rgba(15, 23, 42, 0.78);
-          transform: translateY(-50%) scale(1.06);
         }
         .gallery-arrow.left { left: 10px; }
         .gallery-arrow.right { right: 10px; }
@@ -1588,14 +1573,11 @@ const ListingDetails = () => {
           padding: 4px 9px; border-radius: 6px;
           background: rgba(15, 23, 42, 0.6);
           color: #fff; font-size: 11px; font-weight: 600;
-          letter-spacing: 0.02em;
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
         }
         .gallery-thumbs {
           display: flex; gap: 8px;
           overflow-x: auto; margin-top: 10px;
-          padding-bottom: 2px; scrollbar-width: none;
+          scrollbar-width: none;
         }
         .gallery-thumbs::-webkit-scrollbar { display: none; }
         .gallery-thumb {
@@ -1604,15 +1586,12 @@ const ListingDetails = () => {
           border: 2px solid transparent;
           border-radius: 8px; overflow: hidden;
           cursor: pointer; background: #f1f5f9;
-          transition: border-color 0.18s, transform 0.15s;
         }
         .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .gallery-thumb:hover { transform: translateY(-1px); }
         .gallery-thumb.active {
           border-color: #f59e0b;
           box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
         }
-
         .no-image {
           display: flex; flex-direction: column;
           align-items: center; justify-content: center;
@@ -1621,14 +1600,11 @@ const ListingDetails = () => {
           min-height: 120px; color: #94a3b8;
         }
         .no-image p { margin: 8px 0 0; font-size: 14px; }
-
         .listing-title {
           font-size: clamp(20px, 2.5vw, 24px);
           font-weight: 700; color: #1e293b;
           margin: 0 0 10px; line-height: 1.2;
         }
-
-        /* Price block */
         .price-block {
           display: flex; align-items: baseline; gap: 10px;
           margin-bottom: 10px;
@@ -1641,14 +1617,10 @@ const ListingDetails = () => {
           letter-spacing: -0.02em;
         }
         .price-note {
-          font-size: 12px;
-          color: #92400e;
-          background: #fef3c7;
-          padding: 3px 8px;
-          border-radius: 6px;
-          font-weight: 600;
+          font-size: 12px; color: #92400e;
+          background: #fef3c7; padding: 3px 8px;
+          border-radius: 6px; font-weight: 600;
         }
-
         .badge-group {
           display: flex; gap: 6px; flex-wrap: wrap;
           margin-bottom: 14px;
@@ -1663,7 +1635,6 @@ const ListingDetails = () => {
         .badge-delivery { background: #dbeafe; color: #1e40af; }
         .badge-premium { background: #F0D9A8; color: #7A5A16; }
 
-        /* ★ Engage row */
         .engage-row {
           display: flex; align-items: center; gap: 8px;
           padding: 10px 0 14px;
@@ -1678,15 +1649,10 @@ const ListingDetails = () => {
           border: 1px solid #f1f5f9;
           font-family: inherit;
           font-size: 13px; font-weight: 600;
-          color: #475569;
-          cursor: pointer;
-          transition: all 0.18s;
+          color: #475569; cursor: pointer;
         }
-        .engage-btn:hover { background: #f1f5f9; }
         .engage-btn.like.active {
-          background: #fef2f2;
-          border-color: #fecaca;
-          color: #BC5B34;
+          background: #fef2f2; border-color: #fecaca; color: #BC5B34;
         }
         .engage-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -1695,7 +1661,6 @@ const ListingDetails = () => {
           line-height: 1.6; margin: 0 0 12px;
           white-space: pre-wrap;
         }
-
         .meta-row {
           display: flex; flex-wrap: wrap; gap: 14px;
           padding-top: 12px; border-top: 1px solid #f1f5f9;
@@ -1705,13 +1670,12 @@ const ListingDetails = () => {
           font-size: 13px; color: #94a3b8;
         }
 
-        /* ====== CONTACT / SELLER CARD ====== */
+        /* ====== SELLER / CONTACT CARD ====== */
         .contact-card, .reviews-card, .share-card {
           background: #ffffff; border-radius: 12px;
           padding: 16px 18px;
           border: 1px solid #f1f5f9;
           margin-bottom: 16px;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
         .section-title {
           font-size: 16px; font-weight: 700;
@@ -1722,30 +1686,41 @@ const ListingDetails = () => {
           font-size: 15px; font-weight: 600;
           color: #1e293b; margin: 0 0 4px;
         }
-        .contact-phone, .contact-address {
-          display: flex; align-items: center; gap: 6px;
-          font-size: 14px; color: #94a3b8; margin: 2px 0;
-        }
         .business-rating { color: #f59e0b; font-size: 14px; margin: 4px 0 0; }
+        .contact-phone-row {
+          display: flex; align-items: center; gap: 6px;
+          font-size: 13px; color: #94a3b8; margin: 6px 0 0;
+        }
 
-        .contact-buttons {
-          display: flex; gap: 10px; flex-wrap: wrap;
+        /* ★ Contact buttons — bigger, primary-style */
+        .contact-actions {
+          display: flex; flex-direction: column; gap: 8px;
           margin-top: 12px;
         }
-        .btn-call, .btn-whatsapp, .btn-login, .btn-message {
-          padding: 11px 22px; border: none; border-radius: 10px;
-          color: #ffffff; font-weight: 600; font-size: 14px;
-          cursor: pointer; font-family: inherit;
-          display: inline-flex; align-items: center; gap: 6px;
-          text-decoration: none; transition: all 0.2s;
+        .contact-btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          gap: 8px;
+          width: 100%;
+          padding: 12px 16px;
+          border: none; border-radius: 10px;
+          color: #ffffff;
+          font-family: inherit;
+          font-size: 14px; font-weight: 700;
+          cursor: pointer;
+          transition: transform 0.15s, background 0.15s;
         }
-        .btn-call, .btn-login { background: #1e293b; }
-        .btn-call:hover, .btn-login:hover {
-          background: #f59e0b; transform: scale(0.98);
-        }
-        .btn-message { background: #f59e0b; }
-        .btn-message:hover:not(:disabled) { background: #d97706; transform: scale(0.98); }
-        .btn-message:disabled { opacity: 0.7; cursor: not-allowed; }
+        .contact-btn:active:not(:disabled) { transform: scale(0.98); }
+        .contact-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .contact-btn.primary { background: #f59e0b; }
+        .contact-btn.primary:hover:not(:disabled) { background: #d97706; }
+        .contact-btn.whatsapp { background: #25d366; }
+        .contact-btn.whatsapp:hover:not(:disabled) { background: #1da851; }
+        .contact-btn.facebook { background: #1877f2; }
+        .contact-btn.facebook:hover:not(:disabled) { background: #1462cf; }
+        .contact-btn.call { background: #1e293b; }
+        .contact-btn.call:hover:not(:disabled) { background: #0f172a; }
+        .contact-btn.wide { width: 100%; }
+
         .btn-spinner {
           width: 14px; height: 14px;
           border: 2px solid rgba(255, 255, 255, 0.35);
@@ -1754,10 +1729,12 @@ const ListingDetails = () => {
           animation: spin 0.7s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .btn-whatsapp { background: #25d366; }
-        .btn-whatsapp:hover { transform: scale(0.98); opacity: 0.9; }
 
         /* ====== SHARE ====== */
+        .share-sub {
+          font-size: 12.5px; color: #94a3b8;
+          margin: 0 0 10px; line-height: 1.5;
+        }
         .share-buttons {
           display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;
         }
@@ -1766,9 +1743,7 @@ const ListingDetails = () => {
           font-size: 12px; font-weight: 600; color: #ffffff;
           cursor: pointer; font-family: inherit;
           display: inline-flex; align-items: center; gap: 6px;
-          transition: all 0.2s;
         }
-        .share-btn:hover { transform: scale(0.97); }
         .share-btn.whatsapp { background: #25d366; }
         .share-btn.facebook { background: #1877f2; }
         .share-btn.twitter { background: #1da1f2; }
@@ -1785,10 +1760,7 @@ const ListingDetails = () => {
           color: #ffffff; font-weight: 600; font-size: 13px;
           cursor: pointer; font-family: inherit;
           display: inline-flex; align-items: center; gap: 6px;
-          transition: all 0.2s;
         }
-        .btn-write-review:hover { background: #f59e0b; transform: scale(0.98); }
-
         .review-form {
           margin-top: 12px; padding-top: 12px;
           border-top: 1px solid #f1f5f9;
@@ -1803,39 +1775,27 @@ const ListingDetails = () => {
           border: 1px solid #e2e8f0; border-radius: 8px;
           font-size: 14px; color: #1e293b; outline: none;
           font-family: inherit; background: #ffffff;
-          transition: all 0.2s;
         }
         .form-textarea { resize: vertical; min-height: 60px; }
-        .form-select:focus, .form-textarea:focus {
-          border-color: #f59e0b;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
-        }
         .form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn-submit-review {
           padding: 6px 20px; background: #10b981;
           border: none; border-radius: 8px;
           color: #ffffff; font-weight: 600; font-size: 13px;
           cursor: pointer; font-family: inherit;
-          transition: all 0.2s;
         }
-        .btn-submit-review:hover:not(:disabled) { transform: scale(0.98); }
         .btn-submit-review:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-cancel-review {
           padding: 6px 20px; background: #f1f5f9;
           border: 1px solid #e2e8f0; border-radius: 8px;
           color: #64748b; font-weight: 600; font-size: 13px;
           cursor: pointer; font-family: inherit;
-          transition: all 0.2s;
         }
-        .btn-cancel-review:hover { background: #e2e8f0; }
-
         .review-item {
           padding-top: 12px; margin-top: 12px;
           border-top: 1px solid #f1f5f9;
         }
-        .review-item:first-of-type {
-          border-top: none; margin-top: 12px;
-        }
+        .review-item:first-of-type { border-top: none; margin-top: 12px; }
         .review-header-row {
           display: flex; justify-content: space-between;
           flex-wrap: wrap; gap: 8px;
@@ -1854,7 +1814,6 @@ const ListingDetails = () => {
           padding: 10px 14px;
           background: rgba(255, 255, 255, 0.98);
           backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
           border-top: 1px solid #f1f5f9;
           z-index: 90;
           align-items: center;
@@ -1873,20 +1832,12 @@ const ListingDetails = () => {
         }
         .sticky-btn:active:not(:disabled) { transform: scale(0.97); }
         .sticky-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .sticky-btn.primary {
-          flex: 1;
-          background: #f59e0b;
-        }
+        .sticky-btn.primary { flex: 1; background: #f59e0b; }
         .sticky-btn.primary:hover:not(:disabled) { background: #d97706; }
         .sticky-btn.primary.wide { flex: 1; }
-        .sticky-btn.whatsapp {
-          background: #25d366;
-          width: 46px; padding: 0;
-        }
-        .sticky-btn.call {
-          background: #1e293b;
-          width: 46px; padding: 0;
-        }
+        .sticky-btn.whatsapp { background: #25d366; width: 46px; padding: 0; }
+        .sticky-btn.facebook { background: #1877f2; width: 46px; padding: 0; }
+        .sticky-btn.call { background: #1e293b; width: 46px; padding: 0; }
 
         /* ====== COMMENTS POP-UP ====== */
         .pop-overlay {
@@ -1894,7 +1845,6 @@ const ListingDetails = () => {
           z-index: 200;
           background: rgba(22, 38, 31, 0.5);
           backdrop-filter: blur(4px);
-          -webkit-backdrop-filter: blur(4px);
           display: flex; align-items: flex-end; justify-content: center;
           animation: popFade 0.2s ease;
         }
@@ -1907,7 +1857,6 @@ const ListingDetails = () => {
           background: #FFFDF8;
           border-top-left-radius: 20px;
           border-top-right-radius: 20px;
-          box-shadow: 0 -20px 60px rgba(22, 38, 31, 0.3);
           display: flex; flex-direction: column;
           animation: popUp 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
           overflow: hidden;
@@ -1915,9 +1864,6 @@ const ListingDetails = () => {
         @keyframes popUp {
           from { transform: translateY(40px); opacity: 0.6; }
           to { transform: translateY(0); opacity: 1; }
-        }
-        @media (min-width: 640px) {
-          .pop { height: auto; max-height: 86vh; min-height: 70vh; margin-bottom: 24px; border-radius: 20px; }
         }
         .pop-handle {
           width: 42px; height: 4px;
@@ -1955,12 +1901,9 @@ const ListingDetails = () => {
           background: #FFFDF8;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; flex-shrink: 0;
-          transition: background 0.18s, border-color 0.18s;
         }
-        .pop-close:hover { background: #F7F1E3; border-color: #D9C79E; }
         .pop-body {
           flex: 1; overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
           padding: 12px 14px 18px;
           background: #FFFDF8;
         }
@@ -1970,23 +1913,14 @@ const ListingDetails = () => {
           position: fixed; inset: 0;
           background: rgba(22, 38, 31, 0.55);
           backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
           display: flex; align-items: center; justify-content: center;
           padding: 16px; z-index: 500;
-          animation: fadeIn 0.2s ease;
         }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .boost-modal {
           width: 100%; max-width: 440px; max-height: 92vh;
           overflow-y: auto; background: #FFFDF8;
           border-radius: 18px;
-          box-shadow: 0 30px 80px rgba(22, 38, 31, 0.35);
-          animation: scaleIn 0.25s cubic-bezier(0.2, 0.9, 0.2, 1);
           display: flex; flex-direction: column;
-        }
-        @keyframes scaleIn {
-          from { transform: scale(0.95); opacity: 0.6; }
-          to { transform: scale(1); opacity: 1; }
         }
         .boost-head {
           display: flex; align-items: center; gap: 12px;
@@ -2004,7 +1938,6 @@ const ListingDetails = () => {
           font-family: Georgia, serif;
           font-size: 17px; font-weight: 600;
           color: #201F1B; margin: 0;
-          letter-spacing: -0.01em;
         }
         .boost-sub { font-size: 12px; color: #9C9482; margin: 2px 0 0; }
         .boost-close {
@@ -2012,10 +1945,7 @@ const ListingDetails = () => {
           border: 1px solid #EFE6CE; background: #FFFDF8;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; flex-shrink: 0;
-          transition: background 0.15s;
         }
-        .boost-close:hover { background: #F7F1E3; }
-
         .boost-body { padding: 14px 16px 8px; }
         .boost-preview-title {
           font-size: 13px; color: #6B6259; font-style: italic;
@@ -2023,9 +1953,7 @@ const ListingDetails = () => {
           background: #F7F1E3; border-radius: 8px;
           border-left: 3px solid #D99A3B;
         }
-        .boost-benefits {
-          display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;
-        }
+        .boost-benefits { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
         .boost-benefit { display: flex; align-items: flex-start; gap: 10px; }
         .boost-benefit-icon {
           width: 28px; height: 28px; border-radius: 8px;
@@ -2046,9 +1974,8 @@ const ListingDetails = () => {
           padding: 12px 14px; background: #FFFDF8;
           border: 1.5px solid #EFE6CE; border-radius: 12px;
           cursor: pointer; font-family: inherit;
-          text-align: left; transition: all 0.18s;
+          text-align: left;
         }
-        .boost-option:hover { border-color: #D9C79E; background: #FDF9EF; }
         .boost-option.active {
           border-color: #24453B; background: #FDF9EF;
           box-shadow: 0 0 0 3px rgba(36, 69, 59, 0.08);
@@ -2056,7 +1983,7 @@ const ListingDetails = () => {
         .boost-option-days { font-size: 14px; font-weight: 700; color: #201F1B; flex: 1; }
         .boost-option-price {
           font-family: Georgia, serif; font-size: 15px; font-weight: 600;
-          color: #24453B; letter-spacing: -0.01em;
+          color: #24453B;
         }
         .boost-option-tag {
           position: absolute; top: -8px; left: 12px;
@@ -2070,7 +1997,7 @@ const ListingDetails = () => {
           width: 20px; height: 20px; border-radius: 50%;
           background: #24453B;
           display: flex; align-items: center; justify-content: center;
-          opacity: 0; transition: opacity 0.18s; flex-shrink: 0;
+          opacity: 0;
         }
         .boost-option.active .boost-option-check { opacity: 1; }
 
@@ -2111,9 +2038,7 @@ const ListingDetails = () => {
           border: 1px solid #EFE6CE; border-radius: 10px;
           font-family: inherit; font-size: 13px; font-weight: 600;
           color: #6B6259; cursor: pointer;
-          transition: background 0.15s;
         }
-        .boost-cancel:hover:not(:disabled) { background: #EFE6CE; }
         .boost-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
         .boost-cancel.wide { flex: 1; }
         .boost-confirm {
@@ -2125,10 +2050,6 @@ const ListingDetails = () => {
           border: none; border-radius: 10px;
           font-family: inherit; font-size: 13px; font-weight: 700;
           cursor: pointer;
-          transition: background 0.2s, transform 0.15s;
-        }
-        .boost-confirm:hover:not(:disabled) {
-          background: #BC5B34; transform: translateY(-1px);
         }
         .boost-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
         .boost-confirm.wide { flex: 1; }
@@ -2151,7 +2072,6 @@ const ListingDetails = () => {
         .nav-icon-wrap {
           width: 34px; height: 34px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s;
         }
         .nav-icon-wrap.active { background: #1e293b; }
         .nav-label { font-size: 9px; font-weight: 500; color: #94a3b8; }
@@ -2170,12 +2090,9 @@ const ListingDetails = () => {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .skeleton-header, .skeleton-image, .skeleton-title,
-          .skeleton-line, .skeleton-button { animation: none; }
-          .gallery-track, .gallery-arrow, .gallery-thumb,
-          .btn-message, .btn-call, .btn-whatsapp, .sticky-btn,
-          .engage-btn, .share-btn, .boost-option, .boost-confirm,
-          .boost-cancel, .boost-close, .pop, .pop-overlay {
+          .contact-btn, .sticky-btn, .engage-btn, .share-btn,
+          .boost-option, .boost-confirm, .boost-cancel, .boost-close,
+          .gallery-track, .gallery-arrow, .gallery-thumb {
             transition: none; animation: none;
           }
           .btn-spinner, .boost-status-spinner { animation: none; }
