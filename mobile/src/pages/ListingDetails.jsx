@@ -1,8 +1,9 @@
 // mobile/src/pages/ListingDetails.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   listingsAPI,
+  businessAPI,
   reviewsAPI,
   analyticsAPI,
   messagesAPI,
@@ -13,7 +14,7 @@ import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
 
 // ============================================================
-// ICONS (unchanged)
+// ICONS
 // ============================================================
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
@@ -64,11 +65,100 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 // ============================================================
 // HELPERS
 // ============================================================
+
+/**
+ * ★ THE CORE FIX
+ * Extracts a usable seller ID from ANY shape a listing might return.
+ * Checks top-level, businesses, nested seller, etc.
+ * Returns the ID string or null.
+ */
+const extractSellerUserId = (listing) => {
+  if (!listing) return null;
+  const candidates = [
+    listing.businesses?.user_id,
+    listing.businesses?.userId,
+    listing.businesses?.owner_id,
+    listing.businesses?.ownerId,
+    listing.businesses?.owner?.id,
+    listing.businesses?.owner?.user_id,
+    listing.businesses?.profile_id,
+    listing.businesses?.profileId,
+    listing.seller?.user_id,
+    listing.seller?.userId,
+    listing.seller?.id,
+    listing.seller_id,
+    listing.sellerId,
+    listing.user_id,
+    listing.userId,
+    listing.owner_id,
+    listing.ownerId,
+    listing.created_by,
+    listing.creator_id,
+  ];
+  for (const c of candidates) {
+    if (c && typeof c === 'string' && c.length > 8) return c;
+  }
+  return null;
+};
+
+const extractSellerPhone = (listing) => {
+  if (!listing) return null;
+  return (
+    listing.contact_phone ||
+    listing.contactPhone ||
+    listing.businesses?.phone ||
+    listing.businesses?.whatsapp_number ||
+    listing.businesses?.whatsappNumber ||
+    listing.businesses?.whatsapp ||
+    listing.seller?.phone ||
+    listing.seller?.whatsapp_number ||
+    listing.seller_phone ||
+    listing.phone ||
+    null
+  );
+};
+
+const extractSellerFacebook = (listing) => {
+  if (!listing) return null;
+  const raw =
+    listing.businesses?.facebook_page ||
+    listing.businesses?.facebook_url ||
+    listing.businesses?.facebookPage ||
+    listing.businesses?.facebookUrl ||
+    listing.businesses?.facebook ||
+    listing.facebook_page ||
+    listing.facebook_url ||
+    null;
+  if (!raw) return null;
+
+  const cleaned = String(raw).trim();
+  if (/^https?:\/\//i.test(cleaned)) {
+    const m = cleaned.match(/facebook\.com\/(?:pages\/[^/]+\/)?([^/?#]+)/i);
+    if (m && m[1]) return `https://m.me/${m[1]}`;
+    return cleaned;
+  }
+  return `https://m.me/${cleaned.replace(/^@/, '')}`;
+};
+
+const extractSellerName = (listing) => {
+  if (!listing) return 'Local seller';
+  return (
+    listing.businesses?.business_name ||
+    listing.businesses?.businessName ||
+    listing.seller?.business_name ||
+    listing.seller?.full_name ||
+    listing.seller_name ||
+    listing.business_name ||
+    'Local seller'
+  );
+};
+
 const isPremium = (item) => {
   if (!item) return false;
   if (item.is_premium === true) return true;
   if (item.is_featured === true) return true;
   if (item.businesses?.is_premium === true) return true;
+  if (item.businesses?.isPremium === true) return true;
   if (item.businesses?.is_featured === true) return true;
   if (item.premium_until) {
     const t = new Date(item.premium_until).getTime();
@@ -89,58 +179,8 @@ const daysUntil = (date) => {
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
 };
 
-const resolveSellerUserId = (item) => {
-  if (!item) return null;
-  return (
-    item.businesses?.user_id ||
-    item.businesses?.userId ||
-    item.businesses?.owner_id ||
-    item.businesses?.owner?.id ||
-    item.businesses?.profile_id ||
-    item.seller_id ||
-    item.user_id ||
-    item.owner_id ||
-    null
-  );
-};
-
-const resolveSellerPhone = (item) => {
-  if (!item) return null;
-  return (
-    item.contact_phone ||
-    item.businesses?.phone ||
-    item.businesses?.whatsapp_number ||
-    item.businesses?.whatsapp ||
-    null
-  );
-};
-
-const resolveSellerFacebook = (item) => {
-  if (!item) return null;
-  const raw =
-    item.businesses?.facebook_page ||
-    item.businesses?.facebook_url ||
-    item.businesses?.facebook ||
-    item.facebook_page ||
-    item.facebook_url ||
-    null;
-  if (!raw) return null;
-
-  // Normalize into an m.me/<username> URL
-  const cleaned = String(raw).trim();
-  // If it's already a full URL
-  if (/^https?:\/\//i.test(cleaned)) {
-    // Convert facebook.com/<user> → m.me/<user>
-    const m = cleaned.match(/facebook\.com\/(?:pages\/[^/]+\/)?([^/?#]+)/i);
-    if (m && m[1]) return `https://m.me/${m[1]}`;
-    return cleaned;
-  }
-  // Otherwise treat as username
-  return `https://m.me/${cleaned.replace(/^@/, '')}`;
-};
-
 // ============================================================
-// BOOST MODAL (unchanged — payment aware)
+// BOOST MODAL (unchanged)
 // ============================================================
 const BOOST_PLANS = [
   { days: 7, label: '7 days', price: 'MK 2,000', amount: 2000, popular: true },
@@ -191,10 +231,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
         return;
       }
       if (data.pending) {
-        setMessage(
-          data.message ||
-            'Your request has been received. Our team will activate your boost shortly.'
-        );
+        setMessage(data.message || 'Your request has been received.');
         setStage('manual');
         return;
       }
@@ -204,17 +241,13 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
         onActivated?.(data.listing);
         return;
       }
-      setMessage(
-        'Boost requests are being finalised. Our team will activate your listing within 24 hours.'
-      );
+      setMessage('Your request is being finalised.');
       setStage('manual');
     } catch (err) {
       const status = err?.response?.status;
       const serverMsg = err?.response?.data?.error;
       if (status === 404 || status === 501 || /not configured|not implemented/i.test(serverMsg || '')) {
-        setMessage(
-          'Boost payments are being set up. Our team will activate your listing within 24 hours and contact you about payment.'
-        );
+        setMessage('Boost payments are being set up. Our team will activate your listing shortly.');
         setStage('manual');
         return;
       }
@@ -248,9 +281,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
       } catch {}
       if (attempts >= MAX_ATTEMPTS) {
         clearInterval(pollTimerRef.current);
-        setMessage(
-          "We couldn't confirm your payment in time. If you paid, your boost will still be activated. Contact support if it doesn't appear within an hour."
-        );
+        setMessage("We couldn't confirm your payment in time.");
         setStage('manual');
       }
     }, 3000);
@@ -336,7 +367,6 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
             <div className="boost-status">
               <span className="boost-status-spinner" />
               <p className="boost-status-text">Starting your secure payment…</p>
-              <p className="boost-status-sub">This only takes a moment.</p>
             </div>
           )}
           {stage === 'pending' && (
@@ -344,9 +374,6 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
               <span className="boost-status-spinner" />
               <p className="boost-status-text">Waiting for payment confirmation…</p>
               {message && <p className="boost-status-sub">{message}</p>}
-              <p className="boost-status-sub">
-                Complete the payment in the window that just opened. We'll update this page automatically.
-              </p>
             </div>
           )}
           {stage === 'manual' && (
@@ -364,9 +391,6 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
                 <Icon name="check" size={22} color="#065F46" strokeWidth={2.6} />
               </div>
               <p className="boost-status-text">You're in the Spotlight ✨</p>
-              <p className="boost-status-sub">
-                Your listing is now featured at the top of the homepage.
-              </p>
             </div>
           )}
           {stage === 'failed' && (
@@ -462,6 +486,10 @@ const ListingDetails = () => {
   const [showComments, setShowComments] = useState(false);
   const [liking, setLiking] = useState(false);
 
+  // ★ Seller fallback: if the listing doesn't contain a seller id,
+  //   we fetch the business directly and stash it here.
+  const [resolvedBusiness, setResolvedBusiness] = useState(null);
+
   const isMobile = windowWidth <= 768;
   const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV === true;
 
@@ -480,6 +508,7 @@ const ListingDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Lock scroll while comments pop-up is open
   useEffect(() => {
     if (showComments) {
       const prev = document.body.style.overflow;
@@ -500,21 +529,88 @@ const ListingDetails = () => {
     setErrorMsg('');
     try {
       const response = await listingsAPI.getById(id);
-      if (response?.data?.listing) {
-        setListing(response.data.listing);
+      const rawListing = response?.data?.listing || response?.data;
+
+      if (rawListing && (rawListing.id || rawListing.title)) {
+        // Basic normalization (in case api.js normalizer didn't run)
+        const normalized = {
+          ...rawListing,
+          business_id: rawListing.business_id ?? rawListing.businessId ?? null,
+          location_area: rawListing.location_area ?? rawListing.locationArea ?? null,
+          contact_phone: rawListing.contact_phone ?? rawListing.contactPhone ?? null,
+          delivery_available:
+            rawListing.delivery_available ?? rawListing.deliveryAvailable ?? false,
+          delivery_fee: rawListing.delivery_fee ?? rawListing.deliveryFee ?? null,
+          price_type: rawListing.price_type ?? rawListing.priceType ?? null,
+          created_at: rawListing.created_at ?? rawListing.createdAt ?? null,
+          is_premium: rawListing.is_premium ?? rawListing.isPremium ?? false,
+          is_featured: rawListing.is_featured ?? rawListing.featured ?? false,
+          businesses: rawListing.businesses || rawListing.business || null,
+        };
+
+        // Also normalize businesses if needed
+        if (normalized.businesses) {
+          normalized.businesses = {
+            ...normalized.businesses,
+            user_id: normalized.businesses.user_id ?? normalized.businesses.userId ?? null,
+            business_name:
+              normalized.businesses.business_name ?? normalized.businesses.businessName ?? null,
+            logo_url: normalized.businesses.logo_url ?? normalized.businesses.logoUrl ?? null,
+            whatsapp_number:
+              normalized.businesses.whatsapp_number ??
+              normalized.businesses.whatsappNumber ??
+              normalized.businesses.phone ??
+              null,
+          };
+        }
+
+        setListing(normalized);
+
+        // ★ If the normalized listing still has no seller id, fetch the
+        //   business directly using its id (last-resort fallback).
+        const sellerId = extractSellerUserId(normalized);
+        const businessId =
+          normalized.business_id || normalized.businesses?.id || null;
+
+        if (!sellerId && businessId) {
+          try {
+            const bizRes = await businessAPI.getById(businessId);
+            const biz = bizRes?.data?.business || bizRes?.data || null;
+            if (biz) {
+              setResolvedBusiness(biz);
+              // Attach to the listing too so the UI reads it consistently
+              setListing((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      businesses: {
+                        ...(prev.businesses || {}),
+                        ...biz,
+                        user_id: biz.user_id ?? biz.userId ?? prev.businesses?.user_id,
+                      },
+                    }
+                  : prev
+              );
+            }
+          } catch (e) {
+            console.warn('[ListingDetails] business fallback fetch failed:', e?.message);
+          }
+        }
+
         if (user?.id) {
           analyticsAPI.trackView({ listingId: id }).catch(() => {});
           analyticsAPI
             .trackUserActivity(user.id, 'view_listing', {
               listingId: id,
-              title: response.data.listing.title,
-              category: response.data.listing.category,
+              title: normalized.title,
+              category: normalized.category,
             })
             .catch(() => {});
         }
       } else {
         setErrorMsg('Listing not found');
       }
+
       try {
         const reviewsResponse = await reviewsAPI.getByListing(id);
         setReviews(reviewsResponse?.data?.reviews ?? []);
@@ -526,7 +622,7 @@ const ListingDetails = () => {
       }
     } catch (err) {
       console.error('Error fetching listing:', err);
-      setErrorMsg(err.response?.data?.error || 'Failed to load listing');
+      setErrorMsg(err?.response?.data?.error || 'Failed to load listing');
     } finally {
       setLoading(false);
     }
@@ -594,7 +690,7 @@ const ListingDetails = () => {
       setReviewData({ rating: 5, comment: '' });
       fetchListingDetails();
     } catch (err) {
-      showToast(err.response?.data?.error || 'Failed to submit review', 'error');
+      showToast(err?.response?.data?.error || 'Failed to submit review', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -612,17 +708,30 @@ const ListingDetails = () => {
   };
 
   // ============================================================
-  // ★ MESSAGE SELLER — the in-app chat
+  // ★ MESSAGE SELLER — the primary buyer action
+  //   Uses the extracted seller ID with a fallback chain.
   // ============================================================
   const handleMessageSeller = async () => {
     if (!requireAuth('message the seller')) return;
 
-    const sellerId = resolveSellerUserId(listing);
+    // Resolve seller id from EVERYWHERE (listing + fetched business)
+    let sellerId = extractSellerUserId(listing);
+    if (!sellerId && resolvedBusiness) {
+      sellerId = extractSellerUserId({ businesses: resolvedBusiness });
+    }
+
+    console.log('[Message] resolved seller id:', sellerId, 'listing:', {
+      listingId: listing.id,
+      businesses: listing.businesses,
+      businessId: listing.business_id,
+      resolvedBusiness,
+    });
+
     if (!sellerId) {
       showToast('Seller information is unavailable for this listing', 'error');
       return;
     }
-    if (sellerId === user.id) {
+    if (user?.id && sellerId === user.id) {
       showToast("You can't message yourself about your own listing", 'warning');
       return;
     }
@@ -630,8 +739,15 @@ const ListingDetails = () => {
     setOpeningChat(true);
     try {
       const res = await messagesAPI.createConversation(sellerId, listing.id);
-      const conversationId = res?.data?.conversation?.id;
-      if (!conversationId) throw new Error('Could not open conversation');
+      const conversationId =
+        res?.data?.conversation?.id ||
+        res?.data?.conversationId ||
+        res?.data?.id;
+
+      if (!conversationId) {
+        console.error('[Message] createConversation returned no id:', res?.data);
+        throw new Error('Could not open conversation');
+      }
 
       if (user?.id) {
         analyticsAPI
@@ -645,7 +761,7 @@ const ListingDetails = () => {
 
       navigate(`/chat/${conversationId}`);
     } catch (err) {
-      console.error('Open chat error:', err);
+      console.error('[Message] error:', err);
       const status = err?.response?.status;
       const msg =
         status === 401
@@ -663,13 +779,9 @@ const ListingDetails = () => {
     }
   };
 
-  // ============================================================
-  // ★ CONTACT THE SELLER ON WHATSAPP — opens a DIRECT chat
-  //    with the seller (not the share flow)
-  // ============================================================
   const handleContactWhatsApp = () => {
     if (!requireAuth('contact the seller')) return;
-    const phone = resolveSellerPhone(listing);
+    const phone = extractSellerPhone(listing) || extractSellerPhone({ businesses: resolvedBusiness });
     if (!phone) {
       showToast('This seller has not provided a WhatsApp number yet.', 'warning');
       return;
@@ -698,17 +810,11 @@ const ListingDetails = () => {
     window.open(url, '_blank', 'noopener');
   };
 
-  // ============================================================
-  // ★ CONTACT THE SELLER ON FACEBOOK MESSENGER
-  // ============================================================
   const handleContactFacebook = () => {
     if (!requireAuth('contact the seller')) return;
-    const messengerUrl = resolveSellerFacebook(listing);
+    const messengerUrl = extractSellerFacebook(listing);
     if (!messengerUrl) {
-      showToast(
-        'This seller has not linked a Facebook page yet.',
-        'warning'
-      );
+      showToast('This seller has not linked a Facebook page yet.', 'warning');
       return;
     }
     if (user?.id) {
@@ -724,12 +830,9 @@ const ListingDetails = () => {
     window.open(messengerUrl, '_blank', 'noopener');
   };
 
-  // ============================================================
-  // ★ CALL THE SELLER (direct)
-  // ============================================================
   const openPhoneDialer = () => {
     if (!requireAuth('call the seller')) return;
-    const phone = resolveSellerPhone(listing);
+    const phone = extractSellerPhone(listing) || extractSellerPhone({ businesses: resolvedBusiness });
     if (!phone) {
       showToast('This seller has not provided a phone number yet.', 'warning');
       return;
@@ -747,13 +850,10 @@ const ListingDetails = () => {
     window.open(`tel:${phone}`, '_blank');
   };
 
-  // ============================================================
-  // ★ SHARE THE LISTING (public — share the URL with anyone)
-  // ============================================================
   const shareOnWhatsApp = () => {
     const url = `${window.location.origin}/listing/${listing.id}`;
     const message = `🛒 ${listing.title}\n🏪 ${
-      listing.businesses?.business_name || 'Business'
+      extractSellerName(listing)
     }\n💰 ${formatPrice(listing.price)}\n📍 ${
       listing.location_area || 'Malawi'
     }\n\nView: ${url}`;
@@ -863,11 +963,14 @@ const ListingDetails = () => {
     );
   }
 
-  const sellerPhone = resolveSellerPhone(listing);
-  const sellerFacebook = resolveSellerFacebook(listing);
-  const sellerUserId = resolveSellerUserId(listing);
-  const isOwnListing = user?.id && sellerUserId === user.id;
-  const canMessageSeller = user && sellerUserId && !isOwnListing;
+  // ★ Compute seller data (with fallback to fetched business)
+  const sellerBiz = listing.businesses || resolvedBusiness || null;
+  const sellerName = extractSellerName({ businesses: sellerBiz, ...listing });
+  const sellerPhone = extractSellerPhone(listing) || extractSellerPhone({ businesses: sellerBiz });
+  const sellerFacebook = extractSellerFacebook({ businesses: sellerBiz, ...listing });
+  const sellerUserId = extractSellerUserId(listing) || extractSellerUserId({ businesses: sellerBiz });
+
+  const isOwnListing = !!(user?.id && sellerUserId && sellerUserId === user.id);
   const isAnonymous = !user;
 
   const premium = isPremium(listing);
@@ -886,7 +989,6 @@ const ListingDetails = () => {
           <span>Back</span>
         </button>
 
-        {/* ============ SELLER-ONLY: BOOST CARD ============ */}
         {isOwnListing && !premium && (
           <div className="boost-card">
             <div className="boost-card-icon">
@@ -921,7 +1023,6 @@ const ListingDetails = () => {
                 {premiumUntil
                   ? `Ends ${premiumUntil.toLocaleDateString()}`
                   : 'Your listing is featured on the homepage.'}
-                {daysLeft <= 2 && daysLeft > 0 && ' · Renew to keep the boost active'}
               </div>
             </div>
             <button className="boost-card-btn renew" onClick={() => setShowBoostModal(true)}>
@@ -937,7 +1038,7 @@ const ListingDetails = () => {
           </button>
         )}
 
-        {/* ============ LISTING CARD ============ */}
+        {/* LISTING CARD */}
         <div className="listing-card">
           {images.length > 0 ? (
             <div className="gallery">
@@ -1083,19 +1184,19 @@ const ListingDetails = () => {
           </div>
         </div>
 
-        {/* ============ ★ SELLER CARD — contact actions ============ */}
-        {listing.businesses && !isOwnListing && (
+        {/* ============ CONTACT THE SELLER (buyer only) ============ */}
+        {!isOwnListing && (
           <div className="contact-card">
             <h3 className="section-title">
               <Icon name="store" size={20} color="#F59E0B" strokeWidth={1.75} />
               Contact the seller
             </h3>
 
-            <p className="business-name">{listing.businesses.business_name}</p>
+            <p className="business-name">{sellerName}</p>
 
-            {listing.businesses.rating > 0 && (
+            {sellerBiz?.rating > 0 && (
               <p className="business-rating">
-                {renderStars(listing.businesses.rating)} ({listing.businesses.rating.toFixed(1)})
+                {renderStars(sellerBiz.rating)} ({Number(sellerBiz.rating).toFixed(1)})
               </p>
             )}
 
@@ -1158,33 +1259,33 @@ const ListingDetails = () => {
                 <span>{sellerPhone}</span>
               </p>
             )}
-            {listing.businesses.address && (
+            {sellerBiz?.address && (
               <p className="contact-phone-row">
                 <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
-                <span>{listing.businesses.address}</span>
+                <span>{sellerBiz.address}</span>
               </p>
             )}
           </div>
         )}
 
-        {/* ============ OWNER-ONLY: business + edit ============ */}
-        {listing.businesses && isOwnListing && (
+        {/* OWNER: Edit listing */}
+        {isOwnListing && (
           <div className="contact-card">
             <h3 className="section-title">
               <Icon name="store" size={20} color="#F59E0B" strokeWidth={1.75} />
               Your business
             </h3>
-            <p className="business-name">{listing.businesses.business_name}</p>
+            <p className="business-name">{sellerName}</p>
             {sellerPhone && (
               <p className="contact-phone-row">
                 <Icon name="phone" size={14} color="#94A3B8" strokeWidth={1.75} />
                 <span>{sellerPhone}</span>
               </p>
             )}
-            {listing.businesses.address && (
+            {sellerBiz?.address && (
               <p className="contact-phone-row">
                 <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
-                <span>{listing.businesses.address}</span>
+                <span>{sellerBiz.address}</span>
               </p>
             )}
             <div className="contact-actions">
@@ -1199,7 +1300,7 @@ const ListingDetails = () => {
           </div>
         )}
 
-        {/* ============ REVIEWS ============ */}
+        {/* REVIEWS */}
         <div className="reviews-card">
           <div className="reviews-header">
             <h3 className="section-title">
@@ -1223,9 +1324,7 @@ const ListingDetails = () => {
                 <label className="form-label">Rating</label>
                 <select
                   value={reviewData.rating}
-                  onChange={(e) =>
-                    setReviewData({ ...reviewData, rating: parseInt(e.target.value) })
-                  }
+                  onChange={(e) => setReviewData({ ...reviewData, rating: parseInt(e.target.value) })}
                   className="form-select"
                 >
                   {[5, 4, 3, 2, 1].map((num) => (
@@ -1247,11 +1346,7 @@ const ListingDetails = () => {
                 <button type="submit" className="btn-submit-review" disabled={submitting}>
                   {submitting ? 'Submitting...' : 'Submit review'}
                 </button>
-                <button
-                  type="button"
-                  className="btn-cancel-review"
-                  onClick={() => setShowReviewForm(false)}
-                >
+                <button type="button" className="btn-cancel-review" onClick={() => setShowReviewForm(false)}>
                   Cancel
                 </button>
               </div>
@@ -1277,7 +1372,7 @@ const ListingDetails = () => {
           )}
         </div>
 
-        {/* ============ ★ SHARE (public broadcast only — no "contact" here) ============ */}
+        {/* SHARE */}
         <div className="share-card">
           <h3 className="section-title">
             <Icon name="share" size={18} color="#F59E0B" strokeWidth={1.75} />
@@ -1309,7 +1404,7 @@ const ListingDetails = () => {
         </div>
       </div>
 
-      {/* ============ STICKY CONTACT BAR (mobile, buyer only) ============ */}
+      {/* STICKY CONTACT BAR */}
       {isMobile && !isOwnListing && (
         <div className="sticky-contact">
           {isAnonymous ? (
@@ -1368,7 +1463,7 @@ const ListingDetails = () => {
         </div>
       )}
 
-      {/* ============ COMMENTS POP-UP ============ */}
+      {/* COMMENTS POP-UP */}
       {showComments && (
         <div className="pop-overlay" onClick={() => setShowComments(false)} role="dialog" aria-modal="true">
           <div className="pop" onClick={(e) => e.stopPropagation()}>
@@ -1386,7 +1481,7 @@ const ListingDetails = () => {
               <div className="pop-preview-text">
                 <div className="pop-preview-title">{listing.title}</div>
                 <div className="pop-preview-sub">
-                  {listing.businesses?.business_name || 'Local seller'}
+                  {sellerName}
                   {listing.location_area ? ` · ${listing.location_area}` : ''}
                 </div>
               </div>
@@ -1406,7 +1501,7 @@ const ListingDetails = () => {
         </div>
       )}
 
-      {/* ============ BOOST MODAL ============ */}
+      {/* BOOST MODAL */}
       {showBoostModal && (
         <BoostModal
           listing={listing}
@@ -1428,7 +1523,7 @@ const ListingDetails = () => {
         />
       )}
 
-      {/* ============ BOTTOM NAV ============ */}
+      {/* BOTTOM NAV */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -1478,7 +1573,6 @@ const ListingDetails = () => {
         }
         .back-btn:hover { background: #f1f5f9; border-color: #e2e8f0; }
 
-        /* ====== BOOST CARD ====== */
         .boost-card {
           display: flex; align-items: center; gap: 12px;
           padding: 12px 14px;
@@ -1536,7 +1630,6 @@ const ListingDetails = () => {
           cursor: pointer; font-family: inherit;
         }
 
-        /* ====== LISTING CARD ====== */
         .listing-card {
           background: #ffffff; border-radius: 12px;
           padding: 16px 18px;
@@ -1670,7 +1763,6 @@ const ListingDetails = () => {
           font-size: 13px; color: #94a3b8;
         }
 
-        /* ====== SELLER / CONTACT CARD ====== */
         .contact-card, .reviews-card, .share-card {
           background: #ffffff; border-radius: 12px;
           padding: 16px 18px;
@@ -1692,7 +1784,6 @@ const ListingDetails = () => {
           font-size: 13px; color: #94a3b8; margin: 6px 0 0;
         }
 
-        /* ★ Contact buttons — bigger, primary-style */
         .contact-actions {
           display: flex; flex-direction: column; gap: 8px;
           margin-top: 12px;
@@ -1730,7 +1821,6 @@ const ListingDetails = () => {
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ====== SHARE ====== */
         .share-sub {
           font-size: 12.5px; color: #94a3b8;
           margin: 0 0 10px; line-height: 1.5;
@@ -1749,7 +1839,6 @@ const ListingDetails = () => {
         .share-btn.twitter { background: #1da1f2; }
         .share-btn.copy { background: #64748b; }
 
-        /* ====== REVIEWS ====== */
         .reviews-header {
           display: flex; justify-content: space-between;
           align-items: center; flex-wrap: wrap; gap: 8px;
@@ -1805,7 +1894,6 @@ const ListingDetails = () => {
         .review-comment { font-size: 14px; color: #64748b; margin: 4px 0 0; }
         .no-reviews { color: #94a3b8; font-size: 14px; margin: 12px 0 0; }
 
-        /* ====== STICKY CONTACT BAR ====== */
         .sticky-contact {
           position: fixed;
           bottom: 64px;
@@ -1839,7 +1927,6 @@ const ListingDetails = () => {
         .sticky-btn.facebook { background: #1877f2; width: 46px; padding: 0; }
         .sticky-btn.call { background: #1e293b; width: 46px; padding: 0; }
 
-        /* ====== COMMENTS POP-UP ====== */
         .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
@@ -1908,7 +1995,6 @@ const ListingDetails = () => {
           background: #FFFDF8;
         }
 
-        /* ====== BOOST MODAL ====== */
         .boost-overlay {
           position: fixed; inset: 0;
           background: rgba(22, 38, 31, 0.55);
@@ -2054,7 +2140,6 @@ const ListingDetails = () => {
         .boost-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
         .boost-confirm.wide { flex: 1; }
 
-        /* ====== BOTTOM NAV ====== */
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
           background: rgba(255, 255, 255, 0.96);
