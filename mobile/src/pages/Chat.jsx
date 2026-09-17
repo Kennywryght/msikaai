@@ -1,5 +1,5 @@
 // mobile/src/pages/Chat.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
@@ -26,6 +26,10 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     plus: "M12 4v16m8-8H4",
     user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
     close: "M18 6L6 18M6 6l12 12",
+    chevronDown: "M6 9l6 6 6-6",
+    phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z",
+    eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z",
+    shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
   };
   const d = icons[name] || icons.message;
   return (
@@ -48,8 +52,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 
 // ============================================================
 // NORMALIZERS
-// Backend may return snake_case (Supabase raw) or camelCase.
-// The UI expects camelCase (senderId, imageUrl, createdAt, readAt).
 // ============================================================
 const normalizeMessage = (raw) => {
   if (!raw) return raw;
@@ -58,11 +60,7 @@ const normalizeMessage = (raw) => {
     ...raw,
     id: raw.id,
     senderId:
-      raw.senderId ??
-      raw.sender_id ??
-      raw.user_id ??
-      raw.from_user_id ??
-      null,
+      raw.senderId ?? raw.sender_id ?? raw.user_id ?? raw.from_user_id ?? null,
     text: raw.text ?? raw.content ?? raw.body ?? '',
     imageUrl: raw.imageUrl ?? raw.image_url ?? raw.image ?? null,
     type: raw.type ?? (raw.imageUrl || raw.image_url ? 'image' : 'text'),
@@ -83,11 +81,8 @@ const normalizeParticipant = (raw) => {
 
 const normalizeConversation = (raw) => {
   if (!raw) return null;
-
-  // Resolve the "other participant" from whatever the backend gives us
   let other = raw.otherParticipant || raw.other_participant;
   if (!other) {
-    // Fallback: build it from raw participant fields
     other = {
       id:
         raw.other_user_id ??
@@ -108,7 +103,6 @@ const normalizeConversation = (raw) => {
       avatar_url: raw.other_user_avatar ?? raw.participant_one_avatar ?? null,
     };
   }
-
   return {
     ...raw,
     otherParticipant: normalizeParticipant(other),
@@ -151,6 +145,47 @@ const formatTime = (date) => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+const formatDay = (date) => {
+  if (!date) return '';
+  const d = new Date(date);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const sameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (sameDay(d, today)) return 'Today';
+  if (sameDay(d, yesterday)) return 'Yesterday';
+  const diffMs = today - d;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays < 7) return d.toLocaleDateString([], { weekday: 'long' });
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const shouldShowDay = (msg, prev) => {
+  if (!msg?.createdAt) return false;
+  if (!prev?.createdAt) return true;
+  const a = new Date(msg.createdAt);
+  const b = new Date(prev.createdAt);
+  return (
+    a.getFullYear() !== b.getFullYear() ||
+    a.getMonth() !== b.getMonth() ||
+    a.getDate() !== b.getDate()
+  );
+};
+
+const shouldShowTime = (msg, next, isMine) => {
+  // Show timestamp only on the last message of a consecutive run from same sender
+  if (!next) return true;
+  if (next.senderId !== msg.senderId) return true;
+  const a = new Date(msg.createdAt).getTime();
+  const b = new Date(next.createdAt).getTime();
+  return b - a > 5 * 60 * 1000; // 5 minutes
+};
+
 const QUICK_REPLIES = [
   'Is this still available?',
   'Can I pick up today?',
@@ -178,17 +213,18 @@ const Chat = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [showScrollDown, setShowScrollDown] = useState(false);
   const [windowWidth, setWindowWidth] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 375
   );
 
+  const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const channelRef = useRef(null);
   const lastMessageCountRef = useRef(0);
 
-  // ✅ PRESENCE & TYPING
   const otherUserId = conversation?.otherParticipant?.id;
   const { isOnline } = useUserPresence(otherUserId);
   const { otherUserIsTyping, notifyTyping, stopTyping } = useTyping(
@@ -198,6 +234,7 @@ const Chat = () => {
   );
 
   const isMobile = windowWidth <= 768;
+  const canSend = inputText.trim().length > 0 && !sending;
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -205,10 +242,12 @@ const Chat = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((smooth = true) => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+      messagesEndRef.current?.scrollIntoView({
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }, 50);
   }, []);
 
   const loadConversation = useCallback(
@@ -217,26 +256,19 @@ const Chat = () => {
       if (!opts.silent) setLoading(true);
       try {
         const res = await messagesAPI.getConversation(id);
-
-        // ✅ NORMALIZE
         setConversation(normalizeConversation(res.data?.conversation || null));
-
         const incoming = (res.data?.messages || []).map(normalizeMessage);
-
         if (incoming.length !== lastMessageCountRef.current) {
           lastMessageCountRef.current = incoming.length;
           if (!opts.silent || incoming.length > 0) {
-            setTimeout(() => scrollToBottom(), 50);
+            setTimeout(() => scrollToBottom(false), 50);
           }
         }
         setMessages(incoming);
-
         messagesAPI.markConversationRead(id).catch(() => {});
       } catch (err) {
         console.error('Load conversation error:', err);
-        if (!opts.silent) {
-          showToast('Failed to load conversation', 'error');
-        }
+        if (!opts.silent) showToast('Failed to load conversation', 'error');
       } finally {
         if (!opts.silent) setLoading(false);
       }
@@ -249,11 +281,10 @@ const Chat = () => {
   }, [loadConversation]);
 
   // ============================================================
-  // REALTIME — messages
+  // REALTIME
   // ============================================================
   useEffect(() => {
     if (!id || !user?.id) return;
-
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
@@ -263,24 +294,17 @@ const Chat = () => {
       .channel(`chat:${id}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${id}`,
-        },
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` },
         (payload) => {
-          const newMsg = normalizeMessage(payload.new);   // ✅ NORMALIZE
+          const newMsg = normalizeMessage(payload.new);
           if (!newMsg) return;
-
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             const next = [...prev, newMsg];
             lastMessageCountRef.current = next.length;
-            setTimeout(() => scrollToBottom(), 50);
+            setTimeout(() => scrollToBottom(true), 50);
             return next;
           });
-
           if (newMsg.senderId !== user.id) {
             messagesAPI.markConversationRead(id).catch(() => {});
           }
@@ -288,14 +312,9 @@ const Chat = () => {
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${id}`,
-        },
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` },
         (payload) => {
-          const updated = normalizeMessage(payload.new);   // ✅ NORMALIZE
+          const updated = normalizeMessage(payload.new);
           if (!updated) return;
           setMessages((prev) =>
             prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
@@ -316,16 +335,28 @@ const Chat = () => {
     };
   }, [id, user?.id, scrollToBottom]);
 
-  // Catch up when the tab becomes visible
+  // Catch up when tab becomes visible
   useEffect(() => {
     const handleVisibility = () => {
-      if (!document.hidden && id) {
-        loadConversation({ silent: true });
-      }
+      if (!document.hidden && id) loadConversation({ silent: true });
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [id, loadConversation]);
+
+  // Track scroll position to show/hide scroll-to-bottom
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      setShowScrollDown(distanceFromBottom > 220);
+    };
+    container.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [messages.length]);
 
   // ============================================================
   // SEND TEXT
@@ -335,7 +366,6 @@ const Chat = () => {
     if (!text || sending) return;
 
     stopTyping();
-
     setSending(true);
     setInputText('');
     setShowQuickReplies(false);
@@ -350,11 +380,11 @@ const Chat = () => {
       __optimistic: true,
     };
     setMessages((prev) => [...prev, optimistic]);
-    scrollToBottom();
+    scrollToBottom(true);
 
     try {
       const res = await messagesAPI.sendMessage(id, { text });
-      const real = normalizeMessage(res.data?.message);   // ✅ NORMALIZE
+      const real = normalizeMessage(res.data?.message);
       if (real) {
         setMessages((prev) => prev.map((m) => (m.id === tempId ? real : m)));
       }
@@ -362,8 +392,10 @@ const Chat = () => {
       console.error('Send message error:', err);
       showToast('Failed to send message', 'error');
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setInputText(text);
     } finally {
       setSending(false);
+      inputRef.current?.focus();
     }
   };
 
@@ -405,23 +437,18 @@ const Chat = () => {
       __uploading: true,
     };
     setMessages((prev) => [...prev, optimistic]);
-    scrollToBottom();
+    scrollToBottom(true);
 
     try {
       const uploadRes = await messagesAPI.uploadImage(file);
       const url = uploadRes.data?.url;
       if (!url) throw new Error('Upload did not return a URL');
-
-      const sendRes = await messagesAPI.sendMessage(id, {
-        imageUrl: url,
-        type: 'image',
-      });
-      const real = normalizeMessage(sendRes.data?.message);   // ✅ NORMALIZE
+      const sendRes = await messagesAPI.sendMessage(id, { imageUrl: url, type: 'image' });
+      const real = normalizeMessage(sendRes.data?.message);
       setMessages((prev) => prev.map((m) => (m.id === tempId ? real : m)));
     } catch (err) {
       console.error('Send image error:', err);
-      const msg =
-        err?.response?.data?.error || err?.message || 'Failed to send image';
+      const msg = err?.response?.data?.error || err?.message || 'Failed to send image';
       showToast(msg, 'error');
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
     } finally {
@@ -443,9 +470,7 @@ const Chat = () => {
   };
 
   const handleViewListing = () => {
-    if (conversation?.listing?.id) {
-      navigate(`/listing/${conversation.listing.id}`);
-    }
+    if (conversation?.listing?.id) navigate(`/listing/${conversation.listing.id}`);
   };
 
   const handleBottomNav = (navId) => {
@@ -460,6 +485,19 @@ const Chat = () => {
   const otherName = other.fullName || other.email?.split('@')[0] || 'User';
   const initials = initialsOf(other.fullName, other.email);
   const color = pickColor(other.id || otherName);
+
+  // Precompute row metadata so we render with day dividers + smart timestamps
+  const renderedMessages = useMemo(() => {
+    return messages.map((msg, i) => {
+      const prev = messages[i - 1];
+      const next = messages[i + 1];
+      return {
+        ...msg,
+        __showDay: shouldShowDay(msg, prev),
+        __showTime: shouldShowTime(msg, next, msg.senderId === user?.id),
+      };
+    });
+  }, [messages, user?.id]);
 
   if (loading && !conversation) {
     return (
@@ -506,114 +544,122 @@ const Chat = () => {
         style={{ display: 'none' }}
       />
 
-      {/* Chat Header */}
+      {/* ============ HEADER ============ */}
       <div className="chat-header">
-        {/* ✅ Back goes to Messages (not to the listing) */}
         <button
           className="header-btn"
           onClick={() => navigate('/messages', { replace: true })}
           aria-label="Back to messages"
         >
-          <Icon name="arrowLeft" size={20} color="#1E293B" strokeWidth={1.75} />
+          <Icon name="arrowLeft" size={20} color="#1E293B" strokeWidth={2} />
         </button>
 
         <div className="header-user" onClick={handleViewListing}>
           <div className="header-avatar-wrap">
-            <div
-              className="header-avatar"
-              style={{ background: `${color}15`, color }}
-            >
+            <div className="header-avatar" style={{ background: `${color}15`, color }}>
               {initials}
             </div>
             {isOnline && <span className="header-online" />}
           </div>
           <div className="header-info">
             <span className="header-name">{otherName}</span>
-            <span className={`header-status ${otherUserIsTyping ? 'typing' : ''}`}>
+            <span className={`header-status ${otherUserIsTyping ? 'typing' : isOnline ? 'online' : ''}`}>
               {otherUserIsTyping
                 ? 'typing…'
                 : isOnline
-                ? 'Online'
-                : other.email || 'Tap to view'}
+                ? 'Online now'
+                : 'Tap to view listing'}
             </span>
           </div>
         </div>
 
         <div className="header-actions">
-          <button className="header-btn">
+          <button className="header-btn" aria-label="More options">
             <Icon name="moreVertical" size={18} color="#64748B" strokeWidth={1.75} />
           </button>
         </div>
       </div>
 
-      {/* Listing Pinned */}
+      {/* ============ LISTING PINNED ============ */}
       {conversation?.listing && (
-        <div className="listing-pinned">
-          <div className="pinned-content" onClick={handleViewListing}>
-            <span className="pinned-emoji">📦</span>
-            <div className="pinned-info">
-              <span className="pinned-title">{conversation.listing.title}</span>
-              {conversation.listing.price && (
-                <span className="pinned-price">
-                  MK {Number(conversation.listing.price).toLocaleString()}
-                </span>
-              )}
-            </div>
+        <button className="listing-pinned" onClick={handleViewListing}>
+          <div className="pinned-thumb">
+            {conversation.listing.images?.[0] ? (
+              <img src={conversation.listing.images[0]} alt="" />
+            ) : (
+              <div className="pinned-thumb-fallback">📦</div>
+            )}
           </div>
-        </div>
+          <div className="pinned-info">
+            <span className="pinned-title">{conversation.listing.title}</span>
+            {conversation.listing.price && (
+              <span className="pinned-price">
+                MK {Number(conversation.listing.price).toLocaleString()}
+              </span>
+            )}
+          </div>
+          <span className="pinned-arrow">View listing</span>
+        </button>
       )}
 
-      {/* Messages */}
-      <div className="messages-container">
+      {/* ============ MESSAGES ============ */}
+      <div className="messages-container" ref={messagesContainerRef}>
         {messages.length === 0 ? (
           <div className="empty-chat">
-            <p>No messages yet. Say hello!</p>
+            <div className="empty-avatar" style={{ background: `${color}15`, color }}>
+              {initials}
+            </div>
+            <h3 className="empty-title">Start chatting with {otherName}</h3>
+            <p className="empty-sub">
+              Ask about availability, price, or delivery. Sellers usually reply fast.
+            </p>
           </div>
         ) : (
-          messages.map((msg) => {
+          renderedMessages.map((msg) => {
             const isMine = msg.senderId === user?.id;
             const isUploading = msg.__uploading;
             return (
-              <div
-                key={msg.id}
-                className={`message-row ${isMine ? 'sent' : 'received'}`}
-              >
-                <div className={`message-bubble ${isMine ? 'sent' : 'received'}`}>
-                  {msg.imageUrl && (
-                    <button
-                      type="button"
-                      className="message-image-btn"
-                      onClick={() => setLightboxUrl(msg.imageUrl)}
-                    >
-                      <img
-                        src={msg.imageUrl}
-                        alt=""
-                        className="message-image"
-                        loading="lazy"
-                      />
-                      {isUploading && (
-                        <div className="message-image-overlay">
-                          <div className="mini-spinner" />
-                        </div>
-                      )}
-                    </button>
-                  )}
-                  {msg.text && <p className="message-text">{msg.text}</p>}
-                  <div className="message-meta">
-                    <span className="message-time">
-                      {isUploading ? 'sending…' : formatTime(msg.createdAt)}
-                    </span>
-                    {isMine && !isUploading && (
-                      <Icon
-                        name={msg.readAt ? 'checkCheck' : 'check'}
-                        size={12}
-                        color={msg.readAt ? '#3B82F6' : 'rgba(255,255,255,0.5)'}
-                        strokeWidth={2}
-                      />
+              <React.Fragment key={msg.id}>
+                {msg.__showDay && (
+                  <div className="day-divider">
+                    <span>{formatDay(msg.createdAt)}</span>
+                  </div>
+                )}
+                <div className={`message-row ${isMine ? 'sent' : 'received'}`}>
+                  <div className={`message-bubble ${isMine ? 'sent' : 'received'}`}>
+                    {msg.imageUrl && (
+                      <button
+                        type="button"
+                        className="message-image-btn"
+                        onClick={() => setLightboxUrl(msg.imageUrl)}
+                      >
+                        <img src={msg.imageUrl} alt="" className="message-image" loading="lazy" />
+                        {isUploading && (
+                          <div className="message-image-overlay">
+                            <div className="mini-spinner" />
+                          </div>
+                        )}
+                      </button>
+                    )}
+                    {msg.text && <p className="message-text">{msg.text}</p>}
+                    {msg.__showTime && (
+                      <div className="message-meta">
+                        <span className="message-time">
+                          {isUploading ? 'sending…' : formatTime(msg.createdAt)}
+                        </span>
+                        {isMine && !isUploading && (
+                          <Icon
+                            name={msg.readAt ? 'checkCheck' : 'check'}
+                            size={12}
+                            color={msg.readAt ? '#3B82F6' : 'rgba(255,255,255,0.5)'}
+                            strokeWidth={2}
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
-              </div>
+              </React.Fragment>
             );
           })
         )}
@@ -631,7 +677,14 @@ const Chat = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Replies */}
+      {/* ============ SCROLL TO BOTTOM ============ */}
+      {showScrollDown && (
+        <button className="scroll-down-btn" onClick={() => scrollToBottom(true)} aria-label="Scroll to bottom">
+          <Icon name="chevronDown" size={18} color="#1E293B" strokeWidth={2.2} />
+        </button>
+      )}
+
+      {/* ============ QUICK REPLIES ============ */}
       {showQuickReplies && messages.length < 4 && !uploadingImage && (
         <div className="quick-replies">
           <div className="quick-replies-scroll">
@@ -648,7 +701,7 @@ const Chat = () => {
         </div>
       )}
 
-      {/* Input */}
+      {/* ============ INPUT BAR ============ */}
       <div className="chat-input-wrapper">
         <div className="chat-input-row">
           <button
@@ -656,6 +709,7 @@ const Chat = () => {
             onClick={handlePickImage}
             disabled={uploadingImage || sending}
             title="Send a photo"
+            aria-label="Send a photo"
           >
             {uploadingImage ? (
               <div className="mini-spinner mini-spinner-dark" />
@@ -663,66 +717,56 @@ const Chat = () => {
               <Icon name="image" size={20} color="#64748B" strokeWidth={1.75} />
             )}
           </button>
+
           <div className="input-field-wrap">
             <textarea
               ref={inputRef}
               value={inputText}
               onChange={(e) => {
                 setInputText(e.target.value);
-                if (e.target.value.trim()) {
-                  notifyTyping();
-                } else {
-                  stopTyping();
-                }
+                if (e.target.value.trim()) notifyTyping();
+                else stopTyping();
               }}
               onKeyDown={handleKeyDown}
               onBlur={stopTyping}
-              placeholder="Type a message..."
+              placeholder="Type a message…"
               className="chat-input"
               rows={1}
               disabled={sending}
             />
           </div>
-          {inputText.trim() ? (
-            <button className="send-btn" onClick={handleSend} disabled={sending}>
-              <Icon name="send" size={18} color="#FFFFFF" strokeWidth={2} />
-            </button>
-          ) : (
-            <button className="input-action-btn" disabled>
-              <Icon name="mic" size={20} color="#CBD5E1" strokeWidth={1.75} />
-            </button>
-          )}
+
+          {/* ★ SEND BUTTON — always visible, disabled until text */}
+          <button
+            className="send-btn"
+            onClick={handleSend}
+            disabled={!canSend}
+            aria-label="Send message"
+          >
+            {sending ? (
+              <div className="mini-spinner" />
+            ) : (
+              <Icon name="send" size={18} color="#FFFFFF" strokeWidth={2.2} />
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Lightbox */}
+      {/* ============ LIGHTBOX ============ */}
       {lightboxUrl && (
-        <div
-          className="lightbox"
-          onClick={() => setLightboxUrl(null)}
-          role="dialog"
-          aria-label="Image preview"
-        >
+        <div className="lightbox" onClick={() => setLightboxUrl(null)} role="dialog" aria-label="Image preview">
           <button
             className="lightbox-close"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLightboxUrl(null);
-            }}
+            onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
             aria-label="Close"
           >
             <Icon name="close" size={22} color="#FFFFFF" strokeWidth={2} />
           </button>
-          <img
-            src={lightboxUrl}
-            alt=""
-            className="lightbox-image"
-            onClick={(e) => e.stopPropagation()}
-          />
+          <img src={lightboxUrl} alt="" className="lightbox-image" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
 
-      {/* Bottom Nav */}
+      {/* ============ BOTTOM NAV ============ */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -748,27 +792,34 @@ const Chat = () => {
       <style jsx>{`
         .chat-page {
           height: 100vh;
+          height: 100dvh;
           display: flex;
           flex-direction: column;
           background: #F8FAFC;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           color: #1E293B;
           padding-bottom: 70px;
+          position: relative;
         }
         @media (min-width: 769px) {
           .chat-page { padding-bottom: 0; }
         }
+
+        /* ============ HEADER ============ */
         .chat-header {
-          display: flex; align-items: center; gap: 12px;
-          padding: 12px 14px; background: #FFFFFF;
+          display: flex; align-items: center; gap: 10px;
+          padding: 12px 14px;
+          background: #FFFFFF;
           border-bottom: 1px solid #F1F5F9;
-          flex-shrink: 0; position: sticky; top: 0; z-index: 10;
+          flex-shrink: 0;
+          position: sticky; top: 0; z-index: 20;
         }
         .header-btn {
           width: 38px; height: 38px; border-radius: 10px; border: none;
           background: transparent; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s; flex-shrink: 0;
+          transition: background 0.15s;
+          flex-shrink: 0;
         }
         .header-btn:hover { background: #F8FAFC; }
         .header-user {
@@ -777,15 +828,13 @@ const Chat = () => {
         }
         .header-avatar-wrap { position: relative; flex-shrink: 0; }
         .header-avatar {
-          width: 40px; height: 40px; border-radius: 50%;
+          width: 42px; height: 42px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          font-size: 14px; font-weight: 700;
+          font-size: 15px; font-weight: 700;
         }
         .header-online {
-          position: absolute;
-          bottom: 1px; right: 1px;
-          width: 11px; height: 11px;
-          border-radius: 50%;
+          position: absolute; bottom: 1px; right: 1px;
+          width: 12px; height: 12px; border-radius: 50%;
           background: #10B981;
           border: 2px solid #FFFFFF;
           animation: presencePulse 2.4s ease-in-out infinite;
@@ -803,30 +852,54 @@ const Chat = () => {
           font-size: 12px; color: #94A3B8; font-weight: 500;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .header-status.typing {
-          color: #10B981;
-          font-weight: 600;
-          font-style: italic;
-        }
+        .header-status.online { color: #10B981; font-weight: 600; }
+        .header-status.typing { color: #10B981; font-weight: 600; font-style: italic; }
         .header-actions { display: flex; gap: 2px; flex-shrink: 0; }
+
+        /* ============ LISTING PINNED ============ */
         .listing-pinned {
-          display: flex; align-items: center; gap: 8px;
-          padding: 10px 14px; background: #FEFCF5;
-          border-bottom: 1px solid #FDE68A; flex-shrink: 0;
+          display: flex; align-items: center; gap: 10px;
+          padding: 10px 14px;
+          background: #FEFCF5;
+          border-bottom: 1px solid #FDE68A;
+          flex-shrink: 0;
+          border: none;
+          border-bottom: 1px solid #FDE68A;
+          cursor: pointer;
+          font-family: inherit;
+          text-align: left;
+          width: 100%;
+          transition: background 0.15s;
         }
-        .pinned-content {
-          flex: 1; display: flex; align-items: center; gap: 10px;
-          cursor: pointer; min-width: 0;
+        .listing-pinned:hover { background: #FEF6E0; }
+        .pinned-thumb {
+          width: 40px; height: 40px; border-radius: 9px; overflow: hidden;
+          background: #F7F1E3; flex-shrink: 0;
+          border: 1px solid #EFE6CE;
         }
-        .pinned-emoji { font-size: 20px; flex-shrink: 0; }
-        .pinned-info { display: flex; flex-direction: column; min-width: 0; }
+        .pinned-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .pinned-thumb-fallback {
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 18px;
+        }
+        .pinned-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
         .pinned-title {
-          font-size: 13px; font-weight: 600; color: #1E293B;
+          font-size: 13px; font-weight: 700; color: #1E293B;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .pinned-price { font-size: 12px; font-weight: 700; color: #10B981; }
+        .pinned-price { font-size: 12px; font-weight: 700; color: #10B981; margin-top: 1px; }
+        .pinned-arrow {
+          font-size: 11px; font-weight: 600; color: #92400E;
+          padding: 4px 9px; border-radius: 6px;
+          background: rgba(217, 154, 59, 0.12);
+          flex-shrink: 0;
+        }
+
+        /* ============ MESSAGES ============ */
         .messages-container {
-          flex: 1; overflow-y: auto; padding: 16px 14px 8px;
+          flex: 1; overflow-y: auto;
+          padding: 16px 14px 8px;
           display: flex; flex-direction: column; gap: 4px;
           scrollbar-width: thin;
         }
@@ -834,10 +907,39 @@ const Chat = () => {
         .messages-container::-webkit-scrollbar-thumb {
           background: #E2E8F0; border-radius: 4px;
         }
-        .empty-chat {
-          text-align: center; padding: 40px 20px;
-          color: #94A3B8; font-size: 14px;
+
+        .day-divider {
+          display: flex; align-items: center; justify-content: center;
+          margin: 14px 0 8px;
+          font-size: 11px; color: #94A3B8; font-weight: 600;
+          letter-spacing: 0.04em;
         }
+        .day-divider span {
+          padding: 4px 10px; border-radius: 999px;
+          background: #F1F5F9;
+          text-transform: uppercase;
+        }
+
+        .empty-chat {
+          flex: 1; display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          padding: 40px 24px; text-align: center;
+        }
+        .empty-avatar {
+          width: 64px; height: 64px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 22px; font-weight: 700;
+          margin-bottom: 16px;
+        }
+        .empty-title {
+          font-size: 16px; font-weight: 700; color: #1E293B;
+          margin: 0 0 6px;
+        }
+        .empty-sub {
+          font-size: 13px; color: #94A3B8; max-width: 300px;
+          line-height: 1.5; margin: 0;
+        }
+
         .message-row {
           display: flex; flex-direction: column;
           max-width: 78%; margin-bottom: 2px;
@@ -845,8 +947,8 @@ const Chat = () => {
         .message-row.sent { align-self: flex-end; align-items: flex-end; }
         .message-row.received { align-self: flex-start; align-items: flex-start; }
         .message-bubble {
-          padding: 10px 14px; border-radius: 16px; position: relative;
-          word-wrap: break-word; max-width: 100%;
+          padding: 10px 14px; border-radius: 16px;
+          position: relative; word-wrap: break-word; max-width: 100%;
         }
         .message-bubble.sent {
           background: #1E293B; color: #FFFFFF;
@@ -858,14 +960,11 @@ const Chat = () => {
           border-bottom-left-radius: 4px;
         }
         .message-bubble.typing {
-          display: flex;
-          align-items: center;
-          gap: 4px;
+          display: flex; align-items: center; gap: 4px;
           padding: 14px 18px;
         }
         .typing-dot {
-          width: 6px; height: 6px;
-          border-radius: 50%;
+          width: 6px; height: 6px; border-radius: 50%;
           background: #94A3B8;
           animation: typingBounce 1.4s infinite;
         }
@@ -896,11 +995,9 @@ const Chat = () => {
         }
         .message-meta {
           display: flex; align-items: center; gap: 4px;
-          justify-content: flex-end; margin-top: 4px;
+          justify-content: flex-end; margin-top: 3px;
         }
-        .message-time {
-          font-size: 10px; color: rgba(255, 255, 255, 0.5);
-        }
+        .message-time { font-size: 10px; color: rgba(255, 255, 255, 0.55); }
         .message-bubble.received .message-time { color: #94A3B8; }
         .mini-spinner {
           width: 16px; height: 16px;
@@ -913,9 +1010,33 @@ const Chat = () => {
           border-top-color: #64748B;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ============ SCROLL DOWN ============ */
+        .scroll-down-btn {
+          position: absolute;
+          right: 16px;
+          bottom: 190px;
+          width: 40px; height: 40px;
+          border-radius: 50%;
+          border: 1px solid #E2E8F0;
+          background: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+          cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          transition: transform 0.15s, background 0.15s;
+          z-index: 15;
+        }
+        .scroll-down-btn:hover { background: #F8FAFC; transform: translateY(-1px); }
+        @media (min-width: 769px) {
+          .scroll-down-btn { bottom: 120px; }
+        }
+
+        /* ============ QUICK REPLIES ============ */
         .quick-replies {
-          background: #FFFFFF; border-top: 1px solid #F1F5F9;
-          padding: 10px 0; flex-shrink: 0;
+          background: #FFFFFF;
+          border-top: 1px solid #F1F5F9;
+          padding: 10px 0;
+          flex-shrink: 0;
         }
         .quick-replies-scroll {
           display: flex; gap: 8px; padding: 0 14px;
@@ -933,9 +1054,13 @@ const Chat = () => {
           background: rgba(245, 158, 11, 0.08);
           border-color: #F59E0B; color: #F59E0B;
         }
+
+        /* ============ INPUT BAR ============ */
         .chat-input-wrapper {
-          background: #FFFFFF; border-top: 1px solid #F1F5F9;
-          padding: 10px 14px; flex-shrink: 0;
+          background: #FFFFFF;
+          border-top: 1px solid #F1F5F9;
+          padding: 10px 12px;
+          flex-shrink: 0;
         }
         .chat-input-row {
           display: flex; align-items: flex-end; gap: 8px;
@@ -944,14 +1069,17 @@ const Chat = () => {
           width: 40px; height: 40px; border-radius: 50%;
           border: none; background: transparent; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s; flex-shrink: 0;
+          transition: background 0.15s;
+          flex-shrink: 0;
         }
         .input-action-btn:hover:not(:disabled) { background: #F8FAFC; }
         .input-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .input-field-wrap {
           flex: 1; background: #F8FAFC;
-          border: 1.5px solid #F1F5F9; border-radius: 22px;
-          transition: all 0.2s; min-width: 0;
+          border: 1.5px solid #F1F5F9;
+          border-radius: 22px;
+          transition: border-color 0.15s, box-shadow 0.15s;
+          min-width: 0;
         }
         .input-field-wrap:focus-within {
           border-color: #F59E0B; background: #FFFFFF;
@@ -964,21 +1092,38 @@ const Chat = () => {
           max-height: 100px; line-height: 1.4; box-sizing: border-box;
         }
         .chat-input::placeholder { color: #94A3B8; }
+
+        /* ★ Send button — always visible, disabled until typed */
         .send-btn {
-          width: 40px; height: 40px; border-radius: 50%;
-          background: #1E293B; border: none; cursor: pointer;
+          width: 44px; height: 44px; border-radius: 50%;
+          background: #F59E0B;
+          border: none; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0; transition: all 0.2s;
+          flex-shrink: 0;
+          transition: background 0.15s, transform 0.1s, opacity 0.15s;
+          box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
         }
         .send-btn:hover:not(:disabled) {
-          background: #F59E0B; transform: scale(1.05);
+          background: #D97706;
+          transform: scale(1.04);
         }
-        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .send-btn:active:not(:disabled) { transform: scale(0.95); }
+        .send-btn:active:not(:disabled) { transform: scale(0.96); }
+        .send-btn:disabled {
+          background: #E2E8F0;
+          box-shadow: none;
+          cursor: not-allowed;
+        }
+        .send-btn:disabled :global(svg) {
+          stroke: #94A3B8;
+        }
+
+        /* ============ LIGHTBOX ============ */
         .lightbox {
-          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95);
-          z-index: 1000; display: flex; align-items: center;
-          justify-content: center; padding: 20px;
+          position: fixed; inset: 0;
+          background: rgba(15, 23, 42, 0.95);
+          z-index: 1000;
+          display: flex; align-items: center; justify-content: center;
+          padding: 20px;
           animation: fadeIn 0.15s ease-out;
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -994,10 +1139,13 @@ const Chat = () => {
           justify-content: center; transition: background 0.2s;
         }
         .lightbox-close:hover { background: rgba(255, 255, 255, 0.25); }
+
+        /* ============ BOTTOM NAV ============ */
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           border-top: 1px solid rgba(226, 232, 240, 0.4);
           display: flex; justify-content: space-around;
           padding: 4px 0 8px; z-index: 100;
@@ -1010,27 +1158,35 @@ const Chat = () => {
         .nav-icon-wrap {
           width: 34px; height: 34px; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s;
+          transition: background 0.15s;
         }
         .nav-icon-wrap.active { background: #1E293B; }
         .nav-label { font-size: 9px; font-weight: 500; color: #94A3B8; }
         .nav-label.active { color: #1E293B; font-weight: 600; }
+
+        /* ============ MOBILE ============ */
         @media (max-width: 480px) {
           .chat-header { padding: 10px 12px; }
+          .header-avatar { width: 38px; height: 38px; font-size: 14px; }
           .messages-container { padding: 14px 12px 6px; }
           .message-row { max-width: 85%; }
           .message-bubble { padding: 8px 12px; }
           .message-text { font-size: 13.5px; }
-          .chat-input-wrapper { padding: 8px 12px; }
+          .chat-input-wrapper { padding: 8px 10px; }
           .message-image-btn { max-width: 200px; }
+          .send-btn { width: 42px; height: 42px; }
+          .scroll-down-btn { bottom: 176px; right: 12px; }
         }
+
         @media (max-width: 380px) {
           .header-avatar { width: 36px; height: 36px; font-size: 13px; }
           .header-name { font-size: 14px; }
           .header-btn { width: 34px; height: 34px; }
         }
+
         @media (prefers-reduced-motion: reduce) {
-          .send-btn:active:not(:disabled) { transform: none; }
+          .send-btn:active:not(:disabled),
+          .scroll-down-btn:hover { transform: none; }
           .lightbox { animation: none; }
           .header-online { animation: none; }
           .typing-dot { animation: none; }
