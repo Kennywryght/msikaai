@@ -17,6 +17,7 @@ const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) =
     eyeOff: 'M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22',
     arrowLeft: 'M19 12H5M12 19l-7-7 7-7',
     arrowRight: 'M5 12h14M12 5l7 7-7 7',
+    shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
   };
   const d = icons[name] || icons.mail;
   return (
@@ -53,6 +54,7 @@ const FacebookF = ({ size = 18 }) => (
 const Login = () => {
   const { login, register, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast, success } = useToast();
 
   const [isLogin, setIsLogin] = useState(true);
@@ -60,7 +62,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  const [socialLoading, setSocialLoading] = useState(null); // 'facebook' | null
+  const [socialLoading, setSocialLoading] = useState(null);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -68,9 +70,13 @@ const Login = () => {
     fullName: '',
   });
 
+  // ★ Where to return after auth (from ProtectedRoute's state.from)
+  const returnTo = location.state?.from || '/landing';
+
+  // ★ If already signed in, bounce to where the user wanted to go
   useEffect(() => {
-    if (isAuthenticated) navigate('/landing', { replace: true });
-  }, [isAuthenticated, navigate]);
+    if (isAuthenticated) navigate(returnTo, { replace: true });
+  }, [isAuthenticated, navigate, returnTo]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('remembered_email');
@@ -107,10 +113,18 @@ const Login = () => {
       if (result.success) {
         success(isLogin ? 'Welcome back! 👋' : 'Account created! 🎉');
         sessionStorage.removeItem('redirectAfterLogin');
+
         const needsOnboarding = !result.user?.profile?.onboarding_completed;
-        navigate(needsOnboarding ? '/role-selection' : '/landing', {
-          replace: true,
-        });
+
+        // ★ Onboarding takes priority — otherwise land on the return path
+        if (needsOnboarding) {
+          navigate('/role-selection', {
+            replace: true,
+            state: { from: returnTo },
+          });
+        } else {
+          navigate(returnTo, { replace: true });
+        }
       } else {
         setErrorMsg(result.error || 'Invalid credentials. Please try again.');
         showToast(result.error, 'error');
@@ -128,6 +142,13 @@ const Login = () => {
     setSocialLoading('facebook');
 
     try {
+      // Preserve return path across the OAuth round-trip
+      if (returnTo && returnTo !== '/landing') {
+        sessionStorage.setItem('redirectAfterLogin', returnTo);
+      } else {
+        sessionStorage.removeItem('redirectAfterLogin');
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'facebook',
         options: {
@@ -194,6 +215,14 @@ const Login = () => {
 
         {/* ===== CARD ===== */}
         <div className="auth-card">
+          {/* Return-to context hint (only when it's not the default) */}
+          {returnTo && returnTo !== '/landing' && returnTo !== '/' && (
+            <div className="return-banner">
+              <Icon name="shield" size={13} color="#92400e" />
+              <span>Sign in to continue where you left off</span>
+            </div>
+          )}
+
           {/* Error */}
           {errorMsg && (
             <div className="error" role="alert">
@@ -376,7 +405,7 @@ const Login = () => {
           </button>
         </div>
 
-        <Link to="/" className="back-link">
+        <Link to="/landing" className="back-link">
           <Icon name="arrowLeft" size={14} color="#94a3b8" strokeWidth={2} />
           Back to marketplace
         </Link>
@@ -462,6 +491,23 @@ const Login = () => {
           border-radius: 16px;
           padding: 24px;
           box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+
+        /* ============================================
+           RETURN BANNER
+           ============================================ */
+        .return-banner {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 10px;
+          margin-bottom: 14px;
+          background: #fffbeb;
+          border: 1px solid #fde68a;
+          border-radius: 8px;
+          font-size: 12px;
+          color: #92400e;
+          font-weight: 500;
         }
 
         /* ============================================
@@ -815,27 +861,22 @@ const Login = () => {
           .auth-page {
             padding: 16px 12px;
           }
-
           .auth-brand {
             margin-bottom: 20px;
           }
-
           .brand-mark {
             width: 46px;
             height: 46px;
             font-size: 21px;
             border-radius: 12px;
           }
-
           .brand-name {
             font-size: 22px;
           }
-
           .auth-card {
             padding: 20px 18px;
             border-radius: 14px;
           }
-
           .form {
             gap: 14px;
           }
@@ -852,22 +893,18 @@ const Login = () => {
             padding: 12px;
             align-items: flex-start;
           }
-
           .brand-tagline {
             display: none;
           }
-
           .auth-brand {
             margin-bottom: 14px;
           }
-
           .brand-mark {
             width: 42px;
             height: 42px;
             font-size: 19px;
             margin-bottom: 8px;
           }
-
           .back-link {
             margin-top: 12px;
           }
