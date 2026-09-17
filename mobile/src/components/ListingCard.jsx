@@ -1,6 +1,9 @@
 // mobile/src/components/ListingCard.jsx
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ToastContainer';
+import { messagesAPI } from '../services/api';
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -16,30 +19,18 @@ const Icon = ({ name, size = 16, color = 'currentColor', strokeWidth = 1.75, fil
     truck: "M1 3h13v13H1V3zM14 8h4l4 4v4h-8V8zM6.5 20a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM18.5 20a2.5 2.5 0 100-5 2.5 2.5 0 000 5z",
     check: "M20 6L9 17l-5-5",
     image: "M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
+    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
   };
-
   const d = icons[name] || icons.store;
-  
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill={fill}
-      stroke={color}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-    >
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color}
+      strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
       <path d={d} />
     </svg>
   );
 };
 
-// ============================================================
-// HELPER: Format relative time
-// ============================================================
 const formatRelativeTime = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -48,7 +39,6 @@ const formatRelativeTime = (dateString) => {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-
   if (diffMins < 1) return 'Just now';
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
@@ -56,77 +46,85 @@ const formatRelativeTime = (dateString) => {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 };
 
-// ============================================================
-// LISTING CARD COMPONENT
-// ============================================================
 const ListingCard = ({
   listing,
   showBusiness = true,
   showLocation = true,
   showDate = true,
   showRating = true,
-  variant = 'default', // 'default' | 'compact' | 'horizontal'
+  showMessageButton = true,
+  variant = 'default',
   onClick,
   className = '',
 }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { showToast } = useToast();
+
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [openingChat, setOpeningChat] = useState(false);
 
   const {
-    id,
-    title,
-    price,
-    images,
-    category,
-    locationArea,
-    location_area,
-    createdAt,
-    created_at,
-    business,
-    businesses,
-    viewCount,
-    view_count,
-    contactCount,
-    contact_count,
-    status,
-    rating,
-    deliveryAvailable,
-    delivery_available,
-    isService,
-    is_service,
+    id, title, price, images, category,
+    locationArea, location_area, createdAt, created_at,
+    business, businesses, viewCount, view_count,
+    rating, deliveryAvailable, delivery_available,
+    isService, is_service,
   } = listing || {};
 
-  // Handle both snake_case and camelCase
   const displayLocation = locationArea || location_area || '';
   const displayDate = createdAt || created_at;
   const displayBusiness = business?.businessName || businesses?.business_name;
   const displayViewCount = viewCount || view_count || 0;
   const displayRating = rating || businesses?.rating || 4.5;
   const isDelivery = deliveryAvailable || delivery_available;
-  const isServiceItem = isService || is_service || 
+  const isServiceItem = isService || is_service ||
     category?.toLowerCase().includes('plumber') ||
     category?.toLowerCase().includes('electrician') ||
     category?.toLowerCase().includes('service');
 
-  const isActive = status === 'active' || status === 'published';
-  const isSold = status === 'sold';
-  const isInactive = status === 'inactive' || status === 'draft';
+  const sellerUserId =
+    businesses?.user_id || businesses?.userId || businesses?.owner_id ||
+    business?.user_id || null;
+  const isOwnListing = user?.id && sellerUserId === user.id;
+  const canMessage = showMessageButton && !!sellerUserId && !isOwnListing;
 
   const handleImageLoad = () => setImageLoaded(true);
   const handleImageError = () => setImageError(true);
 
   const handleClick = (e) => {
-    if (onClick) {
-      e.preventDefault();
-      onClick(listing);
-    }
+    if (onClick) { e.preventDefault(); onClick(listing); }
   };
 
   const handleLike = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsLiked(!isLiked);
+  };
+
+  const handleMessage = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      showToast('Please sign in to message the seller', 'warning');
+      navigate('/login');
+      return;
+    }
+    if (openingChat) return;
+    setOpeningChat(true);
+    try {
+      const res = await messagesAPI.createConversation(sellerUserId, id);
+      const conversationId = res?.data?.conversation?.id;
+      if (!conversationId) throw new Error('Could not open conversation');
+      navigate(`/chat/${conversationId}`);
+    } catch (err) {
+      console.error('Quick message error:', err);
+      showToast(err?.response?.data?.error || 'Failed to open chat', 'error');
+    } finally {
+      setOpeningChat(false);
+    }
   };
 
   const formatPrice = (p) => {
@@ -142,27 +140,19 @@ const ListingCard = ({
       className={`listing-card ${isHorizontal ? 'listing-card-horizontal' : ''} ${className}`}
       onClick={handleClick}
     >
-      {/* Image */}
       <div className="card-image-wrap">
         {images?.[0] && !imageError ? (
           <>
             {!imageLoaded && <div className="image-skeleton" />}
-            <img
-              src={images[0]}
-              alt={title || 'Listing'}
+            <img src={images[0]} alt={title || 'Listing'}
               className={`card-image ${imageLoaded ? 'loaded' : ''}`}
-              loading="lazy"
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-            />
+              loading="lazy" onLoad={handleImageLoad} onError={handleImageError} />
           </>
         ) : (
           <div className="card-image-placeholder">
             <Icon name="image" size={28} color="#CBD5E1" strokeWidth={1.5} />
           </div>
         )}
-
-        {/* Badges */}
         <div className="card-badges">
           {category && (
             <span className={`badge badge-category ${isServiceItem ? 'badge-service' : ''}`}>
@@ -170,35 +160,22 @@ const ListingCard = ({
             </span>
           )}
         </div>
-
-        {/* Delivery badge */}
         {isDelivery && (
           <div className="delivery-badge">
             <Icon name="truck" size={10} color="#FFFFFF" strokeWidth={2} />
           </div>
         )}
-
-        {/* Like Button */}
-        <button
-          className="like-btn"
-          onClick={handleLike}
-          aria-label="Like"
-        >
-          <Icon
-            name="heart"
-            size={14}
+        <button className="like-btn" onClick={handleLike} aria-label="Like">
+          <Icon name="heart" size={14}
             color={isLiked ? '#EF4444' : '#64748B'}
             strokeWidth={isLiked ? 2.5 : 1.5}
-            fill={isLiked ? '#EF4444' : 'none'}
-          />
+            fill={isLiked ? '#EF4444' : 'none'} />
         </button>
       </div>
 
-      {/* Content */}
       <div className="card-body">
         <h3 className="card-title">{title || 'Untitled Listing'}</h3>
 
-        {/* Business */}
         {showBusiness && displayBusiness && (
           <div className="card-business">
             <Icon name="store" size={10} color="#94A3B8" strokeWidth={1.75} />
@@ -206,10 +183,8 @@ const ListingCard = ({
           </div>
         )}
 
-        {/* Footer */}
         <div className="card-footer">
           <span className="card-price">{formatPrice(price)}</span>
-
           <div className="card-meta">
             {showRating && displayRating && (
               <span className="meta-rating">
@@ -226,7 +201,6 @@ const ListingCard = ({
           </div>
         </div>
 
-        {/* Location + Date */}
         {(showLocation || showDate) && (
           <div className="card-bottom">
             {showLocation && displayLocation && (
@@ -236,11 +210,17 @@ const ListingCard = ({
               </span>
             )}
             {showDate && displayDate && (
-              <span className="card-date">
-                {formatRelativeTime(displayDate)}
-              </span>
+              <span className="card-date">{formatRelativeTime(displayDate)}</span>
             )}
           </div>
+        )}
+
+        {canMessage && (
+          <button type="button" className="card-message-btn"
+            onClick={handleMessage} disabled={openingChat}>
+            <Icon name="message" size={13} color="#FFFFFF" strokeWidth={2} />
+            {openingChat ? 'Opening…' : 'Message'}
+          </button>
         )}
       </div>
 
@@ -257,19 +237,13 @@ const ListingCard = ({
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
-
         .listing-card:hover {
           transform: translateY(-3px);
           box-shadow: 0 8px 24px rgba(30, 41, 59, 0.06);
           border-color: #E2E8F0;
         }
+        .listing-card-horizontal { flex-direction: row; }
 
-        /* Horizontal variant */
-        .listing-card-horizontal {
-          flex-direction: row;
-        }
-
-        /* ===== IMAGE ===== */
         .card-image-wrap {
           position: relative;
           width: 100%;
@@ -278,13 +252,11 @@ const ListingCard = ({
           overflow: hidden;
           flex-shrink: 0;
         }
-
         .listing-card-horizontal .card-image-wrap {
           width: 100px;
           height: auto;
           min-height: 100px;
         }
-
         .card-image {
           width: 100%;
           height: 100%;
@@ -292,15 +264,8 @@ const ListingCard = ({
           opacity: 0;
           transition: opacity 0.4s ease, transform 0.5s ease;
         }
-
-        .card-image.loaded {
-          opacity: 1;
-        }
-
-        .listing-card:hover .card-image {
-          transform: scale(1.05);
-        }
-
+        .card-image.loaded { opacity: 1; }
+        .listing-card:hover .card-image { transform: scale(1.05); }
         .image-skeleton {
           position: absolute;
           inset: 0;
@@ -308,12 +273,10 @@ const ListingCard = ({
           background-size: 200% 100%;
           animation: shimmer 1.5s infinite;
         }
-
         @keyframes shimmer {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
         }
-
         .card-image-placeholder {
           width: 100%;
           height: 100%;
@@ -323,7 +286,6 @@ const ListingCard = ({
           background: #F8FAFC;
         }
 
-        /* ===== BADGES ===== */
         .card-badges {
           position: absolute;
           top: 8px;
@@ -332,7 +294,6 @@ const ListingCard = ({
           gap: 4px;
           flex-wrap: wrap;
         }
-
         .badge {
           padding: 3px 8px;
           border-radius: 6px;
@@ -343,17 +304,14 @@ const ListingCard = ({
           backdrop-filter: blur(4px);
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         }
-
         .badge-category {
           background: rgba(255, 255, 255, 0.95);
           color: #1E293B;
         }
-
         .badge-service {
           background: rgba(139, 92, 246, 0.95);
           color: #FFFFFF;
         }
-
         .delivery-badge {
           position: absolute;
           bottom: 8px;
@@ -368,8 +326,6 @@ const ListingCard = ({
           backdrop-filter: blur(4px);
           box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
         }
-
-        /* ===== LIKE BUTTON ===== */
         .like-btn {
           position: absolute;
           bottom: 8px;
@@ -387,17 +343,9 @@ const ListingCard = ({
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
           transition: all 0.2s ease;
         }
+        .like-btn:hover { transform: scale(1.1); background: #FFFFFF; }
+        .like-btn:active { transform: scale(0.95); }
 
-        .like-btn:hover {
-          transform: scale(1.1);
-          background: #FFFFFF;
-        }
-
-        .like-btn:active {
-          transform: scale(0.95);
-        }
-
-        /* ===== BODY ===== */
         .card-body {
           padding: 10px 12px 12px;
           display: flex;
@@ -405,11 +353,7 @@ const ListingCard = ({
           flex: 1;
           min-width: 0;
         }
-
-        .listing-card-horizontal .card-body {
-          padding: 12px 14px;
-        }
-
+        .listing-card-horizontal .card-body { padding: 12px 14px; }
         .card-title {
           font-size: 13px;
           font-weight: 600;
@@ -420,7 +364,6 @@ const ListingCard = ({
           white-space: nowrap;
           line-height: 1.3;
         }
-
         .listing-card-horizontal .card-title {
           font-size: 14px;
           white-space: normal;
@@ -428,7 +371,6 @@ const ListingCard = ({
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
         }
-
         .card-business {
           display: flex;
           align-items: center;
@@ -441,7 +383,6 @@ const ListingCard = ({
           white-space: nowrap;
         }
 
-        /* ===== FOOTER ===== */
         .card-footer {
           display: flex;
           justify-content: space-between;
@@ -451,23 +392,19 @@ const ListingCard = ({
           border-top: 1px solid #F8FAFC;
           margin-top: auto;
         }
-
         .card-price {
           font-size: 14px;
           font-weight: 700;
           color: #10B981;
           flex-shrink: 0;
         }
-
         .card-meta {
           display: flex;
           align-items: center;
           gap: 6px;
           flex-shrink: 0;
         }
-
-        .meta-rating,
-        .meta-view {
+        .meta-rating, .meta-view {
           display: inline-flex;
           align-items: center;
           gap: 2px;
@@ -479,7 +416,6 @@ const ListingCard = ({
           border-radius: 6px;
         }
 
-        /* ===== BOTTOM ===== */
         .card-bottom {
           display: flex;
           justify-content: space-between;
@@ -488,9 +424,7 @@ const ListingCard = ({
           margin-top: 6px;
           flex-wrap: wrap;
         }
-
-        .card-location,
-        .card-date {
+        .card-location, .card-date {
           display: inline-flex;
           align-items: center;
           gap: 3px;
@@ -500,73 +434,50 @@ const ListingCard = ({
           text-overflow: ellipsis;
           white-space: nowrap;
         }
+        .card-location { max-width: 60%; }
+        .card-date { flex-shrink: 0; }
 
-        .card-location {
-          max-width: 60%;
+        .card-message-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          padding: 8px 12px;
+          margin-top: 8px;
+          background: #1E293B;
+          border: none;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #FFFFFF;
+          font-family: inherit;
+          cursor: pointer;
+          transition: background 0.2s;
         }
+        .card-message-btn:hover:not(:disabled) { background: #F59E0B; }
+        .card-message-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .card-date {
-          flex-shrink: 0;
-        }
-
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .card-image-wrap {
-            height: 120px;
-          }
-          .listing-card-horizontal .card-image-wrap {
-            width: 88px;
-          }
-          .card-title {
-            font-size: 12.5px;
-          }
-          .card-price {
-            font-size: 13px;
-          }
-          .card-body {
-            padding: 9px 10px 10px;
-          }
+          .card-image-wrap { height: 120px; }
+          .listing-card-horizontal .card-image-wrap { width: 88px; }
+          .card-title { font-size: 12.5px; }
+          .card-price { font-size: 13px; }
+          .card-body { padding: 9px 10px 10px; }
         }
-
         @media (max-width: 380px) {
-          .card-image-wrap {
-            height: 105px;
-          }
-          .card-title {
-            font-size: 12px;
-          }
-          .card-price {
-            font-size: 12px;
-          }
-          .card-meta {
-            gap: 4px;
-          }
-          .meta-rating,
-          .meta-view {
-            font-size: 9px;
-            padding: 2px 4px;
-          }
-          .badge {
-            font-size: 8px;
-            padding: 2px 6px;
-          }
+          .card-image-wrap { height: 105px; }
+          .card-title { font-size: 12px; }
+          .card-price { font-size: 12px; }
+          .card-meta { gap: 4px; }
+          .meta-rating, .meta-view { font-size: 9px; padding: 2px 4px; }
+          .badge { font-size: 8px; padding: 2px 6px; }
         }
-
         @media (prefers-reduced-motion: reduce) {
-          .listing-card,
-          .card-image,
-          .like-btn {
-            transition: none;
-          }
-          .listing-card:hover {
-            transform: none;
-          }
-          .listing-card:hover .card-image {
-            transform: none;
-          }
-          .image-skeleton {
-            animation: none;
-          }
+          .listing-card, .card-image, .like-btn, .card-message-btn { transition: none; }
+          .listing-card:hover { transform: none; }
+          .listing-card:hover .card-image { transform: none; }
+          .image-skeleton { animation: none; }
         }
       `}</style>
     </Link>

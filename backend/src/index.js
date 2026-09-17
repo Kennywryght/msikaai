@@ -3,12 +3,10 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ✅ Load environment variables FIRST, before any other imports
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-// ✅ Debug: Check environment variables
 console.log('🔍 index.js - Checking environment variables:');
 console.log(`   SUPABASE_URL: ${process.env.SUPABASE_URL ? '✅ Loaded' : '❌ Missing'}`);
 console.log(`   SUPABASE_KEY: ${process.env.SUPABASE_KEY ? '✅ Loaded' : '❌ Missing'}`);
@@ -19,7 +17,6 @@ console.log(`   MEILISEARCH_HOST: ${process.env.MEILISEARCH_HOST ? '✅ Loaded' 
 console.log(`   CLOUDINARY_CLOUD_NAME: ${process.env.CLOUDINARY_CLOUD_NAME ? '✅ Loaded' : '❌ Missing'}`);
 console.log(`   RESEND_API_KEY: ${process.env.RESEND_API_KEY ? '✅ Loaded' : '❌ Missing'}`);
 
-// ✅ Validate required environment variables
 const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_KEY', 'DATABASE_URL'];
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
@@ -30,7 +27,6 @@ if (missingVars.length > 0) {
   process.exit(1);
 }
 
-// Now import the rest
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -40,37 +36,18 @@ import { v4 as uuidv4 } from 'uuid';
 import helmet from 'helmet';
 import compression from 'compression';
 
-// Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { authenticateToken } from './middleware/auth.js';
 import { cacheMiddleware, getCacheStats, clearCache } from './middleware/cache.js';
 import { logger, logHttpRequest } from './utils/logger.js';
 
-// Import database
 import { testConnection } from './db/index.js';
 import dbService from './services/dbService.js';
 
-// Import Redis
 import redisService from './services/redisService.js';
-
-// ============================================
-// PHASE 4: IMPORT QUEUE SERVICE
-// ============================================
 import queueService from './services/queueService.js';
-
-// ============================================
-// PHASE 5: IMPORT SEARCH SERVICE
-// ============================================
 import searchService from './services/searchService.js';
-
-// ============================================
-// PHASE 6: IMPORT CLOUDINARY SERVICE
-// ============================================
 import cloudinaryService from './services/cloudinaryService.js';
-
-// ============================================
-// PHASE 7: IMPORT EMAIL SERVICE
-// ============================================
 import emailService from './services/emailService.js';
 
 // Import routes
@@ -85,27 +62,19 @@ import exportRoutes from './api/export.js';
 import notificationsRoutes from './api/notifications.js';
 import matchingRoutes from './api/matching.js';
 import paymentRoutes from './api/payment.js';
-// ============================================
-// PHASE 5: IMPORT SEARCH ROUTES
-// ============================================
 import searchRoutes from './api/search.js';
+import messagesRoutes from './api/messages.js'; // ✅ NEW
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// ============================================
-// REQUEST ID MIDDLEWARE
-// ============================================
 app.use((req, res, next) => {
   req.requestId = req.headers['x-request-id'] || uuidv4();
   res.setHeader('X-Request-ID', req.requestId);
   next();
 });
 
-// ============================================
-// ENVIRONMENT CHECK
-// ============================================
 logger.info('🔍 Checking environment variables:');
 logger.info(`SUPABASE_URL: ${process.env.SUPABASE_URL ? '✅ Loaded' : '❌ Missing'}`);
 logger.info(`SUPABASE_KEY: ${process.env.SUPABASE_KEY ? '✅ Loaded' : '❌ Missing'}`);
@@ -120,7 +89,6 @@ logger.info(`PORT: ${process.env.PORT || 3000}`);
 logger.info(`NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
 logger.info(`FRONTEND_URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
 
-// Validate required environment variables
 const requiredEnvVars2 = ['SUPABASE_URL', 'SUPABASE_KEY', 'DATABASE_URL'];
 const missingVars2 = requiredEnvVars2.filter(varName => !process.env[varName]);
 
@@ -147,7 +115,6 @@ try {
   logger.warn('⚠️ Continuing without database connection...');
 }
 
-// Initialize Supabase client
 let supabase;
 try {
   supabase = createClient(
@@ -176,7 +143,7 @@ try {
 }
 
 // ============================================
-// REDIS CONNECTION
+// REDIS
 // ============================================
 let redisConnected = false;
 try {
@@ -188,18 +155,15 @@ try {
   }
 } catch (error) {
   logger.warn('⚠️ Redis initialization failed:', error.message);
-  // Continue without Redis - fallback to memory cache
 }
 
 // ============================================
-// PHASE 4: QUEUE SERVICE CONNECTION
+// QUEUE
 // ============================================
 let queueConnected = false;
 try {
-  // Wait a bit for connection
   await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Check if queue service is connected
+
   if (queueService.isConnected) {
     logger.info('✅ Queue service (RabbitMQ) connected successfully');
     queueConnected = true;
@@ -208,15 +172,13 @@ try {
   }
 } catch (error) {
   logger.warn('⚠️ Queue service initialization warning:', error.message);
-  // Continue without queue - fallback to direct processing
 }
 
 // ============================================
-// PHASE 5: SEARCH SERVICE CONNECTION
+// SEARCH
 // ============================================
 let searchConnected = false;
 try {
-  // Check if search service is connected
   if (searchService.isConnected) {
     logger.info('✅ Search service (Meilisearch) connected successfully');
     searchConnected = true;
@@ -225,11 +187,10 @@ try {
   }
 } catch (error) {
   logger.warn('⚠️ Search service initialization warning:', error.message);
-  // Continue without search - fallback to database search
 }
 
 // ============================================
-// PHASE 6: CLOUDINARY SERVICE
+// CLOUDINARY
 // ============================================
 let cloudinaryConnected = false;
 try {
@@ -241,11 +202,10 @@ try {
   }
 } catch (error) {
   logger.warn('⚠️ Cloudinary initialization warning:', error.message);
-  // Continue without Cloudinary - fallback to Supabase
 }
 
 // ============================================
-// PHASE 7: EMAIL SERVICE
+// EMAIL
 // ============================================
 let emailConnected = false;
 try {
@@ -260,9 +220,8 @@ try {
 }
 
 // ============================================
-// SECURITY & PERFORMANCE MIDDLEWARE
+// SECURITY & PERFORMANCE
 // ============================================
-
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -280,9 +239,8 @@ app.use(helmet({
 }));
 
 // ============================================
-// CORS CONFIGURATION
+// CORS
 // ============================================
-
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'http://localhost:5173',
@@ -295,7 +253,6 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 const uniqueOrigins = [...new Set(allowedOrigins)];
-
 const vercelPreviewPattern = /^https:\/\/msikaai-[a-z0-9]+-kennedy-bandas-projects\.vercel\.app$/;
 
 logger.info(`🌐 Allowed origins: ${uniqueOrigins.join(', ')} + Vercel preview deployments`);
@@ -320,12 +277,8 @@ app.use(cors({
   exposedHeaders: ['X-Request-ID'],
 }));
 
-// ============================================
-// COOKIE PARSER MIDDLEWARE
-// ============================================
 app.use(cookieParser());
 
-// Compression
 app.use(compression({
   level: 6,
   threshold: 1024,
@@ -335,30 +288,21 @@ app.use(compression({
   },
 }));
 
-// Body parsers
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// HTTP request logging
 app.use(logHttpRequest);
 
 // ============================================
 // RATE LIMITING
 // ============================================
-
 const generalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: {
-    success: false,
-    error: 'Too many requests, please try again later.'
-  },
+  message: { success: false, error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  validate: {
-    trustProxy: false,
-    xForwardedForHeader: false,
-  },
+  validate: { trustProxy: false, xForwardedForHeader: false },
   keyGenerator: (req) => req.ip,
   handler: (req, res) => {
     logger.warn(`Rate limit exceeded for IP: ${req.ip}`);
@@ -373,16 +317,10 @@ const generalLimiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: {
-    success: false,
-    error: 'Too many login attempts, please try again later.'
-  },
+  message: { success: false, error: 'Too many login attempts, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  validate: {
-    trustProxy: false,
-    xForwardedForHeader: false,
-  },
+  validate: { trustProxy: false, xForwardedForHeader: false },
   keyGenerator: (req) => req.ip,
   handler: (req, res) => {
     logger.warn(`Auth rate limit exceeded for IP: ${req.ip}`);
@@ -397,16 +335,10 @@ const authLimiter = rateLimit({
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
-  message: {
-    success: false,
-    error: 'Too many AI requests, please try again later.'
-  },
+  message: { success: false, error: 'Too many AI requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  validate: {
-    trustProxy: false,
-    xForwardedForHeader: false,
-  },
+  validate: { trustProxy: false, xForwardedForHeader: false },
   keyGenerator: (req) => req.ip,
   handler: (req, res) => {
     logger.warn(`AI rate limit exceeded for IP: ${req.ip}`);
@@ -429,7 +361,6 @@ app.get('/health', async (req, res) => {
   const startTime = Date.now();
 
   try {
-    // Check database connection via Supabase
     const { error } = await supabase
       .from('profiles')
       .select('count', { head: true })
@@ -437,22 +368,12 @@ app.get('/health', async (req, res) => {
 
     const responseTime = Date.now() - startTime;
 
-    // Check Redis connection
     const redisStatus = redisService.isConnected ? 'connected' : 'disconnected';
-
-    // Check Queue connection
     const queueStatus = queueService.isConnected ? 'connected' : 'disconnected';
-
-    // Check Search connection
     const searchStatus = searchService.isConnected ? 'connected' : 'disconnected';
-
-    // Check Cloudinary status
     const cloudinaryStatus = cloudinaryService.isConfigured ? 'configured' : 'not configured';
-
-    // Check Email status
     const emailStatus = emailService.isConfigured ? 'configured' : 'not configured';
 
-    // Get queue stats if connected
     let queueStats = null;
     if (queueService.isConnected) {
       try {
@@ -464,32 +385,23 @@ app.get('/health', async (req, res) => {
           email: emailStats,
           analytics: analyticsStats,
         };
-      } catch (e) {
-        // Ignore stats error
-      }
+      } catch (e) {}
     }
 
-    // Get search stats if connected
     let searchStats = null;
     if (searchService.isConnected) {
       try {
         searchStats = await searchService.getStats();
-      } catch (e) {
-        // Ignore stats error
-      }
+      } catch (e) {}
     }
 
-    // Get Cloudinary stats if configured
     let cloudinaryStats = null;
     if (cloudinaryService.isConfigured) {
       try {
         cloudinaryStats = await cloudinaryService.getStorageStats();
-      } catch (e) {
-        // Ignore stats error
-      }
+      } catch (e) {}
     }
 
-    // Get Email stats
     const emailStats = {
       configured: emailService.isConfigured,
       enabled: emailService.isEnabled,
@@ -508,10 +420,10 @@ app.get('/health', async (req, res) => {
       search: searchStatus,
       cloudinary: cloudinaryStatus,
       email: emailStatus,
-      queueStats: queueStats,
-      searchStats: searchStats,
-      cloudinaryStats: cloudinaryStats,
-      emailStats: emailStats,
+      queueStats,
+      searchStats,
+      cloudinaryStats,
+      emailStats,
       environment: process.env.NODE_ENV,
       requestId: req.requestId,
     });
@@ -526,7 +438,7 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================
-// PHASE 4: QUEUE STATUS ENDPOINT
+// ADMIN: QUEUE STATUS
 // ============================================
 app.get('/api/admin/queue/status', authenticateToken, async (req, res) => {
   try {
@@ -537,32 +449,22 @@ app.get('/api/admin/queue/status', authenticateToken, async (req, res) => {
       .single();
 
     if (profile?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Admin access required'
-      });
+      return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
     const status = queueService.status;
     const stats = {};
-    
+
     if (queueService.isConnected) {
       for (const [name, queue] of Object.entries(queueService.queues)) {
         stats[name] = await queueService.getQueueStats(queue);
       }
     }
 
-    res.json({
-      success: true,
-      status: status,
-      queueStats: stats,
-    });
+    res.json({ success: true, status, queueStats: stats });
   } catch (error) {
     logger.error('Queue status error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get queue status'
-    });
+    res.status(500).json({ success: false, error: 'Failed to get queue status' });
   }
 });
 
@@ -575,30 +477,24 @@ app.post('/api/admin/queue/purge/:queue', authenticateToken, async (req, res) =>
       .single();
 
     if (profile?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Admin access required'
-      });
+      return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
     const { queue } = req.params;
     const result = await queueService.purgeQueue(queue);
-    
+
     res.json({
       success: result,
       message: result ? `Queue ${queue} purged successfully` : `Failed to purge queue ${queue}`,
     });
   } catch (error) {
     logger.error('Queue purge error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to purge queue'
-    });
+    res.status(500).json({ success: false, error: 'Failed to purge queue' });
   }
 });
 
 // ============================================
-// CACHE MANAGEMENT ROUTES
+// ADMIN: CACHE
 // ============================================
 app.get('/api/admin/cache/stats', authenticateToken, async (req, res) => {
   try {
@@ -609,23 +505,14 @@ app.get('/api/admin/cache/stats', authenticateToken, async (req, res) => {
       .single();
 
     if (profile?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Admin access required'
-      });
+      return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
     const stats = getCacheStats();
-    res.json({
-      success: true,
-      stats
-    });
+    res.json({ success: true, stats });
   } catch (error) {
     logger.error('Cache stats error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get cache stats'
-    });
+    res.status(500).json({ success: false, error: 'Failed to get cache stats' });
   }
 });
 
@@ -638,29 +525,23 @@ app.post('/api/admin/cache/clear', authenticateToken, async (req, res) => {
       .single();
 
     if (profile?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Admin access required'
-      });
+      return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
     const count = await clearCache();
     res.json({
       success: true,
       cleared: count,
-      message: `Cleared ${count} cache entries`
+      message: `Cleared ${count} cache entries`,
     });
   } catch (error) {
     logger.error('Clear cache error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to clear cache'
-    });
+    res.status(500).json({ success: false, error: 'Failed to clear cache' });
   }
 });
 
 // ============================================
-// EMAIL TEST ENDPOINT (Admin only)
+// ADMIN: EMAIL TEST
 // ============================================
 app.post('/api/admin/email/test', authenticateToken, async (req, res) => {
   try {
@@ -671,21 +552,14 @@ app.post('/api/admin/email/test', authenticateToken, async (req, res) => {
       .single();
 
     if (profile?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Admin access required'
-      });
+      return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
     const { email } = req.body;
     if (!email) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email address is required'
-      });
+      return res.status(400).json({ success: false, error: 'Email address is required' });
     }
 
-    // Send test email
     const result = await emailService.sendWelcomeEmail(email, {
       name: 'Test User',
       verificationLink: 'https://msikaai.com/verify',
@@ -698,16 +572,10 @@ app.post('/api/admin/email/test', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     logger.error('Test email error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ============================================
-// EMAIL STATUS ENDPOINT
-// ============================================
 app.get('/api/admin/email/status', authenticateToken, async (req, res) => {
   try {
     const { data: profile } = await supabase
@@ -717,31 +585,20 @@ app.get('/api/admin/email/status', authenticateToken, async (req, res) => {
       .single();
 
     if (profile?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Admin access required'
-      });
+      return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
     const status = emailService.getStatus();
-
-    res.json({
-      success: true,
-      status,
-    });
+    res.json({ success: true, status });
   } catch (error) {
     logger.error('Email status error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // ============================================
 // API ROUTES
 // ============================================
-
 app.use('/api/auth', authRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/listings', listingsRoutes);
@@ -753,14 +610,9 @@ app.use('/api/export', authenticateToken, exportRoutes);
 app.use('/api/matching', authenticateToken, matchingRoutes);
 app.use('/api/ai', authenticateToken, aiLimiter, aiRoutes);
 app.use('/api/payment', authenticateToken, paymentRoutes);
-// ============================================
-// PHASE 5: SEARCH ROUTES
-// ============================================
 app.use('/api/search', searchRoutes);
+app.use('/api/messages', authenticateToken, messagesRoutes); // ✅ NEW
 
-// ============================================
-// 404 & ERROR HANDLING
-// ============================================
 app.use(notFoundHandler);
 app.use(errorHandler);
 
@@ -806,7 +658,6 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 const gracefulShutdown = async (signal) => {
   logger.info(`Received ${signal}, starting graceful shutdown...`);
 
-  // Close Redis connection
   if (redisService) {
     try {
       await redisService.disconnect();
@@ -816,7 +667,6 @@ const gracefulShutdown = async (signal) => {
     }
   }
 
-  // Close Queue connection
   if (queueService) {
     try {
       await queueService.close();

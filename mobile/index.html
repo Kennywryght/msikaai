@@ -3,17 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1E293B" />
     <title>Kumsika - Smart Local Marketplace</title>
-    <meta name="description" content="Kumsika - AI-powered marketplace for Mitundu and surrounding areas, Malawi. Buy, sell, and hire locally with smart AI assistance." />
+    <meta
+      name="description"
+      content="Kumsika - AI-powered marketplace for Mitundu and surrounding areas, Malawi. Buy, sell, and hire locally with smart AI assistance."
+    />
     <meta property="og:title" content="Kumsika - Smart Local Marketplace" />
-    <meta property="og:description" content="Trade, buy & hire locally in Mitundu with AI-powered assistance." />
+    <meta
+      property="og:description"
+      content="Trade, buy & hire locally in Mitundu with AI-powered assistance."
+    />
     <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#0f172a" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- ============================================================ -->
+    <!-- Service Worker registration for PWA + push notifications     -->
+    <!-- ============================================================ -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then((reg) => console.log('✅ SW registered:', reg.scope))
+            .catch((err) => console.warn('❌ SW registration failed:', err));
+        });
+      }
+    </script>
   </body>
 </html>

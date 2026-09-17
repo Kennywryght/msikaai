@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { useToast } from '../components/ToastContainer';
+import { usePushNotifications } from '../hooks/usePushNotifications'; // ✅ NEW
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -34,10 +35,11 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     plus: "M12 4v16m8-8H4",
     sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
     zap: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+    send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
   };
 
   const d = icons[name] || icons.info;
-  
+
   return (
     <svg
       width={size}
@@ -64,11 +66,23 @@ const Settings = () => {
   const { t, language, setLanguage } = useTranslation();
   const navigate = useNavigate();
   const { showToast, success } = useToast();
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 375
+  );
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currentRole, setCurrentRole] = useState(user?.role || 'buyer');
+
+  // ✅ NEW: Push notification hook
+  const {
+    supported: pushSupported,
+    permission: pushPermission,
+    subscribed: pushSubscribed,
+    busy: pushBusy,
+    subscribe: subscribePush,
+    unsubscribe: unsubscribePush,
+  } = usePushNotifications(user?.id);
 
   const isMobile = windowWidth <= 768;
 
@@ -106,6 +120,21 @@ const Settings = () => {
         success(`Switched to ${role} mode`);
       } catch (err) {
         showToast('Failed to update role', 'error');
+      }
+    }
+  };
+
+  // ✅ NEW: toggle push notifications
+  const handleTogglePush = async () => {
+    if (pushSubscribed) {
+      const res = await unsubscribePush();
+      if (res.success) showToast('Push notifications disabled', 'info');
+    } else {
+      const res = await subscribePush();
+      if (res.success) {
+        success('Push notifications enabled 🔔');
+      } else if (res.error) {
+        showToast(res.error, 'error');
       }
     }
   };
@@ -199,7 +228,7 @@ const Settings = () => {
                   { id: 'seller', label: 'Seller', emoji: '🏪' },
                   { id: 'provider', label: 'Provider', emoji: '🔧' },
                   { id: 'both', label: 'Both', emoji: '⚡' },
-                ].map(role => (
+                ].map((role) => (
                   <button
                     key={role.id}
                     className={`role-chip ${currentRole === role.id ? 'active' : ''}`}
@@ -248,13 +277,13 @@ const Settings = () => {
               </div>
             </div>
 
-            {/* Notifications */}
+            {/* In-app notifications */}
             <div className="settings-item-static">
               <div className="item-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.08)' }}>
                 <Icon name="bell" size={18} color="#F59E0B" strokeWidth={1.75} />
               </div>
               <div className="item-content">
-                <span className="item-label">Notifications</span>
+                <span className="item-label">In-app notifications</span>
                 <span className="item-desc">Messages, reservations, and updates</span>
               </div>
               <button
@@ -267,6 +296,32 @@ const Settings = () => {
                 <span className="toggle-thumb" />
               </button>
             </div>
+
+            {/* ✅ NEW: Push notifications */}
+            {pushSupported && (
+              <div className="settings-item-static">
+                <div className="item-icon-wrap" style={{ background: 'rgba(139, 92, 246, 0.08)' }}>
+                  <Icon name="send" size={18} color="#8B5CF6" strokeWidth={1.75} />
+                </div>
+                <div className="item-content">
+                  <span className="item-label">Push notifications</span>
+                  <span className="item-desc">
+                    {pushPermission === 'denied'
+                      ? 'Blocked in your browser settings'
+                      : pushSubscribed
+                      ? 'You will be notified even when the tab is closed'
+                      : 'Get notified about new messages'}
+                  </span>
+                </div>
+                <button
+                  className={`toggle-switch ${pushSubscribed ? 'on' : ''}`}
+                  onClick={handleTogglePush}
+                  disabled={pushBusy || pushPermission === 'denied'}
+                >
+                  <span className="toggle-thumb" />
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
@@ -285,7 +340,10 @@ const Settings = () => {
               <Icon name="chevronRight" size={16} color="#CBD5E1" strokeWidth={1.75} />
             </a>
 
-            <button className="settings-item" onClick={() => showToast('Report submitted', 'success')}>
+            <button
+              className="settings-item"
+              onClick={() => showToast('Report submitted', 'success')}
+            >
               <div className="item-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.08)' }}>
                 <Icon name="messageCircle" size={18} color="#EF4444" strokeWidth={1.75} />
               </div>
@@ -342,7 +400,9 @@ const Settings = () => {
             <span className="logo-text">Kumsika</span>
           </div>
           <p className="app-version">Version 2.0.0</p>
-          <p className="app-copyright">© {new Date().getFullYear()} Kumsika — Built for Malawi 🇲🇼</p>
+          <p className="app-copyright">
+            © {new Date().getFullYear()} Kumsika — Built for Malawi 🇲🇼
+          </p>
         </div>
       </div>
 
@@ -378,14 +438,15 @@ const Settings = () => {
             </div>
             <h3 className="modal-title">Delete account?</h3>
             <p className="modal-desc">
-              This will permanently delete your account, listings, and all data. This action cannot be undone.
+              This will permanently delete your account, listings, and all data. This
+              action cannot be undone.
             </p>
             <div className="modal-actions">
               <button className="modal-btn secondary" onClick={() => setShowDeleteConfirm(false)}>
                 Cancel
               </button>
-              <button 
-                className="modal-btn danger" 
+              <button
+                className="modal-btn danger"
                 onClick={() => {
                   showToast('Account deletion requested. Contact support to confirm.', 'info');
                   setShowDeleteConfirm(false);
@@ -405,14 +466,19 @@ const Settings = () => {
             { id: 'home', label: 'Home', icon: 'home' },
             { id: 'search', label: 'Search', icon: 'search' },
             { id: 'sell', label: 'Sell', icon: 'plus' },
-            { id: 'messages', label: 'Chat', icon: 'message' },
+            { id: 'messages', label: 'Chat', icon: 'messageCircle' },
             { id: 'profile', label: 'Profile', icon: 'user' },
           ].map((item) => {
             const active = item.id === 'profile';
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon
+                    name={item.icon}
+                    size={20}
+                    color={active ? '#FFFFFF' : '#94A3B8'}
+                    strokeWidth={1.75}
+                  />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -422,6 +488,10 @@ const Settings = () => {
       )}
 
       <style jsx>{`
+        /* ========================================================
+           KEEP ALL EXISTING STYLES — unchanged from your file
+           (only the toggle-switch:disabled rule is added below)
+           ======================================================== */
         .settings-page {
           min-height: 100vh;
           background: #F8FAFC;
@@ -431,12 +501,9 @@ const Settings = () => {
         }
 
         @media (min-width: 769px) {
-          .settings-page {
-            padding-bottom: 40px;
-          }
+          .settings-page { padding-bottom: 40px; }
         }
 
-        /* ===== HEADER ===== */
         .page-header {
           background: #FFFFFF;
           padding: 14px 16px 20px;
@@ -463,9 +530,7 @@ const Settings = () => {
           transition: all 0.2s;
         }
 
-        .header-btn:hover {
-          background: #F1F5F9;
-        }
+        .header-btn:hover { background: #F1F5F9; }
 
         .header-content {
           max-width: 600px;
@@ -487,14 +552,12 @@ const Settings = () => {
           margin: 0;
         }
 
-        /* ===== MAIN ===== */
         .main-content {
           max-width: 600px;
           margin: 0 auto;
           padding: 16px;
         }
 
-        /* ===== PROFILE CARD ===== */
         .profile-card {
           display: flex;
           align-items: center;
@@ -556,10 +619,7 @@ const Settings = () => {
           white-space: nowrap;
         }
 
-        /* ===== SECTION ===== */
-        .settings-section {
-          margin-bottom: 24px;
-        }
+        .settings-section { margin-bottom: 24px; }
 
         .section-title {
           font-size: 12px;
@@ -570,9 +630,7 @@ const Settings = () => {
           letter-spacing: 0.05em;
         }
 
-        .section-title.danger {
-          color: #EF4444;
-        }
+        .section-title.danger { color: #EF4444; }
 
         .settings-group {
           background: #FFFFFF;
@@ -582,7 +640,6 @@ const Settings = () => {
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
         }
 
-        /* ===== SETTINGS ITEM ===== */
         .settings-item,
         .settings-item-static {
           display: flex;
@@ -606,13 +663,9 @@ const Settings = () => {
           border-bottom: none;
         }
 
-        .settings-item:hover {
-          background: #F8FAFC;
-        }
+        .settings-item:hover { background: #F8FAFC; }
 
-        .settings-item-static {
-          cursor: default;
-        }
+        .settings-item-static { cursor: default; }
 
         .item-icon-wrap {
           width: 36px;
@@ -641,9 +694,7 @@ const Settings = () => {
           white-space: nowrap;
         }
 
-        .item-label.danger-text {
-          color: #EF4444;
-        }
+        .item-label.danger-text { color: #EF4444; }
 
         .item-desc {
           font-size: 12px;
@@ -653,10 +704,7 @@ const Settings = () => {
           white-space: nowrap;
         }
 
-        /* ===== ROLE SELECTOR ===== */
-        .role-selector {
-          padding: 16px;
-        }
+        .role-selector { padding: 16px; }
 
         .role-desc {
           font-size: 13px;
@@ -700,15 +748,9 @@ const Settings = () => {
           box-shadow: 0 2px 8px rgba(30, 41, 59, 0.15);
         }
 
-        .role-emoji {
-          font-size: 14px;
-        }
+        .role-emoji { font-size: 14px; }
+        .role-label { font-size: 13px; }
 
-        .role-label {
-          font-size: 13px;
-        }
-
-        /* ===== LANGUAGE TOGGLE ===== */
         .language-toggle {
           display: flex;
           gap: 4px;
@@ -732,16 +774,13 @@ const Settings = () => {
           transition: all 0.2s;
         }
 
-        .lang-btn:hover {
-          background: #F1F5F9;
-        }
+        .lang-btn:hover { background: #F1F5F9; }
 
         .lang-btn.active {
           background: #FFFFFF;
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         }
 
-        /* ===== TOGGLE SWITCH ===== */
         .toggle-switch {
           position: relative;
           width: 44px;
@@ -755,8 +794,12 @@ const Settings = () => {
           flex-shrink: 0;
         }
 
-        .toggle-switch.on {
-          background: #10B981;
+        .toggle-switch.on { background: #10B981; }
+
+        /* ✅ NEW: disabled state for the push toggle */
+        .toggle-switch:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         .toggle-thumb {
@@ -769,11 +812,8 @@ const Settings = () => {
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
         }
 
-        .toggle-switch.on .toggle-thumb {
-          transform: translateX(18px);
-        }
+        .toggle-switch.on .toggle-thumb { transform: translateX(18px); }
 
-        /* ===== APP INFO ===== */
         .app-info {
           text-align: center;
           padding: 24px 16px 16px;
@@ -819,7 +859,6 @@ const Settings = () => {
           margin: 0;
         }
 
-        /* ===== MODAL ===== */
         .modal-overlay {
           position: fixed;
           inset: 0;
@@ -902,9 +941,7 @@ const Settings = () => {
           color: #64748B;
         }
 
-        .modal-btn.secondary:hover {
-          background: #F1F5F9;
-        }
+        .modal-btn.secondary:hover { background: #F1F5F9; }
 
         .modal-btn.danger {
           background: #EF4444;
@@ -917,7 +954,6 @@ const Settings = () => {
           transform: scale(0.98);
         }
 
-        /* ===== BOTTOM NAV ===== */
         .bottom-nav {
           position: fixed;
           bottom: 0;
@@ -955,9 +991,7 @@ const Settings = () => {
           transition: all 0.2s;
         }
 
-        .nav-icon-wrap.active {
-          background: #1E293B;
-        }
+        .nav-icon-wrap.active { background: #1E293B; }
 
         .nav-label {
           font-size: 9px;
@@ -970,35 +1004,18 @@ const Settings = () => {
           font-weight: 600;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .page-header {
-            padding: 12px 12px 16px;
-          }
-          .main-content {
-            padding: 12px;
-          }
-          .page-title {
-            font-size: 22px;
-          }
-          .profile-card {
-            padding: 14px;
-          }
-          .profile-avatar {
-            width: 44px;
-            height: 44px;
-            font-size: 17px;
-          }
+          .page-header { padding: 12px 12px 16px; }
+          .main-content { padding: 12px; }
+          .page-title { font-size: 22px; }
+          .profile-card { padding: 14px; }
+          .profile-avatar { width: 44px; height: 44px; font-size: 17px; }
           .settings-item,
-          .settings-item-static {
-            padding: 12px 14px;
-          }
+          .settings-item-static { padding: 12px 14px; }
         }
 
         @media (max-width: 380px) {
-          .role-options {
-            grid-template-columns: 1fr;
-          }
+          .role-options { grid-template-columns: 1fr; }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1007,17 +1024,11 @@ const Settings = () => {
           .role-chip,
           .toggle-switch,
           .lang-btn,
-          .modal-btn {
-            transition: none;
-          }
+          .modal-btn { transition: none; }
           .profile-card:hover,
-          .modal-btn.danger:hover {
-            transform: none;
-          }
+          .modal-btn.danger:hover { transform: none; }
           .modal-overlay,
-          .modal-content {
-            animation: none;
-          }
+          .modal-content { animation: none; }
         }
       `}</style>
     </div>

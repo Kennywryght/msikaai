@@ -12,11 +12,10 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  // ✅ No `withCredentials` — auth is via Supabase Bearer tokens
 });
 
 // ============================================
-// REQUEST INTERCEPTOR - Auth + Cache
+// REQUEST INTERCEPTOR
 // ============================================
 api.interceptors.request.use(
   async (config) => {
@@ -29,7 +28,6 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // ✅ Cache GET requests
     if (config.method === 'get' && config.cache !== false) {
       const cacheKey = `${config.url}${config.params ? JSON.stringify(config.params) : ''}`;
       const cachedData = cacheService.get(cacheKey);
@@ -55,7 +53,7 @@ api.interceptors.request.use(
 );
 
 // ============================================
-// RESPONSE INTERCEPTOR - Cache + Error Handling
+// RESPONSE INTERCEPTOR
 // ============================================
 api.interceptors.response.use(
   (response) => {
@@ -157,12 +155,60 @@ export const listingsAPI = {
 };
 
 // ============================================
+// MESSAGES API
+// ============================================
+export const messagesAPI = {
+  // List all conversations for current user
+  getConversations: (params) =>
+    api.get('/messages/conversations', { params, cacheTTL: 20 * 1000 }),
+
+  // Get a single conversation + its messages
+  getConversation: (conversationId, params) =>
+    api.get(`/messages/conversations/${conversationId}`, {
+      params,
+      cache: false, // never cache active conversations
+    }),
+
+  // Find or create a conversation with another user
+  createConversation: (otherUserId, listingId = null) =>
+    api.post('/messages/conversations', { otherUserId, listingId }),
+
+  // Send a message in a conversation (text, imageUrl, or both)
+  sendMessage: (conversationId, content) =>
+    api.post(`/messages/conversations/${conversationId}`, content, {
+      cache: false,
+    }),
+
+  // Mark a conversation as read for current user
+  markConversationRead: (conversationId) =>
+    api.put(
+      `/messages/conversations/${conversationId}/read`,
+      {},
+      { cache: false }
+    ),
+
+  // ✅ Upload an image for chat — returns Cloudinary URL
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    return api.post('/messages/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      cache: false,
+      // Longer timeout for uploads
+      timeout: 60 * 1000,
+    });
+  },
+};
+
+// ============================================
 // PAYMENT API
 // ============================================
 export const paymentAPI = {
   getPlans: () => api.get('/payment/plans', { cacheTTL: 60 * 60 * 1000 }),
   initiatePayment: (data) => api.post('/payment/initiate', data),
-  verifyPayment: (paymentId) => api.get(`/payment/verify/${paymentId}`),
+  verifyPayment: (paymentId) =>
+    api.post('/payment/verify', { paymentId }),
   getSubscription: (userId) =>
     api.get(`/payment/subscription/${userId}`, { cacheTTL: 5 * 60 * 1000 }),
   upgradeSubscription: (data) => api.post('/payment/upgrade', data),
@@ -250,7 +296,6 @@ export const analyticsAPI = {
   trackView: (data) => api.post('/analytics/view', data),
   trackContact: (data) => api.post('/analytics/contact', data),
 
-  // ✅ Added — was missing and crashing ListingDetails.jsx
   trackUserActivity: (userId, action, metadata = {}) => {
     if (!userId) return Promise.resolve({ data: { ok: true } });
     return api.post('/analytics/user-activity', {
@@ -285,7 +330,6 @@ export const exportAPI = {
   exportBusinessJSON: (businessId) =>
     api.get(`/export/business/${businessId}/json`),
 };
-
 // ============================================
 // NOTIFICATIONS API
 // ============================================
@@ -302,8 +346,19 @@ export const notificationsAPI = {
   deleteNotification: (id, userId) =>
     api.delete(`/notifications/${id}`, { data: { userId } }),
   create: (data) => api.post('/notifications/create', data),
-};
 
+  // ✅ NEW: Web push endpoints
+  getPushPublicKey: () =>
+    api.get('/notifications/push/public-key', { cacheTTL: 60 * 60 * 1000 }),
+
+  subscribePush: (subscription) =>
+    api.post('/notifications/push/subscribe', { subscription }),
+
+  unsubscribePush: (endpoint) =>
+    api.post('/notifications/push/unsubscribe', { endpoint }),
+
+  testPush: () => api.post('/notifications/push/test'),
+};
 // ============================================
 // MATCHING API
 // ============================================

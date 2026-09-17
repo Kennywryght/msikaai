@@ -1,7 +1,12 @@
 // mobile/src/pages/ListingDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { listingsAPI, reviewsAPI, analyticsAPI } from '../services/api';
+import {
+  listingsAPI,
+  reviewsAPI,
+  analyticsAPI,
+  messagesAPI,
+} from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 
@@ -70,6 +75,7 @@ const ListingDetails = () => {
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
   const [submitting, setSubmitting] = useState(false);
   const [shareSuccess, setShareSuccess] = useState('');
+  const [openingChat, setOpeningChat] = useState(false); // ✅ NEW
   const [windowWidth, setWindowWidth] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 375
   );
@@ -99,7 +105,6 @@ const ListingDetails = () => {
       if (response?.data?.listing) {
         setListing(response.data.listing);
 
-        // Analytics — never block the UI
         if (user?.id) {
           analyticsAPI
             .trackView({ listingId: id })
@@ -119,7 +124,6 @@ const ListingDetails = () => {
         setErrorMsg('Listing not found');
       }
 
-      // Reviews — 404 just means "no reviews yet"
       try {
         const reviewsResponse = await reviewsAPI.getByListing(id);
         setReviews(reviewsResponse?.data?.reviews ?? []);
@@ -180,6 +184,63 @@ const ListingDetails = () => {
     const fullStars = Math.round(rating || 0);
     const emptyStars = 5 - fullStars;
     return '⭐'.repeat(fullStars) + '☆'.repeat(emptyStars);
+  };
+
+  // ✅ NEW: Open chat with the seller
+  const handleMessageSeller = async () => {
+    if (!user) {
+      showToast('Please sign in to message the seller', 'warning');
+      navigate('/login');
+      return;
+    }
+
+    const sellerId =
+      listing?.businesses?.user_id ||
+      listing?.businesses?.userId ||
+      listing?.businesses?.owner_id;
+
+    if (!sellerId) {
+      showToast('Seller information is unavailable', 'error');
+      return;
+    }
+
+    // Prevent messaging yourself
+    if (sellerId === user.id) {
+      showToast("You can't message yourself about your own listing", 'warning');
+      return;
+    }
+
+    setOpeningChat(true);
+    try {
+      const res = await messagesAPI.createConversation(sellerId, listing.id);
+      const conversationId = res?.data?.conversation?.id;
+
+      if (!conversationId) {
+        throw new Error('Conversation could not be opened');
+      }
+
+      // Track analytics (best-effort)
+      if (user?.id) {
+        analyticsAPI
+          .trackUserActivity(user.id, 'open_chat', {
+            listingId: id,
+            businessId: listing.businesses?.id,
+            method: 'chat',
+          })
+          .catch(() => {});
+      }
+
+      navigate(`/chat/${conversationId}`);
+    } catch (err) {
+      console.error('Open chat error:', err);
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        'Failed to open chat';
+      showToast(msg, 'error');
+    } finally {
+      setOpeningChat(false);
+    }
   };
 
   const openWhatsApp = () => {
@@ -395,9 +456,7 @@ const ListingDetails = () => {
             padding: 20px;
             text-align: center;
           }
-          .error-icon {
-            font-size: 48px;
-          }
+          .error-icon { font-size: 48px; }
           .error-title {
             color: #1e293b;
             font-size: clamp(18px, 2vw, 20px);
@@ -437,6 +496,14 @@ const ListingDetails = () => {
     listing.contact_phone ||
     listing.businesses?.phone ||
     listing.businesses?.whatsapp_number;
+
+  // ✅ Determine if we should show the Message button
+  const sellerUserId =
+    listing.businesses?.user_id ||
+    listing.businesses?.userId ||
+    listing.businesses?.owner_id;
+  const isOwnListing = user?.id && sellerUserId === user.id;
+  const canMessageSeller = user && sellerUserId && !isOwnListing;
 
   return (
     <div className="listing-details">
@@ -555,9 +622,39 @@ const ListingDetails = () => {
               </p>
             )}
 
+            {/* ============================================ */}
+            {/* ✅ ACTION BUTTONS                              */}
+            {/* ============================================ */}
             <div className="contact-buttons">
               {user ? (
                 <>
+                  {/* Message Seller — always visible if we have a seller user ID */}
+                  {canMessageSeller && (
+                    <button
+                      className="btn-message"
+                      onClick={handleMessageSeller}
+                      disabled={openingChat}
+                    >
+                      {openingChat ? (
+                        <>
+                          <span className="btn-spinner" />
+                          Opening…
+                        </>
+                      ) : (
+                        <>
+                          <Icon
+                            name="message"
+                            size={16}
+                            color="#FFFFFF"
+                            strokeWidth={1.75}
+                          />
+                          Message Seller
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Call + WhatsApp — only if phone exists */}
                   {sellerPhone ? (
                     <>
                       <button className="btn-call" onClick={openPhoneDialer}>
@@ -580,9 +677,11 @@ const ListingDetails = () => {
                       </button>
                     </>
                   ) : (
-                    <p className="no-phone">
-                      This seller hasn't provided a phone number yet.
-                    </p>
+                    !canMessageSeller && (
+                      <p className="no-phone">
+                        This seller hasn't provided a phone number yet.
+                      </p>
+                    )
                   )}
                 </>
               ) : (
@@ -862,30 +961,11 @@ const ListingDetails = () => {
           gap: 3px;
         }
 
-        .badge-category {
-          background: #ede9f5;
-          color: #1e293b;
-        }
-
-        .badge-sub {
-          background: #f1f5f9;
-          color: #64748b;
-        }
-
-        .badge-price {
-          background: #d1fae5;
-          color: #065f46;
-        }
-
-        .badge-negotiable {
-          background: #fef3c7;
-          color: #92400e;
-        }
-
-        .badge-delivery {
-          background: #dbeafe;
-          color: #1e40af;
-        }
+        .badge-category { background: #ede9f5; color: #1e293b; }
+        .badge-sub { background: #f1f5f9; color: #64748b; }
+        .badge-price { background: #d1fae5; color: #065f46; }
+        .badge-negotiable { background: #fef3c7; color: #92400e; }
+        .badge-delivery { background: #dbeafe; color: #1e40af; }
 
         .listing-description {
           font-size: 14px;
@@ -964,7 +1044,8 @@ const ListingDetails = () => {
 
         .btn-call,
         .btn-whatsapp,
-        .btn-login {
+        .btn-login,
+        .btn-message {
           padding: 10px 22px;
           border: none;
           border-radius: 10px;
@@ -989,6 +1070,34 @@ const ListingDetails = () => {
         .btn-login:hover {
           background: #f59e0b;
           transform: scale(0.98);
+        }
+
+        /* ✅ NEW — primary message button style */
+        .btn-message {
+          background: #f59e0b;
+        }
+
+        .btn-message:hover:not(:disabled) {
+          background: #d97706;
+          transform: scale(0.98);
+        }
+
+        .btn-message:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .btn-spinner {
+          width: 14px;
+          height: 14px;
+          border: 2px solid rgba(255, 255, 255, 0.35);
+          border-top-color: #ffffff;
+          border-radius: 50%;
+          animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         .btn-whatsapp {
@@ -1037,18 +1146,10 @@ const ListingDetails = () => {
           transform: scale(0.97);
         }
 
-        .share-btn.whatsapp {
-          background: #25d366;
-        }
-        .share-btn.facebook {
-          background: #1877f2;
-        }
-        .share-btn.twitter {
-          background: #1da1f2;
-        }
-        .share-btn.copy {
-          background: #64748b;
-        }
+        .share-btn.whatsapp { background: #25d366; }
+        .share-btn.facebook { background: #1877f2; }
+        .share-btn.twitter { background: #1da1f2; }
+        .share-btn.copy { background: #64748b; }
 
         .share-success {
           color: #10b981;
@@ -1285,7 +1386,8 @@ const ListingDetails = () => {
           }
           .btn-call,
           .btn-whatsapp,
-          .btn-login {
+          .btn-login,
+          .btn-message {
             width: 100%;
             justify-content: center;
           }
@@ -1327,12 +1429,16 @@ const ListingDetails = () => {
           .btn-call,
           .btn-whatsapp,
           .btn-login,
+          .btn-message,
           .share-btn,
           .btn-write-review,
           .btn-submit-review,
           .btn-cancel-review,
           .nav-icon-wrap {
             transition: none;
+          }
+          .btn-spinner {
+            animation: none;
           }
         }
       `}</style>

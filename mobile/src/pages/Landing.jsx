@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { listingsAPI, businessAPI, notificationsAPI } from '../services/api';
+import { listingsAPI, businessAPI, notificationsAPI, messagesAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 
 // ============================================================
@@ -39,25 +39,17 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   const d = icons[name] || icons.store;
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
       className={className}
-      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-    >
+      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
       <path d={d} />
     </svg>
   );
 };
 
 // ============================================================
-// CATEGORIES — each carries its own accent, like stalls at a market
+// CATEGORIES
 // ============================================================
 const CATEGORIES = [
   { label: 'All', icon: 'layers', color: '#E8A33D' },
@@ -68,7 +60,7 @@ const CATEGORIES = [
   { label: 'Hardware', icon: 'hammer', color: '#6B7280' },
 ];
 
-const NEW_WINDOW_MS = 48 * 60 * 60 * 1000; // 48 hours
+const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 const ASPECT_RATIOS = ['4 / 5', '4 / 6.6', '4 / 4.2', '4 / 5.8'];
 
 // ============================================================
@@ -77,7 +69,7 @@ const ASPECT_RATIOS = ['4 / 5', '4 / 6.6', '4 / 4.2', '4 / 5.8'];
 const Landing = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { success } = useToast();
+  const { success, showToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [allListings, setAllListings] = useState([]);
@@ -89,14 +81,13 @@ const Landing = () => {
   );
   const [likedItems, setLikedItems] = useState({});
   const [activeTab, setActiveTab] = useState('all');
+  const [openingChatId, setOpeningChatId] = useState(null);
 
   const searchInputRef = useRef(null);
   const isMobile = windowWidth <= 768;
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login', { replace: true });
-    }
+    if (!isAuthenticated) navigate('/login', { replace: true });
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
@@ -109,10 +100,51 @@ const Landing = () => {
     setLikedItems((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
-  // Fetch real data — no fake likes / comments / ratings
+  const handleQuickMessage = useCallback(
+    async (e, item) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      if (!user) {
+        showToast('Please sign in to message the seller', 'warning');
+        navigate('/login');
+        return;
+      }
+
+      const sellerUserId =
+        item?.businesses?.user_id ||
+        item?.businesses?.userId ||
+        item?.businesses?.owner_id ||
+        null;
+
+      if (!sellerUserId) {
+        showToast('Seller information is unavailable', 'error');
+        return;
+      }
+      if (sellerUserId === user.id) {
+        showToast("You can't message yourself about your own listing", 'warning');
+        return;
+      }
+      if (openingChatId === item.id) return;
+      setOpeningChatId(item.id);
+
+      try {
+        const res = await messagesAPI.createConversation(sellerUserId, item.id);
+        const conversationId = res?.data?.conversation?.id;
+        if (!conversationId) throw new Error('Could not open conversation');
+        navigate(`/chat/${conversationId}`);
+      } catch (err) {
+        console.error('Quick message error:', err);
+        showToast(err?.response?.data?.error || 'Failed to open chat', 'error');
+      } finally {
+        setOpeningChatId(null);
+      }
+    },
+    [user, navigate, showToast, openingChatId]
+  );
+
   useEffect(() => {
     let mounted = true;
-
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -126,7 +158,6 @@ const Landing = () => {
         let listingsData = listingsRes.data?.listings || [];
         const businessesData = bizRes.data?.businesses || [];
 
-        // Fallback: if no listings yet, surface businesses as cards
         if (listingsData.length === 0 && businessesData.length > 0) {
           listingsData = businessesData.map((b) => ({
             id: `biz-${b.id}`,
@@ -135,17 +166,15 @@ const Landing = () => {
             category: b.category,
             price: null,
             images: b.logo_url ? [b.logo_url] : [],
-            businesses: { business_name: b.business_name, id: b.id },
+            businesses: { business_name: b.business_name, id: b.id, user_id: b.user_id },
             created_at: b.created_at,
             is_business: true,
             location_area: b.location_text || '',
             delivery_available: b.delivery_available || false,
             business_id: b.id,
-            // ✅ No fake likes / comments_count / rating
           }));
         }
 
-        // ✅ Remove the fake `Math.random()` decorations from before
         if (mounted) {
           setAllListings(listingsData);
           setFeaturedBusinesses(businessesData);
@@ -159,34 +188,19 @@ const Landing = () => {
     };
 
     fetchData();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
 
   const filteredListings = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     const isService = (item) => {
-      const serviceCategories = [
-        'Plumber',
-        'Electrician',
-        'Carpenter',
-        'Mechanic',
-        'Tailor',
-        'Hairdresser',
-        'Services',
-      ];
-      return serviceCategories.some((cat) =>
-        item.category?.toLowerCase().includes(cat.toLowerCase())
-      );
+      const serviceCategories = ['Plumber', 'Electrician', 'Carpenter', 'Mechanic', 'Tailor', 'Hairdresser', 'Services'];
+      return serviceCategories.some((cat) => item.category?.toLowerCase().includes(cat.toLowerCase()));
     };
 
     return allListings.filter((item) => {
-      const categoryMatch =
-        selectedCategory === 'All' ||
-        item.category?.toLowerCase().includes(selectedCategory.toLowerCase());
-      const searchMatch =
-        !query ||
+      const categoryMatch = selectedCategory === 'All' || item.category?.toLowerCase().includes(selectedCategory.toLowerCase());
+      const searchMatch = !query ||
         item.title?.toLowerCase().includes(query) ||
         item.category?.toLowerCase().includes(query) ||
         item.businesses?.business_name?.toLowerCase().includes(query);
@@ -202,28 +216,21 @@ const Landing = () => {
   const handleSearch = useCallback(
     (e) => {
       e.preventDefault();
-      if (searchQuery.trim()) {
-        navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      }
+      if (searchQuery.trim()) navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     },
     [searchQuery, navigate]
   );
 
   const handleListingClick = useCallback(
     (item) => {
-      if (item.is_business) {
-        navigate(`/search?q=${encodeURIComponent(item.title)}`);
-      } else {
-        navigate(`/listing/${item.id}`);
-      }
+      if (item.is_business) navigate(`/search?q=${encodeURIComponent(item.title)}`);
+      else navigate(`/listing/${item.id}`);
     },
     [navigate]
   );
 
   const handleBusinessClick = useCallback(
-    (business) => {
-      navigate(`/search?q=${encodeURIComponent(business.business_name)}`);
-    },
+    (business) => navigate(`/search?q=${encodeURIComponent(business.business_name)}`),
     [navigate]
   );
 
@@ -252,56 +259,19 @@ const Landing = () => {
       <div className="loading-skeleton">
         <div className="skeleton-hero" />
         <div className="skeleton-categories">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="skeleton-chip" />
-          ))}
+          {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="skeleton-chip" />)}
         </div>
         <div className="skeleton-grid">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="skeleton-card" />
-          ))}
+          {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="skeleton-card" />)}
         </div>
         <style jsx>{`
-          .loading-skeleton {
-            min-height: 100vh;
-            background: #fbf8f2;
-            padding-bottom: 80px;
-          }
-          .skeleton-hero {
-            height: 150px;
-            background: linear-gradient(135deg, #244f43, #1c2b26);
-            margin-bottom: 24px;
-            animation: pulse 1.5s ease-in-out infinite;
-          }
-          .skeleton-categories {
-            display: flex;
-            gap: 16px;
-            padding: 0 16px;
-            margin-bottom: 16px;
-          }
-          .skeleton-chip {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #e7e2d4;
-            animation: pulse 1.5s ease-in-out infinite;
-          }
-          .skeleton-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            padding: 0 16px;
-          }
-          .skeleton-card {
-            aspect-ratio: 4 / 5;
-            background: #e7e2d4;
-            border-radius: 16px;
-            animation: pulse 1.5s ease-in-out infinite;
-          }
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-          }
+          .loading-skeleton { min-height: 100vh; background: #fbf8f2; padding-bottom: 80px; }
+          .skeleton-hero { height: 150px; background: linear-gradient(135deg, #244f43, #1c2b26); margin-bottom: 24px; animation: pulse 1.5s ease-in-out infinite; }
+          .skeleton-categories { display: flex; gap: 16px; padding: 0 16px; margin-bottom: 16px; }
+          .skeleton-chip { width: 48px; height: 48px; border-radius: 50%; background: #e7e2d4; animation: pulse 1.5s ease-in-out infinite; }
+          .skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 16px; }
+          .skeleton-card { aspect-ratio: 4 / 5; background: #e7e2d4; border-radius: 16px; animation: pulse 1.5s ease-in-out infinite; }
+          @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         `}</style>
       </div>
     );
@@ -309,7 +279,6 @@ const Landing = () => {
 
   return (
     <div className="app">
-      {/* ===== HERO ===== */}
       <div className="hero-block">
         <div className="hero-inner">
           <h1 className="hero-title">
@@ -317,9 +286,7 @@ const Landing = () => {
             <br />
             <span className="hero-highlight">right here.</span>
           </h1>
-          <p className="hero-desc">
-            Local products, services, and tradespeople in Mitundu
-          </p>
+          <p className="hero-desc">Local products, services, and tradespeople in Mitundu</p>
         </div>
       </div>
 
@@ -342,32 +309,16 @@ const Landing = () => {
         </form>
       </div>
 
-      {/* ===== CATEGORIES ===== */}
       <div className="categories-section">
         <div className="categories-scroll">
           {CATEGORIES.map((cat) => {
             const active = selectedCategory === cat.label;
             return (
-              <button
-                key={cat.label}
-                className="category-chip"
-                onClick={() => setSelectedCategory(cat.label)}
-              >
-                <span
-                  className="category-circle"
-                  style={{ background: active ? cat.color : `${cat.color}1F` }}
-                >
-                  <Icon
-                    name={cat.icon}
-                    size={17}
-                    color={active ? '#FBF8F2' : cat.color}
-                    strokeWidth={1.75}
-                  />
+              <button key={cat.label} className="category-chip" onClick={() => setSelectedCategory(cat.label)}>
+                <span className="category-circle" style={{ background: active ? cat.color : `${cat.color}1F` }}>
+                  <Icon name={cat.icon} size={17} color={active ? '#FBF8F2' : cat.color} strokeWidth={1.75} />
                 </span>
-                <span
-                  className="category-label"
-                  style={{ color: active ? cat.color : '#6B7A73' }}
-                >
+                <span className="category-label" style={{ color: active ? cat.color : '#6B7A73' }}>
                   {cat.label}
                 </span>
               </button>
@@ -376,39 +327,18 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ===== TABS ===== */}
       <div className="tabs-section">
-        <button
-          className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-          onClick={() => setActiveTab('all')}
-        >
-          All
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'goods' ? 'active' : ''}`}
-          onClick={() => setActiveTab('goods')}
-        >
-          Goods
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'services' ? 'active' : ''}`}
-          onClick={() => setActiveTab('services')}
-        >
-          Services
-        </button>
+        <button className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>All</button>
+        <button className={`tab-btn ${activeTab === 'goods' ? 'active' : ''}`} onClick={() => setActiveTab('goods')}>Goods</button>
+        <button className={`tab-btn ${activeTab === 'services' ? 'active' : ''}`} onClick={() => setActiveTab('services')}>Services</button>
       </div>
 
-      {/* ===== FEATURED BUSINESSES ===== */}
       {featuredBusinesses.length > 0 && (
         <div className="featured-section">
           <h2 className="featured-title">Businesses near you</h2>
           <div className="featured-scroll">
             {featuredBusinesses.map((biz) => (
-              <button
-                key={biz.id}
-                className="featured-card"
-                onClick={() => handleBusinessClick(biz)}
-              >
+              <button key={biz.id} className="featured-card" onClick={() => handleBusinessClick(biz)}>
                 <div className="featured-logo">
                   {biz.logo_url ? (
                     <img src={biz.logo_url} alt={biz.business_name} />
@@ -424,7 +354,6 @@ const Landing = () => {
         </div>
       )}
 
-      {/* ===== LISTINGS ===== */}
       <section className="listings">
         <div className="listings-header">
           <div className="listings-header-left">
@@ -443,20 +372,18 @@ const Landing = () => {
               const realLikeCount = item.likes ?? 0;
               const isBusiness = item.is_business || !!item.business_id;
 
+              const sellerUserId =
+                item.businesses?.user_id ||
+                item.businesses?.userId ||
+                item.businesses?.owner_id ||
+                null;
+              const canMessage = !!sellerUserId && sellerUserId !== user?.id;
+
               return (
-                <div
-                  key={item.id}
-                  className="feed-card"
-                  onClick={() => handleListingClick(item)}
-                >
+                <div key={item.id} className="feed-card" onClick={() => handleListingClick(item)}>
                   <div className="feed-image" style={{ aspectRatio: getAspect(index) }}>
                     {item.images && item.images.length > 0 ? (
-                      <img
-                        src={item.images[0]}
-                        alt={item.title}
-                        className="feed-img"
-                        loading="lazy"
-                      />
+                      <img src={item.images[0]} alt={item.title} className="feed-img" loading="lazy" />
                     ) : (
                       <div className="feed-placeholder">
                         <Icon name="store" size={28} color="#C7BFA8" strokeWidth={1.5} />
@@ -506,20 +433,26 @@ const Landing = () => {
                     <div className="feed-footer">
                       <button
                         className="like-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLike(item.id);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); handleLike(item.id); }}
                       >
-                        <Icon
-                          name="heart"
-                          size={13}
+                        <Icon name="heart" size={13}
                           color={isLiked ? '#EF4444' : '#8A9A93'}
-                          strokeWidth={isLiked ? 2.5 : 1.5}
-                        />
+                          strokeWidth={isLiked ? 2.5 : 1.5} />
                         <span>{realLikeCount + (isLiked ? 1 : 0)}</span>
                       </button>
                     </div>
+
+                    {canMessage && (
+                      <button
+                        type="button"
+                        className="feed-message-btn"
+                        onClick={(e) => handleQuickMessage(e, item)}
+                        disabled={openingChatId === item.id}
+                      >
+                        <Icon name="message" size={13} color="#FBF8F2" strokeWidth={2} />
+                        {openingChatId === item.id ? 'Opening…' : 'Message'}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -538,7 +471,6 @@ const Landing = () => {
         )}
       </section>
 
-      {/* ===== BOTTOM NAV ===== */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -550,22 +482,11 @@ const Landing = () => {
           ].map((item) => {
             const active = item.id === 'home';
             return (
-              <button
-                key={item.id}
-                className="nav-btn"
-                onClick={() => handleBottomNav(item.id)}
-              >
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon
-                    name={item.icon}
-                    size={20}
-                    color={active ? '#FBF8F2' : '#8A9A93'}
-                    strokeWidth={1.75}
-                  />
+                  <Icon name={item.icon} size={20} color={active ? '#FBF8F2' : '#8A9A93'} strokeWidth={1.75} />
                 </div>
-                <span className={`nav-label ${active ? 'active' : ''}`}>
-                  {item.label}
-                </span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
@@ -582,23 +503,10 @@ const Landing = () => {
           color: #16231f;
           padding-bottom: 80px;
         }
+        @media (min-width: 769px) { .app { padding-bottom: 0; } }
 
-        @media (min-width: 769px) {
-          .app {
-            padding-bottom: 0;
-          }
-        }
-
-        .hero-block {
-          background: linear-gradient(135deg, #244f43 0%, #16231f 100%);
-          padding: 30px 16px 56px;
-        }
-
-        .hero-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
+        .hero-block { background: linear-gradient(135deg, #244f43 0%, #16231f 100%); padding: 30px 16px 56px; }
+        .hero-inner { max-width: 1200px; margin: 0 auto; }
         .hero-title {
           font-family: 'Fraunces', Georgia, serif;
           font-weight: 600;
@@ -608,579 +516,231 @@ const Landing = () => {
           line-height: 1.15;
           color: #fbf8f2;
         }
+        .hero-highlight { color: #e8a33d; }
+        .hero-desc { font-size: 14px; color: rgba(251, 248, 242, 0.72); margin: 0; }
 
-        .hero-highlight {
-          color: #e8a33d;
-        }
-
-        .hero-desc {
-          font-size: 14px;
-          color: rgba(251, 248, 242, 0.72);
-          margin: 0;
-        }
-
-        .search-card-wrap {
-          max-width: 1200px;
-          margin: -30px auto 0;
-          padding: 0 16px;
-          position: relative;
-        }
-
-        .search-form {
-          max-width: 560px;
-        }
-
+        .search-card-wrap { max-width: 1200px; margin: -30px auto 0; padding: 0 16px; position: relative; }
+        .search-form { max-width: 560px; }
         .search-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: #ffffff;
-          border-radius: 14px;
+          display: flex; align-items: center; gap: 10px;
+          background: #ffffff; border-radius: 14px;
           padding: 6px 6px 6px 16px;
           box-shadow: 0 14px 30px rgba(22, 35, 31, 0.2);
-          border: 2px solid transparent;
-          transition: all 0.2s;
+          border: 2px solid transparent; transition: all 0.2s;
         }
-
-        .search-wrapper:focus-within {
-          border-color: #e8a33d;
-        }
-
+        .search-wrapper:focus-within { border-color: #e8a33d; }
         .search-input {
-          flex: 1;
-          border: none;
-          outline: none;
-          background: transparent;
-          padding: 11px 0;
-          font-size: 15px;
-          font-family: inherit;
-          color: #16231f;
+          flex: 1; border: none; outline: none; background: transparent;
+          padding: 11px 0; font-size: 15px; font-family: inherit; color: #16231f;
         }
-
-        .search-input::placeholder {
-          color: #8a9a93;
-        }
-
+        .search-input::placeholder { color: #8a9a93; }
         .search-btn {
-          padding: 9px 15px;
-          background: #16231f;
-          border: none;
-          border-radius: 10px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          padding: 9px 15px; background: #16231f; border: none;
+          border-radius: 10px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
           transition: all 0.2s;
         }
+        .search-btn:hover { background: #e8a33d; }
 
-        .search-btn:hover {
-          background: #e8a33d;
-        }
-
-        .categories-section {
-          padding: 22px 16px 8px;
-          background: #fbf8f2;
-        }
-
-        .categories-scroll {
-          display: flex;
-          gap: 18px;
-          overflow-x: auto;
-          scrollbar-width: none;
-        }
-
-        .categories-scroll::-webkit-scrollbar {
-          display: none;
-        }
-
+        .categories-section { padding: 22px 16px 8px; background: #fbf8f2; }
+        .categories-scroll { display: flex; gap: 18px; overflow-x: auto; scrollbar-width: none; }
+        .categories-scroll::-webkit-scrollbar { display: none; }
         .category-chip {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 6px;
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-family: inherit;
-          flex-shrink: 0;
+          display: flex; flex-direction: column; align-items: center;
+          gap: 6px; background: none; border: none;
+          cursor: pointer; font-family: inherit; flex-shrink: 0;
         }
-
         .category-circle {
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 48px; height: 48px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
           transition: background 0.2s;
         }
+        .category-label { font-size: 11px; font-weight: 600; white-space: nowrap; transition: color 0.2s; }
 
-        .category-label {
-          font-size: 11px;
-          font-weight: 600;
-          white-space: nowrap;
-          transition: color 0.2s;
-        }
-
-        .tabs-section {
-          display: flex;
-          gap: 8px;
-          padding: 10px 16px 14px;
-          background: #fbf8f2;
-        }
-
+        .tabs-section { display: flex; gap: 8px; padding: 10px 16px 14px; background: #fbf8f2; }
         .tab-btn {
-          padding: 7px 16px;
-          border-radius: 20px;
-          border: 1.5px solid #e7e2d4;
-          background: transparent;
-          font-size: 13px;
-          font-weight: 600;
-          color: #6b7a73;
-          cursor: pointer;
-          font-family: inherit;
-          transition: all 0.2s;
+          padding: 7px 16px; border-radius: 20px;
+          border: 1.5px solid #e7e2d4; background: transparent;
+          font-size: 13px; font-weight: 600; color: #6b7a73;
+          cursor: pointer; font-family: inherit; transition: all 0.2s;
         }
+        .tab-btn:hover { border-color: #e8a33d; }
+        .tab-btn.active { background: #16231f; border-color: #16231f; color: #fbf8f2; }
 
-        .tab-btn:hover {
-          border-color: #e8a33d;
-        }
-
-        .tab-btn.active {
-          background: #16231f;
-          border-color: #16231f;
-          color: #fbf8f2;
-        }
-
-        .featured-section {
-          padding: 6px 16px 18px;
-          background: #fbf8f2;
-        }
-
-        .featured-title {
-          font-size: 13px;
-          font-weight: 700;
-          margin: 0 0 10px;
-          color: #16231f;
-        }
-
-        .featured-scroll {
-          display: flex;
-          gap: 10px;
-          overflow-x: auto;
-          scrollbar-width: none;
-        }
-
-        .featured-scroll::-webkit-scrollbar {
-          display: none;
-        }
-
+        .featured-section { padding: 6px 16px 18px; background: #fbf8f2; }
+        .featured-title { font-size: 13px; font-weight: 700; margin: 0 0 10px; color: #16231f; }
+        .featured-scroll { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+        .featured-scroll::-webkit-scrollbar { display: none; }
         .featured-card {
-          flex: 0 0 auto;
-          width: 104px;
-          background: #ffffff;
-          border: 1px solid #eee7d6;
-          border-radius: 14px;
-          padding: 10px 8px;
-          text-align: center;
-          cursor: pointer;
-          font-family: inherit;
-          transition: all 0.2s;
+          flex: 0 0 auto; width: 104px; background: #ffffff;
+          border: 1px solid #eee7d6; border-radius: 14px;
+          padding: 10px 8px; text-align: center;
+          cursor: pointer; font-family: inherit; transition: all 0.2s;
         }
-
-        .featured-card:hover {
-          border-color: #e8a33d;
-        }
-
+        .featured-card:hover { border-color: #e8a33d; }
         .featured-logo {
-          width: 42px;
-          height: 42px;
-          border-radius: 50%;
-          margin: 0 auto 6px;
-          background: #fbf8f2;
-          border: 1px solid #eee7d6;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
+          width: 42px; height: 42px; border-radius: 50%;
+          margin: 0 auto 6px; background: #fbf8f2;
+          border: 1px solid #eee7d6; display: flex;
+          align-items: center; justify-content: center; overflow: hidden;
         }
-
-        .featured-logo img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
+        .featured-logo img { width: 100%; height: 100%; object-fit: cover; }
         .featured-name {
-          font-size: 11px;
-          font-weight: 600;
-          color: #16231f;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          font-size: 11px; font-weight: 600; color: #16231f;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-
         .featured-cat {
-          font-size: 9px;
-          color: #8a9a93;
-          margin-top: 2px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          font-size: 9px; color: #8a9a93; margin-top: 2px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
-        .listings {
-          padding: 4px 16px 14px;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        .listings-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-        }
-
-        .listings-header-left {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .listings-title {
-          font-size: 16px;
-          font-weight: 700;
-          margin: 0;
-        }
-
+        .listings { padding: 4px 16px 14px; max-width: 1200px; margin: 0 auto; }
+        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .listings-header-left { display: flex; align-items: center; gap: 8px; }
+        .listings-title { font-size: 16px; font-weight: 700; margin: 0; }
         .listings-count {
-          font-size: 12px;
-          color: #8a9a93;
-          background: #eee7d6;
-          padding: 1px 10px;
-          border-radius: 12px;
+          font-size: 12px; color: #8a9a93; background: #eee7d6;
+          padding: 1px 10px; border-radius: 12px;
         }
-
         .filter-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          border: 1px solid #eee7d6;
-          background: #ffffff;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
+          width: 32px; height: 32px; border-radius: 8px;
+          border: 1px solid #eee7d6; background: #ffffff;
+          cursor: pointer; display: flex;
+          align-items: center; justify-content: center; transition: all 0.2s;
         }
+        .filter-btn:hover { background: #f3efe2; }
 
-        .filter-btn:hover {
-          background: #f3efe2;
-        }
-
-        .listings-grid {
-          column-count: 2;
-          column-gap: 12px;
-        }
-
-        @media (min-width: 640px) {
-          .listings-grid {
-            column-count: 3;
-          }
-        }
-
-        @media (min-width: 1024px) {
-          .listings-grid {
-            column-count: 4;
-          }
-        }
+        .listings-grid { column-count: 2; column-gap: 12px; }
+        @media (min-width: 640px) { .listings-grid { column-count: 3; } }
+        @media (min-width: 1024px) { .listings-grid { column-count: 4; } }
 
         .feed-card {
-          background: #ffffff;
-          border-radius: 16px;
-          border: 1px solid #eee7d6;
-          overflow: hidden;
-          cursor: pointer;
-          break-inside: avoid;
-          -webkit-column-break-inside: avoid;
-          margin-bottom: 12px;
+          background: #ffffff; border-radius: 16px;
+          border: 1px solid #eee7d6; overflow: hidden;
+          cursor: pointer; break-inside: avoid;
+          -webkit-column-break-inside: avoid; margin-bottom: 12px;
           transition: box-shadow 0.2s, transform 0.2s;
         }
+        .feed-card:hover { box-shadow: 0 10px 26px rgba(22, 35, 31, 0.12); transform: translateY(-2px); }
 
-        .feed-card:hover {
-          box-shadow: 0 10px 26px rgba(22, 35, 31, 0.12);
-          transform: translateY(-2px);
-        }
-
-        .feed-image {
-          position: relative;
-          width: 100%;
-          background: #f3efe2;
-          overflow: hidden;
-        }
-
-        .feed-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-
-        .feed-placeholder {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
+        .feed-image { position: relative; width: 100%; background: #f3efe2; overflow: hidden; }
+        .feed-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .feed-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
 
         .badge-row {
-          position: absolute;
-          top: 8px;
-          left: 8px;
-          right: 8px;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          pointer-events: none;
+          position: absolute; top: 8px; left: 8px; right: 8px;
+          display: flex; justify-content: space-between;
+          align-items: flex-start; pointer-events: none;
         }
-
         .badge {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 6px;
-          font-size: 10px;
-          font-weight: 700;
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 6px; font-size: 10px; font-weight: 700;
         }
-
-        .feed-new {
-          background: #c9603c;
-          color: #fbf8f2;
-          padding: 3px 7px;
-        }
-
+        .feed-new { background: #c9603c; color: #fbf8f2; padding: 3px 7px; }
         .feed-delivery {
-          background: #244f43;
-          width: 20px;
-          height: 20px;
-          border-radius: 6px;
+          background: #244f43; width: 20px; height: 20px; border-radius: 6px;
         }
 
         .feed-content {
           padding: 10px 12px 12px;
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
+          display: flex; flex-direction: column; gap: 5px;
         }
-
         .feed-title {
-          font-size: 13px;
-          font-weight: 600;
-          margin: 0;
-          line-height: 1.3;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+          font-size: 13px; font-weight: 600; margin: 0; line-height: 1.3;
+          display: -webkit-box; -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical; overflow: hidden;
         }
-
         .feed-price-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 6px;
+          display: flex; align-items: center;
+          justify-content: space-between; gap: 6px;
         }
-
-        .feed-price {
-          font-size: 14px;
-          font-weight: 700;
-          color: #c9603c;
-        }
-
+        .feed-price { font-size: 14px; font-weight: 700; color: #c9603c; }
         .feed-rating {
-          display: flex;
-          align-items: center;
-          gap: 2px;
-          font-size: 11px;
-          font-weight: 600;
-          color: #e8a33d;
-          flex-shrink: 0;
+          display: flex; align-items: center; gap: 2px;
+          font-size: 11px; font-weight: 600; color: #e8a33d; flex-shrink: 0;
         }
-
         .feed-meta-row {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 11px;
-          color: #8a9a93;
-          flex-wrap: wrap;
+          display: flex; align-items: center; gap: 5px;
+          font-size: 11px; color: #8a9a93; flex-wrap: wrap;
         }
-
-        .feed-seller-text,
-        .feed-location-text {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          max-width: 100px;
+        .feed-seller-text, .feed-location-text {
+          overflow: hidden; text-overflow: ellipsis;
+          white-space: nowrap; max-width: 100px;
         }
-
         .feed-dot {
-          width: 3px;
-          height: 3px;
-          border-radius: 50%;
-          background: #d8d0bb;
-          flex-shrink: 0;
+          width: 3px; height: 3px; border-radius: 50%;
+          background: #d8d0bb; flex-shrink: 0;
         }
-
         .business-tag {
-          font-size: 9px;
-          font-weight: 700;
-          color: #e8a33d;
+          font-size: 9px; font-weight: 700; color: #e8a33d;
           background: rgba(232, 163, 61, 0.14);
-          padding: 1px 6px;
-          border-radius: 5px;
-          flex-shrink: 0;
+          padding: 1px 6px; border-radius: 5px; flex-shrink: 0;
         }
 
         .feed-footer {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          margin-top: 2px;
-          padding-top: 6px;
-          border-top: 1px solid #f3efe2;
+          display: flex; align-items: center; justify-content: flex-end;
+          margin-top: 2px; padding-top: 6px; border-top: 1px solid #f3efe2;
         }
-
         .like-btn {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          background: none;
-          border: none;
-          font-size: 11px;
-          color: #8a9a93;
-          cursor: pointer;
-          font-family: inherit;
-          padding: 2px 4px;
-          border-radius: 6px;
-          transition: all 0.2s;
+          display: flex; align-items: center; gap: 4px;
+          background: none; border: none; font-size: 11px;
+          color: #8a9a93; cursor: pointer; font-family: inherit;
+          padding: 2px 4px; border-radius: 6px; transition: all 0.2s;
         }
+        .like-btn:hover { background: #f3efe2; color: #ef4444; }
 
-        .like-btn:hover {
-          background: #f3efe2;
-          color: #ef4444;
+        .feed-message-btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          gap: 6px; width: 100%; padding: 8px 12px; margin-top: 6px;
+          background: #244f43; border: none; border-radius: 10px;
+          font-size: 12px; font-weight: 600; color: #fbf8f2;
+          font-family: inherit; cursor: pointer; transition: background 0.2s;
         }
+        .feed-message-btn:hover:not(:disabled) { background: #e8a33d; }
+        .feed-message-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .empty-state {
-          text-align: center;
-          padding: 40px 20px;
-        }
-
-        .empty-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: #16231f;
-          margin: 8px 0 4px;
-        }
-
-        .empty-desc {
-          font-size: 13px;
-          color: #8a9a93;
-          margin: 0;
-        }
+        .empty-state { text-align: center; padding: 40px 20px; }
+        .empty-title { font-size: 16px; font-weight: 600; color: #16231f; margin: 8px 0 4px; }
+        .empty-desc { font-size: 13px; color: #8a9a93; margin: 0; }
 
         .bottom-nav {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
+          position: fixed; bottom: 0; left: 0; right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
           border-top: 1px solid rgba(238, 231, 214, 0.7);
-          display: flex;
-          justify-content: space-around;
-          padding: 4px 0 8px;
-          z-index: 100;
+          display: flex; justify-content: space-around;
+          padding: 4px 0 8px; z-index: 100;
         }
-
         .nav-btn {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 2px;
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 4px 8px;
-          font-family: inherit;
-          min-width: 44px;
+          display: flex; flex-direction: column; align-items: center;
+          gap: 2px; background: none; border: none;
+          cursor: pointer; padding: 4px 8px;
+          font-family: inherit; min-width: 44px;
         }
-
         .nav-icon-wrap {
-          width: 34px;
-          height: 34px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 34px; height: 34px; border-radius: 10px;
+          display: flex; align-items: center; justify-content: center;
           transition: all 0.2s;
         }
-
-        .nav-icon-wrap.active {
-          background: #244f43;
-        }
-
-        .nav-label {
-          font-size: 9px;
-          font-weight: 500;
-          color: #8a9a93;
-        }
-
-        .nav-label.active {
-          color: #16231f;
-          font-weight: 600;
-        }
+        .nav-icon-wrap.active { background: #244f43; }
+        .nav-label { font-size: 9px; font-weight: 500; color: #8a9a93; }
+        .nav-label.active { color: #16231f; font-weight: 600; }
 
         @media (max-width: 480px) {
-          .hero-block {
-            padding: 24px 12px 52px;
-          }
-          .hero-title {
-            font-size: 24px;
-          }
-          .listings {
-            padding: 4px 12px 12px;
-          }
-          .listings-grid {
-            column-gap: 10px;
-          }
-          .feed-card {
-            margin-bottom: 10px;
-          }
-          .feed-title {
-            font-size: 12px;
-          }
-          .feed-price {
-            font-size: 13px;
-          }
+          .hero-block { padding: 24px 12px 52px; }
+          .hero-title { font-size: 24px; }
+          .listings { padding: 4px 12px 12px; }
+          .listings-grid { column-gap: 10px; }
+          .feed-card { margin-bottom: 10px; }
+          .feed-title { font-size: 12px; }
+          .feed-price { font-size: 13px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .skeleton-hero,
-          .skeleton-chip,
-          .skeleton-card {
-            animation: none;
-          }
-          .feed-card,
-          .like-btn,
-          .nav-icon-wrap,
-          .category-circle,
-          .tab-btn,
-          .featured-card {
-            transition: none;
-          }
+          .skeleton-hero, .skeleton-chip, .skeleton-card { animation: none; }
+          .feed-card, .like-btn, .nav-icon-wrap, .category-circle,
+          .tab-btn, .featured-card, .feed-message-btn { transition: none; }
+          .feed-card:hover { transform: none; }
         }
       `}</style>
     </div>

@@ -1,12 +1,13 @@
 {
   "name": "Kumsika Marketplace",
   "short_name": "Kumsika",
-  "description": "AI-powered local marketplace for Mitundu, Malawi",
+  "description": "AI-powered local marketplace for Mitundu, Malawi. Buy, sell, and hire locally with smart AI assistance.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1E293B",
   "icons": [
     {
       "src": "/logo192.png",
@@ -27,9 +28,9 @@
   "prefer_related_applications": false,
   "shortcuts": [
     {
-      "name": "Dashboard",
-      "url": "/dashboard",
-      "description": "Go to your dashboard"
+      "name": "Messages",
+      "url": "/messages",
+      "description": "Check your conversations"
     },
     {
       "name": "Search",

@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
 import { ToastProvider } from './components/ToastContainer';
 import Navbar from './components/Navbar';
+import { usePublishPresence } from './hooks/usePresence'; // ✅ NEW
 import './styles/global.css';
 import './index.css';
 
@@ -39,20 +40,19 @@ import Notifications from './pages/Notifications';
 import NotFound from './pages/NotFound';
 
 // ============================================================
-// PROTECTED ROUTE - Instant redirect, no loading
-// Also gates unfinished onboarding. NOTE: `register()` in
-// AuthContext always defaults `role` to 'buyer' at signup, so
-// role is never null/unset — it can't be used to detect "hasn't
-// chosen a role yet". `onboarding_completed` (false at signup,
-// flipped to true once the flow finishes) is the only reliable
-// signal, so that's the single gate below. Entry point for an
-// incomplete onboarding is /role-selection, which hands off to
-// /profile-setup and finishes by calling
-// updateProfile({ onboarding_completed: true }).
-// (Onboarding.jsx / the old /onboarding route was a separate,
-// unreachable buy-vs-sell chooser from an earlier iteration —
-// removed here; delete the file itself once confirmed unused
-// elsewhere.)
+// ✅ PRESENCE PUBLISHER
+// Publishes the current user's online status globally, so any
+// other user viewing a chat with them sees a green dot.
+// Rendered once inside AuthProvider so it can read `user`.
+// ============================================================
+function PresencePublisher() {
+  const { user } = useAuth();
+  usePublishPresence(user?.id);
+  return null;
+}
+
+// ============================================================
+// PROTECTED ROUTE
 // ============================================================
 const ONBOARDING_EXEMPT_PATHS = ['/role-selection', '/profile-setup'];
 
@@ -61,7 +61,7 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
   if (!authInitialized) {
-    return children; // ✅ Render children immediately, no loading
+    return children;
   }
 
   if (!isAuthenticated) {
@@ -79,13 +79,13 @@ const ProtectedRoute = ({ children }) => {
 };
 
 // ============================================================
-// PUBLIC ROUTE - Instant redirect, no loading
+// PUBLIC ROUTE
 // ============================================================
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, authInitialized } = useAuth();
 
   if (!authInitialized) {
-    return children; // ✅ Render children immediately, no loading
+    return children;
   }
 
   if (isAuthenticated) {
@@ -96,7 +96,7 @@ const PublicRoute = ({ children }) => {
 };
 
 // ============================================================
-// ADMIN ROUTE - Requires authentication AND an admin role
+// ADMIN ROUTE
 // ============================================================
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, authInitialized, isAdmin } = useAuth();
@@ -117,12 +117,11 @@ const AdminRoute = ({ children }) => {
 };
 
 // ============================================================
-// LAYOUT WRAPPER - Controls Navbar visibility
+// LAYOUT WRAPPER
 // ============================================================
 const Layout = ({ children }) => {
   const location = useLocation();
 
-  // Pages where Navbar should NOT show
   const hideNavbar = ['/', '/login', '/register'].includes(location.pathname);
 
   if (hideNavbar) {
@@ -132,26 +131,19 @@ const Layout = ({ children }) => {
   return (
     <>
       <Navbar />
-      <div style={{ paddingTop: '60px' }}>
-        {children}
-      </div>
+      <div style={{ paddingTop: '60px' }}>{children}</div>
     </>
   );
 };
 
 // ============================================================
 // APP ROUTES
-// Splash now waits on auth to actually resolve instead of a
-// fixed timer, so an already-authenticated user isn't forced
-// to sit through 2 seconds on every open.
 // ============================================================
 function AppRoutes() {
   const { authInitialized } = useAuth();
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
   const splashTimer = React.useRef(null);
 
-  // Keep a short minimum splash so the logo isn't a single-frame
-  // flash on fast connections, but never block longer than auth needs.
   useEffect(() => {
     splashTimer.current = setTimeout(() => {
       setMinTimeElapsed(true);
@@ -190,7 +182,7 @@ function AppRoutes() {
         }
       />
 
-      {/* Protected Routes - With Navbar (via Layout) */}
+      {/* Protected Routes - With Navbar */}
       <Route
         path="/"
         element={
@@ -442,7 +434,7 @@ function AppRoutes() {
         }
       />
 
-      {/* 404 - With Navbar */}
+      {/* 404 */}
       <Route
         path="*"
         element={
@@ -464,6 +456,8 @@ function App() {
       <AuthProvider>
         <TranslationProvider>
           <BrowserRouter>
+            {/* ✅ NEW: publish current user's presence globally */}
+            <PresencePublisher />
             <AppRoutes />
           </BrowserRouter>
         </TranslationProvider>

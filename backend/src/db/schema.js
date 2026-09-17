@@ -1,16 +1,17 @@
 // backend/src/db/schema.js
-import { 
-  pgTable, 
-  serial, 
-  text, 
-  integer, 
-  decimal, 
-  boolean, 
-  timestamp, 
+import {
+  pgTable,
+  serial,
+  text,
+  integer,
+  decimal,
+  boolean,
+  timestamp,
   uuid,
   jsonb,
   pgEnum,
   uniqueIndex,
+  index,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
@@ -23,9 +24,10 @@ export const planEnum = pgEnum('plan', ['free', 'basic', 'pro', 'business']);
 export const priceTypeEnum = pgEnum('price_type', ['fixed', 'negotiable', 'free_quote']);
 export const urgencyEnum = pgEnum('urgency', ['low', 'medium', 'high', 'urgent']);
 export const notificationTypeEnum = pgEnum('notification_type', ['info', 'success', 'warning', 'error']);
+export const messageTypeEnum = pgEnum('message_type', ['text', 'image', 'system']);
 
 // ============================================
-// PROFILES TABLE
+// PROFILES
 // ============================================
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -41,7 +43,7 @@ export const profiles = pgTable('profiles', {
 });
 
 // ============================================
-// BUSINESSES TABLE
+// BUSINESSES
 // ============================================
 export const businesses = pgTable('businesses', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -63,7 +65,7 @@ export const businesses = pgTable('businesses', {
 });
 
 // ============================================
-// LISTINGS TABLE
+// LISTINGS
 // ============================================
 export const listings = pgTable('listings', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -88,12 +90,10 @@ export const listings = pgTable('listings', {
   searchVector: text('search_vector'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-}, (table) => ({
-  searchIndex: uniqueIndex('listings_search_idx').on(table.searchVector),
-}));
+});
 
 // ============================================
-// SUBSCRIPTIONS TABLE
+// SUBSCRIPTIONS
 // ============================================
 export const subscriptions = pgTable('subscriptions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -109,7 +109,7 @@ export const subscriptions = pgTable('subscriptions', {
 });
 
 // ============================================
-// NOTIFICATIONS TABLE
+// NOTIFICATIONS
 // ============================================
 export const notifications = pgTable('notifications', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -123,7 +123,27 @@ export const notifications = pgTable('notifications', {
 });
 
 // ============================================
-// NEEDS TABLE (Smart Matching)
+// ✅ NEW: PUSH SUBSCRIPTIONS (web push)
+// ============================================
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  endpoint: text('endpoint').notNull(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').defaultNow(),
+  lastUsedAt: timestamp('last_used_at').defaultNow(),
+}, (table) => ({
+  userEndpointIdx: uniqueIndex('push_subscriptions_user_endpoint_idx')
+    .on(table.userId, table.endpoint),
+  userIdx: index('push_subscriptions_user_idx').on(table.userId),
+}));
+
+// ============================================
+// NEEDS
 // ============================================
 export const needs = pgTable('needs', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -141,7 +161,7 @@ export const needs = pgTable('needs', {
 });
 
 // ============================================
-// ORDERS TABLE
+// ORDERS
 // ============================================
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -156,7 +176,7 @@ export const orders = pgTable('orders', {
 });
 
 // ============================================
-// ANALYTICS EVENTS TABLE
+// ANALYTICS EVENTS
 // ============================================
 export const analyticsEvents = pgTable('analytics_events', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -171,7 +191,7 @@ export const analyticsEvents = pgTable('analytics_events', {
 });
 
 // ============================================
-// PAYMENTS TABLE
+// PAYMENTS
 // ============================================
 export const payments = pgTable('payments', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -188,7 +208,7 @@ export const payments = pgTable('payments', {
 });
 
 // ============================================
-// SESSIONS TABLE (for Auth.js)
+// SESSIONS
 // ============================================
 export const sessions = pgTable('sessions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -200,6 +220,53 @@ export const sessions = pgTable('sessions', {
 });
 
 // ============================================
+// CONVERSATIONS
+// ============================================
+export const conversations = pgTable('conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  participantOneId: uuid('participant_one_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  participantTwoId: uuid('participant_two_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  listingId: uuid('listing_id').references(() => listings.id, { onDelete: 'set null' }),
+  lastMessageText: text('last_message_text'),
+  lastMessageAt: timestamp('last_message_at'),
+  unreadCountForOne: integer('unread_count_for_one').default(0),
+  unreadCountForTwo: integer('unread_count_for_two').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  pairListingIdx: uniqueIndex('conversations_pair_listing_idx')
+    .on(table.participantOneId, table.participantTwoId, table.listingId),
+  p1Idx: index('conversations_p1_idx').on(table.participantOneId, table.lastMessageAt),
+  p2Idx: index('conversations_p2_idx').on(table.participantTwoId, table.lastMessageAt),
+}));
+
+// ============================================
+// MESSAGES
+// ============================================
+export const messages = pgTable('messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  conversationId: uuid('conversation_id')
+    .notNull()
+    .references(() => conversations.id, { onDelete: 'cascade' }),
+  senderId: uuid('sender_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  type: messageTypeEnum('type').default('text'),
+  text: text('text'),
+  imageUrl: text('image_url'),
+  readAt: timestamp('read_at'),
+  deliveredAt: timestamp('delivered_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  conversationIdx: index('messages_conversation_idx')
+    .on(table.conversationId, table.createdAt),
+}));
+
+// ============================================
 // RELATIONS
 // ============================================
 export const profilesRelations = relations(profiles, ({ many, one }) => ({
@@ -209,11 +276,15 @@ export const profilesRelations = relations(profiles, ({ many, one }) => ({
     references: [subscriptions.userId],
   }),
   notifications: many(notifications),
+  pushSubscriptions: many(pushSubscriptions), // ✅ NEW
   needs: many(needs),
   orders: many(orders),
   analyticsEvents: many(analyticsEvents),
   payments: many(payments),
   sessions: many(sessions),
+  conversationsAsOne: many(conversations, { relationName: 'conversationParticipantOne' }),
+  conversationsAsTwo: many(conversations, { relationName: 'conversationParticipantTwo' }),
+  sentMessages: many(messages),
 }));
 
 export const businessesRelations = relations(businesses, ({ one, many }) => ({
@@ -244,6 +315,14 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(profiles, {
     fields: [notifications.userId],
+    references: [profiles.id],
+  }),
+}));
+
+// ✅ NEW: push subscriptions relation
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  user: one(profiles, {
+    fields: [pushSubscriptions.userId],
     references: [profiles.id],
   }),
 }));
@@ -295,8 +374,37 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   }),
 }));
 
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  participantOne: one(profiles, {
+    fields: [conversations.participantOneId],
+    references: [profiles.id],
+    relationName: 'conversationParticipantOne',
+  }),
+  participantTwo: one(profiles, {
+    fields: [conversations.participantTwoId],
+    references: [profiles.id],
+    relationName: 'conversationParticipantTwo',
+  }),
+  listing: one(listings, {
+    fields: [conversations.listingId],
+    references: [listings.id],
+  }),
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+  sender: one(profiles, {
+    fields: [messages.senderId],
+    references: [profiles.id],
+  }),
+}));
+
 // ============================================
-// EXPORT ALL TABLES
+// EXPORTS
 // ============================================
 export default {
   profiles,
@@ -304,9 +412,12 @@ export default {
   listings,
   subscriptions,
   notifications,
+  pushSubscriptions, // ✅ NEW
   needs,
   orders,
   analyticsEvents,
   payments,
   sessions,
+  conversations,
+  messages,
 };
