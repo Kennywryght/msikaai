@@ -52,12 +52,12 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 // CATEGORIES
 // ============================================================
 const CATEGORIES = [
-  { label: 'All', icon: 'layers', color: '#E8A33D' },
-  { label: 'Food', icon: 'coffee', color: '#C9603C' },
+  { label: 'All', icon: 'layers', color: '#BC5B34' },
+  { label: 'Food', icon: 'coffee', color: '#BC5B34' },
   { label: 'Clothing', icon: 'shirt', color: '#8B5A83' },
-  { label: 'Services', icon: 'wrench', color: '#3E5C76' },
+  { label: 'Services', icon: 'wrench', color: '#3E6C76' },
   { label: 'Farm Inputs', icon: 'wheat', color: '#5B7B5E' },
-  { label: 'Hardware', icon: 'hammer', color: '#6B7280' },
+  { label: 'Hardware', icon: 'hammer', color: '#6B6259' },
 ];
 
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
@@ -256,343 +256,259 @@ const Landing = () => {
 
   if (loading) {
     return (
-      <div className="marketplace-shell">
-        <div className="loading-page">
-          <div className="loading-top">
-            <div className="loading-line loading-line-lg" />
-            <div className="loading-line loading-line-sm" />
-          </div>
-          <div className="loading-search" />
-          <div className="loading-pills">
-            {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="loading-pill" />)}
-          </div>
-          <div className="loading-grid">
-            {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="loading-card" />)}
-          </div>
+      <div className="loading-skeleton">
+        <div className="skeleton-hero" />
+        <div className="skeleton-categories">
+          {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="skeleton-chip" />)}
+        </div>
+        <div className="skeleton-grid">
+          {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="skeleton-card" />)}
         </div>
         <style jsx>{`
-          .marketplace-shell { min-height: 100vh; background: #f6f7f5; }
-          .loading-page { max-width: 1280px; margin: 0 auto; padding: 34px 24px 60px; }
-          .loading-top { margin-bottom: 28px; }
-          .loading-line, .loading-search, .loading-pill, .loading-card {
-            background: linear-gradient(90deg, #e7ebe7 25%, #f2f4f2 50%, #e7ebe7 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.4s infinite;
-          }
-          .loading-line { height: 16px; border-radius: 8px; margin-bottom: 10px; }
-          .loading-line-lg { width: 230px; height: 32px; }
-          .loading-line-sm { width: 340px; max-width: 80%; }
-          .loading-search { height: 64px; border-radius: 18px; margin-bottom: 24px; }
-          .loading-pills { display: flex; gap: 10px; overflow: hidden; margin-bottom: 30px; }
-          .loading-pill { width: 108px; min-width: 108px; height: 54px; border-radius: 15px; }
-          .loading-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-          .loading-card { height: 340px; border-radius: 20px; }
-          @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-          @media (max-width: 900px) { .loading-grid { grid-template-columns: repeat(3, 1fr); } }
-          @media (max-width: 640px) {
-            .loading-page { padding: 22px 14px 90px; }
-            .loading-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-            .loading-card { height: 280px; }
-          }
+          .loading-skeleton { min-height: 100vh; background: #F7F1E3; padding-bottom: 80px; }
+          .skeleton-hero { height: 220px; background: linear-gradient(160deg, #24453B, #16261F); margin-bottom: 28px; animation: pulse 1.6s ease-in-out infinite; }
+          .skeleton-categories { display: flex; gap: 10px; padding: 0 20px; margin-bottom: 20px; }
+          .skeleton-chip { width: 92px; height: 40px; border-radius: 10px; background: #ECE3CC; animation: pulse 1.6s ease-in-out infinite; }
+          .skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 20px; }
+          .skeleton-card { aspect-ratio: 4 / 5; background: #ECE3CC; border-radius: 4px; animation: pulse 1.6s ease-in-out infinite; }
+          @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
         `}</style>
       </div>
     );
-  }  return (
-    <div className="marketplace-shell">
-      <header className="marketplace-header">
-        <div className="header-inner">
-          <div className="brand-mark">
-            <div className="brand-icon"><Icon name="store" size={19} color="#ffffff" strokeWidth={2} /></div>
-            <div>
-              <div className="brand-name">Mitundu</div>
-              <div className="brand-caption">Local marketplace</div>
-            </div>
+  }
+
+  return (
+    <div className="app">
+      {/* ============ HERO ============ */}
+      <div className="hero-block">
+        <div className="hero-texture" aria-hidden="true" />
+        <div className="hero-inner">
+          <div className="hero-seal" aria-hidden="true">
+            <svg viewBox="0 0 120 120" width="76" height="76">
+              <defs>
+                <path id="sealArc" d="M 12,60 a 48,48 0 1,1 96,0 a 48,48 0 1,1 -96,0" />
+              </defs>
+              <circle cx="60" cy="60" r="57" fill="none" stroke="#D99A3B" strokeWidth="1" opacity="0.55" />
+              <circle cx="60" cy="60" r="48" fill="none" stroke="#D99A3B" strokeWidth="1" opacity="0.85" />
+              <text fill="#F7F1E3" fontSize="10.2" letterSpacing="1.5" fontFamily="'Work Sans', sans-serif">
+                <textPath href="#sealArc" startOffset="2%">Mitundu Trading Centre</textPath>
+              </text>
+              <g transform="translate(60,60)">
+                <path d="M-11,3 l1.5,-9h19l1.5,9M-11,3v13a2 2 0 002 2h14a2 2 0 002-2V3M-11,3h22M-5,18v-9h10v9"
+                  fill="none" stroke="#D99A3B" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </g>
+            </svg>
           </div>
 
-          <div className="header-actions">
-            <button type="button" className="header-action" onClick={() => navigate('/messages')} aria-label="Messages">
-              <Icon name="message" size={18} color="currentColor" strokeWidth={1.8} />
-              <span>Messages</span>
+          <h1 className="hero-title">
+            Find what you need,<br />right here.
+          </h1>
+          <p className="hero-desc">Local goods, services, and tradespeople in Mitundu — a step from your door.</p>
+        </div>
+      </div>
+
+      {/* ============ SEARCH ============ */}
+      <div className="search-card-wrap">
+        <form onSubmit={handleSearch} className="search-form">
+          <div className="search-wrapper">
+            <Icon name="search" size={17} color="#7C9083" strokeWidth={1.75} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search the marketplace..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            <button type="submit" className="search-btn" aria-label="Search">
+              <Icon name="search" size={16} color="#F7F1E3" strokeWidth={2} />
             </button>
-            <button type="button" className="header-profile" onClick={() => navigate('/profile')} aria-label="Profile">
-              <Icon name="user" size={18} color="currentColor" strokeWidth={1.8} />
-            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* ============ CATEGORIES ============ */}
+      <div className="categories-section">
+        <div className="categories-scroll">
+          {CATEGORIES.map((cat) => {
+            const active = selectedCategory === cat.label;
+            return (
+              <button
+                key={cat.label}
+                className={`category-tag ${active ? 'active' : ''}`}
+                style={active ? { background: cat.color, borderColor: cat.color } : { borderColor: `${cat.color}45` }}
+                onClick={() => setSelectedCategory(cat.label)}
+              >
+                <Icon name={cat.icon} size={14} color={active ? '#F7F1E3' : cat.color} strokeWidth={1.9} />
+                <span style={{ color: active ? '#F7F1E3' : '#3A362E' }}>{cat.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ============ TABS ============ */}
+      <div className="tabs-section">
+        {[
+          { id: 'all', label: 'All' },
+          { id: 'goods', label: 'Goods' },
+          { id: 'services', label: 'Services' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ============ FEATURED BUSINESSES ============ */}
+      {featuredBusinesses.length > 0 && (
+        <div className="featured-section">
+          <div className="section-heading">
+            <h2 className="section-title">Businesses near you</h2>
+          </div>
+          <div className="featured-scroll">
+            {featuredBusinesses.map((biz) => (
+              <button key={biz.id} className="featured-card" onClick={() => handleBusinessClick(biz)}>
+                <div className="featured-logo">
+                  {biz.logo_url ? (
+                    <img src={biz.logo_url} alt={biz.business_name} />
+                  ) : (
+                    <Icon name="store" size={17} color="#BFA97B" strokeWidth={1.5} />
+                  )}
+                </div>
+                <div className="featured-text">
+                  <div className="featured-name">{biz.business_name}</div>
+                  {biz.category && <div className="featured-cat">{biz.category}</div>}
+                </div>
+              </button>
+            ))}
           </div>
         </div>
-      </header>
+      )}
 
-      <main>
-        <section className="hero-section">
-          <div className="hero-glow hero-glow-one" />
-          <div className="hero-glow hero-glow-two" />
-          <div className="hero-content">
-            <div className="eyebrow">
-              <span className="eyebrow-dot" />
-              Your local market, simplified
-            </div>
-            <h1 className="hero-title">
-              Find exactly what<br className="desktop-break" />
-              <span>you need.</span>
-            </h1>
-            <p className="hero-desc">
-              Discover products, trusted businesses, and skilled local services around Mitundu.
-            </p>
-
-            <form onSubmit={handleSearch} className="hero-search-form">
-              <div className="hero-search">
-                <div className="hero-search-icon">
-                  <Icon name="search" size={20} color="#65736d" strokeWidth={1.9} />
-                </div>
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="What are you looking for?"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="hero-search-input"
-                />
-                <button type="submit" className="hero-search-btn">
-                  Search
-                  <Icon name="arrowRight" size={17} color="#ffffff" strokeWidth={2} />
-                </button>
-              </div>
-            </form>
-
-            <div className="quick-searches">
-              <span>Popular:</span>
-              <button type="button" onClick={() => { setSearchQuery('food'); navigate('/search?q=food'); }}>Food</button>
-              <button type="button" onClick={() => { setSearchQuery('hardware'); navigate('/search?q=hardware'); }}>Hardware</button>
-              <button type="button" onClick={() => { setSearchQuery('tailor'); navigate('/search?q=tailor'); }}>Tailors</button>
-              <button type="button" onClick={() => { setSearchQuery('farm inputs'); navigate('/search?q=farm%20inputs'); }}>Farm inputs</button>
-            </div>
+      {/* ============ LISTINGS ============ */}
+      <section className="listings">
+        <div className="listings-header">
+          <div className="listings-header-left">
+            <h2 className="listings-title">Recent</h2>
+            <span className="listings-count">{filteredListings.length}</span>
           </div>
-        </section>
+          <button className="filter-btn" onClick={() => {}} aria-label="Filter">
+            <Icon name="filter" size={15} color="#3A362E" strokeWidth={1.75} />
+          </button>
+        </div>
 
-        <section className="category-section page-width">
-          <div className="section-heading-row">
-            <div>
-              <span className="section-kicker">Browse</span>
-              <h2>Shop by category</h2>
-            </div>
-            <button type="button" className="text-link" onClick={() => { setSelectedCategory('All'); setActiveTab('all'); }}>
-              View all <Icon name="arrowRight" size={15} color="currentColor" strokeWidth={2} />
-            </button>
-          </div>
+        {filteredListings.length > 0 ? (
+          <div className="listings-grid">
+            {filteredListings.map((item, index) => {
+              const isLiked = likedItems[item.id] || false;
+              const realLikeCount = item.likes ?? 0;
+              const isBusiness = item.is_business || !!item.business_id;
 
-          <div className="category-grid">
-            {CATEGORIES.map((cat) => {
-              const active = selectedCategory === cat.label;
+              const sellerUserId =
+                item.businesses?.user_id ||
+                item.businesses?.userId ||
+                item.businesses?.owner_id ||
+                null;
+              const canMessage = !!sellerUserId && sellerUserId !== user?.id;
+
               return (
-                <button
-                  key={cat.label}
-                  type="button"
-                  className={`category-card ${active ? 'selected' : ''}`}
-                  onClick={() => setSelectedCategory(cat.label)}
-                >
-                  <span
-                    className="category-icon-box"
-                    style={{ background: active ? cat.color : `${cat.color}14`, color: active ? '#fff' : cat.color }}
-                  >
-                    <Icon name={cat.icon} size={20} color="currentColor" strokeWidth={1.8} />
-                  </span>
-                  <span className="category-copy">
-                    <strong>{cat.label}</strong>
-                    <small>{cat.label === 'All' ? 'Everything' : `Browse ${cat.label.toLowerCase()}`}</small>
-                  </span>
-                  <Icon name="arrowRight" size={15} color={active ? '#ffffff' : '#a0aaa5'} strokeWidth={1.8} className="category-arrow" />
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {featuredBusinesses.length > 0 && (
-          <section className="business-section page-width">
-            <div className="section-heading-row compact">
-              <div>
-                <span className="section-kicker">Local network</span>
-                <h2>Businesses to discover</h2>
-              </div>
-              <button type="button" className="text-link" onClick={() => navigate('/search')}>
-                Explore <Icon name="arrowRight" size={15} color="currentColor" strokeWidth={2} />
-              </button>
-            </div>
-
-            <div className="business-rail">
-              {featuredBusinesses.map((biz) => (
-                <button key={biz.id} type="button" className="business-card" onClick={() => handleBusinessClick(biz)}>
-                  <div className="business-logo">
-                    {biz.logo_url ? (
-                      <img src={biz.logo_url} alt={biz.business_name} />
+                <div key={item.id} className="feed-card" onClick={() => handleListingClick(item)}>
+                  <div className="feed-image" style={{ aspectRatio: getAspect(index) }}>
+                    {item.images && item.images.length > 0 ? (
+                      <img src={item.images[0]} alt={item.title} className="feed-img" loading="lazy" />
                     ) : (
-                      <Icon name="store" size={20} color="#738079" strokeWidth={1.7} />
-                    )}
-                  </div>
-                  <div className="business-info">
-                    <strong>{biz.business_name}</strong>
-                    <span>{biz.category || 'Local business'}</span>
-                    {biz.location_text && (
-                      <span className="business-location">
-                        <Icon name="mapPin" size={12} color="#87928c" strokeWidth={1.8} />
-                        {biz.location_text}
-                      </span>
-                    )}
-                  </div>
-                  <span className="business-arrow">
-                    <Icon name="arrowRight" size={15} color="#53625b" strokeWidth={1.8} />
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <section className="listings-section page-width">
-          <div className="listings-top">
-            <div>
-              <span className="section-kicker">Marketplace</span>
-              <div className="listings-heading">
-                <h2>{activeTab === 'goods' ? 'Latest goods' : activeTab === 'services' ? 'Local services' : 'Fresh from the market'}</h2>
-                <span className="result-count">{filteredListings.length}</span>
-              </div>
-            </div>
-
-            <div className="view-controls">
-              <div className="listing-tabs">
-                <button type="button" className={activeTab === 'all' ? 'active' : ''} onClick={() => setActiveTab('all')}>All</button>
-                <button type="button" className={activeTab === 'goods' ? 'active' : ''} onClick={() => setActiveTab('goods')}>Goods</button>
-                <button type="button" className={activeTab === 'services' ? 'active' : ''} onClick={() => setActiveTab('services')}>Services</button>
-              </div>
-              <button type="button" className="filter-btn premium-filter" onClick={() => {}}>
-                <Icon name="filter" size={16} color="currentColor" strokeWidth={1.8} />
-                <span>Filter</span>
-              </button>
-            </div>
-          </div>
-
-          {filteredListings.length > 0 ? (
-            <div className="listings-grid">
-              {filteredListings.map((item, index) => {
-                const isLiked = likedItems[item.id] || false;
-                const realLikeCount = item.likes ?? 0;
-                const isBusiness = item.is_business || !!item.business_id;
-
-                const sellerUserId =
-                  item.businesses?.user_id ||
-                  item.businesses?.userId ||
-                  item.businesses?.owner_id ||
-                  null;
-
-                const canMessage = !!sellerUserId && sellerUserId !== user?.id;
-
-                return (
-                  <article key={item.id} className="product-card" onClick={() => handleListingClick(item)}>
-                    <div className="product-media" style={{ aspectRatio: getAspect(index) }}>
-                      {item.images && item.images.length > 0 ? (
-                        <img src={item.images[0]} alt={item.title} className="product-image" loading="lazy" />
-                      ) : (
-                        <div className="product-placeholder">
-                          <Icon name={isBusiness ? 'store' : 'layers'} size={30} color="#aeb7b2" strokeWidth={1.45} />
-                        </div>
-                      )}
-
-                      <div className="media-top">
-                        <div>
-                          {isRecent(item) && <span className="product-badge new-badge">NEW</span>}
-                          {isBusiness && <span className="product-badge business-badge">BUSINESS</span>}
-                        </div>
-                        <button
-                          type="button"
-                          className={`heart-btn ${isLiked ? 'liked' : ''}`}
-                          onClick={(e) => { e.stopPropagation(); handleLike(item.id); }}
-                          aria-label={isLiked ? 'Unlike' : 'Like'}
-                        >
-                          <Icon name="heart" size={17} color={isLiked ? '#d94b45' : '#ffffff'} strokeWidth={isLiked ? 2.5 : 1.8} />
-                        </button>
+                      <div className="feed-placeholder">
+                        <Icon name="store" size={26} color="#BFA97B" strokeWidth={1.4} />
                       </div>
+                    )}
 
-                      {item.delivery_available && (
-                        <span className="delivery-badge">
-                          <Icon name="truck" size={12} color="#ffffff" strokeWidth={1.9} />
-                          Delivery
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="product-body">
-                      <div className="product-category">{item.category || 'Marketplace'}</div>
-                      <h3>{item.title}</h3>
-
-                      <div className="product-price-row">
-                        <strong>{formatPrice(item.price)}</strong>
-                        {item.rating != null && item.rating > 0 && (
-                          <span className="product-rating">
-                            <Icon name="star" size={12} color="#d89b2b" strokeWidth={2} />
-                            {Number(item.rating).toFixed(1)}
+                    <div className="badge-row">
+                      <div className="badge-row-left">
+                        {isRecent(item) && <span className="badge feed-new">New</span>}
+                      </div>
+                      <div className="badge-row-right">
+                        {item.delivery_available && (
+                          <span className="badge feed-delivery" aria-label="Delivery available">
+                            <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
                           </span>
                         )}
                       </div>
-
-                      <div className="product-seller">
-                        <span className="seller-avatar">
-                          <Icon name="store" size={12} color="#6d7973" strokeWidth={1.7} />
-                        </span>
-                        <span>{item.businesses?.business_name || 'Local seller'}</span>
-                        {item.location_area && (
-                          <>
-                            <span className="seller-divider" />
-                            <span className="seller-location">
-                              <Icon name="mapPin" size={11} color="#8b9690" strokeWidth={1.7} />
-                              {item.location_area}
-                            </span>
-                          </>
-                        )}
-                      </div>
-
-                      <div className="product-actions">
-                        <span className="like-count">
-                          <Icon name="heart" size={13} color={isLiked ? '#d94b45' : '#8b9690'} strokeWidth={1.7} />
-                          {realLikeCount + (isLiked ? 1 : 0)}
-                        </span>
-
-                        {canMessage && (
-                          <button
-                            type="button"
-                            className="message-btn"
-                            onClick={(e) => handleQuickMessage(e, item)}
-                            disabled={openingChatId === item.id}
-                          >
-                            <Icon name="message" size={13} color="#ffffff" strokeWidth={1.9} />
-                            {openingChatId === item.id ? 'Opening…' : 'Message seller'}
-                          </button>
-                        )}
-                      </div>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-icon"><Icon name="search" size={28} color="#718079" strokeWidth={1.5} /></div>
-              <h3>No matches yet</h3>
-              <p>
-                {searchQuery || selectedCategory !== 'All'
-                  ? 'Try another search or browse a different category.'
-                  : 'Be the first to add something to the marketplace.'}
-              </p>
-              {(searchQuery || selectedCategory !== 'All') && (
-                <button type="button" className="empty-reset" onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setActiveTab('all'); }}>
-                  Clear search
-                </button>
-              )}
-            </div>
-          )}
-        </section>
-      </main>
 
+                    <span className="feed-price-tag">{formatPrice(item.price)}</span>
+                  </div>
+
+                  <div className="feed-content">
+                    <h3 className="feed-title">{item.title}</h3>
+
+                    <div className="feed-meta-row">
+                      {isBusiness && <span className="business-tag">Business</span>}
+                      <span className="feed-seller-text">
+                        {item.businesses?.business_name || 'Local seller'}
+                      </span>
+                      {item.location_area && (
+                        <>
+                          <span className="feed-dot" />
+                          <span className="feed-location-text">{item.location_area}</span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="feed-footer">
+                      {item.rating != null && item.rating > 0 && (
+                        <span className="feed-rating">
+                          <Icon name="star" size={11} color="#D99A3B" strokeWidth={2} />
+                          {Number(item.rating).toFixed(1)}
+                        </span>
+                      )}
+                      <button
+                        className="like-btn"
+                        onClick={(e) => { e.stopPropagation(); handleLike(item.id); }}
+                      >
+                        <Icon name="heart" size={13}
+                          color={isLiked ? '#BC5B34' : '#9C9482'}
+                          strokeWidth={isLiked ? 2.5 : 1.5} />
+                        <span>{realLikeCount + (isLiked ? 1 : 0)}</span>
+                      </button>
+                    </div>
+
+                    {canMessage && (
+                      <button
+                        type="button"
+                        className="feed-message-btn"
+                        onClick={(e) => handleQuickMessage(e, item)}
+                        disabled={openingChatId === item.id}
+                      >
+                        <Icon name="message" size={13} color="#F7F1E3" strokeWidth={2} />
+                        {openingChatId === item.id ? 'Opening…' : 'Message'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <Icon name="store" size={44} color="#BFA97B" strokeWidth={1.4} />
+            <h3 className="empty-title">No listings found</h3>
+            <p className="empty-desc">
+              {searchQuery || selectedCategory !== 'All'
+                ? 'Try adjusting your filters'
+                : 'Be the first to post something!'}
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* ============ BOTTOM NAV ============ */}
       {isMobile && (
-        <nav className="bottom-nav">
+        <div className="bottom-nav">
           {[
             { id: 'home', label: 'Home', icon: 'home' },
             { id: 'search', label: 'Search', icon: 'search' },
@@ -602,346 +518,283 @@ const Landing = () => {
           ].map((item) => {
             const active = item.id === 'home';
             return (
-              <button key={item.id} type="button" className="nav-btn" onClick={() => handleBottomNav(item.id)}>
-                <span className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={19} color={active ? '#ffffff' : '#78847e'} strokeWidth={1.8} />
-                </span>
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+                <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
+                  <Icon name={item.icon} size={19} color={active ? '#F7F1E3' : '#9C9482'} strokeWidth={1.75} />
+                </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
             );
           })}
-        </nav>
+        </div>
       )}
 
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600;700&display=swap');
 
-        .marketplace-shell {
+        .app {
           min-height: 100vh;
-          background: #f6f7f5;
-          color: #15201b;
-          font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          padding-bottom: 36px;
+          background: #F7F1E3;
+          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+          color: #201F1B;
+          padding-bottom: 84px;
         }
+        @media (min-width: 769px) { .app { padding-bottom: 0; } }
 
-        button, input { font: inherit; }
-        button { -webkit-tap-highlight-color: transparent; }
-        .page-width { width: min(1240px, calc(100% - 48px)); margin: 0 auto; }
-
-        .marketplace-header {
-          height: 72px;
-          background: rgba(255,255,255,.94);
-          border-bottom: 1px solid #e7ebe8;
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          backdrop-filter: blur(18px);
+        /* ---------- Hero ---------- */
+        .hero-block {
+          position: relative;
+          background: linear-gradient(160deg, #24453B 0%, #16261F 100%);
+          padding: 36px 20px 60px;
+          overflow: hidden;
         }
-
-        .header-inner {
-          height: 100%;
-          width: min(1240px, calc(100% - 48px));
-          margin: 0 auto;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
+        .hero-texture {
+          position: absolute; inset: 0;
+          background-image: radial-gradient(rgba(217, 154, 59, 0.14) 1px, transparent 1px);
+          background-size: 16px 16px;
+          opacity: 0.5;
+          pointer-events: none;
         }
-
-        .brand-mark { display: flex; align-items: center; gap: 10px; }
-        .brand-icon {
-          width: 38px; height: 38px; border-radius: 11px;
-          background: #173f34; display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 6px 16px rgba(23,63,52,.18);
-        }
-        .brand-name { font-family: 'Manrope', sans-serif; font-size: 15px; font-weight: 800; line-height: 1.1; }
-        .brand-caption { font-size: 10px; color: #89938e; margin-top: 3px; }
-        .header-actions { display: flex; align-items: center; gap: 8px; }
-        .header-action, .header-profile {
-          border: 1px solid #e5eae7; background: #fff; color: #51605a; cursor: pointer;
-          transition: .2s ease;
-        }
-        .header-action {
-          height: 38px; padding: 0 13px; border-radius: 11px;
-          display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700;
-        }
-        .header-profile {
-          width: 38px; height: 38px; border-radius: 11px;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .header-action:hover, .header-profile:hover { border-color: #cbd6d0; background: #f7f9f8; }
-
-        .hero-section {
-          position: relative; overflow: hidden;
-          background: #173f34;
-          min-height: 420px;
-          display: flex; align-items: center;
-        }
-        .hero-section::after {
-          content: ''; position: absolute; inset: auto -5% -120px;
-          height: 220px; background: #f6f7f5; border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-        }
-        .hero-glow { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(1px); }
-        .hero-glow-one { width: 440px; height: 440px; right: -110px; top: -190px; background: rgba(82,145,120,.22); }
-        .hero-glow-two { width: 300px; height: 300px; left: -160px; bottom: -160px; background: rgba(216,155,43,.12); }
-        .hero-content { width: min(980px, calc(100% - 48px)); margin: 0 auto; position: relative; z-index: 2; padding: 58px 0 105px; }
-        .eyebrow {
-          display: inline-flex; align-items: center; gap: 8px; color: rgba(255,255,255,.68);
-          font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 17px;
-        }
-        .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: #dca13a; box-shadow: 0 0 0 5px rgba(220,161,58,.12); }
+        .hero-inner { position: relative; max-width: 1200px; margin: 0 auto; }
+        .hero-seal { margin-bottom: 18px; opacity: 0.92; }
         .hero-title {
-          font-family: 'Manrope', sans-serif; color: #fff; font-size: clamp(38px, 6vw, 68px);
-          line-height: 1.02; letter-spacing: -.045em; font-weight: 800; margin: 0;
+          font-family: 'Fraunces', Georgia, serif;
+          font-optical-sizing: auto;
+          font-weight: 600;
+          font-size: clamp(28px, 4.4vw, 40px);
+          letter-spacing: -0.01em;
+          margin: 0 0 10px;
+          line-height: 1.14;
+          color: #F7F1E3;
+          max-width: 480px;
         }
-        .hero-title span { color: #e0a13a; }
-        .hero-desc { max-width: 560px; color: rgba(255,255,255,.69); font-size: 15px; line-height: 1.65; margin: 18px 0 26px; }
-        .hero-search-form { width: min(760px, 100%); }
-        .hero-search {
-          height: 66px; background: #fff; border-radius: 17px; padding: 7px 7px 7px 17px;
-          display: flex; align-items: center; gap: 10px; box-shadow: 0 20px 48px rgba(0,0,0,.22);
-          transition: box-shadow .2s ease, transform .2s ease;
-        }
-        .hero-search:focus-within { box-shadow: 0 22px 54px rgba(0,0,0,.27); transform: translateY(-1px); }
-        .hero-search-icon { display: flex; align-items: center; }
-        .hero-search-input { flex: 1; min-width: 0; border: 0; outline: 0; color: #1c2923; font-size: 14px; background: transparent; }
-        .hero-search-input::placeholder { color: #9aa39f; }
-        .hero-search-btn {
-          height: 52px; border: 0; border-radius: 12px; background: #173f34; color: #fff;
-          padding: 0 18px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 700;
-        }
-        .hero-search-btn:hover { background: #225647; }
-        .quick-searches { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 13px; color: rgba(255,255,255,.5); font-size: 11px; }
-        .quick-searches button {
-          border: 0; background: rgba(255,255,255,.08); color: rgba(255,255,255,.78); border-radius: 8px;
-          padding: 5px 9px; cursor: pointer; transition: .2s ease;
-        }
-        .quick-searches button:hover { background: rgba(255,255,255,.15); color: #fff; }
+        .hero-desc { font-size: 14.5px; line-height: 1.5; color: rgba(247, 241, 227, 0.7); margin: 0; max-width: 380px; }
 
-        .category-section { padding-top: 7px; }
-        .section-heading-row, .listings-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
-        .section-heading-row { margin-bottom: 17px; }
-        .section-heading-row.compact { margin-bottom: 17px; }
-        .section-kicker { display: block; color: #9a6b20; text-transform: uppercase; font-size: 9px; font-weight: 800; letter-spacing: .13em; margin-bottom: 5px; }
-        .section-heading-row h2, .listings-heading h2 {
-          font-family: 'Manrope', sans-serif; font-size: 20px; letter-spacing: -.025em; margin: 0; font-weight: 800;
+        /* ---------- Search ---------- */
+        .search-card-wrap { max-width: 1200px; margin: -28px auto 0; padding: 0 20px; position: relative; }
+        .search-form { max-width: 560px; }
+        .search-wrapper {
+          display: flex; align-items: center; gap: 10px;
+          background: #FFFDF8; border-radius: 12px;
+          padding: 5px 5px 5px 16px;
+          box-shadow: 0 16px 32px rgba(22, 38, 31, 0.22);
+          border: 1px solid #EFE6CE;
         }
-        .text-link {
-          border: 0; background: transparent; color: #53635c; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
-          font-size: 11px; font-weight: 700; padding: 5px 0;
+        .search-input {
+          flex: 1; border: none; outline: none; background: transparent;
+          padding: 12px 0; font-size: 14.5px; font-family: inherit; color: #201F1B;
         }
-        .text-link:hover { color: #173f34; }
-
-        .category-grid {
-          display: grid; grid-template-columns: repeat(6, 1fr); gap: 11px;
-          margin-bottom: 52px;
-        }
-        .category-card {
-          min-height: 86px; border: 1px solid #e3e8e5; border-radius: 16px; background: #fff;
-          padding: 12px; display: flex; align-items: center; gap: 10px; text-align: left;
-          cursor: pointer; color: #26332e; transition: .2s ease; box-shadow: 0 4px 14px rgba(22,37,30,.025);
-        }
-        .category-card:hover { transform: translateY(-2px); border-color: #cbd7d0; box-shadow: 0 10px 24px rgba(22,37,30,.07); }
-        .category-card.selected { background: #173f34; border-color: #173f34; color: #fff; box-shadow: 0 10px 25px rgba(23,63,52,.16); }
-        .category-icon-box {
-          width: 42px; height: 42px; min-width: 42px; border-radius: 12px;
+        .search-input::placeholder { color: #9C9482; }
+        .search-btn {
+          padding: 10px 14px; background: #24453B; border: none;
+          border-radius: 8px; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
+          transition: background 0.2s;
         }
-        .category-copy { min-width: 0; flex: 1; }
-        .category-copy strong { display: block; font-size: 11px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .category-copy small { display: block; font-size: 9px; color: #99a29e; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .category-card.selected .category-copy small { color: rgba(255,255,255,.5); }
-        .category-arrow { opacity: .75; }
+        .search-btn:hover { background: #BC5B34; }
 
-        .business-section { margin-bottom: 50px; }
-        .business-rail { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        .business-card {
-          min-width: 0; border: 1px solid #e3e8e5; background: #fff; border-radius: 17px; padding: 13px;
-          display: flex; align-items: center; gap: 11px; text-align: left; cursor: pointer; transition: .2s ease;
+        /* ---------- Categories ---------- */
+        .categories-section { padding: 26px 20px 4px; }
+        .categories-scroll { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+        .categories-scroll::-webkit-scrollbar { display: none; }
+        .category-tag {
+          display: flex; align-items: center; gap: 6px;
+          padding: 8px 13px; border-radius: 9px;
+          border: 1.5px solid; background: transparent;
+          font-family: inherit; font-size: 12.5px; font-weight: 600;
+          cursor: pointer; flex-shrink: 0; transition: all 0.15s;
+          white-space: nowrap;
         }
-        .business-card:hover { transform: translateY(-2px); border-color: #cbd7d0; box-shadow: 0 12px 25px rgba(22,37,30,.07); }
-        .business-logo {
-          width: 48px; height: 48px; min-width: 48px; border-radius: 14px; background: #f1f4f2;
-          border: 1px solid #e3e8e5; overflow: hidden; display: flex; align-items: center; justify-content: center;
+
+        /* ---------- Tabs ---------- */
+        .tabs-section {
+          display: flex; gap: 22px; padding: 16px 20px 0;
+          border-bottom: 1px solid #EFE6CE; margin-bottom: 6px;
         }
-        .business-logo img { width: 100%; height: 100%; object-fit: cover; }
-        .business-info { min-width: 0; flex: 1; }
-        .business-info strong { display: block; font-size: 12px; font-weight: 800; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-        .business-info > span { display: block; font-size: 10px; color: #8b9690; margin-top: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-        .business-info .business-location { display: flex; align-items: center; gap: 4px; }
-        .business-arrow {
-          width: 30px; height: 30px; min-width: 30px; border-radius: 9px; background: #f5f7f6;
+        .tab-btn {
+          position: relative; padding: 4px 2px 12px;
+          border: none; background: transparent;
+          font-size: 13.5px; font-weight: 600; color: #9C9482;
+          cursor: pointer; font-family: inherit;
+        }
+        .tab-btn.active { color: #201F1B; }
+        .tab-btn.active::after {
+          content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+          height: 2px; background: #BC5B34; border-radius: 2px;
+        }
+
+        /* ---------- Featured businesses ---------- */
+        .featured-section { padding: 20px 20px 6px; }
+        .section-heading { margin-bottom: 12px; }
+        .section-title { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 16.5px; margin: 0; color: #201F1B; }
+        .featured-scroll { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
+        .featured-scroll::-webkit-scrollbar { display: none; }
+        .featured-card {
+          flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
+          width: 168px; background: #FFFDF8;
+          border: 1px solid #EFE6CE; border-radius: 10px;
+          padding: 9px 11px; text-align: left;
+          cursor: pointer; font-family: inherit; transition: border-color 0.2s;
+        }
+        .featured-card:hover { border-color: #BC5B34; }
+        .featured-logo {
+          width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+          background: #F7F1E3; border: 1px solid #EFE6CE;
+          display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .featured-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .featured-text { min-width: 0; }
+        .featured-name {
+          font-size: 12.5px; font-weight: 600; color: #201F1B;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .featured-cat {
+          font-size: 10.5px; color: #9C9482; margin-top: 1px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        /* ---------- Listings ---------- */
+        .listings { padding: 10px 20px 16px; max-width: 1200px; margin: 0 auto; }
+        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .listings-header-left { display: flex; align-items: baseline; gap: 8px; }
+        .listings-title { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 18px; margin: 0; color: #201F1B; }
+        .listings-count { font-size: 12px; color: #9C9482; }
+        .filter-btn {
+          width: 32px; height: 32px; border-radius: 8px;
+          border: 1px solid #EFE6CE; background: #FFFDF8;
+          cursor: pointer; display: flex;
+          align-items: center; justify-content: center; transition: border-color 0.2s;
+        }
+        .filter-btn:hover { border-color: #BC5B34; }
+
+        .listings-grid { column-count: 2; column-gap: 12px; }
+        @media (min-width: 640px) { .listings-grid { column-count: 3; } }
+        @media (min-width: 1024px) { .listings-grid { column-count: 4; } }
+
+        .feed-card {
+          background: #FFFDF8; border-radius: 4px;
+          border: 1px solid #EFE6CE; overflow: hidden;
+          cursor: pointer; break-inside: avoid;
+          -webkit-column-break-inside: avoid; margin-bottom: 12px;
+          transition: border-color 0.2s;
+        }
+        .feed-card:hover { border-color: #D9C79E; }
+
+        .feed-image { position: relative; width: 100%; background: #F0E9D6; overflow: hidden; }
+        .feed-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .feed-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+
+        .badge-row {
+          position: absolute; top: 8px; left: 8px; right: 8px;
+          display: flex; justify-content: space-between;
+          align-items: flex-start; pointer-events: none;
+        }
+        .badge {
           display: flex; align-items: center; justify-content: center;
+          border-radius: 5px; font-size: 10px; font-weight: 600;
+        }
+        .feed-new { background: #24453B; color: #F7F1E3; padding: 3px 8px; }
+        .feed-delivery { background: rgba(22, 38, 31, 0.72); width: 20px; height: 20px; border-radius: 5px; }
+
+        .feed-price-tag {
+          position: absolute; left: 8px; bottom: 8px;
+          background: #BC5B34; color: #F7F1E3;
+          font-size: 12px; font-weight: 700;
+          padding: 4px 9px; border-radius: 5px;
+          letter-spacing: -0.01em;
         }
 
-        .listings-section { padding-bottom: 40px; }
-        .listings-top { align-items: center; margin-bottom: 18px; }
-        .listings-heading { display: flex; align-items: center; gap: 9px; }
-        .result-count { min-width: 25px; height: 21px; padding: 0 7px; border-radius: 20px; background: #e9eeeb; color: #69766f; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
-        .view-controls { display: flex; align-items: center; gap: 9px; }
-        .listing-tabs { display: flex; background: #e9eeeb; border-radius: 10px; padding: 3px; }
-        .listing-tabs button {
-          border: 0; background: transparent; color: #7b8781; border-radius: 8px; padding: 7px 12px;
-          cursor: pointer; font-size: 10px; font-weight: 700; transition: .2s ease;
+        .feed-content { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+        .feed-title {
+          font-size: 13px; font-weight: 600; margin: 0; line-height: 1.32; color: #201F1B;
+          display: -webkit-box; -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical; overflow: hidden;
         }
-        .listing-tabs button.active { background: #fff; color: #173f34; box-shadow: 0 2px 6px rgba(20,40,30,.08); }
-        .premium-filter {
-          height: 34px; border: 1px solid #e0e6e2; background: #fff; color: #64716b; border-radius: 10px;
-          padding: 0 11px; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 10px; font-weight: 700;
+        .feed-meta-row {
+          display: flex; align-items: center; gap: 5px;
+          font-size: 11px; color: #9C9482; flex-wrap: wrap;
         }
-        .premium-filter:hover { border-color: #c9d4ce; background: #fafcfb; }
-
-        .listings-grid {
-          display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; align-items: start;
+        .feed-seller-text, .feed-location-text {
+          overflow: hidden; text-overflow: ellipsis;
+          white-space: nowrap; max-width: 100px;
         }
-        .product-card {
-          background: #fff; border: 1px solid #e3e8e5; border-radius: 19px; overflow: hidden; cursor: pointer;
-          transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
-          min-width: 0;
-        }
-        .product-card:hover { transform: translateY(-4px); border-color: #d2dbd6; box-shadow: 0 18px 35px rgba(20,38,30,.10); }
-        .product-media { position: relative; overflow: hidden; background: #edf1ef; }
-        .product-image { width: 100%; height: 100%; display: block; object-fit: cover; transition: transform .35s ease; }
-        .product-card:hover .product-image { transform: scale(1.035); }
-        .product-placeholder { width: 100%; height: 100%; min-height: 230px; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg,#eef2ef,#e3e9e5); }
-        .media-top { position: absolute; left: 11px; right: 11px; top: 11px; display: flex; justify-content: space-between; align-items: flex-start; }
-        .product-badge {
-          display: inline-flex; align-items: center; height: 23px; padding: 0 8px; border-radius: 7px; margin-right: 5px;
-          font-size: 8px; font-weight: 900; letter-spacing: .06em; backdrop-filter: blur(8px);
-        }
-        .new-badge { background: #d95d47; color: #fff; }
-        .business-badge { background: rgba(255,255,255,.88); color: #173f34; }
-        .heart-btn {
-          width: 32px; height: 32px; border: 1px solid rgba(255,255,255,.38); border-radius: 10px;
-          background: rgba(19,31,26,.30); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center;
-          cursor: pointer; transition: .2s ease;
-        }
-        .heart-btn:hover { background: rgba(19,31,26,.55); transform: scale(1.04); }
-        .delivery-badge {
-          position: absolute; bottom: 10px; left: 10px; height: 24px; padding: 0 8px; border-radius: 7px;
-          display: inline-flex; align-items: center; gap: 5px; color: #fff; background: rgba(23,63,52,.9);
-          font-size: 8px; font-weight: 800; backdrop-filter: blur(8px);
+        .feed-dot { width: 3px; height: 3px; border-radius: 50%; background: #D9C79E; flex-shrink: 0; }
+        .business-tag {
+          font-size: 9.5px; font-weight: 700; color: #BC5B34;
+          background: rgba(188, 91, 52, 0.1);
+          padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
         }
 
-        .product-body { padding: 13px 13px 12px; }
-        .product-category { color: #a07836; font-size: 8px; text-transform: uppercase; font-weight: 900; letter-spacing: .1em; margin-bottom: 5px; }
-        .product-body h3 {
-          font-family: 'Manrope', sans-serif; font-size: 13px; line-height: 1.35; font-weight: 800; margin: 0 0 9px;
-          color: #1d2a25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 35px;
+        .feed-footer {
+          display: flex; align-items: center; justify-content: space-between;
+          margin-top: 2px; padding-top: 7px; border-top: 1px solid #F2EBD9;
         }
-        .product-price-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-        .product-price-row strong { color: #173f34; font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 800; }
-        .product-rating { display: inline-flex; align-items: center; gap: 3px; color: #a87620; font-size: 10px; font-weight: 800; }
-        .product-seller {
-          display: flex; align-items: center; gap: 5px; min-width: 0; margin-top: 10px; color: #7f8b85; font-size: 9px;
+        .feed-rating { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: #201F1B; }
+        .like-btn {
+          display: flex; align-items: center; gap: 4px;
+          background: none; border: none; font-size: 11px;
+          color: #9C9482; cursor: pointer; font-family: inherit;
+          padding: 2px 3px; margin-left: auto;
         }
-        .seller-avatar {
-          width: 22px; height: 22px; min-width: 22px; border-radius: 7px; background: #f0f3f1; display: flex; align-items: center; justify-content: center;
-        }
-        .product-seller > span:nth-child(2) { min-width: 0; max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-        .seller-divider { width: 3px; height: 3px; background: #c5ccc8; border-radius: 50%; flex-shrink: 0; }
-        .seller-location { display: inline-flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .product-actions {
-          display: flex; align-items: center; justify-content: space-between; gap: 7px; margin-top: 11px; padding-top: 10px; border-top: 1px solid #edf0ee;
-        }
-        .like-count { display: flex; align-items: center; gap: 4px; color: #89948e; font-size: 9px; font-weight: 700; }
-        .message-btn {
-          flex: 1; min-width: 0; height: 31px; border: 0; border-radius: 9px; background: #173f34; color: #fff;
-          display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; font-size: 9px; font-weight: 800; transition: .2s ease;
-        }
-        .message-btn:hover:not(:disabled) { background: #225647; }
-        .message-btn:disabled { opacity: .6; cursor: wait; }
 
-        .empty-state {
-          border: 1px dashed #d6ded9; border-radius: 20px; background: rgba(255,255,255,.55);
-          padding: 70px 20px; text-align: center;
+        .feed-message-btn {
+          display: inline-flex; align-items: center; justify-content: center;
+          gap: 6px; width: 100%; padding: 8px 12px; margin-top: 5px;
+          background: #24453B; border: none; border-radius: 7px;
+          font-size: 12px; font-weight: 600; color: #F7F1E3;
+          font-family: inherit; cursor: pointer; transition: background 0.2s;
         }
-        .empty-icon { width: 58px; height: 58px; margin: 0 auto 13px; border-radius: 17px; background: #e9efeb; display: flex; align-items: center; justify-content: center; }
-        .empty-state h3 { font-family: 'Manrope', sans-serif; font-size: 17px; margin: 0 0 6px; }
-        .empty-state p { margin: 0; color: #8a9690; font-size: 12px; }
-        .empty-reset { margin-top: 16px; border: 0; border-radius: 9px; background: #173f34; color: #fff; padding: 9px 13px; cursor: pointer; font-size: 10px; font-weight: 800; }
+        .feed-message-btn:hover:not(:disabled) { background: #BC5B34; }
+        .feed-message-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
+        .empty-state { text-align: center; padding: 48px 20px; }
+        .empty-title { font-family: 'Fraunces', Georgia, serif; font-size: 16px; font-weight: 600; color: #201F1B; margin: 10px 0 4px; }
+        .empty-desc { font-size: 13px; color: #9C9482; margin: 0; }
+
+        /* ---------- Bottom nav ---------- */
         .bottom-nav {
-          position: fixed; left: 12px; right: 12px; bottom: 10px; height: 62px; z-index: 100;
-          background: rgba(255,255,255,.96); border: 1px solid #e1e7e3; border-radius: 18px;
-          box-shadow: 0 12px 35px rgba(20,38,30,.15); backdrop-filter: blur(16px);
-          display: flex; justify-content: space-around; align-items: center;
+          position: fixed; bottom: 0; left: 0; right: 0;
+          background: rgba(255, 253, 248, 0.97);
+          backdrop-filter: blur(12px);
+          border-top: 1px solid #EFE6CE;
+          display: flex; justify-content: space-around;
+          padding: 6px 0 10px; z-index: 100;
         }
-        .nav-btn { background: transparent; border: 0; min-width: 54px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px 5px; }
-        .nav-icon-wrap { width: 34px; height: 29px; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
-        .nav-icon-wrap.active { background: #173f34; }
-        .nav-label { color: #87928d; font-size: 8px; font-weight: 700; }
-        .nav-label.active { color: #173f34; }
-
-        @media (min-width: 769px) { .bottom-nav { display: none; } }
-
-        @media (max-width: 1050px) {
-          .category-grid { grid-template-columns: repeat(3, 1fr); }
-          .listings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-          .business-rail { grid-template-columns: repeat(2, 1fr); }
+        .nav-btn {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 3px; background: none; border: none;
+          cursor: pointer; padding: 4px 8px;
+          font-family: inherit; min-width: 44px;
         }
-
-        @media (max-width: 760px) {
-          .page-width, .header-inner, .hero-content { width: calc(100% - 28px); }
-          .marketplace-header { height: 64px; }
-          .brand-caption { display: none; }
-          .brand-name { font-size: 14px; }
-          .header-action span { display: none; }
-          .header-action { width: 38px; padding: 0; justify-content: center; }
-          .hero-section { min-height: 430px; }
-          .hero-content { padding: 44px 0 108px; }
-          .desktop-break { display: none; }
-          .hero-title { font-size: 42px; }
-          .hero-desc { font-size: 13px; margin-top: 15px; }
-          .hero-search { height: 58px; border-radius: 15px; padding-left: 14px; }
-          .hero-search-btn { height: 44px; padding: 0 13px; }
-          .quick-searches { overflow: hidden; flex-wrap: nowrap; }
-          .quick-searches button { white-space: nowrap; }
-          .category-grid { display: flex; overflow-x: auto; gap: 9px; margin: 0 -14px 38px; padding: 2px 14px 7px; scrollbar-width: none; }
-          .category-grid::-webkit-scrollbar { display: none; }
-          .category-card { min-width: 145px; min-height: 75px; padding: 10px; }
-          .category-icon-box { width: 38px; height: 38px; min-width: 38px; }
-          .section-heading-row h2, .listings-heading h2 { font-size: 18px; }
-          .business-rail { display: flex; overflow-x: auto; gap: 10px; margin: 0 -14px; padding: 2px 14px 8px; scrollbar-width: none; }
-          .business-rail::-webkit-scrollbar { display: none; }
-          .business-card { min-width: 270px; }
-          .listings-top { align-items: flex-start; flex-direction: column; gap: 13px; }
-          .view-controls { width: 100%; justify-content: space-between; }
-          .listing-tabs { flex: 1; }
-          .listing-tabs button { flex: 1; }
-          .listings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
-          .product-card { border-radius: 15px; }
-          .product-body { padding: 10px; }
-          .product-body h3 { font-size: 11px; min-height: 30px; margin-bottom: 7px; }
-          .product-price-row strong { font-size: 12px; }
-          .product-seller { margin-top: 8px; }
-          .product-seller > span:nth-child(2) { max-width: 80px; }
-          .seller-location { display: none; }
-          .seller-divider { display: none; }
-          .product-actions { margin-top: 8px; padding-top: 8px; }
-          .message-btn { height: 29px; font-size: 8px; }
-          .like-count { font-size: 8px; }
-          .product-badge { height: 20px; padding: 0 6px; font-size: 7px; }
-          .heart-btn { width: 29px; height: 29px; }
-          .delivery-badge { height: 21px; font-size: 7px; }
-          .listings-section { padding-bottom: 25px; }
+        .nav-icon-wrap {
+          width: 32px; height: 32px; border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+          transition: background 0.2s;
         }
+        .nav-icon-wrap.active { background: #24453B; }
+        .nav-label { font-size: 9px; font-weight: 500; color: #9C9482; }
+        .nav-label.active { color: #201F1B; font-weight: 600; }
 
-        @media (max-width: 390px) {
-          .hero-title { font-size: 37px; }
-          .hero-search-input { font-size: 12px; }
-          .hero-search-btn { padding: 0 10px; font-size: 10px; }
-          .listings-grid { gap: 9px; }
-          .premium-filter span { display: none; }
-          .premium-filter { width: 34px; justify-content: center; padding: 0; }
-          .product-body h3 { font-size: 10.5px; }
-          .product-price-row strong { font-size: 11px; }
+        @media (max-width: 480px) {
+          .hero-block { padding: 30px 16px 52px; }
+          .hero-title { font-size: 25px; }
+          .search-card-wrap { padding: 0 16px; }
+          .categories-section { padding: 24px 16px 4px; }
+          .tabs-section { padding: 16px 16px 0; }
+          .featured-section { padding: 18px 16px 4px; }
+          .listings { padding: 10px 16px 12px; }
+          .listings-grid { column-gap: 10px; }
+          .feed-card { margin-bottom: 10px; }
+          .feed-title { font-size: 12px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+          .skeleton-hero, .skeleton-chip, .skeleton-card { animation: none; }
+          .feed-card, .search-btn, .filter-btn, .featured-card, .feed-message-btn, .nav-icon-wrap { transition: none; }
         }
       `}</style>
     </div>
   );
+};
 
 export default Landing;
