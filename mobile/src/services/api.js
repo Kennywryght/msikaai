@@ -152,6 +152,45 @@ export const listingsAPI = {
   delete: (id) => api.delete(`/listings/${id}`),
   search: (params) =>
     api.get('/listings/search', { params, cacheTTL: 3 * 60 * 1000 }),
+
+  // ===== LIKES (persisted) =====
+  like: (id) => api.post(`/listings/${id}/like`, {}, { cache: false }),
+  unlike: (id) => api.delete(`/listings/${id}/like`, { cache: false }),
+  getLikes: (id, params) =>
+    api.get(`/listings/${id}/likes`, { params, cacheTTL: 60 * 1000 }),
+
+  // ===== COMMENTS =====
+  getComments: (id, params) =>
+    api.get(`/listings/${id}/comments`, {
+      params,
+      cache: false, // always fresh — comments change often
+    }),
+  addComment: (id, content, parentId = null) =>
+    api.post(
+      `/listings/${id}/comments`,
+      { content, parent_id: parentId },
+      { cache: false }
+    ),
+  updateComment: (id, commentId, content) =>
+    api.put(`/listings/${id}/comments/${commentId}`, { content }, { cache: false }),
+  deleteComment: (id, commentId) =>
+    api.delete(`/listings/${id}/comments/${commentId}`, { cache: false }),
+};
+
+// ============================================
+// COMMENTS API (top-level comment actions)
+// ============================================
+export const commentsAPI = {
+  getById: (commentId) =>
+    api.get(`/comments/${commentId}`, { cache: false }),
+  like: (commentId) =>
+    api.post(`/comments/${commentId}/like`, {}, { cache: false }),
+  unlike: (commentId) =>
+    api.delete(`/comments/${commentId}/like`, { cache: false }),
+  getReplies: (commentId, params) =>
+    api.get(`/comments/${commentId}/replies`, { params, cache: false }),
+  report: (commentId, data) =>
+    api.post(`/comments/${commentId}/report`, data),
 };
 
 // ============================================
@@ -330,6 +369,7 @@ export const exportAPI = {
   exportBusinessJSON: (businessId) =>
     api.get(`/export/business/${businessId}/json`),
 };
+
 // ============================================
 // NOTIFICATIONS API
 // ============================================
@@ -347,7 +387,7 @@ export const notificationsAPI = {
     api.delete(`/notifications/${id}`, { data: { userId } }),
   create: (data) => api.post('/notifications/create', data),
 
-  // ✅ NEW: Web push endpoints
+  // ✅ Web push endpoints
   getPushPublicKey: () =>
     api.get('/notifications/push/public-key', { cacheTTL: 60 * 60 * 1000 }),
 
@@ -359,6 +399,7 @@ export const notificationsAPI = {
 
   testPush: () => api.post('/notifications/push/test'),
 };
+
 // ============================================
 // MATCHING API
 // ============================================
