@@ -28,6 +28,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     layers: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
     close: "M6 18L18 6M6 6l12 12",
     comment: "M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z",
+    mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z M12 13a3 3 0 100-6 3 3 0 000 6z",
+    check: "M20 6L9 17l-5-5",
   };
   const d = icons[name] || icons.store;
   return (
@@ -52,6 +54,18 @@ const CATEGORIES = [
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 const ASPECT_RATIOS = ['4 / 5', '4 / 6.6', '4 / 4.2', '4 / 5.8'];
 
+/* ---------- Category color resolver ---------- */
+const getCategoryColor = (category) => {
+  if (!category) return '#6B6259';
+  const c = category.toLowerCase();
+  if (c.includes('food') || c.includes('coffee') || c.includes('drink')) return '#BC5B34';
+  if (c.includes('cloth') || c.includes('shirt') || c.includes('fashion')) return '#8B5A83';
+  if (c.includes('service') || c.includes('plumber') || c.includes('electric') || c.includes('mechanic') || c.includes('tailor') || c.includes('hair')) return '#3E6C76';
+  if (c.includes('farm') || c.includes('wheat') || c.includes('seed') || c.includes('fert')) return '#5B7B5E';
+  if (c.includes('hardware') || c.includes('tool') || c.includes('hammer')) return '#6B6259';
+  return '#BC5B34';
+};
+
 const Landing = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -65,7 +79,7 @@ const Landing = () => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [activeTab, setActiveTab] = useState('all');
   const [openingChatId, setOpeningChatId] = useState(null);
-  const [openCommentsId, setOpenCommentsId] = useState(null); // ★ which listing's comments are open
+  const [openCommentsId, setOpenCommentsId] = useState(null);
 
   const searchInputRef = useRef(null);
   const isMobile = windowWidth <= 768;
@@ -88,7 +102,6 @@ const Landing = () => {
     const wasLiked = !!item.liked_by_me;
     const prevLikes = item.likes ?? 0;
 
-    // Optimistic update
     setAllListings((prev) =>
       prev.map((l) =>
         l.id === item.id
@@ -102,7 +115,6 @@ const Landing = () => {
       else await listingsAPI.like(item.id);
     } catch (err) {
       console.error('like error:', err);
-      // rollback
       setAllListings((prev) =>
         prev.map((l) =>
           l.id === item.id
@@ -384,93 +396,120 @@ const Landing = () => {
               const canMessage = !!sellerUserId && sellerUserId !== user?.id;
               const commentCount = item.comment_count ?? 0;
               const commentsOpen = openCommentsId === item.id;
+              const catColor = getCategoryColor(item.category);
+              const sellerName = item.businesses?.business_name || 'Local seller';
+              const sellerInitial = sellerName.trim().charAt(0).toUpperCase() || 'L';
 
               return (
-                <div key={item.id} className="feed-card">
-                  <div className="feed-image" style={{ aspectRatio: getAspect(index) }} onClick={() => handleListingClick(item)}>
+                <article key={item.id} className="card">
+                  {/* -------- Image -------- */}
+                  <div
+                    className="card-media"
+                    style={{ aspectRatio: getAspect(index) }}
+                    onClick={() => handleListingClick(item)}
+                  >
                     {item.images?.length ? (
-                      <img src={item.images[0]} alt={item.title} className="feed-img" loading="lazy" />
+                      <img src={item.images[0]} alt={item.title} className="card-img" loading="lazy" />
                     ) : (
-                      <div className="feed-placeholder">
-                        <Icon name="store" size={26} color="#BFA97B" strokeWidth={1.4} />
+                      <div className="card-placeholder">
+                        <Icon name="store" size={28} color="#C9BB98" strokeWidth={1.3} />
                       </div>
                     )}
-                    <div className="badge-row">
-                      <div className="badge-row-left">
-                        {isRecent(item) && <span className="badge feed-new">New</span>}
-                      </div>
-                      <div className="badge-row-right">
-                        {item.delivery_available && (
-                          <span className="badge feed-delivery" aria-label="Delivery">
-                            <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <span className="feed-price-tag">{formatPrice(item.price)}</span>
-                  </div>
 
-                  <div className="feed-content">
-                    <h3 className="feed-title" onClick={() => handleListingClick(item)}>{item.title}</h3>
-
-                    <div className="feed-meta-row">
-                      {isBusiness && <span className="business-tag">Business</span>}
-                      <span className="feed-seller-text">{item.businesses?.business_name || 'Local seller'}</span>
-                      {item.location_area && (
-                        <>
-                          <span className="feed-dot" />
-                          <span className="feed-location-text">{item.location_area}</span>
-                        </>
+                    {/* top overlay row */}
+                    <div className="card-media-top">
+                      {isRecent(item) && <span className="chip chip-new">NEW</span>}
+                      {item.category && (
+                        <span className="chip chip-cat" style={{ background: `${catColor}E6` }}>
+                          {item.category}
+                        </span>
                       )}
                     </div>
 
-                    <div className="feed-footer">
+                    {/* bottom overlay row */}
+                    <div className="card-media-bottom">
+                      {item.delivery_available && (
+                        <span className="chip chip-delivery" title="Delivery available">
+                          <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
+                          Delivery
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* -------- Body -------- */}
+                  <div className="card-body">
+                    <h3 className="card-title" onClick={() => handleListingClick(item)}>
+                      {item.title}
+                    </h3>
+
+                    {item.price != null && item.price !== '' ? (
+                      <div className="card-price">
+                        <span className="price-value">{formatPrice(item.price)}</span>
+                      </div>
+                    ) : (
+                      <div className="card-price card-price-muted">Price on request</div>
+                    )}
+
+                    <div className="card-seller">
+                      <span className="seller-avatar" style={{ background: `${catColor}1F`, color: catColor }}>
+                        {sellerInitial}
+                      </span>
+                      <span className="seller-name">{sellerName}</span>
                       {item.rating != null && item.rating > 0 && (
-                        <span className="feed-rating">
-                          <Icon name="star" size={11} color="#D99A3B" strokeWidth={2} />
+                        <span className="seller-rating">
+                          <Icon name="star" size={11} color="#D99A3B" strokeWidth={2.2} />
                           {Number(item.rating).toFixed(1)}
                         </span>
                       )}
+                    </div>
 
-                      {/* ★ Like button — persisted */}
+                    {item.location_area && (
+                      <div className="card-location">
+                        <Icon name="mapPin" size={11} color="#B0A88F" strokeWidth={1.8} />
+                        <span>{item.location_area}</span>
+                      </div>
+                    )}
+
+                    {/* -------- Footer actions -------- */}
+                    <div className="card-actions">
                       <button
-                        className={`like-btn ${isLiked ? 'liked' : ''}`}
+                        className={`action-btn like-btn ${isLiked ? 'liked' : ''}`}
                         onClick={(e) => handleLike(e, item)}
                         aria-label={isLiked ? 'Unlike' : 'Like'}
                       >
-                        <Icon name="heart" size={14} color={isLiked ? '#BC5B34' : '#9C9482'} strokeWidth={isLiked ? 2.5 : 1.6} />
-                        <span>{likeCount > 0 ? likeCount : ''}</span>
+                        <Icon name="heart" size={15} color={isLiked ? '#BC5B34' : '#9C9482'} strokeWidth={isLiked ? 2.5 : 1.7} />
+                        {likeCount > 0 && <span>{likeCount}</span>}
                       </button>
 
-                      {/* ★ Comment toggle button */}
                       <button
-                        className="comment-btn"
+                        className="action-btn comment-btn"
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenCommentsId(commentsOpen ? null : item.id);
                         }}
                         aria-label="Comments"
                       >
-                        <Icon name="comment" size={14} color={commentsOpen ? '#24453B' : '#9C9482'} strokeWidth={1.7} />
-                        <span>{commentCount > 0 ? commentCount : ''}</span>
+                        <Icon name="comment" size={14} color={commentsOpen ? '#24453B' : '#9C9482'} strokeWidth={1.8} />
+                        {commentCount > 0 && <span>{commentCount}</span>}
                       </button>
+
+                      {canMessage && (
+                        <button
+                          type="button"
+                          className="action-btn msg-btn"
+                          onClick={(e) => handleQuickMessage(e, item)}
+                          disabled={openingChatId === item.id}
+                          aria-label="Message seller"
+                        >
+                          <Icon name="message" size={13} color="#F7F1E3" strokeWidth={2} />
+                          <span>{openingChatId === item.id ? '…' : 'Message'}</span>
+                        </button>
+                      )}
                     </div>
 
-                    {canMessage && (
-                      <button
-                        type="button"
-                        className="feed-message-btn"
-                        onClick={(e) => handleQuickMessage(e, item)}
-                        disabled={openingChatId === item.id}
-                      >
-                        <Icon name="message" size={13} color="#F7F1E3" strokeWidth={2} />
-                        {openingChatId === item.id ? 'Opening…' : 'Message'}
-                      </button>
-                    )}
-
-                    {/* ★ Inline comments — only mounted when open to save network */}
                     {commentsOpen && (
-                      <div className="feed-comments" onClick={(e) => e.stopPropagation()}>
+                      <div className="card-comments" onClick={(e) => e.stopPropagation()}>
                         <CommentSection
                           listingId={item.id}
                           compact
@@ -483,7 +522,7 @@ const Landing = () => {
                       </div>
                     )}
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
@@ -522,7 +561,7 @@ const Landing = () => {
       )}
 
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap');
 
         .app {
           min-height: 100vh;
@@ -581,11 +620,11 @@ const Landing = () => {
           margin: 0; max-width: 400px;
         }
 
-        /* ---------- ★ STICKY SEARCH (pins just below the 64px top bar) ---------- */
+        /* ---------- ★ STICKY SEARCH ---------- */
         .search-sticky {
           position: sticky;
-          top: 64px;                      /* ← sits right below the top bar */
-          z-index: 50;                    /* ← below the top bar's z-index */
+          top: 64px;
+          z-index: 50;
           padding: 0 20px;
           margin-top: -30px;
           padding-bottom: 12px;
@@ -693,9 +732,9 @@ const Landing = () => {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
-        /* ---------- Listings ---------- */
+        /* ---------- Listings grid ---------- */
         .listings { padding: 10px 20px 16px; max-width: 1200px; margin: 0 auto; }
-        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
         .listings-header-left { display: flex; align-items: baseline; gap: 8px; }
         .listings-title {
           font-family: 'Fraunces', Georgia, serif;
@@ -711,100 +750,179 @@ const Landing = () => {
         }
         .filter-btn:hover { border-color: #BC5B34; transform: translateY(-1px); }
 
-        .listings-grid { column-count: 2; column-gap: 14px; }
-        @media (min-width: 640px) { .listings-grid { column-count: 3; } }
-        @media (min-width: 1024px) { .listings-grid { column-count: 4; } }
-
-        .feed-card {
-          background: #FFFDF8; border-radius: 8px;
-          border: 1px solid #EFE6CE; overflow: hidden;
-          break-inside: avoid; -webkit-column-break-inside: avoid;
-          margin-bottom: 14px;
-          transition: border-color 0.2s, box-shadow 0.25s, transform 0.2s;
+        .listings-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px 14px;
         }
-        .feed-card:hover {
-          border-color: #D9C79E;
-          box-shadow: 0 12px 28px rgba(22, 38, 31, 0.08);
-          transform: translateY(-2px);
+        @media (min-width: 640px) { .listings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; } }
+        @media (min-width: 1024px) { .listings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; } }
+
+        /* ---------- ★ Modern editorial card ---------- */
+        .card {
+          display: flex; flex-direction: column;
+          background: #FFFDF8;
+          border-radius: 14px;
+          overflow: hidden;
+          box-shadow:
+            0 1px 2px rgba(22, 38, 31, 0.04),
+            0 0 0 1px rgba(239, 230, 206, 0.85);
+          transition: box-shadow 0.28s ease, transform 0.28s ease;
+        }
+        .card:hover {
+          transform: translateY(-3px);
+          box-shadow:
+            0 2px 4px rgba(22, 38, 31, 0.05),
+            0 20px 40px rgba(22, 38, 31, 0.12),
+            0 0 0 1px rgba(217, 199, 158, 0.9);
         }
 
-        .feed-image { position: relative; width: 100%; background: #F0E9D6; overflow: hidden; cursor: pointer; }
-        .feed-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s ease; }
-        .feed-card:hover .feed-img { transform: scale(1.04); }
-        .feed-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        /* -------- Media -------- */
+        .card-media {
+          position: relative;
+          width: 100%;
+          background: #F0E9D6;
+          overflow: hidden;
+          cursor: pointer;
+        }
+        .card-img {
+          width: 100%; height: 100%; object-fit: cover; display: block;
+          transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+        }
+        .card:hover .card-img { transform: scale(1.06); }
+        .card-placeholder {
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
+        }
 
-        .badge-row {
+        .card-media-top {
           position: absolute; top: 10px; left: 10px; right: 10px;
-          display: flex; justify-content: space-between;
-          align-items: flex-start; pointer-events: none;
+          display: flex; align-items: flex-start; gap: 6px;
+          pointer-events: none;
         }
-        .badge { display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 10px; font-weight: 700; }
-        .feed-new {
-          background: #24453B; color: #F7F1E3;
-          padding: 4px 9px; letter-spacing: 0.03em;
+        .chip {
+          display: inline-flex; align-items: center; gap: 4px;
+          font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+          text-transform: uppercase;
+          padding: 4px 8px; border-radius: 6px;
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
         }
-        .feed-delivery { background: rgba(22, 38, 31, 0.75); width: 22px; height: 22px; backdrop-filter: blur(4px); }
+        .chip-new {
+          background: rgba(36, 69, 59, 0.92);
+          color: #F7F1E3;
+        }
+        .chip-cat {
+          margin-left: auto;
+          color: #F7F1E3;
+          letter-spacing: 0.04em;
+          text-transform: none;
+          font-weight: 600;
+          font-size: 10px;
+        }
+        .card-media-bottom {
+          position: absolute; bottom: 10px; left: 10px; right: 10px;
+          display: flex; justify-content: flex-start;
+          pointer-events: none;
+        }
+        .chip-delivery {
+          background: rgba(22, 38, 31, 0.82);
+          color: #F7F1E3;
+          letter-spacing: 0.04em;
+          text-transform: none;
+          font-size: 10px;
+          font-weight: 600;
+        }
 
-        .feed-price-tag {
-          position: absolute; left: 10px; bottom: 10px;
-          background: #BC5B34; color: #F7F1E3;
-          font-size: 12px; font-weight: 700;
-          padding: 5px 10px; border-radius: 6px;
-          letter-spacing: -0.01em;
-          box-shadow: 0 4px 12px rgba(188, 91, 52, 0.3);
+        /* -------- Body -------- */
+        .card-body {
+          padding: 12px 13px 11px;
+          display: flex; flex-direction: column; gap: 6px;
         }
-
-        .feed-content { padding: 12px 13px 13px; display: flex; flex-direction: column; gap: 7px; }
-        .feed-title {
-          font-size: 13.5px; font-weight: 600; margin: 0;
-          line-height: 1.32; color: #201F1B; cursor: pointer;
+        .card-title {
+          font-size: 13.5px; font-weight: 600; line-height: 1.3;
+          color: #201F1B; margin: 0; cursor: pointer;
           display: -webkit-box; -webkit-line-clamp: 2;
           -webkit-box-orient: vertical; overflow: hidden;
+          letter-spacing: -0.005em;
         }
-        .feed-meta-row {
-          display: flex; align-items: center; gap: 5px;
-          font-size: 11px; color: #9C9482; flex-wrap: wrap;
+        .card-title:hover { color: #24453B; }
+
+        .card-price { display: flex; align-items: baseline; gap: 6px; }
+        .price-value {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 17px; font-weight: 600;
+          color: #24453B;
+          letter-spacing: -0.015em;
+          font-variant-numeric: tabular-nums;
         }
-        .feed-seller-text, .feed-location-text {
-          overflow: hidden; text-overflow: ellipsis;
-          white-space: nowrap; max-width: 100px;
-        }
-        .feed-dot { width: 3px; height: 3px; border-radius: 50%; background: #D9C79E; flex-shrink: 0; }
-        .business-tag {
-          font-size: 9.5px; font-weight: 700; color: #BC5B34;
-          background: rgba(188, 91, 52, 0.1);
-          padding: 1px 6px; border-radius: 4px; flex-shrink: 0;
+        .card-price-muted {
+          font-size: 12px; color: #9C9482; font-style: italic;
         }
 
-        .feed-footer {
-          display: flex; align-items: center; gap: 12px;
-          margin-top: 2px; padding-top: 8px; border-top: 1px solid #F2EBD9;
+        .card-seller {
+          display: flex; align-items: center; gap: 7px;
+          font-size: 11.5px; color: #6B6259;
+          margin-top: 2px;
         }
-        .feed-rating { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: #201F1B; }
-        .like-btn, .comment-btn {
+        .seller-avatar {
+          width: 20px; height: 20px; border-radius: 50%;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 10px; font-weight: 700;
+          flex-shrink: 0;
+        }
+        .seller-name {
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          max-width: 110px; font-weight: 500;
+        }
+        .seller-rating {
+          display: inline-flex; align-items: center; gap: 3px;
+          margin-left: auto; font-size: 11px; font-weight: 600; color: #201F1B;
+        }
+
+        .card-location {
           display: flex; align-items: center; gap: 4px;
-          background: none; border: none; font-size: 11.5px;
-          color: #9C9482; cursor: pointer; font-family: inherit;
-          padding: 3px 4px; border-radius: 6px;
-          transition: background 0.15s, color 0.15s;
+          font-size: 10.5px; color: #9C9482;
         }
-        .like-btn { margin-left: auto; }
-        .like-btn:hover, .comment-btn:hover { background: rgba(217, 154, 59, 0.08); color: #201F1B; }
+        .card-location span {
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        /* -------- Actions footer -------- */
+        .card-actions {
+          display: flex; align-items: center; gap: 4px;
+          margin-top: 6px; padding-top: 8px;
+          border-top: 1px solid #F2EBD9;
+        }
+        .action-btn {
+          display: inline-flex; align-items: center; gap: 4px;
+          background: none; border: none;
+          padding: 5px 7px; border-radius: 8px;
+          font-size: 11.5px; font-weight: 500;
+          color: #7C7A70; cursor: pointer;
+          font-family: inherit;
+          transition: background 0.15s, color 0.15s, transform 0.1s;
+        }
+        .action-btn:hover { background: rgba(217, 154, 59, 0.09); color: #201F1B; }
+        .action-btn:active { transform: scale(0.96); }
+
         .like-btn.liked { color: #BC5B34; font-weight: 600; }
 
-        .feed-message-btn {
-          display: inline-flex; align-items: center; justify-content: center;
-          gap: 6px; width: 100%; padding: 9px 12px; margin-top: 5px;
-          background: #24453B; border: none; border-radius: 8px;
-          font-size: 12px; font-weight: 600; color: #F7F1E3;
-          font-family: inherit; cursor: pointer;
+        .msg-btn {
+          margin-left: auto;
+          background: #24453B;
+          color: #F7F1E3;
+          padding: 5px 10px;
+          font-weight: 600;
+          font-size: 11px;
+          border-radius: 8px;
           transition: background 0.2s, transform 0.15s;
         }
-        .feed-message-btn:hover:not(:disabled) { background: #BC5B34; transform: translateY(-1px); }
-        .feed-message-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+        .msg-btn:hover:not(:disabled) { background: #BC5B34; color: #F7F1E3; }
+        .msg-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-        .feed-comments {
-          margin-top: 10px; padding-top: 10px;
+        .card-comments {
+          margin-top: 8px; padding-top: 8px;
           border-top: 1px solid #F2EBD9;
           animation: slideDown 0.22s ease;
         }
@@ -853,15 +971,16 @@ const Landing = () => {
           .tabs-section { padding: 16px 16px 0; }
           .featured-section { padding: 18px 16px 4px; }
           .listings { padding: 10px 16px 12px; }
-          .listings-grid { column-gap: 12px; }
-          .feed-card { margin-bottom: 12px; }
-          .feed-title { font-size: 12.5px; }
+          .listings-grid { gap: 12px; }
+          .card-title { font-size: 12.5px; }
+          .price-value { font-size: 15.5px; }
+          .seller-name { max-width: 80px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .feed-card, .search-btn, .filter-btn, .featured-card,
-          .feed-message-btn, .nav-icon-wrap, .feed-img { transition: none; }
-          .feed-comments { animation: none; }
+          .card, .card-img, .search-btn, .filter-btn, .featured-card,
+          .action-btn, .msg-btn, .nav-icon-wrap { transition: none; }
+          .card-comments { animation: none; }
         }
       `}</style>
     </div>
