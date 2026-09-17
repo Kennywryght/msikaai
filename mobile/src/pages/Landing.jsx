@@ -29,7 +29,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     close: "M6 18L18 6M6 6l12 12",
     comment: "M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z",
     mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z M12 13a3 3 0 100-6 3 3 0 000 6z",
-    send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
+    sparkle: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z",
+    flame: "M12 2s4 5 4 9a4 4 0 11-8 0c0-1.5.7-2.7 1.5-3.5C10 6 12 2 12 2z",
   };
   const d = icons[name] || icons.store;
   return (
@@ -65,6 +66,222 @@ const getCategoryColor = (category) => {
   return '#BC5B34';
 };
 
+/* ---------- Reusable compact card ---------- */
+const ProductCard = ({
+  item, index, user, openingChatId, onLike, onOpen, onMessage, onOpenComments,
+}) => {
+  const isLiked = !!item.liked_by_me;
+  const likeCount = item.likes ?? 0;
+  const sellerUserId = item.businesses?.user_id || item.businesses?.userId || item.businesses?.owner_id || null;
+  const canMessage = !!sellerUserId && sellerUserId !== user?.id;
+  const commentCount = item.comment_count ?? 0;
+  const catColor = getCategoryColor(item.category);
+  const aspect = ASPECT_RATIOS[index % ASPECT_RATIOS.length];
+
+  return (
+    <article className="pcard">
+      <div className="pcard-media" style={{ aspectRatio: aspect }} onClick={() => onOpen(item)}>
+        {item.images?.length ? (
+          <img src={item.images[0]} alt={item.title} className="pcard-img" loading="lazy" />
+        ) : (
+          <div className="pcard-placeholder">
+            <Icon name="store" size={26} color="#C9BB98" strokeWidth={1.3} />
+          </div>
+        )}
+
+        <button
+          className={`pcard-heart ${isLiked ? 'liked' : ''}`}
+          onClick={(e) => onLike(e, item)}
+          aria-label={isLiked ? 'Unlike' : 'Like'}
+        >
+          <Icon name="heart" size={13} color="#F7F1E3" strokeWidth={isLiked ? 2.6 : 1.9} />
+        </button>
+
+        {item.delivery_available && (
+          <span className="pcard-delivery" title="Delivery available">
+            <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
+          </span>
+        )}
+      </div>
+
+      <div className="pcard-body">
+        <div className="pcard-price">
+          {item.price != null && item.price !== '' ? (
+            <span className="pcard-price-value">{`MK ${Number(item.price).toLocaleString()}`}</span>
+          ) : (
+            <span className="pcard-price-muted">On request</span>
+          )}
+        </div>
+
+        <h3 className="pcard-title" onClick={() => onOpen(item)}>{item.title}</h3>
+
+        <div className="pcard-meta">
+          <span className="pcard-avatar" style={{ background: `${catColor}22`, color: catColor }}>
+            {(item.businesses?.business_name || 'L').trim().charAt(0).toUpperCase()}
+          </span>
+          <span className="pcard-seller">{item.businesses?.business_name || 'Local seller'}</span>
+          {item.location_area && (
+            <>
+              <span className="pcard-dot" />
+              <span className="pcard-loc">{item.location_area}</span>
+            </>
+          )}
+        </div>
+
+        <div className="pcard-actions">
+          <button
+            className={`pcard-icon-btn ${isLiked ? 'liked' : ''}`}
+            onClick={(e) => onLike(e, item)}
+            aria-label="Like"
+          >
+            <Icon name="heart" size={13} color={isLiked ? '#BC5B34' : '#8A8578'} strokeWidth={isLiked ? 2.5 : 1.8} />
+            {likeCount > 0 && <span>{likeCount}</span>}
+          </button>
+
+          <button
+            className="pcard-icon-btn"
+            onClick={(e) => { e.stopPropagation(); onOpenComments(item); }}
+            aria-label="Comments"
+          >
+            <Icon name="comment" size={13} color="#8A8578" strokeWidth={1.9} />
+            {commentCount > 0 && <span>{commentCount}</span>}
+          </button>
+
+          {canMessage && (
+            <button
+              className="pcard-msg"
+              onClick={(e) => onMessage(e, item)}
+              disabled={openingChatId === item.id}
+              aria-label="Message seller"
+            >
+              <Icon name="message" size={12} color="#F7F1E3" strokeWidth={2} />
+              <span>{openingChatId === item.id ? '…' : 'Message'}</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+};
+
+/* ---------- Featured (2-col wide hero card) ---------- */
+const FeaturedCard = ({ item, user, openingChatId, onLike, onOpen, onMessage, onOpenComments }) => {
+  const isLiked = !!item.liked_by_me;
+  const likeCount = item.likes ?? 0;
+  const sellerUserId = item.businesses?.user_id || item.businesses?.userId || item.businesses?.owner_id || null;
+  const canMessage = !!sellerUserId && sellerUserId !== user?.id;
+  const commentCount = item.comment_count ?? 0;
+  const catColor = getCategoryColor(item.category);
+
+  return (
+    <article className="fcard">
+      <div className="fcard-media" onClick={() => onOpen(item)}>
+        {item.images?.length ? (
+          <img src={item.images[0]} alt={item.title} className="fcard-img" loading="lazy" />
+        ) : (
+          <div className="fcard-placeholder">
+            <Icon name="store" size={40} color="#C9BB98" strokeWidth={1.2} />
+          </div>
+        )}
+
+        <div className="fcard-top">
+          <span className="fchip fchip-spotlight">
+            <Icon name="sparkle" size={11} color="#F0D9A8" strokeWidth={2} />
+            Spotlight
+          </span>
+          {item.category && (
+            <span className="fchip fchip-cat" style={{ background: `${catColor}E0` }}>
+              {item.category}
+            </span>
+          )}
+        </div>
+
+        <button
+          className={`fcard-heart ${isLiked ? 'liked' : ''}`}
+          onClick={(e) => onLike(e, item)}
+          aria-label={isLiked ? 'Unlike' : 'Like'}
+        >
+          <Icon name="heart" size={14} color="#F7F1E3" strokeWidth={isLiked ? 2.6 : 1.9} />
+          {likeCount > 0 && <span>{likeCount}</span>}
+        </button>
+
+        <div className="fcard-glass" onClick={(e) => e.stopPropagation()}>
+          <div className="fcard-glass-row">
+            <h3 className="fcard-title" onClick={() => onOpen(item)}>{item.title}</h3>
+            <span className="fcard-price">
+              {item.price != null && item.price !== '' ? `MK ${Number(item.price).toLocaleString()}` : 'On request'}
+            </span>
+          </div>
+          <div className="fcard-meta">
+            <span className="fcard-seller">{item.businesses?.business_name || 'Local seller'}</span>
+            {item.location_area && (
+              <>
+                <span className="fcard-dot" />
+                <span className="fcard-loc">
+                  <Icon name="mapPin" size={10} color="#EFE6CE" strokeWidth={1.9} />
+                  {item.location_area}
+                </span>
+              </>
+            )}
+            {item.delivery_available && (
+              <span className="fcard-delivery">
+                <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
+                Delivery
+              </span>
+            )}
+          </div>
+          <div className="fcard-actions">
+            <button
+              className="fcard-action"
+              onClick={(e) => { e.stopPropagation(); onOpenComments(item); }}
+            >
+              <Icon name="comment" size={13} color="#F7F1E3" strokeWidth={1.9} />
+              <span>{commentCount > 0 ? `${commentCount} comments` : 'Comment'}</span>
+            </button>
+            {canMessage && (
+              <button
+                className="fcard-action fcard-msg"
+                onClick={(e) => onMessage(e, item)}
+                disabled={openingChatId === item.id}
+              >
+                <Icon name="message" size={12} color="#201F1B" strokeWidth={2} />
+                <span>{openingChatId === item.id ? '…' : 'Message'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+};
+
+/* ---------- Spotlight tile (hero strip) ---------- */
+const SpotlightTile = ({ item, onOpen }) => {
+  const catColor = getCategoryColor(item.category);
+  return (
+    <button className="spot-tile" onClick={() => onOpen(item)}>
+      <div className="spot-media">
+        {item.images?.length ? (
+          <img src={item.images[0]} alt={item.title} loading="lazy" />
+        ) : (
+          <div className="spot-placeholder">
+            <Icon name="store" size={22} color="#C9BB98" strokeWidth={1.4} />
+          </div>
+        )}
+        <span className="spot-cat" style={{ background: `${catColor}E6` }}>
+          {item.category || 'New'}
+        </span>
+      </div>
+      <div className="spot-info">
+        <div className="spot-title">{item.title}</div>
+        <div className="spot-price">
+          {item.price != null && item.price !== '' ? `MK ${Number(item.price).toLocaleString()}` : 'On request'}
+        </div>
+      </div>
+    </button>
+  );
+};
+
 const Landing = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -78,7 +295,7 @@ const Landing = () => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [activeTab, setActiveTab] = useState('all');
   const [openingChatId, setOpeningChatId] = useState(null);
-  const [commentsListing, setCommentsListing] = useState(null); // ★ pop-up target
+  const [commentsListing, setCommentsListing] = useState(null);
 
   const searchInputRef = useRef(null);
   const isMobile = windowWidth <= 768;
@@ -93,7 +310,6 @@ const Landing = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  /* Lock body scroll while the comments pop-up is open */
   useEffect(() => {
     if (commentsListing) {
       const prev = document.body.style.overflow;
@@ -102,7 +318,6 @@ const Landing = () => {
     }
   }, [commentsListing]);
 
-  /* Esc closes the pop-up */
   useEffect(() => {
     if (!commentsListing) return;
     const onKey = (e) => { if (e.key === 'Escape') setCommentsListing(null); };
@@ -216,12 +431,13 @@ const Landing = () => {
   }, []);
 
   /* ---------- Filtering ---------- */
-  const filteredListings = useMemo(() => {
+  const isService = useCallback((item) => {
+    const serviceCategories = ['Plumber', 'Electrician', 'Carpenter', 'Mechanic', 'Tailor', 'Hairdresser', 'Services'];
+    return serviceCategories.some((cat) => item.category?.toLowerCase().includes(cat.toLowerCase()));
+  }, []);
+
+  const baseFiltered = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    const isService = (item) => {
-      const serviceCategories = ['Plumber', 'Electrician', 'Carpenter', 'Mechanic', 'Tailor', 'Hairdresser', 'Services'];
-      return serviceCategories.some((cat) => item.category?.toLowerCase().includes(cat.toLowerCase()));
-    };
     return allListings.filter((item) => {
       const categoryMatch = selectedCategory === 'All' || item.category?.toLowerCase().includes(selectedCategory.toLowerCase());
       const searchMatch = !query ||
@@ -233,7 +449,41 @@ const Landing = () => {
       else if (activeTab === 'services') tabMatch = isService(item);
       return categoryMatch && searchMatch && tabMatch;
     });
-  }, [allListings, selectedCategory, searchQuery, activeTab]);
+  }, [allListings, selectedCategory, searchQuery, activeTab, isService]);
+
+  /* ---------- Split into sections ---------- */
+  const spotlight = useMemo(() => {
+    const recent = [...baseFiltered]
+      .filter((l) => l.created_at)
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return recent.slice(0, 6);
+  }, [baseFiltered]);
+
+  const featured = useMemo(() => {
+    // most liked recent listing (last 48h) — fall back to most liked overall
+    const recent = baseFiltered.filter(
+      (l) => l.created_at && Date.now() - new Date(l.created_at).getTime() < NEW_WINDOW_MS
+    );
+    const pool = recent.length ? recent : baseFiltered;
+    if (pool.length < 3) return null;
+    return [...pool].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))[0] || null;
+  }, [baseFiltered]);
+
+  const featuredId = featured?.id;
+
+  const freshListings = useMemo(
+    () => baseFiltered.filter((l) => l.id !== featuredId && l.created_at && Date.now() - new Date(l.created_at).getTime() < NEW_WINDOW_MS),
+    [baseFiltered, featuredId]
+  );
+
+  const freshIds = useMemo(() => new Set(freshListings.map((l) => l.id)), [freshListings]);
+
+  const otherListings = useMemo(
+    () => baseFiltered.filter((l) => l.id !== featuredId && !freshIds.has(l.id)),
+    [baseFiltered, featuredId, freshIds]
+  );
+
+  const hasResults = baseFiltered.length > 0;
 
   const handleSearch = useCallback((e) => {
     e.preventDefault();
@@ -248,18 +498,6 @@ const Landing = () => {
   const handleBusinessClick = useCallback((business) => {
     navigate(`/search?q=${encodeURIComponent(business.business_name)}`);
   }, [navigate]);
-
-  const formatPrice = useCallback((price) => {
-    if (!price) return 'Price on request';
-    return `MK ${Number(price).toLocaleString()}`;
-  }, []);
-
-  const isRecent = useCallback((item) => {
-    if (!item.created_at) return false;
-    return Date.now() - new Date(item.created_at).getTime() < NEW_WINDOW_MS;
-  }, []);
-
-  const getAspect = useCallback((index) => ASPECT_RATIOS[index % ASPECT_RATIOS.length], []);
 
   const handleBottomNav = (id) => {
     if (id === 'home') navigate('/landing');
@@ -279,7 +517,7 @@ const Landing = () => {
         </div>
         <style jsx>{`
           .loading-skeleton { min-height: 100vh; background: #F7F1E3; padding-bottom: 80px; }
-          .skeleton-hero { height: 190px; background: linear-gradient(160deg, #24453B, #16261F); }
+          .skeleton-hero { height: 200px; background: linear-gradient(160deg, #24453B, #16261F); }
           .skeleton-search { height: 52px; margin: -26px 20px 20px; border-radius: 12px; background: #FFFDF8; box-shadow: 0 12px 24px rgba(22,38,31,0.12); }
           .skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 20px; }
           .skeleton-card { aspect-ratio: 4 / 5; background: #ECE3CC; border-radius: 14px; animation: pulse 1.6s ease-in-out infinite; }
@@ -291,7 +529,7 @@ const Landing = () => {
 
   return (
     <div className="app">
-      {/* ============ HERO (smaller) ============ */}
+      {/* ============ HERO ============ */}
       <div className="hero-block">
         <div className="hero-texture" aria-hidden="true" />
         <div className="hero-inner">
@@ -302,6 +540,7 @@ const Landing = () => {
           <h1 className="hero-title">
             Find what you need, <em>right here.</em>
           </h1>
+          <p className="hero-desc">Local goods, services, and tradespeople — a step from your door.</p>
         </div>
       </div>
 
@@ -327,20 +566,35 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ============ CATEGORIES (smaller chips) ============ */}
-      <div className="categories-section">
-        <div className="categories-scroll">
+      {/* ============ SPOTLIGHT STRIP ============ */}
+      {spotlight.length > 0 && (
+        <div className="spotlight-section">
+          <div className="spotlight-header">
+            <h2 className="spotlight-heading">Spotlight</h2>
+            <span className="spotlight-sub">Just arrived</span>
+          </div>
+          <div className="spotlight-scroll">
+            {spotlight.map((item) => (
+              <SpotlightTile key={item.id} item={item} onOpen={handleListingClick} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ============ CATEGORY PILL BAR (segmented, sliding) ============ */}
+      <div className="cats-wrap">
+        <div className="cats-bar">
           {CATEGORIES.map((cat) => {
             const active = selectedCategory === cat.label;
             return (
               <button
                 key={cat.label}
-                className={`category-tag ${active ? 'active' : ''}`}
-                style={active ? { background: cat.color, borderColor: cat.color } : { borderColor: `${cat.color}45` }}
+                className={`cat-pill ${active ? 'active' : ''}`}
                 onClick={() => setSelectedCategory(cat.label)}
+                style={active ? { background: cat.color, borderColor: cat.color } : {}}
               >
                 <Icon name={cat.icon} size={12} color={active ? '#F7F1E3' : cat.color} strokeWidth={2} />
-                <span style={{ color: active ? '#F7F1E3' : '#3A362E' }}>{cat.label}</span>
+                <span>{cat.label}</span>
               </button>
             );
           })}
@@ -365,143 +619,84 @@ const Landing = () => {
       </div>
 
       {/* ============ FEATURED ============ */}
-      {featuredBusinesses.length > 0 && (
-        <div className="featured-section">
-          <div className="section-heading">
-            <h2 className="section-title">Businesses near you</h2>
-          </div>
-          <div className="featured-scroll">
-            {featuredBusinesses.map((biz) => (
-              <button key={biz.id} className="featured-card" onClick={() => handleBusinessClick(biz)}>
-                <div className="featured-logo">
-                  {biz.logo_url ? <img src={biz.logo_url} alt={biz.business_name} /> : <Icon name="store" size={17} color="#BFA97B" strokeWidth={1.5} />}
-                </div>
-                <div className="featured-text">
-                  <div className="featured-name">{biz.business_name}</div>
-                  {biz.category && <div className="featured-cat">{biz.category}</div>}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+      {featured && (
+        <section className="featured-wrap">
+          <FeaturedCard
+            item={featured}
+            user={user}
+            openingChatId={openingChatId}
+            onLike={handleLike}
+            onOpen={handleListingClick}
+            onMessage={handleQuickMessage}
+            onOpenComments={(it) => setCommentsListing(it)}
+          />
+        </section>
       )}
 
-      {/* ============ LISTINGS ============ */}
-      <section className="listings">
-        <div className="listings-header">
-          <div className="listings-header-left">
-            <h2 className="listings-title">Recent</h2>
-            <span className="listings-count">{filteredListings.length}</span>
-          </div>
-          <button className="filter-btn" onClick={() => {}} aria-label="Filter">
-            <Icon name="filter" size={15} color="#3A362E" strokeWidth={1.75} />
-          </button>
-        </div>
+      {/* ============ FEED ============ */}
+      {hasResults ? (
+        <>
+          {freshListings.length > 0 && (
+            <section className="section">
+              <header className="section-head">
+                <h2 className="section-title">
+                  Fresh this week
+                  <span className="section-title-count">{freshListings.length}</span>
+                </h2>
+                <span className="section-tag">
+                  <Icon name="flame" size={12} color="#BC5B34" strokeWidth={2} />
+                  new
+                </span>
+              </header>
+              <div className="grid">
+                {freshListings.map((item, i) => (
+                  <ProductCard
+                    key={item.id}
+                    item={item}
+                    index={i}
+                    user={user}
+                    openingChatId={openingChatId}
+                    onLike={handleLike}
+                    onOpen={handleListingClick}
+                    onMessage={handleQuickMessage}
+                    onOpenComments={(it) => setCommentsListing(it)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-        {filteredListings.length > 0 ? (
-          <div className="listings-grid">
-            {filteredListings.map((item, index) => {
-              const isLiked = !!item.liked_by_me;
-              const likeCount = item.likes ?? 0;
-              const sellerUserId = item.businesses?.user_id || item.businesses?.userId || item.businesses?.owner_id || null;
-              const canMessage = !!sellerUserId && sellerUserId !== user?.id;
-              const commentCount = item.comment_count ?? 0;
-              const catColor = getCategoryColor(item.category);
-
-              return (
-                <article key={item.id} className="pcard">
-                  {/* ---- Image (clean, unobstructed) ---- */}
-                  <div
-                    className="pcard-media"
-                    style={{ aspectRatio: getAspect(index) }}
-                    onClick={() => handleListingClick(item)}
-                  >
-                    {item.images?.length ? (
-                      <img src={item.images[0]} alt={item.title} className="pcard-img" loading="lazy" />
-                    ) : (
-                      <div className="pcard-placeholder">
-                        <Icon name="store" size={26} color="#C9BB98" strokeWidth={1.3} />
-                      </div>
-                    )}
-
-                    {/* small floating chips only, subtle */}
-                    <div className="pcard-top">
-                      {isRecent(item) && <span className="pbadge pbadge-new">NEW</span>}
-                    </div>
-
-                    <button
-                      className={`pcard-heart ${isLiked ? 'liked' : ''}`}
-                      onClick={(e) => handleLike(e, item)}
-                      aria-label={isLiked ? 'Unlike' : 'Like'}
-                    >
-                      <Icon name="heart" size={13} color="#F7F1E3" strokeWidth={isLiked ? 2.6 : 1.9} />
-                    </button>
-
-                    {item.delivery_available && (
-                      <span className="pcard-delivery" title="Delivery available">
-                        <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
-                      </span>
-                    )}
-                  </div>
-
-                  {/* ---- Body (below image, cream) ---- */}
-                  <div className="pcard-body">
-                    <div className="pcard-title-row">
-                      <h3 className="pcard-title" onClick={() => handleListingClick(item)}>
-                        {item.title}
-                      </h3>
-                      <span className="pcard-price">
-                        {item.price != null && item.price !== '' ? formatPrice(item.price) : 'On request'}
-                      </span>
-                    </div>
-
-                    <div className="pcard-meta">
-                      <span className="pcard-seller">{item.businesses?.business_name || 'Local seller'}</span>
-                      {item.location_area && (
-                        <>
-                          <span className="pcard-dot" />
-                          <span className="pcard-loc">{item.location_area}</span>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="pcard-actions">
-                      <button
-                        className={`pcard-action ${isLiked ? 'liked' : ''}`}
-                        onClick={(e) => handleLike(e, item)}
-                        aria-label={isLiked ? 'Unlike' : 'Like'}
-                      >
-                        <Icon name="heart" size={13} color={isLiked ? '#BC5B34' : '#8A8578'} strokeWidth={isLiked ? 2.5 : 1.8} />
-                        {likeCount > 0 && <span>{likeCount}</span>}
-                      </button>
-
-                      <button
-                        className="pcard-action"
-                        onClick={(e) => { e.stopPropagation(); setCommentsListing(item); }}
-                        aria-label="Comments"
-                      >
-                        <Icon name="comment" size={13} color="#8A8578" strokeWidth={1.9} />
-                        {commentCount > 0 && <span>{commentCount}</span>}
-                      </button>
-
-                      {canMessage && (
-                        <button
-                          className="pcard-action pcard-msg"
-                          onClick={(e) => handleQuickMessage(e, item)}
-                          disabled={openingChatId === item.id}
-                          aria-label="Message seller"
-                        >
-                          <Icon name="message" size={12} color="#F7F1E3" strokeWidth={2} />
-                          <span>{openingChatId === item.id ? '…' : 'Message'}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
+          {otherListings.length > 0 && (
+            <section className="section">
+              <header className="section-head">
+                <h2 className="section-title">
+                  {freshListings.length > 0 ? 'More from Mitundu' : 'All listings'}
+                  <span className="section-title-count">{otherListings.length}</span>
+                </h2>
+                <button className="filter-btn" onClick={() => {}} aria-label="Filter">
+                  <Icon name="filter" size={14} color="#3A362E" strokeWidth={1.9} />
+                </button>
+              </header>
+              <div className="grid">
+                {otherListings.map((item, i) => (
+                  <ProductCard
+                    key={item.id}
+                    item={item}
+                    index={i}
+                    user={user}
+                    openingChatId={openingChatId}
+                    onLike={handleLike}
+                    onOpen={handleListingClick}
+                    onMessage={handleQuickMessage}
+                    onOpenComments={(it) => setCommentsListing(it)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      ) : (
+        <section className="section">
           <div className="empty-state">
             <Icon name="store" size={44} color="#BFA97B" strokeWidth={1.4} />
             <h3 className="empty-title">No listings found</h3>
@@ -509,21 +704,36 @@ const Landing = () => {
               {searchQuery || selectedCategory !== 'All' ? 'Try adjusting your filters' : 'Be the first to post something!'}
             </p>
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
-      {/* ============ ★ COMMENTS POP-UP (bottom sheet, image stays visible) ============ */}
+      {/* ============ BUSINESSES NEAR YOU ============ */}
+      {featuredBusinesses.length > 0 && (
+        <section className="section biz-section">
+          <header className="section-head">
+            <h2 className="section-title">Businesses near you</h2>
+          </header>
+          <div className="biz-scroll">
+            {featuredBusinesses.map((biz) => (
+              <button key={biz.id} className="biz-card" onClick={() => handleBusinessClick(biz)}>
+                <div className="biz-logo">
+                  {biz.logo_url ? <img src={biz.logo_url} alt={biz.business_name} /> : <Icon name="store" size={16} color="#BFA97B" strokeWidth={1.5} />}
+                </div>
+                <div className="biz-text">
+                  <div className="biz-name">{biz.business_name}</div>
+                  {biz.category && <div className="biz-cat">{biz.category}</div>}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ============ COMMENTS POP-UP ============ */}
       {commentsListing && (
-        <div
-          className="pop-overlay"
-          onClick={() => setCommentsListing(null)}
-          role="dialog"
-          aria-modal="true"
-        >
+        <div className="pop-overlay" onClick={() => setCommentsListing(null)} role="dialog" aria-modal="true">
           <div className="pop" onClick={(e) => e.stopPropagation()}>
             <div className="pop-handle" />
-
-            {/* Small product preview — image stays visible */}
             <div className="pop-preview">
               <div className="pop-thumb">
                 {commentsListing.images?.length ? (
@@ -541,16 +751,10 @@ const Landing = () => {
                   {commentsListing.location_area ? ` · ${commentsListing.location_area}` : ''}
                 </div>
               </div>
-              <button
-                className="pop-close"
-                onClick={() => setCommentsListing(null)}
-                aria-label="Close"
-              >
+              <button className="pop-close" onClick={() => setCommentsListing(null)} aria-label="Close">
                 <Icon name="close" size={16} color="#201F1B" strokeWidth={2.2} />
               </button>
             </div>
-
-            {/* Comments body */}
             <div className="pop-body">
               <CommentSection
                 listingId={commentsListing.id}
@@ -590,7 +794,7 @@ const Landing = () => {
       )}
 
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600;700&display=swap');
 
         .app {
           min-height: 100vh;
@@ -601,27 +805,27 @@ const Landing = () => {
         }
         @media (min-width: 769px) { .app { padding-bottom: 0; } }
 
-        /* ---------- Hero (smaller) ---------- */
+        /* ---------- Hero ---------- */
         .hero-block {
           position: relative;
-          background: linear-gradient(160deg, #24453B 0%, #16261F 100%);
-          padding: 26px 20px 52px;
+          background: linear-gradient(155deg, #24453B 0%, #16261F 100%);
+          padding: 30px 20px 60px;
           overflow: hidden;
         }
         .hero-texture {
           position: absolute; inset: 0;
-          background-image: radial-gradient(rgba(217, 154, 59, 0.16) 1px, transparent 1px);
+          background-image: radial-gradient(rgba(217, 154, 59, 0.15) 1px, transparent 1px);
           background-size: 18px 18px;
-          opacity: 0.5;
+          opacity: 0.55;
           mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
           pointer-events: none;
         }
         .hero-inner { position: relative; max-width: 1200px; margin: 0 auto; }
         .hero-eyebrow {
           display: inline-flex; align-items: center; gap: 7px;
-          font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em;
+          font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em;
           text-transform: uppercase; color: #D99A3B;
-          margin-bottom: 10px;
+          margin-bottom: 12px;
         }
         .hero-dot {
           width: 5px; height: 5px; border-radius: 50%;
@@ -630,13 +834,18 @@ const Landing = () => {
         .hero-title {
           font-family: 'Fraunces', Georgia, serif;
           font-weight: 500;
-          font-size: clamp(20px, 3.6vw, 30px);
+          font-size: clamp(26px, 4.2vw, 40px);
           letter-spacing: -0.02em;
-          margin: 0; line-height: 1.15;
+          margin: 0 0 6px; line-height: 1.1;
           color: #F7F1E3;
-          max-width: 560px;
+          max-width: 620px;
         }
         .hero-title em { font-style: italic; font-weight: 500; color: #D99A3B; }
+        .hero-desc {
+          font-size: 13.5px; line-height: 1.5;
+          color: rgba(247, 241, 227, 0.6);
+          margin: 0; max-width: 440px;
+        }
 
         /* ---------- Sticky search ---------- */
         .search-sticky {
@@ -681,26 +890,130 @@ const Landing = () => {
         }
         .search-btn:hover { background: #BC5B34; transform: translateY(-1px); }
 
-        /* ---------- Categories (smaller) ---------- */
-        .categories-section { padding: 12px 20px 2px; }
-        .categories-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
-        .categories-scroll::-webkit-scrollbar { display: none; }
-        .category-tag {
-          display: flex; align-items: center; gap: 5px;
-          padding: 6px 11px; border-radius: 9px;
-          border: 1.5px solid; background: transparent;
+        /* ---------- Spotlight ---------- */
+        .spotlight-section {
+          max-width: 1200px;
+          margin: 6px auto 0;
+          padding: 4px 0 4px;
+        }
+        .spotlight-header {
+          display: flex; align-items: baseline; gap: 10px;
+          padding: 0 20px;
+          margin-bottom: 10px;
+        }
+        .spotlight-heading {
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 600; font-size: 16px;
+          margin: 0; color: #201F1B;
+          letter-spacing: -0.01em;
+        }
+        .spotlight-sub {
+          font-size: 11px; color: #9C9482;
+          font-weight: 500;
+          letter-spacing: 0.02em;
+        }
+        .spotlight-scroll {
+          display: flex; gap: 12px;
+          overflow-x: auto; scrollbar-width: none;
+          padding: 4px 20px 8px;
+          scroll-snap-type: x mandatory;
+        }
+        .spotlight-scroll::-webkit-scrollbar { display: none; }
+        .spot-tile {
+          flex: 0 0 auto;
+          width: 148px;
+          background: transparent;
+          border: none; padding: 0;
+          text-align: left; cursor: pointer;
+          font-family: inherit;
+          scroll-snap-align: start;
+          transition: transform 0.25s ease;
+        }
+        .spot-tile:hover { transform: translateY(-2px); }
+        .spot-media {
+          position: relative;
+          width: 100%; aspect-ratio: 4 / 5;
+          border-radius: 14px;
+          overflow: hidden;
+          background: #F0E9D6;
+          box-shadow:
+            0 1px 2px rgba(22, 38, 31, 0.05),
+            0 10px 22px rgba(22, 38, 31, 0.1);
+        }
+        .spot-media img {
+          width: 100%; height: 100%; object-fit: cover; display: block;
+          transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+        }
+        .spot-tile:hover .spot-media img { transform: scale(1.06); }
+        .spot-placeholder {
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .spot-cat {
+          position: absolute; top: 8px; left: 8px;
+          font-size: 9px; font-weight: 700;
+          color: #F7F1E3;
+          padding: 3px 7px; border-radius: 6px;
+          letter-spacing: 0.04em;
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+        }
+        .spot-info {
+          padding: 8px 2px 0;
+          display: flex; flex-direction: column; gap: 3px;
+        }
+        .spot-title {
+          font-size: 12px; font-weight: 600;
+          color: #201F1B;
+          line-height: 1.3;
+          overflow: hidden; text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+        }
+        .spot-price {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 12.5px; font-weight: 600;
+          color: #24453B;
+          letter-spacing: -0.01em;
+        }
+
+        /* ---------- Category pill bar ---------- */
+        .cats-wrap {
+          max-width: 1200px;
+          margin: 14px auto 0;
+          padding: 0 20px;
+        }
+        .cats-bar {
+          display: flex; gap: 6px;
+          overflow-x: auto; scrollbar-width: none;
+          padding: 2px 0 2px;
+        }
+        .cats-bar::-webkit-scrollbar { display: none; }
+        .cat-pill {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 7px 13px; border-radius: 999px;
+          border: 1.5px solid #EFE6CE;
+          background: #FFFDF8;
           font-family: inherit; font-size: 11.5px; font-weight: 600;
+          color: #3A362E;
           cursor: pointer; flex-shrink: 0;
-          transition: all 0.18s ease;
+          transition: all 0.2s ease;
           white-space: nowrap;
         }
-        .category-tag:not(.active):hover { background: rgba(255, 253, 248, 0.7); }
+        .cat-pill:not(.active):hover {
+          border-color: #D9C79E;
+          background: #FFFDF8;
+        }
+        .cat-pill.active { color: #F7F1E3; }
 
         /* ---------- Tabs ---------- */
         .tabs-section {
-          display: flex; gap: 22px; padding: 14px 20px 0;
-          border-bottom: 1px solid #EFE6CE; margin-bottom: 4px;
-          max-width: 1200px; margin-left: auto; margin-right: auto;
+          display: flex; gap: 22px;
+          padding: 14px 20px 0;
+          border-bottom: 1px solid #EFE6CE;
+          margin: 12px auto 0;
+          max-width: 1200px;
         }
         .tab-btn {
           position: relative; padding: 4px 2px 11px;
@@ -716,49 +1029,209 @@ const Landing = () => {
           height: 2px; background: #BC5B34; border-radius: 2px;
         }
 
-        /* ---------- Featured ---------- */
-        .featured-section { padding: 16px 20px 4px; max-width: 1200px; margin: 0 auto; }
-        .section-heading { margin-bottom: 10px; }
+        /* ---------- Featured card (2-col) ---------- */
+        .featured-wrap {
+          max-width: 1200px;
+          margin: 16px auto 0;
+          padding: 0 20px;
+        }
+        .fcard { position: relative; }
+        .fcard-media {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 4 / 3;
+          border-radius: 18px;
+          overflow: hidden;
+          background: #F0E9D6;
+          cursor: pointer;
+          box-shadow:
+            0 2px 6px rgba(22, 38, 31, 0.06),
+            0 22px 44px rgba(22, 38, 31, 0.14);
+          transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+        @media (min-width: 640px) {
+          .fcard-media { aspect-ratio: 16 / 7; }
+        }
+        .fcard:hover .fcard-media {
+          transform: translateY(-3px);
+          box-shadow:
+            0 4px 8px rgba(22, 38, 31, 0.08),
+            0 28px 56px rgba(22, 38, 31, 0.2);
+        }
+        .fcard-img {
+          position: absolute; inset: 0;
+          width: 100%; height: 100%;
+          object-fit: cover; display: block;
+          animation: driftIn 24s ease-in-out infinite alternate;
+          z-index: 0;
+        }
+        @keyframes driftIn {
+          from { transform: scale(1.02); }
+          to { transform: scale(1.1); }
+        }
+        .fcard-placeholder {
+          position: absolute; inset: 0;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .fcard-top {
+          position: absolute; top: 12px; left: 12px; right: 12px;
+          display: flex; gap: 6px; align-items: flex-start;
+          pointer-events: none;
+          z-index: 2;
+        }
+        .fchip {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 5px 10px; border-radius: 8px;
+          font-size: 10px; font-weight: 700;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          letter-spacing: 0.05em;
+        }
+        .fchip-spotlight {
+          background: rgba(36, 69, 59, 0.9);
+          color: #F0D9A8;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+        .fchip-cat {
+          color: #F7F1E3;
+          text-transform: none;
+          letter-spacing: 0.02em;
+          font-weight: 600;
+          font-size: 10px;
+        }
+        .fcard-heart {
+          position: absolute;
+          top: 12px; right: 12px;
+          z-index: 3;
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 7px 11px;
+          border: none; cursor: pointer;
+          border-radius: 999px;
+          background: rgba(22, 38, 31, 0.55);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          color: #F7F1E3;
+          font-size: 11.5px; font-weight: 600;
+          font-family: inherit;
+          transition: background 0.2s, transform 0.15s;
+        }
+        .fcard-heart:hover { background: rgba(22, 38, 31, 0.78); transform: scale(1.04); }
+        .fcard-heart.liked { background: rgba(188, 91, 52, 0.95); }
+        .fcard-glass {
+          position: absolute;
+          left: 12px; right: 12px; bottom: 12px;
+          z-index: 2;
+          padding: 13px 15px 12px;
+          border-radius: 14px;
+          background: rgba(22, 38, 31, 0.55);
+          backdrop-filter: blur(16px) saturate(150%);
+          -webkit-backdrop-filter: blur(16px) saturate(150%);
+          border: 1px solid rgba(247, 241, 227, 0.16);
+          color: #F7F1E3;
+          display: flex; flex-direction: column; gap: 8px;
+        }
+        .fcard-glass-row {
+          display: flex; align-items: flex-start; gap: 12px;
+        }
+        .fcard-title {
+          flex: 1;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 17px; font-weight: 600;
+          line-height: 1.2;
+          color: #FFFDF8; margin: 0;
+          cursor: pointer;
+          display: -webkit-box; -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical; overflow: hidden;
+          letter-spacing: -0.01em;
+        }
+        .fcard-title:hover { color: #F0D9A8; }
+        .fcard-price {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 16px; font-weight: 600;
+          color: #F0D9A8;
+          white-space: nowrap;
+          letter-spacing: -0.01em;
+          font-variant-numeric: tabular-nums;
+        }
+        .fcard-meta {
+          display: flex; align-items: center; gap: 6px;
+          font-size: 11px;
+          color: rgba(247, 241, 227, 0.8);
+          overflow: hidden;
+        }
+        .fcard-seller {
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          max-width: 160px; font-weight: 500;
+        }
+        .fcard-dot {
+          width: 3px; height: 3px; border-radius: 50%;
+          background: rgba(247, 241, 227, 0.5); flex-shrink: 0;
+        }
+        .fcard-loc {
+          display: inline-flex; align-items: center; gap: 3px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .fcard-delivery {
+          margin-left: auto;
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 3px 7px; border-radius: 6px;
+          background: rgba(247, 241, 227, 0.16);
+          font-size: 10px; font-weight: 600;
+        }
+        .fcard-actions {
+          display: flex; align-items: center; gap: 8px;
+          padding-top: 8px;
+          border-top: 1px solid rgba(247, 241, 227, 0.16);
+        }
+        .fcard-action {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 6px 10px;
+          background: rgba(247, 241, 227, 0.14);
+          border: none; cursor: pointer;
+          border-radius: 8px;
+          font-family: inherit;
+          font-size: 11.5px; font-weight: 600;
+          color: #F7F1E3;
+          transition: background 0.18s, transform 0.15s;
+        }
+        .fcard-action:hover { background: rgba(247, 241, 227, 0.24); }
+        .fcard-msg {
+          margin-left: auto;
+          background: #F7F1E3; color: #201F1B;
+        }
+        .fcard-msg:hover { background: #F0D9A8; }
+        .fcard-msg:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ---------- Feed sections ---------- */
+        .section {
+          max-width: 1200px;
+          margin: 22px auto 0;
+          padding: 0 20px;
+        }
+        .section-head {
+          display: flex; justify-content: space-between; align-items: baseline;
+          margin-bottom: 12px;
+        }
         .section-title {
           font-family: 'Fraunces', Georgia, serif;
-          font-weight: 600; font-size: 16px; margin: 0; color: #201F1B;
+          font-weight: 600; font-size: 17px;
+          margin: 0; color: #201F1B;
+          letter-spacing: -0.01em;
+          display: inline-flex; align-items: baseline; gap: 8px;
         }
-        .featured-scroll { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
-        .featured-scroll::-webkit-scrollbar { display: none; }
-        .featured-card {
-          flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
-          width: 170px; background: #FFFDF8;
-          border: 1px solid #EFE6CE; border-radius: 12px;
-          padding: 9px 11px; text-align: left;
-          cursor: pointer; font-family: inherit;
-          transition: border-color 0.2s, transform 0.15s;
+        .section-title-count {
+          font-family: 'Work Sans', sans-serif;
+          font-size: 12px; font-weight: 500;
+          color: #9C9482;
         }
-        .featured-card:hover { border-color: #D9C79E; transform: translateY(-1px); }
-        .featured-logo {
-          width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
-          background: #F7F1E3; border: 1px solid #EFE6CE;
-          display: flex; align-items: center; justify-content: center; overflow: hidden;
+        .section-tag {
+          display: inline-flex; align-items: center; gap: 4px;
+          font-size: 10px; font-weight: 700;
+          color: #BC5B34;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
         }
-        .featured-logo img { width: 100%; height: 100%; object-fit: cover; }
-        .featured-text { min-width: 0; }
-        .featured-name {
-          font-size: 12px; font-weight: 600; color: #201F1B;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .featured-cat {
-          font-size: 10px; color: #9C9482; margin-top: 1px;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-
-        /* ---------- Listings grid ---------- */
-        .listings { padding: 10px 20px 16px; max-width: 1200px; margin: 0 auto; }
-        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .listings-header-left { display: flex; align-items: baseline; gap: 8px; }
-        .listings-title {
-          font-family: 'Fraunces', Georgia, serif;
-          font-weight: 600; font-size: 17px; margin: 0; color: #201F1B;
-        }
-        .listings-count { font-size: 12px; color: #9C9482; }
         .filter-btn {
           width: 32px; height: 32px; border-radius: 9px;
           border: 1px solid #EFE6CE; background: #FFFDF8;
@@ -768,15 +1241,15 @@ const Landing = () => {
         }
         .filter-btn:hover { border-color: #BC5B34; transform: translateY(-1px); }
 
-        .listings-grid {
+        .grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
         }
-        @media (min-width: 640px) { .listings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
-        @media (min-width: 1024px) { .listings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
+        @media (min-width: 640px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
+        @media (min-width: 1024px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
 
-        /* ---------- ★ Product card (Option A refined) ---------- */
+        /* ---------- Product compact card ---------- */
         .pcard {
           display: flex; flex-direction: column;
           background: #FFFDF8;
@@ -794,7 +1267,6 @@ const Landing = () => {
             0 18px 36px rgba(22, 38, 31, 0.1),
             0 0 0 1px rgba(217, 199, 158, 0.9);
         }
-
         .pcard-media {
           position: relative;
           width: 100%;
@@ -811,26 +1283,6 @@ const Landing = () => {
           width: 100%; height: 100%;
           display: flex; align-items: center; justify-content: center;
         }
-
-        .pcard-top {
-          position: absolute; top: 8px; left: 8px;
-          display: flex; gap: 5px;
-          pointer-events: none;
-        }
-        .pbadge {
-          display: inline-flex; align-items: center;
-          padding: 3px 7px; border-radius: 6px;
-          font-size: 9px; font-weight: 700;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
-        }
-        .pbadge-new {
-          background: rgba(36, 69, 59, 0.92);
-          color: #F7F1E3;
-        }
-
         .pcard-heart {
           position: absolute;
           top: 8px; right: 8px;
@@ -844,9 +1296,12 @@ const Landing = () => {
           transition: background 0.2s, transform 0.15s;
         }
         .pcard-heart:hover { background: rgba(22, 38, 31, 0.72); transform: scale(1.06); }
-        .pcard-heart.liked { background: rgba(188, 91, 52, 0.92); }
-        .pcard-heart.liked:hover { background: rgba(188, 91, 52, 1); }
-
+        .pcard-heart.liked { background: rgba(188, 91, 52, 0.92); animation: heartPop 0.35s ease; }
+        @keyframes heartPop {
+          0% { transform: scale(1); }
+          40% { transform: scale(1.25); }
+          100% { transform: scale(1); }
+        }
         .pcard-delivery {
           position: absolute;
           bottom: 8px; left: 8px;
@@ -857,17 +1312,25 @@ const Landing = () => {
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
         }
-
-        /* ---- Body below image ---- */
         .pcard-body {
-          padding: 10px 12px 10px;
-          display: flex; flex-direction: column; gap: 6px;
+          padding: 10px 12px 11px;
+          display: flex; flex-direction: column; gap: 5px;
         }
-        .pcard-title-row {
-          display: flex; align-items: flex-start; gap: 8px;
+        .pcard-price { display: flex; align-items: baseline; }
+        .pcard-price-value {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 15.5px; font-weight: 600;
+          color: #24453B;
+          letter-spacing: -0.015em;
+          font-variant-numeric: tabular-nums;
+        }
+        .pcard-price-muted {
+          font-size: 11.5px;
+          color: #9C9482;
+          font-style: italic;
+          font-weight: 500;
         }
         .pcard-title {
-          flex: 1;
           font-size: 13px; font-weight: 600; line-height: 1.32;
           color: #201F1B; margin: 0; cursor: pointer;
           display: -webkit-box; -webkit-line-clamp: 2;
@@ -875,24 +1338,22 @@ const Landing = () => {
           letter-spacing: -0.005em;
         }
         .pcard-title:hover { color: #24453B; }
-        .pcard-price {
-          font-family: 'Fraunces', Georgia, serif;
-          font-size: 13.5px; font-weight: 600;
-          color: #24453B;
-          letter-spacing: -0.01em;
-          white-space: nowrap;
-          font-variant-numeric: tabular-nums;
-          padding-top: 1px;
-        }
-
         .pcard-meta {
           display: flex; align-items: center; gap: 5px;
           font-size: 10.5px; color: #9C9482;
           overflow: hidden;
+          margin-top: 1px;
+        }
+        .pcard-avatar {
+          width: 18px; height: 18px; border-radius: 50%;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 9.5px; font-weight: 700;
+          flex-shrink: 0;
         }
         .pcard-seller {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-          max-width: 100px;
+          max-width: 90px;
+          font-weight: 500;
         }
         .pcard-dot {
           width: 3px; height: 3px; border-radius: 50%;
@@ -901,13 +1362,12 @@ const Landing = () => {
         .pcard-loc {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-
         .pcard-actions {
           display: flex; align-items: center; gap: 4px;
           margin-top: 3px; padding-top: 8px;
           border-top: 1px solid #F2EBD9;
         }
-        .pcard-action {
+        .pcard-icon-btn {
           display: inline-flex; align-items: center; gap: 4px;
           background: none; border: none;
           padding: 5px 7px; border-radius: 8px;
@@ -916,24 +1376,57 @@ const Landing = () => {
           font-family: inherit;
           transition: background 0.15s, color 0.15s, transform 0.1s;
         }
-        .pcard-action:hover { background: rgba(217, 154, 59, 0.09); color: #201F1B; }
-        .pcard-action:active { transform: scale(0.96); }
-        .pcard-action.liked { color: #BC5B34; font-weight: 600; }
-
+        .pcard-icon-btn:hover { background: rgba(217, 154, 59, 0.09); color: #201F1B; }
+        .pcard-icon-btn:active { transform: scale(0.96); }
+        .pcard-icon-btn.liked { color: #BC5B34; font-weight: 600; }
         .pcard-msg {
           margin-left: auto;
-          background: #24453B;
-          color: #F7F1E3;
-          padding: 5px 10px;
-          font-weight: 600;
-          font-size: 10.5px;
-          border-radius: 8px;
+          display: inline-flex; align-items: center; gap: 5px;
+          background: #24453B; color: #F7F1E3;
+          padding: 5px 10px; border-radius: 8px;
+          border: none; cursor: pointer;
+          font-family: inherit;
+          font-size: 10.5px; font-weight: 600;
           transition: background 0.2s, transform 0.15s;
         }
-        .pcard-msg:hover { background: #BC5B34; color: #F7F1E3; }
+        .pcard-msg:hover { background: #BC5B34; }
         .pcard-msg:disabled { opacity: 0.55; cursor: not-allowed; }
 
-        /* ---------- ★ Comments pop-up (bottom sheet) ---------- */
+        /* ---------- Businesses ---------- */
+        .biz-section { padding-bottom: 10px; }
+        .biz-scroll {
+          display: flex; gap: 10px;
+          overflow-x: auto; scrollbar-width: none;
+          padding-bottom: 2px;
+        }
+        .biz-scroll::-webkit-scrollbar { display: none; }
+        .biz-card {
+          flex: 0 0 auto;
+          display: flex; align-items: center; gap: 10px;
+          width: 170px; background: #FFFDF8;
+          border: 1px solid #EFE6CE; border-radius: 12px;
+          padding: 9px 11px; text-align: left;
+          cursor: pointer; font-family: inherit;
+          transition: border-color 0.2s, transform 0.15s;
+        }
+        .biz-card:hover { border-color: #D9C79E; transform: translateY(-1px); }
+        .biz-logo {
+          width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+          background: #F7F1E3; border: 1px solid #EFE6CE;
+          display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .biz-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .biz-text { min-width: 0; }
+        .biz-name {
+          font-size: 12px; font-weight: 600; color: #201F1B;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .biz-cat {
+          font-size: 10px; color: #9C9482; margin-top: 1px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        /* ---------- Comments pop-up ---------- */
         .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
@@ -944,7 +1437,6 @@ const Landing = () => {
           animation: popFade 0.2s ease;
         }
         @keyframes popFade { from { opacity: 0; } to { opacity: 1; } }
-
         .pop {
           width: 100%;
           max-width: 560px;
@@ -962,20 +1454,13 @@ const Landing = () => {
           to { transform: translateY(0); opacity: 1; }
         }
         @media (min-width: 640px) {
-          .pop {
-            margin-bottom: 24px;
-            border-radius: 20px;
-          }
+          .pop { margin-bottom: 24px; border-radius: 20px; }
         }
-
         .pop-handle {
           width: 42px; height: 4px;
-          background: #E4D9BD;
-          border-radius: 4px;
-          margin: 8px auto 0;
-          flex-shrink: 0;
+          background: #E4D9BD; border-radius: 4px;
+          margin: 8px auto 0; flex-shrink: 0;
         }
-
         .pop-preview {
           display: flex; align-items: center; gap: 10px;
           padding: 10px 14px 10px;
@@ -984,10 +1469,8 @@ const Landing = () => {
         }
         .pop-thumb {
           width: 42px; height: 42px; border-radius: 10px;
-          overflow: hidden;
-          background: #F0E9D6;
-          flex-shrink: 0;
-          border: 1px solid #EFE6CE;
+          overflow: hidden; background: #F0E9D6;
+          flex-shrink: 0; border: 1px solid #EFE6CE;
         }
         .pop-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .pop-thumb-fallback {
@@ -1009,12 +1492,10 @@ const Landing = () => {
           border: 1px solid #EFE6CE;
           background: #FFFDF8;
           display: flex; align-items: center; justify-content: center;
-          cursor: pointer;
-          flex-shrink: 0;
+          cursor: pointer; flex-shrink: 0;
           transition: background 0.18s, border-color 0.18s;
         }
         .pop-close:hover { background: #F7F1E3; border-color: #D9C79E; }
-
         .pop-body {
           flex: 1;
           overflow-y: auto;
@@ -1023,6 +1504,7 @@ const Landing = () => {
           background: #FFFDF8;
         }
 
+        /* ---------- Empty state ---------- */
         .empty-state { text-align: center; padding: 56px 20px; }
         .empty-title {
           font-family: 'Fraunces', Georgia, serif;
@@ -1056,22 +1538,30 @@ const Landing = () => {
         .nav-label.active { color: #201F1B; font-weight: 600; }
 
         @media (max-width: 480px) {
-          .hero-block { padding: 22px 16px 46px; }
-          .hero-title { font-size: 19px; }
+          .hero-block { padding: 22px 16px 48px; }
+          .hero-title { font-size: 22px; }
+          .hero-desc { font-size: 12.5px; }
           .search-sticky { padding: 0 16px 10px; }
-          .categories-section { padding: 10px 16px 2px; }
+          .spotlight-header { padding: 0 16px; }
+          .spotlight-scroll { padding: 4px 16px 8px; }
+          .spot-tile { width: 132px; }
+          .cats-wrap { padding: 0 16px; }
           .tabs-section { padding: 12px 16px 0; }
-          .featured-section { padding: 14px 16px 4px; }
-          .listings { padding: 8px 16px 12px; }
-          .listings-grid { gap: 10px; }
+          .featured-wrap { padding: 0 16px; }
+          .section { padding: 0 16px; }
+          .grid { gap: 10px; }
           .pcard-title { font-size: 12.5px; }
-          .pcard-price { font-size: 13px; }
+          .pcard-price-value { font-size: 14.5px; }
+          .fcard-title { font-size: 15px; }
+          .fcard-price { font-size: 14.5px; }
+          .fcard-glass { left: 10px; right: 10px; bottom: 10px; padding: 11px 13px 10px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .pcard, .pcard-img, .pcard-heart, .pcard-action, .pcard-msg,
-          .search-btn, .filter-btn, .featured-card, .nav-icon-wrap,
-          .pop, .pop-overlay { transition: none; animation: none; }
+          .pcard, .pcard-img, .pcard-heart, .pcard-icon-btn, .pcard-msg,
+          .fcard-media, .fcard-img, .fcard-heart, .fcard-action, .fcard-msg,
+          .spot-tile, .spot-media img, .search-btn, .filter-btn, .biz-card,
+          .nav-icon-wrap, .pop, .pop-overlay { transition: none; animation: none; }
         }
       `}</style>
     </div>
