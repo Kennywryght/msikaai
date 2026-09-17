@@ -29,6 +29,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     close: "M6 18L18 6M6 6l12 12",
     comment: "M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z",
     mapPin: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z M12 13a3 3 0 100-6 3 3 0 000 6z",
+    send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
   };
   const d = icons[name] || icons.store;
   return (
@@ -51,7 +52,7 @@ const CATEGORIES = [
 ];
 
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
-const ASPECT_RATIOS = ['4 / 5', '4 / 6.6', '4 / 4.2', '4 / 5.8'];
+const ASPECT_RATIOS = ['4 / 5', '4 / 6.4', '4 / 4.4', '4 / 5.4'];
 
 const getCategoryColor = (category) => {
   if (!category) return '#6B6259';
@@ -77,7 +78,7 @@ const Landing = () => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [activeTab, setActiveTab] = useState('all');
   const [openingChatId, setOpeningChatId] = useState(null);
-  const [commentsListing, setCommentsListing] = useState(null); // ★ full-screen comments target
+  const [commentsListing, setCommentsListing] = useState(null); // ★ pop-up target
 
   const searchInputRef = useRef(null);
   const isMobile = windowWidth <= 768;
@@ -92,7 +93,7 @@ const Landing = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  /* ---------- Lock body scroll while comments sheet is open ---------- */
+  /* Lock body scroll while the comments pop-up is open */
   useEffect(() => {
     if (commentsListing) {
       const prev = document.body.style.overflow;
@@ -101,7 +102,7 @@ const Landing = () => {
     }
   }, [commentsListing]);
 
-  /* ---------- Esc closes the sheet ---------- */
+  /* Esc closes the pop-up */
   useEffect(() => {
     if (!commentsListing) return;
     const onKey = (e) => { if (e.key === 'Escape') setCommentsListing(null); };
@@ -278,10 +279,10 @@ const Landing = () => {
         </div>
         <style jsx>{`
           .loading-skeleton { min-height: 100vh; background: #F7F1E3; padding-bottom: 80px; }
-          .skeleton-hero { height: 260px; background: linear-gradient(160deg, #24453B, #16261F); }
+          .skeleton-hero { height: 190px; background: linear-gradient(160deg, #24453B, #16261F); }
           .skeleton-search { height: 52px; margin: -26px 20px 20px; border-radius: 12px; background: #FFFDF8; box-shadow: 0 12px 24px rgba(22,38,31,0.12); }
           .skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 20px; }
-          .skeleton-card { aspect-ratio: 4 / 5; background: #ECE3CC; border-radius: 12px; animation: pulse 1.6s ease-in-out infinite; }
+          .skeleton-card { aspect-ratio: 4 / 5; background: #ECE3CC; border-radius: 14px; animation: pulse 1.6s ease-in-out infinite; }
           @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
         `}</style>
       </div>
@@ -290,7 +291,7 @@ const Landing = () => {
 
   return (
     <div className="app">
-      {/* ============ HERO ============ */}
+      {/* ============ HERO (smaller) ============ */}
       <div className="hero-block">
         <div className="hero-texture" aria-hidden="true" />
         <div className="hero-inner">
@@ -299,12 +300,8 @@ const Landing = () => {
             Mitundu Trading Centre
           </div>
           <h1 className="hero-title">
-            Find what you need,<br />
-            <em>right here.</em>
+            Find what you need, <em>right here.</em>
           </h1>
-          <p className="hero-desc">
-            Local goods, services, and tradespeople — a step from your door.
-          </p>
         </div>
       </div>
 
@@ -330,7 +327,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ============ CATEGORIES ============ */}
+      {/* ============ CATEGORIES (smaller chips) ============ */}
       <div className="categories-section">
         <div className="categories-scroll">
           {CATEGORIES.map((cat) => {
@@ -342,7 +339,7 @@ const Landing = () => {
                 style={active ? { background: cat.color, borderColor: cat.color } : { borderColor: `${cat.color}45` }}
                 onClick={() => setSelectedCategory(cat.label)}
               >
-                <Icon name={cat.icon} size={14} color={active ? '#F7F1E3' : cat.color} strokeWidth={1.9} />
+                <Icon name={cat.icon} size={12} color={active ? '#F7F1E3' : cat.color} strokeWidth={2} />
                 <span style={{ color: active ? '#F7F1E3' : '#3A362E' }}>{cat.label}</span>
               </button>
             );
@@ -389,7 +386,7 @@ const Landing = () => {
         </div>
       )}
 
-      {/* ============ LISTINGS (Option B — glass overlay cards) ============ */}
+      {/* ============ LISTINGS ============ */}
       <section className="listings">
         <div className="listings-header">
           <div className="listings-header-left">
@@ -412,91 +409,92 @@ const Landing = () => {
               const catColor = getCategoryColor(item.category);
 
               return (
-                <article key={item.id} className="bcard">
+                <article key={item.id} className="pcard">
+                  {/* ---- Image (clean, unobstructed) ---- */}
                   <div
-                    className="bcard-media"
+                    className="pcard-media"
                     style={{ aspectRatio: getAspect(index) }}
                     onClick={() => handleListingClick(item)}
                   >
                     {item.images?.length ? (
-                      <img src={item.images[0]} alt={item.title} className="bcard-img" loading="lazy" />
+                      <img src={item.images[0]} alt={item.title} className="pcard-img" loading="lazy" />
                     ) : (
-                      <div className="bcard-placeholder">
-                        <Icon name="store" size={28} color="#C9BB98" strokeWidth={1.3} />
+                      <div className="pcard-placeholder">
+                        <Icon name="store" size={26} color="#C9BB98" strokeWidth={1.3} />
                       </div>
                     )}
 
-                    {/* Top row: New badge + category chip */}
-                    <div className="bcard-top">
-                      {isRecent(item) && <span className="bchip bchip-new">NEW</span>}
-                      {item.category && (
-                        <span className="bchip bchip-cat" style={{ background: `${catColor}E6` }}>
-                          {item.category}
-                        </span>
-                      )}
+                    {/* small floating chips only, subtle */}
+                    <div className="pcard-top">
+                      {isRecent(item) && <span className="pbadge pbadge-new">NEW</span>}
                     </div>
 
-                    {/* Floating heart (top-right) */}
                     <button
-                      className={`bcard-heart ${isLiked ? 'liked' : ''}`}
+                      className={`pcard-heart ${isLiked ? 'liked' : ''}`}
                       onClick={(e) => handleLike(e, item)}
                       aria-label={isLiked ? 'Unlike' : 'Like'}
                     >
-                      <Icon name="heart" size={14} color={isLiked ? '#F7F1E3' : '#F7F1E3'} strokeWidth={isLiked ? 2.6 : 1.8} />
-                      {likeCount > 0 && <span>{likeCount}</span>}
+                      <Icon name="heart" size={13} color="#F7F1E3" strokeWidth={isLiked ? 2.6 : 1.9} />
                     </button>
 
-                    {/* Bottom glass panel */}
-                    <div className="bcard-glass" onClick={(e) => e.stopPropagation()}>
-                      <div className="bcard-glass-row">
-                        <h3 className="bcard-title" onClick={() => handleListingClick(item)}>
-                          {item.title}
-                        </h3>
-                        <span className="bcard-price">
-                          {item.price != null && item.price !== '' ? formatPrice(item.price) : 'On request'}
-                        </span>
-                      </div>
+                    {item.delivery_available && (
+                      <span className="pcard-delivery" title="Delivery available">
+                        <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
+                      </span>
+                    )}
+                  </div>
 
-                      <div className="bcard-meta">
-                        <span className="bcard-seller">{item.businesses?.business_name || 'Local seller'}</span>
-                        {item.location_area && (
-                          <>
-                            <span className="bcard-dot" />
-                            <span className="bcard-loc">
-                              <Icon name="mapPin" size={10} color="#EFE6CE" strokeWidth={1.9} />
-                              {item.location_area}
-                            </span>
-                          </>
-                        )}
-                        {item.delivery_available && (
-                          <span className="bcard-delivery" title="Delivery available">
-                            <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
-                          </span>
-                        )}
-                      </div>
+                  {/* ---- Body (below image, cream) ---- */}
+                  <div className="pcard-body">
+                    <div className="pcard-title-row">
+                      <h3 className="pcard-title" onClick={() => handleListingClick(item)}>
+                        {item.title}
+                      </h3>
+                      <span className="pcard-price">
+                        {item.price != null && item.price !== '' ? formatPrice(item.price) : 'On request'}
+                      </span>
+                    </div>
 
-                      <div className="bcard-actions">
+                    <div className="pcard-meta">
+                      <span className="pcard-seller">{item.businesses?.business_name || 'Local seller'}</span>
+                      {item.location_area && (
+                        <>
+                          <span className="pcard-dot" />
+                          <span className="pcard-loc">{item.location_area}</span>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="pcard-actions">
+                      <button
+                        className={`pcard-action ${isLiked ? 'liked' : ''}`}
+                        onClick={(e) => handleLike(e, item)}
+                        aria-label={isLiked ? 'Unlike' : 'Like'}
+                      >
+                        <Icon name="heart" size={13} color={isLiked ? '#BC5B34' : '#8A8578'} strokeWidth={isLiked ? 2.5 : 1.8} />
+                        {likeCount > 0 && <span>{likeCount}</span>}
+                      </button>
+
+                      <button
+                        className="pcard-action"
+                        onClick={(e) => { e.stopPropagation(); setCommentsListing(item); }}
+                        aria-label="Comments"
+                      >
+                        <Icon name="comment" size={13} color="#8A8578" strokeWidth={1.9} />
+                        {commentCount > 0 && <span>{commentCount}</span>}
+                      </button>
+
+                      {canMessage && (
                         <button
-                          className="bcard-action"
-                          onClick={(e) => { e.stopPropagation(); setCommentsListing(item); }}
-                          aria-label="Comments"
+                          className="pcard-action pcard-msg"
+                          onClick={(e) => handleQuickMessage(e, item)}
+                          disabled={openingChatId === item.id}
+                          aria-label="Message seller"
                         >
-                          <Icon name="comment" size={13} color="#F7F1E3" strokeWidth={1.9} />
-                          <span>{commentCount > 0 ? commentCount : 'Comment'}</span>
+                          <Icon name="message" size={12} color="#F7F1E3" strokeWidth={2} />
+                          <span>{openingChatId === item.id ? '…' : 'Message'}</span>
                         </button>
-
-                        {canMessage && (
-                          <button
-                            className="bcard-action bcard-msg"
-                            onClick={(e) => handleQuickMessage(e, item)}
-                            disabled={openingChatId === item.id}
-                            aria-label="Message seller"
-                          >
-                            <Icon name="message" size={12} color="#201F1B" strokeWidth={2} />
-                            <span>{openingChatId === item.id ? '…' : 'Message'}</span>
-                          </button>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
                 </article>
@@ -514,30 +512,46 @@ const Landing = () => {
         )}
       </section>
 
-      {/* ============ ★ FULL-SCREEN COMMENTS SHEET ============ */}
+      {/* ============ ★ COMMENTS POP-UP (bottom sheet, image stays visible) ============ */}
       {commentsListing && (
-        <div className="sheet-overlay" onClick={() => setCommentsListing(null)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="sheet-head">
-              <button
-                className="sheet-close"
-                onClick={() => setCommentsListing(null)}
-                aria-label="Close"
-              >
-                <Icon name="close" size={18} color="#201F1B" strokeWidth={2} />
-              </button>
-              <div className="sheet-head-text">
-                <div className="sheet-head-title">{commentsListing.title}</div>
-                <div className="sheet-head-sub">
+        <div
+          className="pop-overlay"
+          onClick={() => setCommentsListing(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="pop" onClick={(e) => e.stopPropagation()}>
+            <div className="pop-handle" />
+
+            {/* Small product preview — image stays visible */}
+            <div className="pop-preview">
+              <div className="pop-thumb">
+                {commentsListing.images?.length ? (
+                  <img src={commentsListing.images[0]} alt={commentsListing.title} />
+                ) : (
+                  <div className="pop-thumb-fallback">
+                    <Icon name="store" size={18} color="#BFA97B" strokeWidth={1.5} />
+                  </div>
+                )}
+              </div>
+              <div className="pop-preview-text">
+                <div className="pop-preview-title">{commentsListing.title}</div>
+                <div className="pop-preview-sub">
                   {commentsListing.businesses?.business_name || 'Local seller'}
                   {commentsListing.location_area ? ` · ${commentsListing.location_area}` : ''}
                 </div>
               </div>
+              <button
+                className="pop-close"
+                onClick={() => setCommentsListing(null)}
+                aria-label="Close"
+              >
+                <Icon name="close" size={16} color="#201F1B" strokeWidth={2.2} />
+              </button>
             </div>
 
-            {/* Body */}
-            <div className="sheet-body">
+            {/* Comments body */}
+            <div className="pop-body">
               <CommentSection
                 listingId={commentsListing.id}
                 onCountChange={(count) => {
@@ -587,47 +601,42 @@ const Landing = () => {
         }
         @media (min-width: 769px) { .app { padding-bottom: 0; } }
 
-        /* ---------- Hero ---------- */
+        /* ---------- Hero (smaller) ---------- */
         .hero-block {
           position: relative;
           background: linear-gradient(160deg, #24453B 0%, #16261F 100%);
-          padding: 44px 20px 76px;
+          padding: 26px 20px 52px;
           overflow: hidden;
         }
         .hero-texture {
           position: absolute; inset: 0;
           background-image: radial-gradient(rgba(217, 154, 59, 0.16) 1px, transparent 1px);
           background-size: 18px 18px;
-          opacity: 0.55;
+          opacity: 0.5;
           mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
           pointer-events: none;
         }
         .hero-inner { position: relative; max-width: 1200px; margin: 0 auto; }
         .hero-eyebrow {
-          display: inline-flex; align-items: center; gap: 8px;
-          font-size: 11.5px; font-weight: 600; letter-spacing: 0.14em;
+          display: inline-flex; align-items: center; gap: 7px;
+          font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em;
           text-transform: uppercase; color: #D99A3B;
-          margin-bottom: 20px;
+          margin-bottom: 10px;
         }
         .hero-dot {
-          width: 6px; height: 6px; border-radius: 50%;
-          background: #D99A3B; box-shadow: 0 0 0 4px rgba(217, 154, 59, 0.18);
+          width: 5px; height: 5px; border-radius: 50%;
+          background: #D99A3B; box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.18);
         }
         .hero-title {
           font-family: 'Fraunces', Georgia, serif;
-          font-optical-sizing: auto;
           font-weight: 500;
-          font-size: clamp(32px, 5vw, 48px);
+          font-size: clamp(20px, 3.6vw, 30px);
           letter-spacing: -0.02em;
-          margin: 0 0 14px; line-height: 1.08;
-          color: #F7F1E3; max-width: 520px;
+          margin: 0; line-height: 1.15;
+          color: #F7F1E3;
+          max-width: 560px;
         }
         .hero-title em { font-style: italic; font-weight: 500; color: #D99A3B; }
-        .hero-desc {
-          font-size: 15px; line-height: 1.5;
-          color: rgba(247, 241, 227, 0.68);
-          margin: 0; max-width: 400px;
-        }
 
         /* ---------- Sticky search ---------- */
         .search-sticky {
@@ -635,8 +644,8 @@ const Landing = () => {
           top: 64px;
           z-index: 50;
           padding: 0 20px;
-          margin-top: -30px;
-          padding-bottom: 12px;
+          margin-top: -26px;
+          padding-bottom: 10px;
           background: linear-gradient(to bottom, #F7F1E3 78%, rgba(247, 241, 227, 0.85));
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
@@ -645,42 +654,42 @@ const Landing = () => {
         .search-form { max-width: 620px; }
         .search-wrapper {
           display: flex; align-items: center; gap: 10px;
-          background: #FFFDF8; border-radius: 14px;
-          padding: 6px 6px 6px 18px;
+          background: #FFFDF8; border-radius: 13px;
+          padding: 5px 5px 5px 16px;
           box-shadow:
             0 2px 4px rgba(22, 38, 31, 0.04),
-            0 18px 40px rgba(22, 38, 31, 0.16),
+            0 16px 34px rgba(22, 38, 31, 0.14),
             0 0 0 1px rgba(239, 230, 206, 0.9);
           transition: box-shadow 0.25s ease;
         }
         .search-wrapper:focus-within {
           box-shadow:
             0 2px 4px rgba(22, 38, 31, 0.05),
-            0 22px 48px rgba(22, 38, 31, 0.2),
+            0 20px 44px rgba(22, 38, 31, 0.18),
             0 0 0 1px rgba(188, 91, 52, 0.5);
         }
         .search-input {
           flex: 1; border: none; outline: none; background: transparent;
-          padding: 13px 0; font-size: 14.5px; font-family: inherit; color: #201F1B;
+          padding: 12px 0; font-size: 14px; font-family: inherit; color: #201F1B;
         }
         .search-input::placeholder { color: #9C9482; }
         .search-btn {
-          padding: 11px 15px; background: #24453B; border: none;
-          border-radius: 10px; cursor: pointer;
+          padding: 10px 14px; background: #24453B; border: none;
+          border-radius: 9px; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           transition: background 0.2s, transform 0.15s;
         }
         .search-btn:hover { background: #BC5B34; transform: translateY(-1px); }
 
-        /* ---------- Categories ---------- */
-        .categories-section { padding: 14px 20px 4px; }
-        .categories-scroll { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+        /* ---------- Categories (smaller) ---------- */
+        .categories-section { padding: 12px 20px 2px; }
+        .categories-scroll { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
         .categories-scroll::-webkit-scrollbar { display: none; }
         .category-tag {
-          display: flex; align-items: center; gap: 6px;
-          padding: 8px 14px; border-radius: 10px;
+          display: flex; align-items: center; gap: 5px;
+          padding: 6px 11px; border-radius: 9px;
           border: 1.5px solid; background: transparent;
-          font-family: inherit; font-size: 12.5px; font-weight: 600;
+          font-family: inherit; font-size: 11.5px; font-weight: 600;
           cursor: pointer; flex-shrink: 0;
           transition: all 0.18s ease;
           white-space: nowrap;
@@ -689,14 +698,14 @@ const Landing = () => {
 
         /* ---------- Tabs ---------- */
         .tabs-section {
-          display: flex; gap: 24px; padding: 18px 20px 0;
-          border-bottom: 1px solid #EFE6CE; margin-bottom: 6px;
+          display: flex; gap: 22px; padding: 14px 20px 0;
+          border-bottom: 1px solid #EFE6CE; margin-bottom: 4px;
           max-width: 1200px; margin-left: auto; margin-right: auto;
         }
         .tab-btn {
-          position: relative; padding: 4px 2px 12px;
+          position: relative; padding: 4px 2px 11px;
           border: none; background: transparent;
-          font-size: 13.5px; font-weight: 600; color: #9C9482;
+          font-size: 13px; font-weight: 600; color: #9C9482;
           cursor: pointer; font-family: inherit;
           transition: color 0.15s;
         }
@@ -708,50 +717,50 @@ const Landing = () => {
         }
 
         /* ---------- Featured ---------- */
-        .featured-section { padding: 20px 20px 6px; max-width: 1200px; margin: 0 auto; }
-        .section-heading { margin-bottom: 12px; }
+        .featured-section { padding: 16px 20px 4px; max-width: 1200px; margin: 0 auto; }
+        .section-heading { margin-bottom: 10px; }
         .section-title {
           font-family: 'Fraunces', Georgia, serif;
-          font-weight: 600; font-size: 17px; margin: 0; color: #201F1B;
+          font-weight: 600; font-size: 16px; margin: 0; color: #201F1B;
         }
         .featured-scroll { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; }
         .featured-scroll::-webkit-scrollbar { display: none; }
         .featured-card {
           flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
-          width: 180px; background: #FFFDF8;
+          width: 170px; background: #FFFDF8;
           border: 1px solid #EFE6CE; border-radius: 12px;
-          padding: 10px 12px; text-align: left;
+          padding: 9px 11px; text-align: left;
           cursor: pointer; font-family: inherit;
           transition: border-color 0.2s, transform 0.15s;
         }
         .featured-card:hover { border-color: #D9C79E; transform: translateY(-1px); }
         .featured-logo {
-          width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+          width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
           background: #F7F1E3; border: 1px solid #EFE6CE;
           display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
         .featured-logo img { width: 100%; height: 100%; object-fit: cover; }
         .featured-text { min-width: 0; }
         .featured-name {
-          font-size: 12.5px; font-weight: 600; color: #201F1B;
+          font-size: 12px; font-weight: 600; color: #201F1B;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .featured-cat {
-          font-size: 10.5px; color: #9C9482; margin-top: 1px;
+          font-size: 10px; color: #9C9482; margin-top: 1px;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
         /* ---------- Listings grid ---------- */
         .listings { padding: 10px 20px 16px; max-width: 1200px; margin: 0 auto; }
-        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+        .listings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .listings-header-left { display: flex; align-items: baseline; gap: 8px; }
         .listings-title {
           font-family: 'Fraunces', Georgia, serif;
-          font-weight: 600; font-size: 18px; margin: 0; color: #201F1B;
+          font-weight: 600; font-size: 17px; margin: 0; color: #201F1B;
         }
         .listings-count { font-size: 12px; color: #9C9482; }
         .filter-btn {
-          width: 34px; height: 34px; border-radius: 9px;
+          width: 32px; height: 32px; border-radius: 9px;
           border: 1px solid #EFE6CE; background: #FFFDF8;
           cursor: pointer; display: flex;
           align-items: center; justify-content: center;
@@ -767,252 +776,250 @@ const Landing = () => {
         @media (min-width: 640px) { .listings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
         @media (min-width: 1024px) { .listings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
 
-        /* ---------- ★ Option B: Glass overlay card ---------- */
-        .bcard { position: relative; }
-
-        .bcard-media {
-          position: relative;
-          width: 100%;
-          border-radius: 16px;
+        /* ---------- ★ Product card (Option A refined) ---------- */
+        .pcard {
+          display: flex; flex-direction: column;
+          background: #FFFDF8;
+          border-radius: 14px;
           overflow: hidden;
-          background: #F0E9D6;
-          cursor: pointer;
-          isolation: isolate;
           box-shadow:
-            0 1px 2px rgba(22, 38, 31, 0.06),
-            0 12px 26px rgba(22, 38, 31, 0.1);
-          transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.35s ease;
+            0 1px 2px rgba(22, 38, 31, 0.04),
+            0 0 0 1px rgba(239, 230, 206, 0.85);
+          transition: transform 0.28s ease, box-shadow 0.28s ease;
         }
-        .bcard:hover .bcard-media {
+        .pcard:hover {
           transform: translateY(-3px);
           box-shadow:
-            0 2px 4px rgba(22, 38, 31, 0.08),
-            0 20px 40px rgba(22, 38, 31, 0.16);
+            0 2px 4px rgba(22, 38, 31, 0.05),
+            0 18px 36px rgba(22, 38, 31, 0.1),
+            0 0 0 1px rgba(217, 199, 158, 0.9);
         }
 
-        .bcard-img {
-          position: absolute; inset: 0;
-          width: 100%; height: 100%;
-          object-fit: cover; display: block;
-          transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
-          z-index: 0;
-        }
-        .bcard:hover .bcard-img { transform: scale(1.07); }
-
-        .bcard-placeholder {
-          position: absolute; inset: 0;
-          display: flex; align-items: center; justify-content: center;
+        .pcard-media {
+          position: relative;
+          width: 100%;
           background: #F0E9D6;
-          z-index: 0;
+          overflow: hidden;
+          cursor: pointer;
+        }
+        .pcard-img {
+          width: 100%; height: 100%; object-fit: cover; display: block;
+          transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+        }
+        .pcard:hover .pcard-img { transform: scale(1.05); }
+        .pcard-placeholder {
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
         }
 
-        .bcard-top {
-          position: absolute; top: 10px; left: 10px; right: 10px;
-          display: flex; gap: 6px; align-items: flex-start;
+        .pcard-top {
+          position: absolute; top: 8px; left: 8px;
+          display: flex; gap: 5px;
           pointer-events: none;
-          z-index: 2;
         }
-        .bchip {
-          display: inline-flex; align-items: center; gap: 4px;
-          padding: 4px 8px; border-radius: 7px;
-          font-size: 9.5px; font-weight: 700;
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          letter-spacing: 0.05em;
-        }
-        .bchip-new {
-          background: rgba(36, 69, 59, 0.9);
-          color: #F7F1E3;
+        .pbadge {
+          display: inline-flex; align-items: center;
+          padding: 3px 7px; border-radius: 6px;
+          font-size: 9px; font-weight: 700;
+          letter-spacing: 0.06em;
           text-transform: uppercase;
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
         }
-        .bchip-cat {
+        .pbadge-new {
+          background: rgba(36, 69, 59, 0.92);
           color: #F7F1E3;
-          letter-spacing: 0.02em;
-          text-transform: none;
-          font-weight: 600;
-          font-size: 10px;
         }
 
-        /* Floating heart */
-        .bcard-heart {
+        .pcard-heart {
           position: absolute;
-          top: 10px; right: 10px;
-          z-index: 3;
-          display: inline-flex; align-items: center; gap: 4px;
-          padding: 6px 9px;
+          top: 8px; right: 8px;
+          width: 28px; height: 28px;
           border: none; cursor: pointer;
           border-radius: 999px;
-          background: rgba(22, 38, 31, 0.55);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          color: #F7F1E3;
-          font-size: 11px; font-weight: 600;
-          font-family: inherit;
+          background: rgba(22, 38, 31, 0.5);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          display: flex; align-items: center; justify-content: center;
           transition: background 0.2s, transform 0.15s;
         }
-        .bcard-heart:hover { background: rgba(22, 38, 31, 0.75); transform: translateY(-1px); }
-        .bcard-heart.liked { background: rgba(188, 91, 52, 0.92); }
-        .bcard-heart.liked:hover { background: rgba(188, 91, 52, 1); }
+        .pcard-heart:hover { background: rgba(22, 38, 31, 0.72); transform: scale(1.06); }
+        .pcard-heart.liked { background: rgba(188, 91, 52, 0.92); }
+        .pcard-heart.liked:hover { background: rgba(188, 91, 52, 1); }
 
-        /* Glass overlay panel */
-        .bcard-glass {
+        .pcard-delivery {
           position: absolute;
-          left: 8px; right: 8px; bottom: 8px;
-          z-index: 2;
-          padding: 11px 12px 10px;
-          border-radius: 12px;
-          background: rgba(22, 38, 31, 0.55);
-          backdrop-filter: blur(14px) saturate(140%);
-          -webkit-backdrop-filter: blur(14px) saturate(140%);
-          border: 1px solid rgba(247, 241, 227, 0.14);
-          color: #F7F1E3;
-          display: flex; flex-direction: column; gap: 7px;
-          transition: background 0.25s ease;
-        }
-        .bcard:hover .bcard-glass {
-          background: rgba(22, 38, 31, 0.68);
+          bottom: 8px; left: 8px;
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 22px; height: 22px;
+          border-radius: 6px;
+          background: rgba(22, 38, 31, 0.75);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
         }
 
-        .bcard-glass-row {
+        /* ---- Body below image ---- */
+        .pcard-body {
+          padding: 10px 12px 10px;
+          display: flex; flex-direction: column; gap: 6px;
+        }
+        .pcard-title-row {
           display: flex; align-items: flex-start; gap: 8px;
         }
-        .bcard-title {
+        .pcard-title {
           flex: 1;
-          font-size: 12.5px; font-weight: 600; line-height: 1.28;
-          color: #FFFDF8; margin: 0;
-          cursor: pointer;
+          font-size: 13px; font-weight: 600; line-height: 1.32;
+          color: #201F1B; margin: 0; cursor: pointer;
           display: -webkit-box; -webkit-line-clamp: 2;
           -webkit-box-orient: vertical; overflow: hidden;
           letter-spacing: -0.005em;
         }
-        .bcard-title:hover { color: #F0D9A8; }
-
-        .bcard-price {
+        .pcard-title:hover { color: #24453B; }
+        .pcard-price {
           font-family: 'Fraunces', Georgia, serif;
           font-size: 13.5px; font-weight: 600;
-          color: #F0D9A8;
-          white-space: nowrap;
+          color: #24453B;
           letter-spacing: -0.01em;
+          white-space: nowrap;
           font-variant-numeric: tabular-nums;
           padding-top: 1px;
         }
 
-        .bcard-meta {
+        .pcard-meta {
           display: flex; align-items: center; gap: 5px;
-          font-size: 10.5px;
-          color: rgba(247, 241, 227, 0.78);
+          font-size: 10.5px; color: #9C9482;
           overflow: hidden;
         }
-        .bcard-seller {
+        .pcard-seller {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-          max-width: 90px;
+          max-width: 100px;
         }
-        .bcard-dot {
+        .pcard-dot {
           width: 3px; height: 3px; border-radius: 50%;
-          background: rgba(247, 241, 227, 0.5); flex-shrink: 0;
+          background: #D9C79E; flex-shrink: 0;
         }
-        .bcard-loc {
-          display: inline-flex; align-items: center; gap: 3px;
+        .pcard-loc {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .bcard-delivery {
-          margin-left: auto;
-          display: inline-flex; align-items: center;
-          padding: 2px 5px;
-          border-radius: 5px;
-          background: rgba(247, 241, 227, 0.14);
-        }
 
-        .bcard-actions {
-          display: flex; align-items: center; gap: 6px;
-          padding-top: 6px;
-          border-top: 1px solid rgba(247, 241, 227, 0.14);
+        .pcard-actions {
+          display: flex; align-items: center; gap: 4px;
+          margin-top: 3px; padding-top: 8px;
+          border-top: 1px solid #F2EBD9;
         }
-        .bcard-action {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 5px 8px;
-          background: rgba(247, 241, 227, 0.12);
-          border: none; cursor: pointer;
-          border-radius: 8px;
+        .pcard-action {
+          display: inline-flex; align-items: center; gap: 4px;
+          background: none; border: none;
+          padding: 5px 7px; border-radius: 8px;
+          font-size: 11px; font-weight: 500;
+          color: #8A8578; cursor: pointer;
           font-family: inherit;
-          font-size: 11px; font-weight: 600;
-          color: #F7F1E3;
-          transition: background 0.18s, transform 0.15s;
+          transition: background 0.15s, color 0.15s, transform 0.1s;
         }
-        .bcard-action:hover { background: rgba(247, 241, 227, 0.22); }
-        .bcard-action:active { transform: scale(0.97); }
+        .pcard-action:hover { background: rgba(217, 154, 59, 0.09); color: #201F1B; }
+        .pcard-action:active { transform: scale(0.96); }
+        .pcard-action.liked { color: #BC5B34; font-weight: 600; }
 
-        .bcard-msg {
+        .pcard-msg {
           margin-left: auto;
-          background: #F7F1E3;
-          color: #201F1B;
+          background: #24453B;
+          color: #F7F1E3;
+          padding: 5px 10px;
+          font-weight: 600;
+          font-size: 10.5px;
+          border-radius: 8px;
+          transition: background 0.2s, transform 0.15s;
         }
-        .bcard-msg:hover { background: #F0D9A8; }
-        .bcard-msg:disabled { opacity: 0.6; cursor: not-allowed; }
+        .pcard-msg:hover { background: #BC5B34; color: #F7F1E3; }
+        .pcard-msg:disabled { opacity: 0.55; cursor: not-allowed; }
 
-        /* ---------- ★ Full-screen comments sheet ---------- */
-        .sheet-overlay {
+        /* ---------- ★ Comments pop-up (bottom sheet) ---------- */
+        .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
           background: rgba(22, 38, 31, 0.5);
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
-          display: flex; align-items: stretch; justify-content: center;
-          animation: fadeIn 0.2s ease;
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+          display: flex; align-items: flex-end; justify-content: center;
+          animation: popFade 0.2s ease;
         }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popFade { from { opacity: 0; } to { opacity: 1; } }
 
-        .sheet {
+        .pop {
           width: 100%;
-          max-width: 640px;
+          max-width: 560px;
+          max-height: 78vh;
           background: #FFFDF8;
+          border-top-left-radius: 20px;
+          border-top-right-radius: 20px;
+          box-shadow: 0 -20px 60px rgba(22, 38, 31, 0.3);
           display: flex; flex-direction: column;
-          box-shadow: 0 24px 60px rgba(22, 38, 31, 0.35);
-          animation: sheetUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+          animation: popUp 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
           overflow: hidden;
         }
-        @media (min-width: 640px) {
-          .sheet { border-radius: 18px; margin: 24px 0; }
-        }
-        @keyframes sheetUp {
-          from { transform: translateY(24px); opacity: 0; }
+        @keyframes popUp {
+          from { transform: translateY(40px); opacity: 0.6; }
           to { transform: translateY(0); opacity: 1; }
         }
+        @media (min-width: 640px) {
+          .pop {
+            margin-bottom: 24px;
+            border-radius: 20px;
+          }
+        }
 
-        .sheet-head {
-          display: flex; align-items: center; gap: 10px;
-          padding: 12px 14px;
-          border-bottom: 1px solid #EFE6CE;
-          background: #FFFDF8;
+        .pop-handle {
+          width: 42px; height: 4px;
+          background: #E4D9BD;
+          border-radius: 4px;
+          margin: 8px auto 0;
           flex-shrink: 0;
         }
-        .sheet-close {
-          width: 34px; height: 34px;
-          border-radius: 9px;
+
+        .pop-preview {
+          display: flex; align-items: center; gap: 10px;
+          padding: 10px 14px 10px;
+          border-bottom: 1px solid #EFE6CE;
+          flex-shrink: 0;
+        }
+        .pop-thumb {
+          width: 42px; height: 42px; border-radius: 10px;
+          overflow: hidden;
+          background: #F0E9D6;
+          flex-shrink: 0;
+          border: 1px solid #EFE6CE;
+        }
+        .pop-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .pop-thumb-fallback {
+          width: 100%; height: 100%;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .pop-preview-text { flex: 1; min-width: 0; }
+        .pop-preview-title {
+          font-size: 13px; font-weight: 600; color: #201F1B;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .pop-preview-sub {
+          font-size: 11px; color: #9C9482; margin-top: 1px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .pop-close {
+          width: 30px; height: 30px;
+          border-radius: 8px;
           border: 1px solid #EFE6CE;
           background: #FFFDF8;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer;
-          transition: background 0.18s, border-color 0.18s;
           flex-shrink: 0;
+          transition: background 0.18s, border-color 0.18s;
         }
-        .sheet-close:hover { background: #F7F1E3; border-color: #D9C79E; }
-        .sheet-head-text { min-width: 0; flex: 1; }
-        .sheet-head-title {
-          font-size: 14px; font-weight: 600; color: #201F1B;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-          letter-spacing: -0.005em;
-        }
-        .sheet-head-sub {
-          font-size: 11px; color: #9C9482; margin-top: 1px;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
+        .pop-close:hover { background: #F7F1E3; border-color: #D9C79E; }
 
-        .sheet-body {
+        .pop-body {
           flex: 1;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
-          padding: 14px 14px 24px;
+          padding: 12px 14px 18px;
           background: #FFFDF8;
         }
 
@@ -1049,24 +1056,22 @@ const Landing = () => {
         .nav-label.active { color: #201F1B; font-weight: 600; }
 
         @media (max-width: 480px) {
-          .hero-block { padding: 34px 16px 68px; }
-          .hero-title { font-size: 27px; }
-          .search-sticky { padding: 0 16px 12px; }
-          .categories-section { padding: 12px 16px 4px; }
-          .tabs-section { padding: 16px 16px 0; }
-          .featured-section { padding: 18px 16px 4px; }
-          .listings { padding: 10px 16px 12px; }
+          .hero-block { padding: 22px 16px 46px; }
+          .hero-title { font-size: 19px; }
+          .search-sticky { padding: 0 16px 10px; }
+          .categories-section { padding: 10px 16px 2px; }
+          .tabs-section { padding: 12px 16px 0; }
+          .featured-section { padding: 14px 16px 4px; }
+          .listings { padding: 8px 16px 12px; }
           .listings-grid { gap: 10px; }
-          .bcard-title { font-size: 12px; }
-          .bcard-price { font-size: 12.5px; }
-          .bcard-glass { left: 6px; right: 6px; bottom: 6px; padding: 10px 11px 9px; }
-          .bcard-heart { top: 8px; right: 8px; }
+          .pcard-title { font-size: 12.5px; }
+          .pcard-price { font-size: 13px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .bcard-media, .bcard-img, .bcard-heart, .bcard-glass,
-          .bcard-action, .search-btn, .filter-btn, .featured-card,
-          .nav-icon-wrap, .sheet, .sheet-overlay { transition: none; animation: none; }
+          .pcard, .pcard-img, .pcard-heart, .pcard-action, .pcard-msg,
+          .search-btn, .filter-btn, .featured-card, .nav-icon-wrap,
+          .pop, .pop-overlay { transition: none; animation: none; }
         }
       `}</style>
     </div>
