@@ -47,6 +47,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     externalLink: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3',
     heart: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
     comment: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
+    shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
   };
   const d = icons[name] || icons.store;
   return (
@@ -67,6 +68,7 @@ const isPremium = (item) => {
   if (item.is_premium === true) return true;
   if (item.is_featured === true) return true;
   if (item.businesses?.is_premium === true) return true;
+  if (item.businesses?.is_featured === true) return true;
   if (item.premium_until) {
     const t = new Date(item.premium_until).getTime();
     if (!Number.isNaN(t) && t > Date.now()) return true;
@@ -84,6 +86,23 @@ const daysUntil = (date) => {
   if (!date) return 0;
   const ms = date.getTime() - Date.now();
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+};
+
+/* ★ Robust seller-id resolution — checks every common location so the
+ *   Message button always has a target when the seller exists. */
+const resolveSellerUserId = (item) => {
+  if (!item) return null;
+  return (
+    item.businesses?.user_id ||
+    item.businesses?.userId ||
+    item.businesses?.owner_id ||
+    item.businesses?.owner?.id ||
+    item.businesses?.profile_id ||
+    item.seller_id ||
+    item.user_id ||
+    item.owner_id ||
+    null
+  );
 };
 
 // ============================================================
@@ -104,9 +123,12 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
   const [paymentRef, setPaymentRef] = useState(null);
   const pollTimerRef = useRef(null);
 
-  useEffect(() => () => {
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    },
+    []
+  );
 
   const selectedPlan = BOOST_PLANS.find((p) => p.days === days) || BOOST_PLANS[0];
 
@@ -158,7 +180,11 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
     } catch (err) {
       const status = err?.response?.status;
       const serverMsg = err?.response?.data?.error;
-      if (status === 404 || status === 501 || /not configured|not implemented/i.test(serverMsg || '')) {
+      if (
+        status === 404 ||
+        status === 501 ||
+        /not configured|not implemented/i.test(serverMsg || '')
+      ) {
         setMessage(
           'Boost payments are being set up. Our team will activate your listing within 24 hours and contact you about payment.'
         );
@@ -411,7 +437,8 @@ const ListingDetails = () => {
   const [liking, setLiking] = useState(false);
 
   const isMobile = windowWidth <= 768;
-  const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV === true;
+  const isDev =
+    typeof import.meta !== 'undefined' && import.meta.env?.DEV === true;
 
   // ★ NO auth gate — buyers can view listings signed-out
 
@@ -427,6 +454,7 @@ const ListingDetails = () => {
       setErrorMsg('No listing ID provided');
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Lock scroll when comments pop-up is open
@@ -434,13 +462,17 @@ const ListingDetails = () => {
     if (showComments) {
       const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
+      return () => {
+        document.body.style.overflow = prev;
+      };
     }
   }, [showComments]);
 
   useEffect(() => {
     if (!showComments) return;
-    const onKey = (e) => { if (e.key === 'Escape') setShowComments(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setShowComments(false);
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [showComments]);
@@ -521,9 +553,7 @@ const ListingDetails = () => {
     } catch (err) {
       console.error('like error:', err);
       setListing((prev) =>
-        prev
-          ? { ...prev, liked_by_me: wasLiked, likes: prevLikes }
-          : prev
+        prev ? { ...prev, liked_by_me: wasLiked, likes: prevLikes } : prev
       );
       showToast('Failed to update like', 'error');
     } finally {
@@ -532,7 +562,7 @@ const ListingDetails = () => {
   };
 
   const handleOpenComments = () => {
-    // Allow viewing comments signed-out; only posting requires auth
+    // Anyone can view comments; only posting requires auth
     setShowComments(true);
   };
 
@@ -576,15 +606,13 @@ const ListingDetails = () => {
     return '⭐'.repeat(fullStars) + '☆'.repeat(emptyStars);
   };
 
+  /* ★ Message seller — robust seller id + returns to /messages after chat closes */
   const handleMessageSeller = async () => {
     if (!requireAuth('message the seller')) return;
 
-    const sellerId =
-      listing?.businesses?.user_id ||
-      listing?.businesses?.userId ||
-      listing?.businesses?.owner_id;
+    const sellerId = resolveSellerUserId(listing);
     if (!sellerId) {
-      showToast('Seller information is unavailable', 'error');
+      showToast('Seller information is unavailable for this listing', 'error');
       return;
     }
     if (sellerId === user.id) {
@@ -596,7 +624,8 @@ const ListingDetails = () => {
     try {
       const res = await messagesAPI.createConversation(sellerId, listing.id);
       const conversationId = res?.data?.conversation?.id;
-      if (!conversationId) throw new Error('Conversation could not be opened');
+      if (!conversationId) throw new Error('Could not open conversation');
+
       if (user?.id) {
         analyticsAPI
           .trackUserActivity(user.id, 'open_chat', {
@@ -606,9 +635,22 @@ const ListingDetails = () => {
           })
           .catch(() => {});
       }
+
       navigate(`/chat/${conversationId}`);
     } catch (err) {
-      showToast(err?.response?.data?.error || err?.message || 'Failed to open chat', 'error');
+      console.error('Open chat error:', err);
+      const status = err?.response?.status;
+      const msg =
+        status === 401
+          ? 'Please sign in again to message the seller'
+          : status === 404
+          ? 'Seller account could not be found'
+          : status === 400
+          ? 'Unable to start a chat with this seller'
+          : err?.response?.data?.error ||
+            err?.message ||
+            'Failed to open chat';
+      showToast(msg, 'error');
     } finally {
       setOpeningChat(false);
     }
@@ -688,7 +730,9 @@ const ListingDetails = () => {
     const url = `${window.location.origin}/listing/${listing.id}`;
     const text = `${listing.title} - Check this out on Kumsika`;
     window.open(
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+        text
+      )}&url=${encodeURIComponent(url)}`,
       '_blank'
     );
   };
@@ -723,7 +767,9 @@ const ListingDetails = () => {
         : {
             ...prev,
             is_premium: true,
-            premium_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            premium_until: new Date(
+              Date.now() + 7 * 24 * 60 * 60 * 1000
+            ).toISOString(),
           };
     });
     success('Dev toggle applied (not saved to server)');
@@ -785,10 +831,7 @@ const ListingDetails = () => {
     listing.businesses?.phone ||
     listing.businesses?.whatsapp_number;
 
-  const sellerUserId =
-    listing.businesses?.user_id ||
-    listing.businesses?.userId ||
-    listing.businesses?.owner_id;
+  const sellerUserId = resolveSellerUserId(listing);
   const isOwnListing = user?.id && sellerUserId === user.id;
   const canMessageSeller = user && sellerUserId && !isOwnListing;
   const isAnonymous = !user;
@@ -878,7 +921,9 @@ const ListingDetails = () => {
                       alt={`${listing.title} ${i + 1}`}
                       className="gallery-image"
                       loading={i === 0 ? 'eager' : 'lazy'}
-                      onError={(e) => { e.target.style.opacity = 0; }}
+                      onError={(e) => {
+                        e.target.style.opacity = 0;
+                      }}
                     />
                   ))}
                 </div>
@@ -887,7 +932,9 @@ const ListingDetails = () => {
                     <button
                       type="button"
                       className="gallery-arrow left"
-                      onClick={() => setImageIdx((imageIdx - 1 + images.length) % images.length)}
+                      onClick={() =>
+                        setImageIdx((imageIdx - 1 + images.length) % images.length)
+                      }
                       aria-label="Previous photo"
                     >
                       <Icon name="chevronLeft" size={16} color="#FFFFFF" strokeWidth={2.4} />
@@ -900,7 +947,9 @@ const ListingDetails = () => {
                     >
                       <Icon name="chevronRight" size={16} color="#FFFFFF" strokeWidth={2.4} />
                     </button>
-                    <span className="gallery-count">{imageIdx + 1}/{images.length}</span>
+                    <span className="gallery-count">
+                      {imageIdx + 1}/{images.length}
+                    </span>
                   </>
                 )}
               </div>
@@ -1035,7 +1084,8 @@ const ListingDetails = () => {
 
             {listing.businesses.rating > 0 && (
               <p className="business-rating">
-                {renderStars(listing.businesses.rating)} ({listing.businesses.rating.toFixed(1)})
+                {renderStars(listing.businesses.rating)} (
+                {listing.businesses.rating.toFixed(1)})
               </p>
             )}
 
@@ -1092,7 +1142,12 @@ const ListingDetails = () => {
                         </>
                       ) : (
                         <>
-                          <Icon name="message" size={16} color="#FFFFFF" strokeWidth={1.75} />
+                          <Icon
+                            name="message"
+                            size={16}
+                            color="#FFFFFF"
+                            strokeWidth={1.75}
+                          />
                           Message seller
                         </>
                       )}
@@ -1105,7 +1160,12 @@ const ListingDetails = () => {
                           Call now
                         </button>
                         <button className="btn-whatsapp" onClick={openWhatsApp}>
-                          <Icon name="whatsapp" size={16} color="#FFFFFF" strokeWidth={1.75} />
+                          <Icon
+                            name="whatsapp"
+                            size={16}
+                            color="#FFFFFF"
+                            strokeWidth={1.75}
+                          />
                           WhatsApp
                         </button>
                       </>
@@ -1147,7 +1207,9 @@ const ListingDetails = () => {
                   className="form-select"
                 >
                   {[5, 4, 3, 2, 1].map((num) => (
-                    <option key={num} value={num}>{num} Stars</option>
+                    <option key={num} value={num}>
+                      {num} Stars
+                    </option>
                   ))}
                 </select>
               </div>
@@ -1155,14 +1217,20 @@ const ListingDetails = () => {
                 <label className="form-label">Comment</label>
                 <textarea
                   value={reviewData.comment}
-                  onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                  onChange={(e) =>
+                    setReviewData({ ...reviewData, comment: e.target.value })
+                  }
                   className="form-textarea"
                   placeholder="Share your experience..."
                   required
                 />
               </div>
               <div className="form-actions">
-                <button type="submit" className="btn-submit-review" disabled={submitting}>
+                <button
+                  type="submit"
+                  className="btn-submit-review"
+                  disabled={submitting}
+                >
                   {submitting ? 'Submitting...' : 'Submit review'}
                 </button>
                 <button
@@ -1228,7 +1296,9 @@ const ListingDetails = () => {
           {isAnonymous ? (
             <button
               className="sticky-btn primary wide"
-              onClick={() => navigate('/login', { state: { from: location.pathname } })}
+              onClick={() =>
+                navigate('/login', { state: { from: location.pathname } })
+              }
             >
               <Icon name="user" size={16} color="#FFFFFF" strokeWidth={2} />
               Sign in to contact seller
@@ -1251,10 +1321,18 @@ const ListingDetails = () => {
               </button>
               {sellerPhone && (
                 <>
-                  <button className="sticky-btn whatsapp" onClick={openWhatsApp} aria-label="WhatsApp">
+                  <button
+                    className="sticky-btn whatsapp"
+                    onClick={openWhatsApp}
+                    aria-label="WhatsApp"
+                  >
                     <Icon name="whatsapp" size={18} color="#FFFFFF" strokeWidth={2} />
                   </button>
-                  <button className="sticky-btn call" onClick={openPhoneDialer} aria-label="Call">
+                  <button
+                    className="sticky-btn call"
+                    onClick={openPhoneDialer}
+                    aria-label="Call"
+                  >
                     <Icon name="phone" size={16} color="#FFFFFF" strokeWidth={2} />
                   </button>
                 </>
@@ -1291,7 +1369,11 @@ const ListingDetails = () => {
                   {listing.location_area ? ` · ${listing.location_area}` : ''}
                 </div>
               </div>
-              <button className="pop-close" onClick={() => setShowComments(false)} aria-label="Close">
+              <button
+                className="pop-close"
+                onClick={() => setShowComments(false)}
+                aria-label="Close"
+              >
                 <Icon name="close" size={16} color="#201F1B" strokeWidth={2.2} />
               </button>
             </div>
@@ -1345,7 +1427,11 @@ const ListingDetails = () => {
           ].map((item) => {
             const active = item.id === 'search';
             return (
-              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+              <button
+                key={item.id}
+                className="nav-btn"
+                onClick={() => handleBottomNav(item.id)}
+              >
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
                   <Icon
                     name={item.icon}
@@ -1354,7 +1440,9 @@ const ListingDetails = () => {
                     strokeWidth={1.75}
                   />
                 </div>
-                <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
+                <span className={`nav-label ${active ? 'active' : ''}`}>
+                  {item.label}
+                </span>
               </button>
             );
           })}

@@ -5,8 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 import { messagesAPI } from '../services/api';
 import { supabase } from '../lib/supabase';
-import { useUserPresence } from '../hooks/usePresence'; // ✅ NEW
-import { useTyping } from '../hooks/useTyping'; // ✅ NEW
+import { useUserPresence } from '../hooks/usePresence';
+import { useTyping } from '../hooks/useTyping';
 
 // ============================================================
 // ICONS
@@ -27,9 +27,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
     close: "M18 6L6 18M6 6l12 12",
   };
-
   const d = icons[name] || icons.message;
-
   return (
     <svg
       width={size}
@@ -46,6 +44,82 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
       <path d={d} />
     </svg>
   );
+};
+
+// ============================================================
+// NORMALIZERS
+// Backend may return snake_case (Supabase raw) or camelCase.
+// The UI expects camelCase (senderId, imageUrl, createdAt, readAt).
+// ============================================================
+const normalizeMessage = (raw) => {
+  if (!raw) return raw;
+  const createdAt = raw.createdAt || raw.created_at || raw.timestamp || null;
+  return {
+    ...raw,
+    id: raw.id,
+    senderId:
+      raw.senderId ??
+      raw.sender_id ??
+      raw.user_id ??
+      raw.from_user_id ??
+      null,
+    text: raw.text ?? raw.content ?? raw.body ?? '',
+    imageUrl: raw.imageUrl ?? raw.image_url ?? raw.image ?? null,
+    type: raw.type ?? (raw.imageUrl || raw.image_url ? 'image' : 'text'),
+    createdAt,
+    readAt: raw.readAt ?? raw.read_at ?? null,
+  };
+};
+
+const normalizeParticipant = (raw) => {
+  if (!raw) return {};
+  return {
+    id: raw.id ?? raw.user_id ?? null,
+    fullName: raw.fullName ?? raw.full_name ?? raw.name ?? null,
+    email: raw.email ?? null,
+    avatarUrl: raw.avatarUrl ?? raw.avatar_url ?? null,
+  };
+};
+
+const normalizeConversation = (raw) => {
+  if (!raw) return null;
+
+  // Resolve the "other participant" from whatever the backend gives us
+  let other = raw.otherParticipant || raw.other_participant;
+  if (!other) {
+    // Fallback: build it from raw participant fields
+    other = {
+      id:
+        raw.other_user_id ??
+        raw.participant_one_id ??
+        raw.participant_two_id ??
+        raw.peer_id ??
+        null,
+      fullName:
+        raw.other_user_name ??
+        raw.participant_one_name ??
+        raw.participant_two_name ??
+        null,
+      email:
+        raw.other_user_email ??
+        raw.participant_one_email ??
+        raw.participant_two_email ??
+        null,
+      avatar_url: raw.other_user_avatar ?? raw.participant_one_avatar ?? null,
+    };
+  }
+
+  return {
+    ...raw,
+    otherParticipant: normalizeParticipant(other),
+    listing: raw.listing || raw.listings || raw.listing_snapshot || null,
+    unreadCount:
+      raw.unreadCount ??
+      raw.unread_count ??
+      raw.unread_count_for_one ??
+      raw.unread_count_for_two ??
+      0,
+  };
 };
 
 // ============================================================
@@ -73,6 +147,7 @@ const initialsOf = (name, email) => {
 const formatTime = (date) => {
   if (!date) return '';
   const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
@@ -142,9 +217,12 @@ const Chat = () => {
       if (!opts.silent) setLoading(true);
       try {
         const res = await messagesAPI.getConversation(id);
-        setConversation(res.data?.conversation || null);
 
-        const incoming = res.data?.messages || [];
+        // ✅ NORMALIZE
+        setConversation(normalizeConversation(res.data?.conversation || null));
+
+        const incoming = (res.data?.messages || []).map(normalizeMessage);
+
         if (incoming.length !== lastMessageCountRef.current) {
           lastMessageCountRef.current = incoming.length;
           if (!opts.silent || incoming.length > 0) {
@@ -192,7 +270,7 @@ const Chat = () => {
           filter: `conversation_id=eq.${id}`,
         },
         (payload) => {
-          const newMsg = payload.new;
+          const newMsg = normalizeMessage(payload.new);   // ✅ NORMALIZE
           if (!newMsg) return;
 
           setMessages((prev) => {
@@ -203,7 +281,7 @@ const Chat = () => {
             return next;
           });
 
-          if (newMsg.sender_id !== user.id) {
+          if (newMsg.senderId !== user.id) {
             messagesAPI.markConversationRead(id).catch(() => {});
           }
         }
@@ -217,7 +295,7 @@ const Chat = () => {
           filter: `conversation_id=eq.${id}`,
         },
         (payload) => {
-          const updated = payload.new;
+          const updated = normalizeMessage(payload.new);   // ✅ NORMALIZE
           if (!updated) return;
           setMessages((prev) =>
             prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
@@ -256,7 +334,7 @@ const Chat = () => {
     const text = inputText.trim();
     if (!text || sending) return;
 
-    stopTyping(); // ✅ NEW
+    stopTyping();
 
     setSending(true);
     setInputText('');
@@ -276,7 +354,7 @@ const Chat = () => {
 
     try {
       const res = await messagesAPI.sendMessage(id, { text });
-      const real = res.data?.message;
+      const real = normalizeMessage(res.data?.message);   // ✅ NORMALIZE
       if (real) {
         setMessages((prev) => prev.map((m) => (m.id === tempId ? real : m)));
       }
@@ -311,7 +389,7 @@ const Chat = () => {
       return;
     }
 
-    stopTyping(); // ✅ NEW
+    stopTyping();
     setUploadingImage(true);
     setShowQuickReplies(false);
 
@@ -338,7 +416,7 @@ const Chat = () => {
         imageUrl: url,
         type: 'image',
       });
-      const real = sendRes.data?.message;
+      const real = normalizeMessage(sendRes.data?.message);   // ✅ NORMALIZE
       setMessages((prev) => prev.map((m) => (m.id === tempId ? real : m)));
     } catch (err) {
       console.error('Send image error:', err);
@@ -430,7 +508,12 @@ const Chat = () => {
 
       {/* Chat Header */}
       <div className="chat-header">
-        <button className="header-btn" onClick={() => navigate(-1)}>
+        {/* ✅ Back goes to Messages (not to the listing) */}
+        <button
+          className="header-btn"
+          onClick={() => navigate('/messages', { replace: true })}
+          aria-label="Back to messages"
+        >
           <Icon name="arrowLeft" size={20} color="#1E293B" strokeWidth={1.75} />
         </button>
 
@@ -442,7 +525,6 @@ const Chat = () => {
             >
               {initials}
             </div>
-            {/* ✅ NEW: online dot */}
             {isOnline && <span className="header-online" />}
           </div>
           <div className="header-info">
@@ -536,7 +618,6 @@ const Chat = () => {
           })
         )}
 
-        {/* ✅ NEW: typing bubble from the other user */}
         {otherUserIsTyping && (
           <div className="message-row received">
             <div className="message-bubble received typing">
@@ -587,7 +668,6 @@ const Chat = () => {
               ref={inputRef}
               value={inputText}
               onChange={(e) => {
-                // ✅ NEW: notify typing / stop typing
                 setInputText(e.target.value);
                 if (e.target.value.trim()) {
                   notifyTyping();
@@ -596,7 +676,7 @@ const Chat = () => {
                 }
               }}
               onKeyDown={handleKeyDown}
-              onBlur={stopTyping} // ✅ NEW
+              onBlur={stopTyping}
               placeholder="Type a message..."
               className="chat-input"
               rows={1}
@@ -701,13 +781,10 @@ const Chat = () => {
           display: flex; align-items: center; justify-content: center;
           font-size: 14px; font-weight: 700;
         }
-        /* ✅ NEW: online dot on the avatar */
         .header-online {
           position: absolute;
-          bottom: 1px;
-          right: 1px;
-          width: 11px;
-          height: 11px;
+          bottom: 1px; right: 1px;
+          width: 11px; height: 11px;
           border-radius: 50%;
           background: #10B981;
           border: 2px solid #FFFFFF;
@@ -726,7 +803,6 @@ const Chat = () => {
           font-size: 12px; color: #94A3B8; font-weight: 500;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        /* ✅ NEW: typing state in the header */
         .header-status.typing {
           color: #10B981;
           font-weight: 600;
@@ -781,7 +857,6 @@ const Chat = () => {
           border: 1px solid #F1F5F9;
           border-bottom-left-radius: 4px;
         }
-        /* ✅ NEW: typing bubble */
         .message-bubble.typing {
           display: flex;
           align-items: center;
@@ -789,8 +864,7 @@ const Chat = () => {
           padding: 14px 18px;
         }
         .typing-dot {
-          width: 6px;
-          height: 6px;
+          width: 6px; height: 6px;
           border-radius: 50%;
           background: #94A3B8;
           animation: typingBounce 1.4s infinite;
