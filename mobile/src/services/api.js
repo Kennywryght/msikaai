@@ -142,6 +142,21 @@ const normalizeComment = (c) => {
   };
 };
 
+// ★ Normalize a message row into a shape the Chat UI can rely on
+const normalizeMessage = (m) => {
+  if (!m) return m;
+  return {
+    ...m,
+    sender_id: m.senderId ?? m.sender_id ?? m.user_id ?? null,
+    conversation_id: m.conversationId ?? m.conversation_id ?? null,
+    image_url: m.imageUrl ?? m.image_url ?? m.image ?? null,
+    audio_url: m.audioUrl ?? m.audio_url ?? m.audio ?? null,
+    duration_ms: m.durationMs ?? m.duration_ms ?? null,
+    created_at: m.createdAt ?? m.created_at ?? null,
+    read_at: m.readAt ?? m.read_at ?? null,
+  };
+};
+
 // ============================================
 // REQUEST INTERCEPTOR
 // ============================================
@@ -443,19 +458,44 @@ export const messagesAPI = {
   getConversations: (params) =>
     api.get('/messages/conversations', { params, cacheTTL: 20 * 1000 }),
 
-  getConversation: (conversationId, params) =>
-    api.get(`/messages/conversations/${conversationId}`, {
+  getConversation: async (conversationId, params) => {
+    const res = await api.get(`/messages/conversations/${conversationId}`, {
       params,
       cache: false,
-    }),
+    });
+    // Normalize messages so the Chat UI gets consistent snake_case fields
+    if (Array.isArray(res?.data?.messages)) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          messages: res.data.messages.map(normalizeMessage),
+        },
+      };
+    }
+    return res;
+  },
 
   createConversation: (otherUserId, listingId = null) =>
     api.post('/messages/conversations', { otherUserId, listingId }),
 
-  sendMessage: (conversationId, content) =>
-    api.post(`/messages/conversations/${conversationId}`, content, {
-      cache: false,
-    }),
+  sendMessage: async (conversationId, content) => {
+    const res = await api.post(
+      `/messages/conversations/${conversationId}`,
+      content,
+      { cache: false }
+    );
+    if (res?.data?.message) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          message: normalizeMessage(res.data.message),
+        },
+      };
+    }
+    return res;
+  },
 
   markConversationRead: (conversationId) =>
     api.put(
@@ -464,6 +504,7 @@ export const messagesAPI = {
       { cache: false }
     ),
 
+  // ---- IMAGE UPLOAD ----
   uploadImage: (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -472,6 +513,20 @@ export const messagesAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
       cache: false,
       timeout: 60 * 1000,
+    });
+  },
+
+  // ---- ★ AUDIO UPLOAD ----
+  // Field name is `audio` — matches the planned backend route
+  // POST /messages/upload-audio → { url, durationMs? }
+  uploadAudio: (file) => {
+    const formData = new FormData();
+    formData.append('audio', file);
+
+    return api.post('/messages/upload-audio', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      cache: false,
+      timeout: 120 * 1000, // recordings can be longer than images
     });
   },
 };

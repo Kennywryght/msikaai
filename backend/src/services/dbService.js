@@ -256,7 +256,6 @@ class DBService {
         conditions.push(sql`${this.schema.listings.price} <= ${maxPrice}`);
       }
 
-      // Join businesses so the frontend has `user_id` for the seller
       const result = await this.db
         .select({
           listing: this.schema.listings,
@@ -312,7 +311,6 @@ class DBService {
         conditions.push(ilike(this.schema.listings.locationArea, `%${location}%`));
       }
 
-      // Join businesses so the frontend gets `user_id`
       const result = await this.db
         .select({
           listing: this.schema.listings,
@@ -741,6 +739,8 @@ class DBService {
 
   /**
    * Get messages inside a conversation.
+   * Uses .select() with no column filter, so all columns (including
+   * audio_url and duration_ms) come back automatically.
    */
   async getConversationMessages(conversationId, params = {}) {
     try {
@@ -764,10 +764,18 @@ class DBService {
   /**
    * Insert a message, update the conversation's last-message fields,
    * and bump the recipient's unread count.
+   *
+   * Now supports: text, imageUrl, audioUrl, durationMs.
    */
   async sendMessage(conversationId, senderId, content) {
     try {
-      const { text, imageUrl, type = 'text' } = content;
+      const {
+        text,
+        imageUrl,
+        audioUrl,      // ★ NEW
+        durationMs,    // ★ NEW
+        type = 'text',
+      } = content;
 
       const inserted = await this.db
         .insert(this.schema.messages)
@@ -776,6 +784,8 @@ class DBService {
           senderId,
           text: text || null,
           imageUrl: imageUrl || null,
+          audioUrl: audioUrl || null,        // ★ NEW
+          durationMs: durationMs || null,    // ★ NEW
           type,
         })
         .returning();
@@ -793,10 +803,19 @@ class DBService {
       const c = conversation[0];
       const isSenderP1 = c.participantOneId === senderId;
 
+      // Preview text shown in the conversation list — audio gets a speaker emoji
+      const previewText = text
+        ? text
+        : imageUrl
+        ? '[image]'
+        : audioUrl
+        ? '[voice message]'
+        : '';
+
       await this.db
         .update(this.schema.conversations)
         .set({
-          lastMessageText: text || '[image]',
+          lastMessageText: previewText,
           lastMessageAt: new Date(),
           unreadCountForOne: isSenderP1
             ? c.unreadCountForOne

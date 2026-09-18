@@ -4,7 +4,7 @@ import multer from 'multer';
 import { eq } from 'drizzle-orm';
 import dbService from '../services/dbService.js';
 import notificationService from '../services/notificationService.js';
-import pushService from '../services/pushService.js'; // ✅ NEW
+import pushService from '../services/pushService.js';
 import cloudinaryService from '../services/cloudinaryService.js';
 import { logger } from '../utils/logger.js';
 
@@ -13,6 +13,8 @@ const router = Router();
 // ============================================
 // Multer setup — memory storage for Cloudinary upload
 // ============================================
+
+// Images (existing)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -24,6 +26,27 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Only JPEG, PNG, WEBP, and GIF images are allowed'));
+    }
+  },
+});
+
+// ★ Audio (new) — for voice messages
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 15 * 1024 * 1024, // 15 MB
+  },
+  fileFilter: (req, file, cb) => {
+    // Lenient — some browsers report 'application/octet-stream' or 'video/webm' for MediaRecorder blobs
+    const isAudio =
+      file.mimetype?.startsWith('audio/') ||
+      file.mimetype === 'application/octet-stream' ||
+      file.mimetype === 'video/webm';
+
+    if (isAudio) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported audio type: ${file.mimetype}`));
     }
   },
 });
@@ -173,18 +196,24 @@ router.get('/conversations/:id', async (req, res) => {
 
 // ============================================
 // POST /api/messages/conversations/:id
-// Send a message (text, imageUrl, or both)
+// Send a message (text, imageUrl, audioUrl, or any combination)
 // ============================================
 router.post('/conversations/:id', async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const { text, imageUrl, type = 'text' } = req.body;
+    const {
+      text,
+      imageUrl,
+      audioUrl,
+      durationMs,
+      type = 'text',
+    } = req.body;
 
-    if (!text && !imageUrl) {
+    if (!text && !imageUrl && !audioUrl) {
       return res.status(400).json({
         success: false,
-        error: 'Message must have text or an image',
+        error: 'Message must have text, an image, or a voice recording',
       });
     }
 
@@ -199,11 +228,18 @@ router.post('/conversations/:id', async (req, res) => {
       });
     }
 
-    const resolvedType = imageUrl ? 'image' : type;
+    // Resolve type: audio > image > text
+    const resolvedType = audioUrl
+      ? 'audio'
+      : imageUrl
+      ? 'image'
+      : type;
 
     const message = await dbService.sendMessage(id, userId, {
-      text,
-      imageUrl,
+      text: text || null,
+      imageUrl: imageUrl || null,
+      audioUrl: audioUrl || null,
+      durationMs: durationMs || null,
       type: resolvedType,
     });
 
@@ -211,32 +247,34 @@ router.post('/conversations/:id', async (req, res) => {
     const otherUserId =
       c.participantOneId === userId ? c.participantTwoId : c.participantOneId;
 
-    // -------- In-app notification (existing) --------
+    const notifBody = audioUrl
+      ? '🎤 Sent you a voice message'
+      : imageUrl
+      ? '📷 Sent you a photo'
+      : (text || '').slice(0, 80);
+
+    // -------- In-app notification --------
     notificationService
       .createNotification({
         userId: otherUserId,
         type: 'info',
         title: 'New message',
-        message: text
-          ? text.slice(0, 80)
-          : imageUrl
-          ? 'Sent you an image'
-          : 'Sent you a message',
+        message: notifBody,
         data: { conversationId: id, messageId: message.id },
       })
       .catch((err) =>
         logger.warn('Notification for message failed:', err.message)
       );
 
-    // -------- ✅ NEW: Web push notification --------
+    // -------- Web push notification --------
     pushService
       .sendToUser(otherUserId, {
         title: 'New message on Kumsika',
-        body: text
-          ? text.slice(0, 100)
+        body: audioUrl
+          ? '🎤 Sent you a voice message'
           : imageUrl
           ? '📷 Sent you a photo'
-          : 'Sent you a message',
+          : (text || '').slice(0, 100),
         url: `/chat/${id}`,
         icon: '/logo192.png',
         badge: '/logo192.png',
@@ -306,6 +344,65 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
     });
   }
 });
+
+// ============================================
+// ★ POST /api/messages/upload-audio
+// Accepts a multipart form with field "audio"
+// Returns { success, url, publicId, durationSec, bytes, format }
+// ============================================
+router.post(
+  '/upload-audio',
+  audioUpload.single('audio'),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          error: 'No audio file provided (expected field name "audio")',
+        });
+      }
+
+      if (!cloudinaryService.isConfigured) {
+        return res.status(503).json({
+          success: false,
+          error: 'Voice upload is temporarily unavailable',
+        });
+      }
+
+      const result = await cloudinaryService.uploadAudio(req.file, {
+        folder: `chat/${userId}/audio`,
+      });
+
+      if (!result.success) {
+        return res.status(500).json({
+          success: false,
+          error: result.error || 'Audio upload failed',
+        });
+      }
+
+      logger.info(
+        `🎤 Chat audio uploaded by ${userId}: ${result.publicId} (${result.duration}s, ${result.bytes} bytes)`
+      );
+
+      res.json({
+        success: true,
+        url: result.url,
+        publicId: result.publicId,
+        durationSec: Math.round(result.duration || 0),
+        bytes: result.bytes,
+        format: result.format,
+      });
+    } catch (error) {
+      logger.error('Chat audio upload error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
 
 // ============================================
 // PUT /api/messages/conversations/:id/read

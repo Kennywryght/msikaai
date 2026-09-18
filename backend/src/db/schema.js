@@ -24,7 +24,9 @@ export const planEnum = pgEnum('plan', ['free', 'basic', 'pro', 'business']);
 export const priceTypeEnum = pgEnum('price_type', ['fixed', 'negotiable', 'free_quote']);
 export const urgencyEnum = pgEnum('urgency', ['low', 'medium', 'high', 'urgent']);
 export const notificationTypeEnum = pgEnum('notification_type', ['info', 'success', 'warning', 'error']);
-export const messageTypeEnum = pgEnum('message_type', ['text', 'image', 'system']);
+
+// ★ NEW: 'audio' added for voice messages
+export const messageTypeEnum = pgEnum('message_type', ['text', 'image', 'audio', 'system']);
 
 // ============================================
 // PROFILES
@@ -123,7 +125,7 @@ export const notifications = pgTable('notifications', {
 });
 
 // ============================================
-// ✅ NEW: PUSH SUBSCRIPTIONS (web push)
+// PUSH SUBSCRIPTIONS (web push)
 // ============================================
 export const pushSubscriptions = pgTable('push_subscriptions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -258,6 +260,11 @@ export const messages = pgTable('messages', {
   type: messageTypeEnum('type').default('text'),
   text: text('text'),
   imageUrl: text('image_url'),
+
+  // ★ NEW: voice message fields
+  audioUrl: text('audio_url'),
+  durationMs: integer('duration_ms'),
+
   readAt: timestamp('read_at'),
   deliveredAt: timestamp('delivered_at').defaultNow(),
   createdAt: timestamp('created_at').defaultNow(),
@@ -276,7 +283,7 @@ export const profilesRelations = relations(profiles, ({ many, one }) => ({
     references: [subscriptions.userId],
   }),
   notifications: many(notifications),
-  pushSubscriptions: many(pushSubscriptions), // ✅ NEW
+  pushSubscriptions: many(pushSubscriptions),
   needs: many(needs),
   orders: many(orders),
   analyticsEvents: many(analyticsEvents),
@@ -319,7 +326,6 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
-// ✅ NEW: push subscriptions relation
 export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
   user: one(profiles, {
     fields: [pushSubscriptions.userId],
@@ -412,7 +418,7 @@ export default {
   listings,
   subscriptions,
   notifications,
-  pushSubscriptions, // ✅ NEW
+  pushSubscriptions,
   needs,
   orders,
   analyticsEvents,

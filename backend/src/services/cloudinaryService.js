@@ -40,7 +40,6 @@ class CloudinaryService {
     }
 
     try {
-      // Compress and optimize image before upload
       const optimizedBuffer = await this.optimizeImage(file.buffer, {
         width: options.width || 800,
         height: options.height || 800,
@@ -48,7 +47,6 @@ class CloudinaryService {
         fit: options.fit || 'cover',
       });
 
-      // Upload to Cloudinary
       const result = await new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
@@ -66,7 +64,6 @@ class CloudinaryService {
           }
         );
 
-        // Create readable stream from buffer and pipe to Cloudinary
         const readableStream = new Readable();
         readableStream.push(optimizedBuffer);
         readableStream.push(null);
@@ -180,6 +177,63 @@ class CloudinaryService {
   }
 
   // ============================================
+  // ★ AUDIO UPLOAD (voice messages)
+  // Cloudinary stores audio under resource_type: 'video'
+  // ============================================
+
+  /**
+   * Upload an audio file to Cloudinary.
+   * Returns { success, url, publicId, duration, bytes, format, createdAt }
+   */
+  async uploadAudio(file, options = {}) {
+    if (!this.isConfigured) {
+      logger.warn('⚠️ Cloudinary not configured');
+      return { success: false, error: 'Cloudinary not configured' };
+    }
+
+    if (!file || !file.buffer) {
+      return { success: false, error: 'No audio file provided' };
+    }
+
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: 'video', // ← audio lives under 'video' on Cloudinary
+            folder: `${this.folder}/${options.folder || 'chat-audio'}`,
+            public_id: options.publicId || undefined,
+            tags: options.tags || ['chat', 'voice'],
+            ...options,
+          },
+          (error, uploaded) => {
+            if (error) reject(error);
+            else resolve(uploaded);
+          }
+        );
+
+        const readableStream = new Readable();
+        readableStream.push(file.buffer);
+        readableStream.push(null);
+        readableStream.pipe(uploadStream);
+      });
+
+      logger.info(`✅ Audio uploaded to Cloudinary: ${result.public_id}`);
+      return {
+        success: true,
+        url: result.secure_url,
+        publicId: result.public_id,
+        duration: result.duration || 0, // seconds, from Cloudinary
+        bytes: result.bytes,
+        format: result.format,
+        createdAt: result.created_at,
+      };
+    } catch (error) {
+      logger.error('❌ Cloudinary audio upload error:', error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ============================================
   // DELETE METHODS
   // ============================================
 
@@ -246,7 +300,6 @@ class CloudinaryService {
 
     const transformations = [];
 
-    // Resize
     if (options.width || options.height) {
       const crop = options.crop || 'limit';
       transformations.push({
@@ -256,17 +309,14 @@ class CloudinaryService {
       });
     }
 
-    // Quality
     transformations.push({
       quality: options.quality || 'auto:best',
     });
 
-    // Format
     transformations.push({
       fetch_format: options.format || 'auto',
     });
 
-    // Effects
     if (options.effect) {
       transformations.push({
         effect: options.effect,
@@ -333,7 +383,6 @@ class CloudinaryService {
     try {
       let sharpInstance = sharp(buffer);
 
-      // Resize if dimensions provided
       if (options.width || options.height) {
         sharpInstance = sharpInstance.resize(width, height, {
           fit: fit,
@@ -341,13 +390,12 @@ class CloudinaryService {
         });
       }
 
-      // Convert to JPEG and set quality
       sharpInstance = sharpInstance.jpeg({ quality });
 
       return await sharpInstance.toBuffer();
     } catch (error) {
       logger.error('Image optimization error:', error.message);
-      return buffer; // Return original buffer on error
+      return buffer;
     }
   }
 
