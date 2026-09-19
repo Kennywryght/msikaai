@@ -16,6 +16,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     arrowRight: "M5 12h14M12 5l7 7-7 7",
     store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
     heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
+    /* ★ FIRE — used for listing likes ("flame on") */
+    fire: "M12 2c1.5 3.5 4 5.5 4 9a4 4 0 11-8 0c0-1.4.5-2.5 1.2-3.4.3-.4.6-.9.8-1.4.2-.5.2-1 0-1.4-.2-.4-.3-.6-.3-.8 0-.3.2-.6.5-.7.3-.2.6-.1.8.2.6.7.8 1.4.5 2.5.7-.5 1.2-1.1 1.5-1.9.1-.4.1-.7 0-1 0-.2 0-.4.2-.5.2-.1.4-.1.5 0 .3.3.4.6.3.9z",
     star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
     message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
     truck: "M1 3h13v13H1V3zM14 8h4l4 4v4h-8V8zM6.5 20a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM18.5 20a2.5 2.5 0 100-5 2.5 2.5 0 000 5z",
@@ -48,45 +50,34 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 
 /* ============================================================
    LIVE BURNING FIRE — more realistic
-   - Organic asymmetric flame silhouette (not a symmetric teardrop)
-   - 4 stacked layers: base glow → outer → mid → hot core
-   - Warm gradients per layer with a hint of white at the tip
-   - Two tiny ember sparks flickering above the flame
-   - Flicker uses independent, non-synchronized animations per layer
    ============================================================ */
 const BurningFire = ({ size = 16 }) => (
   <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
     <svg viewBox="0 0 24 24" width={size} height={size} className="burning-fire-svg">
       <defs>
-        {/* Outer flame — deep red base, golden tip */}
         <radialGradient id="bfOuter" cx="50%" cy="82%" r="70%">
           <stop offset="0%"   stopColor="#B91C1C" />
           <stop offset="45%"  stopColor="#EA580C" />
           <stop offset="78%"  stopColor="#F59E0B" />
           <stop offset="100%" stopColor="#FCD34D" />
         </radialGradient>
-        {/* Mid flame — orange to yellow */}
         <radialGradient id="bfMid" cx="50%" cy="82%" r="70%">
           <stop offset="0%"   stopColor="#EA580C" />
           <stop offset="55%"  stopColor="#F59E0B" />
           <stop offset="100%" stopColor="#FDE68A" />
         </radialGradient>
-        {/* Hot core — near white-yellow */}
         <radialGradient id="bfCore" cx="50%" cy="82%" r="70%">
           <stop offset="0%"   stopColor="#FEF3C7" />
           <stop offset="100%" stopColor="#FFFBEB" />
         </radialGradient>
-        {/* Ember glow behind the whole thing */}
         <radialGradient id="bfEmberGlow" cx="50%" cy="85%" r="60%">
           <stop offset="0%"   stopColor="rgba(249,115,22,0.35)" />
           <stop offset="100%" stopColor="rgba(249,115,22,0)" />
         </radialGradient>
       </defs>
 
-      {/* Soft warm haze behind the flame (very subtle) */}
       <circle cx="12" cy="15" r="10" fill="url(#bfEmberGlow)" />
 
-      {/* OUTER FLAME — asymmetric silhouette, tips lean slightly right */}
       <path
         className="flame-outer"
         d="M12 2
@@ -100,7 +91,6 @@ const BurningFire = ({ size = 16 }) => (
         fill="url(#bfOuter)"
       />
 
-      {/* MID FLAME — inner, taller-with-narrower-tip, slight offset */}
       <path
         className="flame-mid"
         d="M12 6
@@ -114,7 +104,6 @@ const BurningFire = ({ size = 16 }) => (
         fill="url(#bfMid)"
       />
 
-      {/* HOT CORE — bright inner tongue */}
       <path
         className="flame-core"
         d="M12 10.5
@@ -128,7 +117,6 @@ const BurningFire = ({ size = 16 }) => (
         fill="url(#bfCore)"
       />
 
-      {/* Tiny ember sparks floating above the flame */}
       <circle className="ember ember-1" cx="10.2" cy="4.4" r="0.55" fill="#FCD34D" />
       <circle className="ember ember-2" cx="13.6" cy="3.6" r="0.4"  fill="#F59E0B" />
       <circle className="ember ember-3" cx="11.8" cy="2.6" r="0.35" fill="#FBBF24" />
@@ -148,13 +136,7 @@ const CATEGORIES = [
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 const ASPECT_RATIOS = ['4 / 5', '4 / 5.4', '4 / 5', '4 / 5.4'];
 const SPOTLIGHT_MAX = 8;
-
-/* How long a single spotlight image is shown before the strip moves on.
-   Faster now — 2000ms feels snappy without being jarring. */
 const SPOTLIGHT_IMAGE_MS = 2000;
-
-/* How long a multi-image tile holds on each of its extra images before
-   cycling to the next of its own images. */
 const SPOTLIGHT_HOLD_MS = 1600;
 
 const getCategoryColor = (category) => {
@@ -286,7 +268,10 @@ const PhotoSlider = ({
   );
 };
 
-/* ---------- Reusable compact card ---------- */
+/* ---------- Reusable compact card ----------
+ * Like icon is a FIRE (flame) — used to "flame on" a listing.
+ * Comment icon stays as a message bubble.
+ */
 const ProductCard = ({
   item, index, user, openingChatId, likeState, commentCount,
   onLike, onOpen, onMessage, onOpenComments,
@@ -318,12 +303,13 @@ const ProductCard = ({
           </span>
         )}
 
+        {/* ★ Fire badge on the top-right of the image */}
         <button
           className={`pcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
-          aria-label={liked ? 'Unlike' : 'Like'}
+          aria-label={liked ? 'Unflame' : 'Flame'}
         >
-          <Icon name="heart" size={13} color="#F7F1E3" strokeWidth={liked ? 2.6 : 1.9} />
+          <Icon name="fire" size={14} color="#F7F1E3" strokeWidth={liked ? 2.2 : 1.8} />
         </button>
 
         {item.delivery_available && (
@@ -358,15 +344,17 @@ const ProductCard = ({
         </div>
 
         <div className="pcard-actions">
+          {/* ★ Fire action button */}
           <button
             className={`pcard-icon-btn ${liked ? 'liked' : ''}`}
             onClick={(e) => onLike(e, item)}
-            aria-label="Like"
+            aria-label="Flame"
           >
-            <Icon name="heart" size={13} color={liked ? '#BC5B34' : '#8A8578'} strokeWidth={liked ? 2.5 : 1.8} />
+            <Icon name="fire" size={14} color={liked ? '#EA580C' : '#8A8578'} strokeWidth={liked ? 2.3 : 1.7} />
             {likeCount > 0 && <span>{likeCount}</span>}
           </button>
 
+          {/* Comment button stays as a message bubble */}
           <button
             className="pcard-icon-btn"
             onClick={(e) => { e.stopPropagation(); onOpenComments(item); }}
@@ -425,12 +413,13 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
           )}
         </div>
 
+        {/* ★ Fire button */}
         <button
           className={`fcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
-          aria-label={liked ? 'Unlike' : 'Like'}
+          aria-label={liked ? 'Unflame' : 'Flame'}
         >
-          <Icon name="heart" size={14} color="#F7F1E3" strokeWidth={liked ? 2.6 : 1.9} />
+          <Icon name="fire" size={15} color="#F7F1E3" strokeWidth={liked ? 2.3 : 1.8} />
           {likeCount > 0 && <span>{likeCount}</span>}
         </button>
 
@@ -484,11 +473,7 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
   );
 };
 
-/* ---------- Spotlight tile ----------
- * Self-cycles its own images on a short cadence. The strip is advanced
- * by a single parent-level interval (not by this tile), so ordering is
- * guaranteed.
- */
+/* ---------- Spotlight tile ---------- */
 const SpotlightTile = ({ item, onOpen }) => {
   const catColor = getCategoryColor(item.category);
   const premium = isPremium(item);
@@ -699,8 +684,8 @@ const Landing = () => {
 
   const handleLike = useCallback(async (e, item) => {
     e.stopPropagation();
-    if (!isAuthenticated) { showToast('Please sign in to like', 'warning'); return; }
-    if (item.is_business) { showToast('Businesses can\u2019t be liked yet', 'info'); return; }
+    if (!isAuthenticated) { showToast('Please sign in to flame', 'warning'); return; }
+    if (item.is_business) { showToast('Businesses can\u2019t be flamed yet', 'info'); return; }
 
     const listingId = item.id;
     const current = likeStates[listingId] || { count: 0, liked: false };
@@ -726,7 +711,7 @@ const Landing = () => {
         ...prev,
         [listingId]: current,
       }));
-      showToast('Failed to update like', 'error');
+      showToast('Failed to update', 'error');
     }
   }, [isAuthenticated, showToast, likeStates]);
 
@@ -794,11 +779,6 @@ const Landing = () => {
 
   const spotlightHasPremium = useMemo(() => spotlight.some(isPremium), [spotlight]);
 
-  /* ============================================================
-     SPOTLIGHT AUTO-ADVANCE — single, ordered driver
-     Walks tiles 0 → 1 → 2 → … → last → 0 on a fixed cadence.
-     No per-tile callbacks fire the strip, so ordering is guaranteed.
-     ============================================================ */
   const scrollSpotlightTo = useCallback((index) => {
     const container = spotlightScrollRef.current;
     const tile = spotlightTileRefs.current[index];
@@ -817,7 +797,6 @@ const Landing = () => {
     let cancelled = false;
     let currentIndex = 0;
 
-    // Kick off at the first tile so the strip starts from a known position.
     scrollSpotlightTo(0);
 
     const advance = () => {
@@ -1374,9 +1353,7 @@ const Landing = () => {
           -webkit-backdrop-filter: blur(6px);
         }
 
-        /* ============================================================
-           LIVE BURNING FIRE — more realistic flame
-           ============================================================ */
+        /* LIVE BURNING FIRE */
         .burning-fire {
           position: relative;
           display: inline-flex;
@@ -1390,8 +1367,6 @@ const Landing = () => {
           filter: drop-shadow(0 1px 2px rgba(220, 38, 38, 0.35))
                   drop-shadow(0 0 5px rgba(251, 146, 60, 0.35));
         }
-
-        /* Each flame layer flickers independently for a natural, alive feel */
         .flame-outer {
           transform-origin: 50% 90%;
           animation: flameFlickerOuter 1.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
@@ -1404,8 +1379,6 @@ const Landing = () => {
           transform-origin: 50% 90%;
           animation: flameFlickerCore 0.65s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
         }
-
-        /* Ember sparks drift upward and fade out, each with its own rhythm */
         .ember {
           transform-origin: center;
           animation: emberRise 2.2s ease-out infinite;
@@ -1414,7 +1387,6 @@ const Landing = () => {
         .ember-1 { animation-delay: 0s;    }
         .ember-2 { animation-delay: 0.6s;  }
         .ember-3 { animation-delay: 1.2s;  }
-
         @keyframes flameFlickerOuter {
           0%   { transform: scale(1, 1) rotate(0deg); }
           22%  { transform: scale(1.02, 1.07) rotate(-1.2deg); }
@@ -1439,7 +1411,6 @@ const Landing = () => {
           60%  { transform: translateY(-3px) scale(0.7); opacity: 0.7; }
           100% { transform: translateY(-6px) scale(0.3); opacity: 0; }
         }
-
         @media (prefers-reduced-motion: reduce) {
           .flame-outer, .flame-mid, .flame-core, .ember { animation: none; }
         }
@@ -1750,7 +1721,11 @@ const Landing = () => {
           transition: background 0.2s, transform 0.15s;
         }
         .fcard-heart:hover { background: rgba(22, 38, 31, 0.78); transform: scale(1.04); }
-        .fcard-heart.liked { background: rgba(188, 91, 52, 0.95); }
+        /* ★ Flamed = bright orange gradient */
+        .fcard-heart.liked {
+          background: linear-gradient(135deg, #F97316 0%, #DC2626 100%);
+          box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+        }
         .fcard-glass {
           position: absolute;
           left: 12px; right: 12px; bottom: 12px;
@@ -1921,7 +1896,7 @@ const Landing = () => {
         .pcard-heart {
           position: absolute;
           top: 8px; right: 8px;
-          width: 28px; height: 28px;
+          width: 30px; height: 30px;
           border: none; cursor: pointer;
           border-radius: 999px;
           background: rgba(22, 38, 31, 0.5);
@@ -1932,7 +1907,12 @@ const Landing = () => {
           z-index: 5;
         }
         .pcard-heart:hover { background: rgba(22, 38, 31, 0.72); transform: scale(1.06); }
-        .pcard-heart.liked { background: rgba(188, 91, 52, 0.92); animation: heartPop 0.35s ease; }
+        /* ★ Flamed = orange gradient + pop */
+        .pcard-heart.liked {
+          background: linear-gradient(135deg, #F97316 0%, #DC2626 100%);
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+          animation: heartPop 0.35s ease;
+        }
         @keyframes heartPop {
           0% { transform: scale(1); }
           40% { transform: scale(1.25); }
@@ -2013,9 +1993,11 @@ const Landing = () => {
           font-family: inherit;
           transition: background 0.15s, color 0.15s, transform 0.1s;
         }
-        .pcard-icon-btn:hover { background: rgba(217, 154, 59, 0.09); color: #201F1B; }
+        .pcard-icon-btn:hover { background: rgba(234, 88, 12, 0.08); color: #201F1B; }
         .pcard-icon-btn:active { transform: scale(0.96); }
-        .pcard-icon-btn.liked { color: #BC5B34; font-weight: 600; }
+        /* ★ Flamed action button */
+        .pcard-icon-btn.liked { color: #EA580C; font-weight: 700; }
+
         .pcard-msg {
           margin-left: auto;
           display: inline-flex; align-items: center; gap: 5px;

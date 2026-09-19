@@ -307,18 +307,55 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(logHttpRequest);
 
 // ============================================
-// RATE LIMITING
+// RATE LIMITING  (Approach A — skip logic)
 // ============================================
-const generalLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: { success: false, error: 'Too many requests, please try again later.' },
+//
+// Endpoints that the landing page polls frequently (likes/batch,
+// comments/counts, notifications, analytics) are SKIPPED by the general
+// limiter via the `skip` function below. They still run through the
+// pollingLimiter, which has a much higher ceiling, so real abuse is
+// still throttled but normal app traffic is never blocked.
+//
+// Symptom this fixes:
+//   POST /api/interactions/likes/batch   429
+//   POST /api/interactions/comments/counts   429
+//   GET  /api/notifications/user/:id   429
+//   POST /api/interactions/likes/:id   429
+//
+// Root cause:
+//   A single landing page load fires ~10-20 requests; after 3-4 reloads
+//   the general bucket (100/15min) was exhausted and every subsequent
+//   request was rejected — including user-initiated likes and comments,
+//   which then silently failed to persist.
+
+const rateLimitCommon = {
   standardHeaders: true,
   legacyHeaders: false,
   validate: { trustProxy: false, xForwardedForHeader: false },
   keyGenerator: (req) => req.ip,
+};
+
+// Paths that bypass the general limiter entirely.
+const POLLING_PATH_PREFIXES = [
+  '/api/interactions',
+  '/api/notifications',
+  '/api/analytics',
+];
+
+const isPollingPath = (req) => {
+  const url = req.originalUrl || req.url || '';
+  return POLLING_PATH_PREFIXES.some((p) => url.startsWith(p));
+};
+
+const generalLimiter = rateLimit({
+  ...rateLimitCommon,
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 600,
+  message: { success: false, error: 'Too many requests, please try again later.' },
+  // ★ Approach A — skip polling endpoints so they don't burn the general bucket
+  skip: (req) => isPollingPath(req),
   handler: (req, res) => {
-    logger.warn(`Rate limit exceeded for IP: ${req.ip}`);
+    logger.warn(`Rate limit exceeded for IP: ${req.ip} on ${req.method} ${req.originalUrl}`);
     res.status(429).json({
       success: false,
       error: 'Too many requests, please try again later.',
@@ -328,13 +365,10 @@ const generalLimiter = rateLimit({
 });
 
 const authLimiter = rateLimit({
+  ...rateLimitCommon,
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { success: false, error: 'Too many login attempts, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: { trustProxy: false, xForwardedForHeader: false },
-  keyGenerator: (req) => req.ip,
   handler: (req, res) => {
     logger.warn(`Auth rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
@@ -346,13 +380,10 @@ const authLimiter = rateLimit({
 });
 
 const aiLimiter = rateLimit({
+  ...rateLimitCommon,
   windowMs: 15 * 60 * 1000,
   max: 50,
   message: { success: false, error: 'Too many AI requests, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: { trustProxy: false, xForwardedForHeader: false },
-  keyGenerator: (req) => req.ip,
   handler: (req, res) => {
     logger.warn(`AI rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
@@ -363,9 +394,32 @@ const aiLimiter = rateLimit({
   },
 });
 
+// High-ceiling limiter for the polling endpoints. Real abuse still gets
+// throttled at 3000 requests / 15 min per IP — way above anything a
+// legitimate user or even a fast-refreshing SPA can produce.
+const pollingLimiter = rateLimit({
+  ...rateLimitCommon,
+  windowMs: 15 * 60 * 1000,
+  max: 3000,
+  message: { success: false, error: 'Too many polling requests.' },
+  handler: (req, res) => {
+    logger.warn(`Polling rate limit exceeded for IP: ${req.ip} on ${req.originalUrl}`);
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests, please try again later.',
+      requestId: req.requestId,
+    });
+  },
+});
+
 app.use('/api', generalLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api/ai', aiLimiter);
+
+// Polling endpoints are governed only by the high-ceiling limiter.
+app.use('/api/interactions', pollingLimiter);
+app.use('/api/notifications', pollingLimiter);
+app.use('/api/analytics', pollingLimiter);
 
 // ============================================
 // HEALTH CHECK

@@ -49,6 +49,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     refresh: 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
     externalLink: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3',
     heart: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
+    /* ★ FIRE — used for listing likes ("flame on") */
+    fire: 'M12 2c1.5 3.5 4 5.5 4 9a4 4 0 11-8 0c0-1.4.5-2.5 1.2-3.4.3-.4.6-.9.8-1.4.2-.5.2-1 0-1.4-.2-.4-.3-.6-.3-.8 0-.3.2-.6.5-.7.3-.2.6-.1.8.2.6.7.8 1.4.5 2.5.7-.5 1.2-1.1 1.5-1.9.1-.4.1-.7 0-1 0-.2 0-.4.2-.5.2-.1.4-.1.5 0 .3.3.4.6.3.9z',
     comment: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
     shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
     flame: 'M12 2s4 5 4 9a4 4 0 11-8 0c0-1.5.7-2.7 1.5-3.5C10 6 12 2 12 2z',
@@ -64,25 +66,37 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-/* ---------- Live Burning Fire Icon ---------- */
+/* ---------- Live Burning Fire Icon ----------
+ * Clean gradient flame — no glow circle. Used for the "Fresh" badge.
+ */
 const BurningFire = ({ size = 16 }) => (
   <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
-    <span className="burning-fire-glow" />
     <svg viewBox="0 0 24 24" width={size} height={size} className="burning-fire-svg">
+      <defs>
+        <linearGradient id="fireGradOuter" x1="50%" y1="100%" x2="50%" y2="0%">
+          <stop offset="0%" stopColor="#DC2626" />
+          <stop offset="55%" stopColor="#F97316" />
+          <stop offset="100%" stopColor="#FBBF24" />
+        </linearGradient>
+        <linearGradient id="fireGradMid" x1="50%" y1="100%" x2="50%" y2="0%">
+          <stop offset="0%" stopColor="#F97316" />
+          <stop offset="100%" stopColor="#FDE68A" />
+        </linearGradient>
+      </defs>
       <path
         className="flame-outer"
         d="M12 2s4.5 5.2 4.5 9.5a4.5 4.5 0 11-9 0c0-1.7.8-3 1.7-3.9C10.2 6.3 12 2 12 2z"
-        fill="#F97316"
+        fill="url(#fireGradOuter)"
       />
       <path
         className="flame-mid"
         d="M12 6s2.6 3.2 2.6 5.8a2.6 2.6 0 11-5.2 0c0-1 .5-1.9 1.1-2.4C11.1 8.7 12 6 12 6z"
-        fill="#FBBF24"
+        fill="url(#fireGradMid)"
       />
       <path
         className="flame-core"
         d="M12 10.5s1.2 1.6 1.2 2.8a1.2 1.2 0 11-2.4 0c0-.5.2-.9.6-1.2.4-.3.6-.9.6-1.6z"
-        fill="#FEF3C7"
+        fill="#FEF9C3"
       />
     </svg>
   </span>
@@ -101,12 +115,6 @@ const isFreshListing = (item) => {
   return Date.now() - t < NEW_WINDOW_MS;
 };
 
-/**
- * ★ THE CORE FIX
- * Extracts a usable seller ID from ANY shape a listing might return.
- * Checks top-level, businesses, nested seller, etc.
- * Returns the ID string or null.
- */
 const extractSellerUserId = (listing) => {
   if (!listing) return null;
   const candidates = [
@@ -215,7 +223,7 @@ const daysUntil = (date) => {
 };
 
 // ============================================================
-// BOOST MODAL (unchanged)
+// BOOST MODAL
 // ============================================================
 const BOOST_PLANS = [
   { days: 7, label: '7 days', price: 'MK 2,000', amount: 2000, popular: true },
@@ -525,8 +533,7 @@ const ListingDetails = () => {
   const [likeState, setLikeState] = useState({ liked: false, count: 0 });
   const [commentCount, setCommentCount] = useState(0);
 
-  // ★ Seller fallback: if the listing doesn't contain a seller id,
-  //   we fetch the business directly and stash it here.
+  // ★ Seller fallback
   const [resolvedBusiness, setResolvedBusiness] = useState(null);
 
   const isMobile = windowWidth <= 768;
@@ -547,7 +554,6 @@ const ListingDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Lock scroll while comments pop-up is open
   useEffect(() => {
     if (showComments) {
       const prev = document.body.style.overflow;
@@ -571,7 +577,6 @@ const ListingDetails = () => {
       const rawListing = response?.data?.listing || response?.data;
 
       if (rawListing && (rawListing.id || rawListing.title)) {
-        // Basic normalization (in case api.js normalizer didn't run)
         const normalized = {
           ...rawListing,
           business_id: rawListing.business_id ?? rawListing.businessId ?? null,
@@ -587,7 +592,6 @@ const ListingDetails = () => {
           businesses: rawListing.businesses || rawListing.business || null,
         };
 
-        // Also normalize businesses if needed
         if (normalized.businesses) {
           normalized.businesses = {
             ...normalized.businesses,
@@ -605,7 +609,6 @@ const ListingDetails = () => {
 
         setListing(normalized);
 
-        // ★ Fetch live like/comment state for this listing
         try {
           const [likesRes, countsRes] = await Promise.all([
             interactionsAPI.batchLikeStates([normalized.id]).catch(() => ({ data: {} })),
@@ -619,7 +622,6 @@ const ListingDetails = () => {
           });
           setCommentCount(countsRes?.data?.counts?.[normalized.id] || 0);
         } catch (e) {
-          // Fall back to values on the listing if any
           setLikeState({
             count: normalized.likes ?? 0,
             liked: !!normalized.liked_by_me,
@@ -627,8 +629,6 @@ const ListingDetails = () => {
           setCommentCount(normalized.comment_count ?? 0);
         }
 
-        // ★ If the normalized listing still has no seller id, fetch the
-        //   business directly using its id (last-resort fallback).
         const sellerId = extractSellerUserId(normalized);
         const businessId =
           normalized.business_id || normalized.businesses?.id || null;
@@ -639,7 +639,6 @@ const ListingDetails = () => {
             const biz = bizRes?.data?.business || bizRes?.data || null;
             if (biz) {
               setResolvedBusiness(biz);
-              // Attach to the listing too so the UI reads it consistently
               setListing((prev) =>
                 prev
                   ? {
@@ -699,14 +698,13 @@ const ListingDetails = () => {
     [user, navigate, location.pathname]
   );
 
-  // ---- LIKE (real, persisted) ----
+  // ---- FLAME (real, persisted) ----
   const handleLike = async () => {
-    if (!requireAuth('like this listing')) return;
+    if (!requireAuth('flame this listing')) return;
     if (liking) return;
 
     const prev = likeState;
     setLiking(true);
-    // Optimistic
     setLikeState({
       count: prev.liked ? Math.max(0, prev.count - 1) : prev.count + 1,
       liked: !prev.liked,
@@ -718,9 +716,8 @@ const ListingDetails = () => {
       setLikeState({ count: real.count, liked: real.liked });
     } catch (err) {
       console.error('like error:', err);
-      // Revert
       setLikeState(prev);
-      showToast('Failed to update like', 'error');
+      showToast('Failed to update', 'error');
     } finally {
       setLiking(false);
     }
@@ -768,9 +765,6 @@ const ListingDetails = () => {
     return '⭐'.repeat(fullStars) + '☆'.repeat(emptyStars);
   };
 
-  // ============================================================
-  // ★ MESSAGE SELLER — the primary buyer action
-  // ============================================================
   const handleMessageSeller = async () => {
     if (!requireAuth('message the seller')) return;
 
@@ -1014,7 +1008,6 @@ const ListingDetails = () => {
     );
   }
 
-  // ★ Compute seller data (with fallback to fetched business)
   const sellerBiz = listing.businesses || resolvedBusiness || null;
   const sellerName = extractSellerName({ businesses: sellerBiz, ...listing });
   const sellerPhone = extractSellerPhone(listing) || extractSellerPhone({ businesses: sellerBiz });
@@ -1191,14 +1184,23 @@ const ListingDetails = () => {
           </div>
 
           <div className="engage-row">
+            {/* ★ FIRE — the "flame this listing" button */}
             <button
               className={`engage-btn like ${isLiked ? 'active' : ''}`}
               onClick={handleLike}
               disabled={liking}
+              aria-label={isLiked ? 'Unflame' : 'Flame'}
             >
-              <Icon name="heart" size={17} color={isLiked ? '#BC5B34' : '#6B6259'} strokeWidth={isLiked ? 2.6 : 1.8} />
-              <span>{likeCount > 0 ? likeCount : 'Like'}</span>
+              <Icon
+                name="fire"
+                size={18}
+                color={isLiked ? '#EA580C' : '#6B6259'}
+                strokeWidth={isLiked ? 2.3 : 1.8}
+              />
+              <span>{likeCount > 0 ? likeCount : 'Flame'}</span>
             </button>
+
+            {/* Comment button stays as a message bubble */}
             <button className="engage-btn comment" onClick={handleOpenComments}>
               <Icon name="comment" size={16} color="#6B6259" strokeWidth={1.8} />
               <span>
@@ -1241,7 +1243,7 @@ const ListingDetails = () => {
           </div>
         </div>
 
-        {/* ============ CONTACT THE SELLER (buyer only) ============ */}
+        {/* CONTACT THE SELLER */}
         {!isOwnListing && (
           <div className="contact-card">
             <h3 className="section-title">
@@ -1325,7 +1327,7 @@ const ListingDetails = () => {
           </div>
         )}
 
-        {/* OWNER: Edit listing */}
+        {/* OWNER */}
         {isOwnListing && (
           <div className="contact-card">
             <h3 className="section-title">
@@ -1690,8 +1692,6 @@ const ListingDetails = () => {
           padding: 16px 18px;
           border: 1px solid #f1f5f9; margin-bottom: 16px;
         }
-        /* Gallery images render with object-fit: cover + fixed aspect-ratio,
-           so photos are always upright, never stretched, and look balanced. */
         .gallery { margin-bottom: 16px; }
         .gallery-viewport {
           position: relative; width: 100%;
@@ -1738,7 +1738,6 @@ const ListingDetails = () => {
           border-radius: 8px; overflow: hidden;
           cursor: pointer; background: #f1f5f9;
         }
-        /* Thumbnails also use object-fit: cover to keep proportions upright */
         .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .gallery-thumb.active {
           border-color: #f59e0b;
@@ -1788,7 +1787,7 @@ const ListingDetails = () => {
         .badge-premium { background: #F0D9A8; color: #7A5A16; }
         .badge-fresh { background: #FFEDD5; color: #C2410C; }
 
-        /* ---------- Live burning fire (shared with Landing) ---------- */
+        /* Burning fire — shared with Landing */
         .burning-fire {
           position: relative;
           display: inline-flex;
@@ -1798,42 +1797,37 @@ const ListingDetails = () => {
           vertical-align: middle;
         }
         .burning-fire-svg {
-          position: relative;
-          z-index: 2;
           display: block;
-          filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.55));
+          filter: drop-shadow(0 1px 2px rgba(220, 38, 38, 0.35));
         }
-        .burning-fire-glow {
-          position: absolute;
-          inset: -30%;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(249, 115, 22, 0.55), rgba(249, 115, 22, 0) 70%);
-          animation: fireGlow 1.4s ease-in-out infinite;
-          z-index: 1;
+        .flame-outer {
+          transform-origin: 50% 85%;
+          animation: flameFlickerOuter 1.1s ease-in-out infinite;
         }
-        .flame-outer { transform-origin: 50% 80%; animation: flameFlickerOuter 0.9s ease-in-out infinite; }
-        .flame-mid   { transform-origin: 50% 80%; animation: flameFlickerMid 0.7s ease-in-out infinite; }
-        .flame-core  { transform-origin: 50% 80%; animation: flameFlickerCore 0.5s ease-in-out infinite; }
+        .flame-mid {
+          transform-origin: 50% 85%;
+          animation: flameFlickerMid 0.85s ease-in-out infinite;
+        }
+        .flame-core {
+          transform-origin: 50% 85%;
+          animation: flameFlickerCore 0.6s ease-in-out infinite;
+        }
         @keyframes flameFlickerOuter {
-          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
-          30%      { transform: scale(1.06, 1.12) rotate(-2deg); opacity: 0.95; }
-          60%      { transform: scale(0.97, 1.05) rotate(2deg); opacity: 0.9; }
+          0%, 100% { transform: scale(1, 1) rotate(0deg); }
+          30%      { transform: scale(1.03, 1.08) rotate(-1.5deg); }
+          65%      { transform: scale(0.98, 1.03) rotate(1.5deg); }
         }
         @keyframes flameFlickerMid {
-          0%, 100% { transform: scale(1) rotate(0deg); }
-          35%      { transform: scale(1.12, 1.18) rotate(-3deg); }
-          70%      { transform: scale(0.94, 1.06) rotate(3deg); }
+          0%, 100% { transform: scale(1, 1) rotate(0deg); }
+          35%      { transform: scale(1.06, 1.12) rotate(-2deg); }
+          70%      { transform: scale(0.96, 1.04) rotate(2deg); }
         }
         @keyframes flameFlickerCore {
-          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
-          50%      { transform: scale(1.18, 1.25) rotate(2deg); opacity: 0.85; }
-        }
-        @keyframes fireGlow {
-          0%, 100% { opacity: 0.5; transform: scale(1); }
-          50%      { opacity: 0.95; transform: scale(1.15); }
+          0%, 100% { transform: scale(1, 1) rotate(0deg); opacity: 0.95; }
+          50%      { transform: scale(1.1, 1.16) rotate(1.5deg); opacity: 1; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .flame-outer, .flame-mid, .flame-core, .burning-fire-glow { animation: none; }
+          .flame-outer, .flame-mid, .flame-core { animation: none; }
         }
 
         .engage-row {
@@ -1851,9 +1845,13 @@ const ListingDetails = () => {
           font-family: inherit;
           font-size: 13px; font-weight: 600;
           color: #475569; cursor: pointer;
+          transition: background 0.15s, border-color 0.15s, color 0.15s;
         }
+        /* ★ Flamed state — orange background + darker orange text */
         .engage-btn.like.active {
-          background: #fef2f2; border-color: #fecaca; color: #BC5B34;
+          background: #FFF3E0;
+          border-color: #FDBA74;
+          color: #EA580C;
         }
         .engage-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -2289,6 +2287,7 @@ const ListingDetails = () => {
             transition: none; animation: none;
           }
           .btn-spinner, .boost-status-spinner { animation: none; }
+          .flame-outer, .flame-mid, .flame-core { animation: none; }
         }
       `}</style>
     </div>

@@ -13,23 +13,25 @@ import { useTyping } from '../hooks/useTyping';
 // ============================================================
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
-    arrowLeft: "M19 12H5M12 19l-7-7 7-7",
-    send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
-    message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
-    moreVertical: "M12 5a1 1 0 100-2 1 1 0 000 2zM12 13a1 1 0 100-2 1 1 0 000 2zM12 21a1 1 0 100-2 1 1 0 000 2z",
-    check: "M20 6L9 17l-5-5",
-    checkCheck: "M18 6L7 17l-4-4M22 6l-11 11",
-    image: "M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21",
-    mic: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8",
-    play: "M5 3l14 9-14 9V3z",
-    pause: "M6 4h4v16H6zM14 4h4v16h-4z",
-    trash: "M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z",
-    home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
-    search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
-    plus: "M12 4v16m8-8H4",
-    user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
-    close: "M18 6L6 18M6 6l12 12",
-    chevronDown: "M6 9l6 6 6-6",
+    arrowLeft: 'M19 12H5M12 19l-7-7 7-7',
+    send: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
+    message: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z',
+    moreVertical:
+      'M12 5a1 1 0 100-2 1 1 0 000 2zM12 13a1 1 0 100-2 1 1 0 000 2zM12 21a1 1 0 100-2 1 1 0 000 2z',
+    check: 'M20 6L9 17l-5-5',
+    checkCheck: 'M18 6L7 17l-4-4M22 6l-11 11',
+    image: 'M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21',
+    mic: 'M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8',
+    play: 'M5 3l14 9-14 9V3z',
+    pause: 'M6 4h4v16H6zM14 4h4v16h-4z',
+    trash: 'M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z',
+    home: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2',
+    search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+    plus: 'M12 4v16m8-8H4',
+    user: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+    close: 'M18 6L6 18M6 6l12 12',
+    chevronDown: 'M6 9l6 6 6-6',
+    externalLink: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3',
   };
   const d = icons[name] || icons.message;
   return (
@@ -51,7 +53,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 };
 
 // ============================================================
-// NORMALIZERS
+// NORMALIZERS (unchanged from your version)
 // ============================================================
 const normalizeMessage = (raw) => {
   if (!raw) return raw;
@@ -59,8 +61,7 @@ const normalizeMessage = (raw) => {
   return {
     ...raw,
     id: raw.id,
-    senderId:
-      raw.senderId ?? raw.sender_id ?? raw.user_id ?? raw.from_user_id ?? null,
+    senderId: raw.senderId ?? raw.sender_id ?? raw.user_id ?? raw.from_user_id ?? null,
     text: raw.text ?? raw.content ?? raw.body ?? '',
     imageUrl: raw.imageUrl ?? raw.image_url ?? raw.image ?? null,
     audioUrl: raw.audioUrl ?? raw.audio_url ?? raw.audio ?? null,
@@ -209,12 +210,11 @@ const QUICK_REPLIES = [
 ];
 
 const MAX_IMAGE_MB = 10;
-const MAX_AUDIO_SECONDS = 120; // hard cap — 2 minutes
+const MAX_AUDIO_SECONDS = 120;
 const MAX_AUDIO_MB = 15;
 
 // ============================================================
-// AUDIO RECORDER HOOK
-// Manages getUserMedia + MediaRecorder lifecycle cleanly.
+// AUDIO RECORDER HOOK (unchanged)
 // ============================================================
 const useAudioRecorder = ({ onComplete, onError, maxSeconds = MAX_AUDIO_SECONDS }) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -247,11 +247,9 @@ const useAudioRecorder = ({ onComplete, onError, maxSeconds = MAX_AUDIO_SECONDS 
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error('Microphone not supported on this device');
       }
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      // Pick the best supported mime type
       const candidates = [
         'audio/webm;codecs=opus',
         'audio/webm',
@@ -296,7 +294,6 @@ const useAudioRecorder = ({ onComplete, onError, maxSeconds = MAX_AUDIO_SECONDS 
         setSeconds((s) => {
           const next = s + 1;
           if (next >= maxSeconds) {
-            // auto-stop at cap
             try { mediaRecorderRef.current?.stop(); } catch {}
           }
           return next;
@@ -316,18 +313,12 @@ const useAudioRecorder = ({ onComplete, onError, maxSeconds = MAX_AUDIO_SECONDS 
   }, [isRecording, cleanup, onComplete, onError, maxSeconds, seconds]);
 
   const stop = useCallback(() => {
-    try {
-      mediaRecorderRef.current?.stop();
-    } catch {}
+    try { mediaRecorderRef.current?.stop(); } catch {}
   }, []);
 
   const cancel = useCallback(() => {
     cancelledRef.current = true;
-    try {
-      mediaRecorderRef.current?.stop();
-    } catch {
-      cleanup();
-    }
+    try { mediaRecorderRef.current?.stop(); } catch { cleanup(); }
   }, [cleanup]);
 
   useEffect(() => cleanup, [cleanup]);
@@ -340,7 +331,7 @@ const useAudioRecorder = ({ onComplete, onError, maxSeconds = MAX_AUDIO_SECONDS 
 // ============================================================
 const VoiceMessage = ({ url, durationHint, isMine }) => {
   const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0); // 0..1
+  const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(durationHint || 0);
 
@@ -395,16 +386,13 @@ const VoiceMessage = ({ url, durationHint, isMine }) => {
         <Icon
           name={playing ? 'pause' : 'play'}
           size={14}
-          color={isMine ? '#FFFFFF' : '#1E293B'}
+          color={isMine ? '#FFFFFF' : '#FFFFFF'}
           strokeWidth={2.2}
         />
       </button>
       <div className="voice-track">
         <div className="voice-bar">
-          <div
-            className="voice-bar-fill"
-            style={{ width: `${Math.min(100, progress * 100)}%` }}
-          />
+          <div className="voice-bar-fill" style={{ width: `${Math.min(100, progress * 100)}%` }} />
         </div>
         <span className="voice-time">{formatDuration(displayTime)}</span>
       </div>
@@ -444,16 +432,11 @@ const Chat = () => {
 
   const otherUserId = conversation?.otherParticipant?.id;
   const { isOnline } = useUserPresence(otherUserId);
-  const { otherUserIsTyping, notifyTyping, stopTyping } = useTyping(
-    id,
-    user?.id,
-    otherUserId
-  );
+  const { otherUserIsTyping, notifyTyping, stopTyping } = useTyping(id, user?.id, otherUserId);
 
   const isMobile = windowWidth <= 768;
   const canSend = inputText.trim().length > 0 && !sending;
 
-  // Audio recorder
   const recorder = useAudioRecorder({
     onComplete: async ({ blob, mimeType, seconds }) => {
       await sendAudioBlob({ blob, mimeType, seconds });
@@ -469,9 +452,7 @@ const Chat = () => {
 
   const scrollToBottom = useCallback((smooth = true) => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: smooth ? 'smooth' : 'auto',
-      });
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
     }, 50);
   }, []);
 
@@ -501,20 +482,15 @@ const Chat = () => {
     [id, user?.id, showToast, scrollToBottom]
   );
 
-  useEffect(() => {
-    loadConversation();
-  }, [loadConversation]);
+  useEffect(() => { loadConversation(); }, [loadConversation]);
 
-  // ============================================================
-  // REALTIME
-  // ============================================================
+  // Realtime
   useEffect(() => {
     if (!id || !user?.id) return;
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
-
     const channel = supabase
       .channel(`chat:${id}`)
       .on(
@@ -541,9 +517,7 @@ const Chat = () => {
         (payload) => {
           const updated = normalizeMessage(payload.new);
           if (!updated) return;
-          setMessages((prev) =>
-            prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
-          );
+          setMessages((prev) => prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m)));
         }
       )
       .subscribe((status) => {
@@ -551,7 +525,6 @@ const Chat = () => {
       });
 
     channelRef.current = channel;
-
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
@@ -560,7 +533,6 @@ const Chat = () => {
     };
   }, [id, user?.id, scrollToBottom]);
 
-  // Catch up when tab becomes visible
   useEffect(() => {
     const handleVisibility = () => {
       if (!document.hidden && id) loadConversation({ silent: true });
@@ -569,7 +541,6 @@ const Chat = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [id, loadConversation]);
 
-  // Track scroll position for scroll-to-bottom
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -707,7 +678,6 @@ const Chat = () => {
     scrollToBottom(true);
 
     try {
-      // Give the blob a filename with a proper extension based on mime
       const ext = mimeType.includes('mp4')
         ? 'm4a'
         : mimeType.includes('ogg')
@@ -728,10 +698,7 @@ const Chat = () => {
       setMessages((prev) => prev.map((m) => (m.id === tempId ? real : m)));
     } catch (err) {
       console.error('Send audio error:', err);
-      const msg =
-        err?.response?.data?.error ||
-        err?.message ||
-        'Failed to send voice message';
+      const msg = err?.response?.data?.error || err?.message || 'Failed to send voice message';
       showToast(msg, 'error');
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
     } finally {
@@ -795,23 +762,17 @@ const Chat = () => {
         </div>
         <style jsx>{`
           .chat-page {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            height: 100vh; height: 100dvh;
+            display: flex; flex-direction: column;
             background: #F8FAFC;
           }
           .chat-loading {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            flex: 1; display: flex; align-items: center; justify-content: center;
           }
           .loading-spinner {
-            width: 32px;
-            height: 32px;
+            width: 32px; height: 32px;
             border: 3px solid #E2E8F0;
-            border-top-color: #F59E0B;
-            border-radius: 50%;
+            border-top-color: #F59E0B; border-radius: 50%;
             animation: spin 0.8s linear infinite;
           }
           @keyframes spin { to { transform: rotate(360deg); } }
@@ -880,7 +841,10 @@ const Chat = () => {
               </span>
             )}
           </div>
-          <span className="pinned-arrow">View listing</span>
+          <span className="pinned-arrow">
+            <Icon name="externalLink" size={12} color="#92400E" strokeWidth={2} />
+            View
+          </span>
         </button>
       )}
 
@@ -970,7 +934,7 @@ const Chat = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ============ SCROLL TO BOTTOM ============ */}
+      {/* SCROLL DOWN */}
       {showScrollDown && !recorder.isRecording && (
         <button
           className="scroll-down-btn"
@@ -981,7 +945,7 @@ const Chat = () => {
         </button>
       )}
 
-      {/* ============ QUICK REPLIES ============ */}
+      {/* QUICK REPLIES */}
       {showQuickReplies && messages.length < 4 && !uploadingImage && !uploadingAudio && !recorder.isRecording && (
         <div className="quick-replies">
           <div className="quick-replies-scroll">
@@ -1001,7 +965,6 @@ const Chat = () => {
       {/* ============ INPUT BAR ============ */}
       <div className="chat-input-wrapper">
         {recorder.isRecording ? (
-          // -------- RECORDING STATE --------
           <div className="recording-row">
             <button
               type="button"
@@ -1035,7 +998,6 @@ const Chat = () => {
             </button>
           </div>
         ) : (
-          // -------- NORMAL STATE --------
           <div className="chat-input-row">
             <button
               className="input-action-btn"
@@ -1070,7 +1032,6 @@ const Chat = () => {
             </div>
 
             {canSend ? (
-              // Send button when there's text
               <button
                 className="send-btn"
                 onClick={handleSend}
@@ -1084,7 +1045,6 @@ const Chat = () => {
                 )}
               </button>
             ) : (
-              // Mic button when input is empty
               <button
                 className="mic-btn"
                 onClick={handleMicTap}
@@ -1102,7 +1062,7 @@ const Chat = () => {
         )}
       </div>
 
-      {/* ============ LIGHTBOX ============ */}
+      {/* LIGHTBOX */}
       {lightboxUrl && (
         <div className="lightbox" onClick={() => setLightboxUrl(null)} role="dialog" aria-label="Image preview">
           <button
@@ -1112,11 +1072,16 @@ const Chat = () => {
           >
             <Icon name="close" size={22} color="#FFFFFF" strokeWidth={2} />
           </button>
-          <img src={lightboxUrl} alt="" className="lightbox-image" onClick={(e) => e.stopPropagation()} />
+          <img
+            src={lightboxUrl}
+            alt=""
+            className="lightbox-image"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
-      {/* ============ BOTTOM NAV ============ */}
+      {/* BOTTOM NAV */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -1140,6 +1105,9 @@ const Chat = () => {
       )}
 
       <style jsx>{`
+        /* ============================================================
+           CHAT PAGE — modern polish
+           ============================================================ */
         .chat-page {
           height: 100vh;
           height: 100dvh;
@@ -1200,13 +1168,13 @@ const Chat = () => {
         /* LISTING PINNED */
         .listing-pinned {
           display: flex; align-items: center; gap: 10px;
-          padding: 10px 14px; background: #FEFCF5;
+          padding: 10px 14px; background: #FFFBEB;
           border: none; border-bottom: 1px solid #FDE68A;
           flex-shrink: 0; cursor: pointer;
           font-family: inherit; text-align: left; width: 100%;
           transition: background 0.15s;
         }
-        .listing-pinned:hover { background: #FEF6E0; }
+        .listing-pinned:hover { background: #FEF3C7; }
         .pinned-thumb {
           width: 40px; height: 40px; border-radius: 9px; overflow: hidden;
           background: #F7F1E3; flex-shrink: 0; border: 1px solid #EFE6CE;
@@ -1224,9 +1192,10 @@ const Chat = () => {
         }
         .pinned-price { font-size: 12px; font-weight: 700; color: #10B981; margin-top: 1px; }
         .pinned-arrow {
+          display: inline-flex; align-items: center; gap: 4px;
           font-size: 11px; font-weight: 600; color: #92400E;
           padding: 4px 9px; border-radius: 6px;
-          background: rgba(217, 154, 59, 0.12); flex-shrink: 0;
+          background: rgba(217, 154, 59, 0.14); flex-shrink: 0;
         }
 
         /* MESSAGES */
