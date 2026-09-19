@@ -46,38 +46,92 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-/* ---------- Live Burning Fire Icon ----------
- * Clean flame with proper gradient — no glow circle behind it.
- */
+/* ============================================================
+   LIVE BURNING FIRE — more realistic
+   - Organic asymmetric flame silhouette (not a symmetric teardrop)
+   - 4 stacked layers: base glow → outer → mid → hot core
+   - Warm gradients per layer with a hint of white at the tip
+   - Two tiny ember sparks flickering above the flame
+   - Flicker uses independent, non-synchronized animations per layer
+   ============================================================ */
 const BurningFire = ({ size = 16 }) => (
   <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
     <svg viewBox="0 0 24 24" width={size} height={size} className="burning-fire-svg">
       <defs>
-        <linearGradient id="fireGradOuter" x1="50%" y1="100%" x2="50%" y2="0%">
-          <stop offset="0%" stopColor="#DC2626" />
-          <stop offset="55%" stopColor="#F97316" />
-          <stop offset="100%" stopColor="#FBBF24" />
-        </linearGradient>
-        <linearGradient id="fireGradMid" x1="50%" y1="100%" x2="50%" y2="0%">
-          <stop offset="0%" stopColor="#F97316" />
+        {/* Outer flame — deep red base, golden tip */}
+        <radialGradient id="bfOuter" cx="50%" cy="82%" r="70%">
+          <stop offset="0%"   stopColor="#B91C1C" />
+          <stop offset="45%"  stopColor="#EA580C" />
+          <stop offset="78%"  stopColor="#F59E0B" />
+          <stop offset="100%" stopColor="#FCD34D" />
+        </radialGradient>
+        {/* Mid flame — orange to yellow */}
+        <radialGradient id="bfMid" cx="50%" cy="82%" r="70%">
+          <stop offset="0%"   stopColor="#EA580C" />
+          <stop offset="55%"  stopColor="#F59E0B" />
           <stop offset="100%" stopColor="#FDE68A" />
-        </linearGradient>
+        </radialGradient>
+        {/* Hot core — near white-yellow */}
+        <radialGradient id="bfCore" cx="50%" cy="82%" r="70%">
+          <stop offset="0%"   stopColor="#FEF3C7" />
+          <stop offset="100%" stopColor="#FFFBEB" />
+        </radialGradient>
+        {/* Ember glow behind the whole thing */}
+        <radialGradient id="bfEmberGlow" cx="50%" cy="85%" r="60%">
+          <stop offset="0%"   stopColor="rgba(249,115,22,0.35)" />
+          <stop offset="100%" stopColor="rgba(249,115,22,0)" />
+        </radialGradient>
       </defs>
+
+      {/* Soft warm haze behind the flame (very subtle) */}
+      <circle cx="12" cy="15" r="10" fill="url(#bfEmberGlow)" />
+
+      {/* OUTER FLAME — asymmetric silhouette, tips lean slightly right */}
       <path
         className="flame-outer"
-        d="M12 2s4.5 5.2 4.5 9.5a4.5 4.5 0 11-9 0c0-1.7.8-3 1.7-3.9C10.2 6.3 12 2 12 2z"
-        fill="url(#fireGradOuter)"
+        d="M12 2
+           C 11.2 4.2, 9.8 6.4, 8.6 8.2
+           C 7.4 9.9, 6.4 11.4, 6.4 13.4
+           C 6.4 16.4, 8.9 19.2, 12 19.2
+           C 15.1 19.2, 17.6 16.4, 17.6 13.4
+           C 17.6 11.6, 16.8 10.2, 15.8 8.9
+           C 15.0 7.9, 14.2 6.9, 13.6 5.6
+           C 13.0 4.4, 12.5 3.2, 12 2 Z"
+        fill="url(#bfOuter)"
       />
+
+      {/* MID FLAME — inner, taller-with-narrower-tip, slight offset */}
       <path
         className="flame-mid"
-        d="M12 6s2.6 3.2 2.6 5.8a2.6 2.6 0 11-5.2 0c0-1 .5-1.9 1.1-2.4C11.1 8.7 12 6 12 6z"
-        fill="url(#fireGradMid)"
+        d="M12 6
+           C 11.4 7.8, 10.4 9.2, 9.6 10.6
+           C 8.8 12.0, 8.2 13.0, 8.2 14.3
+           C 8.2 16.4, 9.9 18.2, 12 18.2
+           C 14.1 18.2, 15.8 16.4, 15.8 14.3
+           C 15.8 13.0, 15.3 12.0, 14.6 10.8
+           C 14.0 9.8, 13.4 8.9, 13.0 7.9
+           C 12.6 6.9, 12.3 6.4, 12 6 Z"
+        fill="url(#bfMid)"
       />
+
+      {/* HOT CORE — bright inner tongue */}
       <path
         className="flame-core"
-        d="M12 10.5s1.2 1.6 1.2 2.8a1.2 1.2 0 11-2.4 0c0-.5.2-.9.6-1.2.4-.3.6-.9.6-1.6z"
-        fill="#FEF9C3"
+        d="M12 10.5
+           C 11.6 11.6, 11.0 12.4, 10.6 13.2
+           C 10.2 14.0, 10.0 14.6, 10.0 15.2
+           C 10.0 16.4, 10.9 17.4, 12 17.4
+           C 13.1 17.4, 14.0 16.4, 14.0 15.2
+           C 14.0 14.6, 13.8 14.0, 13.4 13.4
+           C 13.1 12.8, 12.7 12.3, 12.5 11.6
+           C 12.3 11.1, 12.2 10.7, 12 10.5 Z"
+        fill="url(#bfCore)"
       />
+
+      {/* Tiny ember sparks floating above the flame */}
+      <circle className="ember ember-1" cx="10.2" cy="4.4" r="0.55" fill="#FCD34D" />
+      <circle className="ember ember-2" cx="13.6" cy="3.6" r="0.4"  fill="#F59E0B" />
+      <circle className="ember ember-3" cx="11.8" cy="2.6" r="0.35" fill="#FBBF24" />
     </svg>
   </span>
 );
@@ -94,7 +148,14 @@ const CATEGORIES = [
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 const ASPECT_RATIOS = ['4 / 5', '4 / 5.4', '4 / 5', '4 / 5.4'];
 const SPOTLIGHT_MAX = 8;
-const SPOTLIGHT_IMAGE_MS = 3200;
+
+/* How long a single spotlight image is shown before the strip moves on.
+   Faster now — 2000ms feels snappy without being jarring. */
+const SPOTLIGHT_IMAGE_MS = 2000;
+
+/* How long a multi-image tile holds on each of its extra images before
+   cycling to the next of its own images. */
+const SPOTLIGHT_HOLD_MS = 1600;
 
 const getCategoryColor = (category) => {
   if (!category) return '#6B6259';
@@ -423,12 +484,12 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
   );
 };
 
-/* ---------- Spotlight tile ---------- */
-const SpotlightTile = ({
-  item,
-  onOpen,
-  registerAutoAdvance,
-}) => {
+/* ---------- Spotlight tile ----------
+ * Self-cycles its own images on a short cadence. The strip is advanced
+ * by a single parent-level interval (not by this tile), so ordering is
+ * guaranteed.
+ */
+const SpotlightTile = ({ item, onOpen }) => {
   const catColor = getCategoryColor(item.category);
   const premium = isPremium(item);
   const images = (item.images || []).filter(Boolean);
@@ -438,17 +499,10 @@ const SpotlightTile = ({
   useEffect(() => {
     if (total <= 1) return;
     const t = setTimeout(() => {
-      setIdx((prev) => {
-        const next = prev + 1;
-        if (next >= total) {
-          registerAutoAdvance?.();
-          return 0;
-        }
-        return next;
-      });
-    }, SPOTLIGHT_IMAGE_MS);
+      setIdx((prev) => (prev + 1) % total);
+    }, SPOTLIGHT_HOLD_MS);
     return () => clearTimeout(t);
-  }, [idx, total, registerAutoAdvance]);
+  }, [idx, total]);
 
   return (
     <button className={`spot-tile ${premium ? 'is-premium' : ''}`} onClick={() => onOpen(item)}>
@@ -740,6 +794,11 @@ const Landing = () => {
 
   const spotlightHasPremium = useMemo(() => spotlight.some(isPremium), [spotlight]);
 
+  /* ============================================================
+     SPOTLIGHT AUTO-ADVANCE — single, ordered driver
+     Walks tiles 0 → 1 → 2 → … → last → 0 on a fixed cadence.
+     No per-tile callbacks fire the strip, so ordering is guaranteed.
+     ============================================================ */
   const scrollSpotlightTo = useCallback((index) => {
     const container = spotlightScrollRef.current;
     const tile = spotlightTileRefs.current[index];
@@ -758,24 +817,22 @@ const Landing = () => {
     let cancelled = false;
     let currentIndex = 0;
 
-    const step = () => {
+    // Kick off at the first tile so the strip starts from a known position.
+    scrollSpotlightTo(0);
+
+    const advance = () => {
       if (cancelled) return;
       currentIndex = (currentIndex + 1) % spotlight.length;
       scrollSpotlightTo(currentIndex);
     };
 
-    const interval = setInterval(step, SPOTLIGHT_IMAGE_MS + 600);
+    const interval = setInterval(advance, SPOTLIGHT_IMAGE_MS);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
   }, [spotlight, scrollSpotlightTo]);
-
-  const handleSpotlightAutoAdvance = useCallback((tileIndex) => {
-    const nextIndex = (tileIndex + 1) % spotlight.length;
-    scrollSpotlightTo(nextIndex);
-  }, [spotlight.length, scrollSpotlightTo]);
 
   const featured = useMemo(() => {
     const recent = baseFiltered.filter(
@@ -913,11 +970,7 @@ const Landing = () => {
                 ref={(el) => { spotlightTileRefs.current[i] = el; }}
                 className="spot-tile-wrap"
               >
-                <SpotlightTile
-                  item={item}
-                  onOpen={handleListingClick}
-                  registerAutoAdvance={() => handleSpotlightAutoAdvance(i)}
-                />
+                <SpotlightTile item={item} onOpen={handleListingClick} />
               </div>
             ))}
           </div>
@@ -988,7 +1041,6 @@ const Landing = () => {
                   Fresh this week
                   <span className="section-title-count">{freshListings.length}</span>
                 </h2>
-                {/* Fire + NEW on the right */}
                 <span className="fresh-live-badge">
                   <BurningFire size={14} />
                   <span className="fresh-live-text">NEW</span>
@@ -1322,7 +1374,9 @@ const Landing = () => {
           -webkit-backdrop-filter: blur(6px);
         }
 
-        /* BURNING FIRE (no glow circle) */
+        /* ============================================================
+           LIVE BURNING FIRE — more realistic flame
+           ============================================================ */
         .burning-fire {
           position: relative;
           display: inline-flex;
@@ -1333,36 +1387,61 @@ const Landing = () => {
         }
         .burning-fire-svg {
           display: block;
-          filter: drop-shadow(0 1px 2px rgba(220, 38, 38, 0.35));
+          filter: drop-shadow(0 1px 2px rgba(220, 38, 38, 0.35))
+                  drop-shadow(0 0 5px rgba(251, 146, 60, 0.35));
         }
+
+        /* Each flame layer flickers independently for a natural, alive feel */
         .flame-outer {
-          transform-origin: 50% 85%;
-          animation: flameFlickerOuter 1.1s ease-in-out infinite;
+          transform-origin: 50% 90%;
+          animation: flameFlickerOuter 1.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
         }
         .flame-mid {
-          transform-origin: 50% 85%;
-          animation: flameFlickerMid 0.85s ease-in-out infinite;
+          transform-origin: 50% 90%;
+          animation: flameFlickerMid 0.95s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
         }
         .flame-core {
-          transform-origin: 50% 85%;
-          animation: flameFlickerCore 0.6s ease-in-out infinite;
+          transform-origin: 50% 90%;
+          animation: flameFlickerCore 0.65s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
         }
+
+        /* Ember sparks drift upward and fade out, each with its own rhythm */
+        .ember {
+          transform-origin: center;
+          animation: emberRise 2.2s ease-out infinite;
+          opacity: 0;
+        }
+        .ember-1 { animation-delay: 0s;    }
+        .ember-2 { animation-delay: 0.6s;  }
+        .ember-3 { animation-delay: 1.2s;  }
+
         @keyframes flameFlickerOuter {
-          0%, 100% { transform: scale(1, 1) rotate(0deg); }
-          30%      { transform: scale(1.03, 1.08) rotate(-1.5deg); }
-          65%      { transform: scale(0.98, 1.03) rotate(1.5deg); }
+          0%   { transform: scale(1, 1) rotate(0deg); }
+          22%  { transform: scale(1.02, 1.07) rotate(-1.2deg); }
+          45%  { transform: scale(0.98, 1.03) rotate(0.8deg); }
+          70%  { transform: scale(1.03, 1.06) rotate(-0.6deg); }
+          100% { transform: scale(1, 1) rotate(0deg); }
         }
         @keyframes flameFlickerMid {
-          0%, 100% { transform: scale(1, 1) rotate(0deg); }
-          35%      { transform: scale(1.06, 1.12) rotate(-2deg); }
-          70%      { transform: scale(0.96, 1.04) rotate(2deg); }
+          0%   { transform: scale(1, 1) rotate(0deg); }
+          30%  { transform: scale(1.05, 1.12) rotate(-1.8deg); }
+          60%  { transform: scale(0.96, 1.05) rotate(1.6deg); }
+          100% { transform: scale(1, 1) rotate(0deg); }
         }
         @keyframes flameFlickerCore {
-          0%, 100% { transform: scale(1, 1) rotate(0deg); opacity: 0.95; }
-          50%      { transform: scale(1.1, 1.16) rotate(1.5deg); opacity: 1; }
+          0%   { transform: scale(1, 1) rotate(0deg); opacity: 1; }
+          50%  { transform: scale(1.08, 1.16) rotate(1.4deg); opacity: 0.92; }
+          100% { transform: scale(1, 1) rotate(0deg); opacity: 1; }
         }
+        @keyframes emberRise {
+          0%   { transform: translateY(0) scale(1);   opacity: 0; }
+          15%  { opacity: 1; }
+          60%  { transform: translateY(-3px) scale(0.7); opacity: 0.7; }
+          100% { transform: translateY(-6px) scale(0.3); opacity: 0; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .flame-outer, .flame-mid, .flame-core { animation: none; }
+          .flame-outer, .flame-mid, .flame-core, .ember { animation: none; }
         }
 
         /* "Fresh this week" right-side fire + NEW label */
@@ -1474,7 +1553,7 @@ const Landing = () => {
           display: flex;
           height: 100%;
           width: 100%;
-          transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+          transition: transform 0.55s cubic-bezier(0.25, 0.8, 0.25, 1);
           will-change: transform;
         }
         .spot-slider-img {
@@ -2130,7 +2209,7 @@ const Landing = () => {
           .fcard-media, .fcard-heart, .fcard-action, .fcard-msg,
           .spot-tile, .search-btn, .filter-btn, .biz-card,
           .nav-icon-wrap, .pop, .pop-overlay { transition: none; animation: none; }
-          .flame-outer, .flame-mid, .flame-core { animation: none; }
+          .flame-outer, .flame-mid, .flame-core, .ember { animation: none; }
         }
       `}</style>
     </div>
