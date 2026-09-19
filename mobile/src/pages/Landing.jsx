@@ -46,30 +46,37 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-/* ---------- Live Burning Fire Icon ---------- */
-/* A pure-CSS/SVG animated flame that flickers and glows — used on the
-   "Fresh this week" section header to show live, burning activity. */
+/* ---------- Live Burning Fire Icon ----------
+ * Clean flame with proper gradient — no glow circle behind it.
+ */
 const BurningFire = ({ size = 16 }) => (
   <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
-    <span className="burning-fire-glow" />
     <svg viewBox="0 0 24 24" width={size} height={size} className="burning-fire-svg">
-      {/* Outer flame */}
+      <defs>
+        <linearGradient id="fireGradOuter" x1="50%" y1="100%" x2="50%" y2="0%">
+          <stop offset="0%" stopColor="#DC2626" />
+          <stop offset="55%" stopColor="#F97316" />
+          <stop offset="100%" stopColor="#FBBF24" />
+        </linearGradient>
+        <linearGradient id="fireGradMid" x1="50%" y1="100%" x2="50%" y2="0%">
+          <stop offset="0%" stopColor="#F97316" />
+          <stop offset="100%" stopColor="#FDE68A" />
+        </linearGradient>
+      </defs>
       <path
         className="flame-outer"
         d="M12 2s4.5 5.2 4.5 9.5a4.5 4.5 0 11-9 0c0-1.7.8-3 1.7-3.9C10.2 6.3 12 2 12 2z"
-        fill="#F97316"
+        fill="url(#fireGradOuter)"
       />
-      {/* Mid flame */}
       <path
         className="flame-mid"
         d="M12 6s2.6 3.2 2.6 5.8a2.6 2.6 0 11-5.2 0c0-1 .5-1.9 1.1-2.4C11.1 8.7 12 6 12 6z"
-        fill="#FBBF24"
+        fill="url(#fireGradMid)"
       />
-      {/* Inner core */}
       <path
         className="flame-core"
         d="M12 10.5s1.2 1.6 1.2 2.8a1.2 1.2 0 11-2.4 0c0-.5.2-.9.6-1.2.4-.3.6-.9.6-1.6z"
-        fill="#FEF3C7"
+        fill="#FEF9C3"
       />
     </svg>
   </span>
@@ -87,6 +94,7 @@ const CATEGORIES = [
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 const ASPECT_RATIOS = ['4 / 5', '4 / 5.4', '4 / 5', '4 / 5.4'];
 const SPOTLIGHT_MAX = 8;
+const SPOTLIGHT_IMAGE_MS = 3200;
 
 const getCategoryColor = (category) => {
   if (!category) return '#6B6259';
@@ -112,10 +120,7 @@ const isPremium = (item) => {
   return false;
 };
 
-/* ---------- Photo slider (used by every card) ---------- */
-/* Images render with object-fit: cover and a fixed aspect-ratio on the
-   wrapper, so photos always appear upright, uncropped (visually balanced),
-   and never stretched. */
+/* ---------- Photo slider ---------- */
 const PhotoSlider = ({
   images = [],
   alt = '',
@@ -327,7 +332,7 @@ const ProductCard = ({
   );
 };
 
-/* ---------- Featured (2-col wide hero card) ---------- */
+/* ---------- Featured card ---------- */
 const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLike, onOpen, onMessage, onOpenComments }) => {
   const liked = !!likeState?.liked;
   const likeCount = likeState?.count ?? 0;
@@ -418,19 +423,67 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
   );
 };
 
-/* ---------- Spotlight tile — info NOW BELOW the image ---------- */
-const SpotlightTile = ({ item, onOpen }) => {
+/* ---------- Spotlight tile ---------- */
+const SpotlightTile = ({
+  item,
+  onOpen,
+  registerAutoAdvance,
+}) => {
   const catColor = getCategoryColor(item.category);
   const premium = isPremium(item);
+  const images = (item.images || []).filter(Boolean);
+  const [idx, setIdx] = useState(0);
+  const total = images.length;
+
+  useEffect(() => {
+    if (total <= 1) return;
+    const t = setTimeout(() => {
+      setIdx((prev) => {
+        const next = prev + 1;
+        if (next >= total) {
+          registerAutoAdvance?.();
+          return 0;
+        }
+        return next;
+      });
+    }, SPOTLIGHT_IMAGE_MS);
+    return () => clearTimeout(t);
+  }, [idx, total, registerAutoAdvance]);
+
   return (
     <button className={`spot-tile ${premium ? 'is-premium' : ''}`} onClick={() => onOpen(item)}>
       <div className="spot-media">
-        <PhotoSlider
-          images={item.images || []}
-          alt={item.title}
-          className="spot-slider"
-          showArrows={false}
-        />
+        {total > 0 ? (
+          <div className="spot-slider">
+            <div
+              className="spot-slider-track"
+              style={{ transform: `translateX(-${Math.min(idx, total - 1) * 100}%)` }}
+            >
+              {images.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`${item.title} ${i + 1}`}
+                  className="spot-slider-img"
+                  loading="lazy"
+                  draggable={false}
+                />
+              ))}
+            </div>
+            {total > 1 && (
+              <div className="spot-slider-dots">
+                {images.map((_, i) => (
+                  <span key={i} className={`spot-slider-dot ${i === idx ? 'active' : ''}`} />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="spot-media-empty">
+            <Icon name="store" size={22} color="#C9BB98" strokeWidth={1.3} />
+          </div>
+        )}
+
         {item.category && (
           <span className="spot-cat" style={{ background: `${catColor}E6` }}>
             {item.category}
@@ -467,11 +520,12 @@ const Landing = () => {
   const [openingChatId, setOpeningChatId] = useState(null);
   const [commentsListing, setCommentsListing] = useState(null);
 
-  // ★ Real interaction state, keyed by listing ID
-  const [likeStates, setLikeStates] = useState({});   // { [id]: { liked, count } }
-  const [commentCounts, setCommentCounts] = useState({}); // { [id]: number }
+  const [likeStates, setLikeStates] = useState({});
+  const [commentCounts, setCommentCounts] = useState({});
 
   const searchInputRef = useRef(null);
+  const spotlightScrollRef = useRef(null);
+  const spotlightTileRefs = useRef([]);
   const isMobile = windowWidth <= 768;
 
   useEffect(() => {
@@ -499,8 +553,12 @@ const Landing = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [commentsListing]);
 
-  /* ---------- Fetch listings ---------- */
   useEffect(() => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
     const fetchData = async () => {
       setLoading(true);
@@ -543,10 +601,11 @@ const Landing = () => {
     };
     fetchData();
     return () => { mounted = false; };
-  }, []);
+  }, [isAuthenticated]);
 
-  /* ---------- Hydrate like + comment state from the API ---------- */
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const realListingIds = allListings
       .filter((item) => !item.is_business && item.id && !String(item.id).startsWith('biz-'))
       .map((item) => item.id);
@@ -582,9 +641,8 @@ const Landing = () => {
     })();
 
     return () => { cancelled = true; };
-  }, [allListings]);
+  }, [allListings, isAuthenticated]);
 
-  /* ---------- LIKE (optimistic + persisted) ---------- */
   const handleLike = useCallback(async (e, item) => {
     e.stopPropagation();
     if (!isAuthenticated) { showToast('Please sign in to like', 'warning'); return; }
@@ -593,7 +651,6 @@ const Landing = () => {
     const listingId = item.id;
     const current = likeStates[listingId] || { count: 0, liked: false };
 
-    // Optimistically flip
     setLikeStates((prev) => ({
       ...prev,
       [listingId]: {
@@ -605,14 +662,12 @@ const Landing = () => {
     try {
       const res = await interactionsAPI.toggleLike(listingId);
       const real = res.data;
-      // Reconcile with server truth
       setLikeStates((prev) => ({
         ...prev,
         [listingId]: { count: real.count, liked: real.liked },
       }));
     } catch (err) {
       console.error('like error:', err);
-      // Revert on failure
       setLikeStates((prev) => ({
         ...prev,
         [listingId]: current,
@@ -645,7 +700,6 @@ const Landing = () => {
     }
   }, [user, navigate, showToast, openingChatId]);
 
-  /* ---------- Filtering ---------- */
   const isService = useCallback((item) => {
     const serviceCategories = ['Plumber', 'Electrician', 'Carpenter', 'Mechanic', 'Tailor', 'Hairdresser', 'Services'];
     return serviceCategories.some((cat) => item.category?.toLowerCase().includes(cat.toLowerCase()));
@@ -685,6 +739,43 @@ const Landing = () => {
   }, [baseFiltered]);
 
   const spotlightHasPremium = useMemo(() => spotlight.some(isPremium), [spotlight]);
+
+  const scrollSpotlightTo = useCallback((index) => {
+    const container = spotlightScrollRef.current;
+    const tile = spotlightTileRefs.current[index];
+    if (!container || !tile) return;
+    container.scrollTo({
+      left: tile.offsetLeft - 20,
+      behavior: 'smooth',
+    });
+  }, []);
+
+  useEffect(() => {
+    if (spotlight.length <= 1) return;
+    const container = spotlightScrollRef.current;
+    if (!container) return;
+
+    let cancelled = false;
+    let currentIndex = 0;
+
+    const step = () => {
+      if (cancelled) return;
+      currentIndex = (currentIndex + 1) % spotlight.length;
+      scrollSpotlightTo(currentIndex);
+    };
+
+    const interval = setInterval(step, SPOTLIGHT_IMAGE_MS + 600);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [spotlight, scrollSpotlightTo]);
+
+  const handleSpotlightAutoAdvance = useCallback((tileIndex) => {
+    const nextIndex = (tileIndex + 1) % spotlight.length;
+    scrollSpotlightTo(nextIndex);
+  }, [spotlight.length, scrollSpotlightTo]);
 
   const featured = useMemo(() => {
     const recent = baseFiltered.filter(
@@ -761,7 +852,7 @@ const Landing = () => {
 
   return (
     <div className="app">
-      {/* ============ HERO ============ */}
+      {/* HERO */}
       <div className="hero-block">
         <div className="hero-texture" aria-hidden="true" />
         <div className="hero-inner">
@@ -776,7 +867,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ============ STICKY SEARCH ============ */}
+      {/* STICKY SEARCH */}
       <div className="search-sticky">
         <div className="search-sticky-inner">
           <form onSubmit={handleSearch} className="search-form">
@@ -798,7 +889,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ============ SPOTLIGHT ============ */}
+      {/* SPOTLIGHT */}
       {spotlight.length > 0 && (
         <div className="spotlight-section">
           <div className="spotlight-header">
@@ -815,15 +906,25 @@ const Landing = () => {
               {spotlightHasPremium ? 'Featured sellers' : 'Just arrived'}
             </span>
           </div>
-          <div className="spotlight-scroll">
-            {spotlight.map((item) => (
-              <SpotlightTile key={item.id} item={item} onOpen={handleListingClick} />
+          <div className="spotlight-scroll" ref={spotlightScrollRef}>
+            {spotlight.map((item, i) => (
+              <div
+                key={item.id}
+                ref={(el) => { spotlightTileRefs.current[i] = el; }}
+                className="spot-tile-wrap"
+              >
+                <SpotlightTile
+                  item={item}
+                  onOpen={handleListingClick}
+                  registerAutoAdvance={() => handleSpotlightAutoAdvance(i)}
+                />
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ============ CATEGORY PILL BAR ============ */}
+      {/* CATEGORY PILL BAR */}
       <div className="cats-wrap">
         <div className="cats-bar">
           {CATEGORIES.map((cat) => {
@@ -843,7 +944,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* ============ TABS ============ */}
+      {/* TABS */}
       <div className="tabs-section">
         {[
           { id: 'all', label: 'All' },
@@ -860,7 +961,7 @@ const Landing = () => {
         ))}
       </div>
 
-      {/* ============ FEATURED ============ */}
+      {/* FEATURED */}
       {featured && (
         <section className="featured-wrap">
           <FeaturedCard
@@ -877,20 +978,20 @@ const Landing = () => {
         </section>
       )}
 
-      {/* ============ FEED ============ */}
+      {/* FEED */}
       {hasResults ? (
         <>
           {freshListings.length > 0 && (
             <section className="section">
               <header className="section-head">
                 <h2 className="section-title">
-                  <BurningFire size={18} />
                   Fresh this week
                   <span className="section-title-count">{freshListings.length}</span>
                 </h2>
-                <span className="section-tag live">
-                  <BurningFire size={12} />
-                  live
+                {/* Fire + NEW on the right */}
+                <span className="fresh-live-badge">
+                  <BurningFire size={14} />
+                  <span className="fresh-live-text">NEW</span>
                 </span>
               </header>
               <div className="grid">
@@ -956,7 +1057,7 @@ const Landing = () => {
         </section>
       )}
 
-      {/* ============ BUSINESSES NEAR YOU ============ */}
+      {/* BUSINESSES */}
       {featuredBusinesses.length > 0 && (
         <section className="section biz-section">
           <header className="section-head">
@@ -978,7 +1079,7 @@ const Landing = () => {
         </section>
       )}
 
-      {/* ============ COMMENTS POP-UP ============ */}
+      {/* COMMENTS POP-UP */}
       {commentsListing && (
         <div className="pop-overlay" onClick={() => setCommentsListing(null)} role="dialog" aria-modal="true">
           <div className="pop" onClick={(e) => e.stopPropagation()}>
@@ -1017,7 +1118,7 @@ const Landing = () => {
         </div>
       )}
 
-      {/* ============ BOTTOM NAV ============ */}
+      {/* BOTTOM NAV */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -1052,7 +1153,7 @@ const Landing = () => {
         }
         @media (min-width: 769px) { .app { padding-bottom: 0; } }
 
-        /* ---------- Hero ---------- */
+        /* HERO */
         .hero-block {
           position: relative;
           background: linear-gradient(155deg, #24453B 0%, #16261F 100%);
@@ -1094,7 +1195,7 @@ const Landing = () => {
           margin: 0; max-width: 440px;
         }
 
-        /* ---------- Sticky search ---------- */
+        /* SEARCH */
         .search-sticky {
           position: sticky;
           top: 64px;
@@ -1137,9 +1238,7 @@ const Landing = () => {
         }
         .search-btn:hover { background: #BC5B34; transform: translateY(-1px); }
 
-        /* ---------- Photo slider ---------- */
-        /* Images render with object-fit: cover so photos are always upright,
-           never stretched, and are balanced within a fixed aspect-ratio box. */
+        /* PHOTO SLIDER */
         .pslider {
           position: absolute; inset: 0;
           overflow: hidden;
@@ -1151,7 +1250,7 @@ const Landing = () => {
           display: flex;
           height: 100%;
           width: 100%;
-          transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+          transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
           will-change: transform;
         }
         .pslider-img {
@@ -1163,6 +1262,7 @@ const Landing = () => {
           display: block;
           -webkit-user-drag: none;
           background: #F0E9D6;
+          image-rendering: -webkit-optimize-contrast;
         }
         .pslider-empty {
           width: 100%; height: 100%;
@@ -1222,7 +1322,7 @@ const Landing = () => {
           -webkit-backdrop-filter: blur(6px);
         }
 
-        /* ---------- Live burning fire ---------- */
+        /* BURNING FIRE (no glow circle) */
         .burning-fire {
           position: relative;
           display: inline-flex;
@@ -1232,45 +1332,61 @@ const Landing = () => {
           vertical-align: middle;
         }
         .burning-fire-svg {
-          position: relative;
-          z-index: 2;
           display: block;
-          filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.55));
+          filter: drop-shadow(0 1px 2px rgba(220, 38, 38, 0.35));
         }
-        .burning-fire-glow {
-          position: absolute;
-          inset: -30%;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(249, 115, 22, 0.55), rgba(249, 115, 22, 0) 70%);
-          animation: fireGlow 1.4s ease-in-out infinite;
-          z-index: 1;
+        .flame-outer {
+          transform-origin: 50% 85%;
+          animation: flameFlickerOuter 1.1s ease-in-out infinite;
         }
-        .flame-outer { transform-origin: 50% 80%; animation: flameFlickerOuter 0.9s ease-in-out infinite; }
-        .flame-mid   { transform-origin: 50% 80%; animation: flameFlickerMid 0.7s ease-in-out infinite; }
-        .flame-core  { transform-origin: 50% 80%; animation: flameFlickerCore 0.5s ease-in-out infinite; }
+        .flame-mid {
+          transform-origin: 50% 85%;
+          animation: flameFlickerMid 0.85s ease-in-out infinite;
+        }
+        .flame-core {
+          transform-origin: 50% 85%;
+          animation: flameFlickerCore 0.6s ease-in-out infinite;
+        }
         @keyframes flameFlickerOuter {
-          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
-          30%      { transform: scale(1.06, 1.12) rotate(-2deg); opacity: 0.95; }
-          60%      { transform: scale(0.97, 1.05) rotate(2deg); opacity: 0.9; }
+          0%, 100% { transform: scale(1, 1) rotate(0deg); }
+          30%      { transform: scale(1.03, 1.08) rotate(-1.5deg); }
+          65%      { transform: scale(0.98, 1.03) rotate(1.5deg); }
         }
         @keyframes flameFlickerMid {
-          0%, 100% { transform: scale(1) rotate(0deg); }
-          35%      { transform: scale(1.12, 1.18) rotate(-3deg); }
-          70%      { transform: scale(0.94, 1.06) rotate(3deg); }
+          0%, 100% { transform: scale(1, 1) rotate(0deg); }
+          35%      { transform: scale(1.06, 1.12) rotate(-2deg); }
+          70%      { transform: scale(0.96, 1.04) rotate(2deg); }
         }
         @keyframes flameFlickerCore {
-          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
-          50%      { transform: scale(1.18, 1.25) rotate(2deg); opacity: 0.85; }
-        }
-        @keyframes fireGlow {
-          0%, 100% { opacity: 0.5; transform: scale(1); }
-          50%      { opacity: 0.95; transform: scale(1.15); }
+          0%, 100% { transform: scale(1, 1) rotate(0deg); opacity: 0.95; }
+          50%      { transform: scale(1.1, 1.16) rotate(1.5deg); opacity: 1; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .flame-outer, .flame-mid, .flame-core, .burning-fire-glow { animation: none; }
+          .flame-outer, .flame-mid, .flame-core { animation: none; }
         }
 
-        /* ---------- Spotlight ---------- */
+        /* "Fresh this week" right-side fire + NEW label */
+        .fresh-live-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px 4px 8px;
+          border-radius: 999px;
+          background: linear-gradient(135deg, #FFF3E0 0%, #FFE4C4 100%);
+          border: 1px solid rgba(234, 88, 12, 0.25);
+          box-shadow: 0 1px 3px rgba(234, 88, 12, 0.1);
+        }
+        .fresh-live-text {
+          font-family: 'Work Sans', sans-serif;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          color: #C2410C;
+          text-transform: uppercase;
+          line-height: 1;
+        }
+
+        /* SPOTLIGHT */
         .spotlight-section {
           max-width: 1200px;
           margin: 6px auto 0;
@@ -1309,37 +1425,85 @@ const Landing = () => {
           overflow-x: auto; scrollbar-width: none;
           padding: 4px 20px 8px;
           scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
         }
         .spotlight-scroll::-webkit-scrollbar { display: none; }
+        .spot-tile-wrap {
+          flex: 0 0 auto;
+          scroll-snap-align: start;
+        }
         .spot-tile {
           flex: 0 0 auto;
-          width: 148px;
+          width: 172px;
           background: transparent;
           border: none; padding: 0;
           text-align: left; cursor: pointer;
           font-family: inherit;
-          scroll-snap-align: start;
           transition: transform 0.25s ease;
           position: relative;
+          display: block;
         }
         .spot-tile:hover { transform: translateY(-2px); }
         .spot-tile.is-premium .spot-media {
           box-shadow:
             0 1px 2px rgba(22, 38, 31, 0.05),
-            0 12px 26px rgba(36, 69, 59, 0.16),
+            0 14px 30px rgba(36, 69, 59, 0.18),
             0 0 0 1.5px rgba(217, 154, 59, 0.55);
         }
         .spot-media {
           position: relative;
-          width: 100%; aspect-ratio: 4 / 5;
+          width: 100%;
+          aspect-ratio: 4 / 5.6;
           border-radius: 14px;
           overflow: hidden;
           background: #F0E9D6;
           box-shadow:
             0 1px 2px rgba(22, 38, 31, 0.05),
-            0 10px 22px rgba(22, 38, 31, 0.1);
+            0 12px 26px rgba(22, 38, 31, 0.12);
         }
-        .spot-slider { border-radius: 14px; }
+        .spot-media-empty {
+          position: absolute; inset: 0;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .spot-slider {
+          position: absolute; inset: 0;
+          overflow: hidden;
+          background: #F0E9D6;
+        }
+        .spot-slider-track {
+          display: flex;
+          height: 100%;
+          width: 100%;
+          transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+          will-change: transform;
+        }
+        .spot-slider-img {
+          flex: 0 0 100%;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          display: block;
+          -webkit-user-drag: none;
+          image-rendering: -webkit-optimize-contrast;
+        }
+        .spot-slider-dots {
+          position: absolute;
+          left: 0; right: 0; bottom: 8px;
+          display: flex; justify-content: center; align-items: center;
+          gap: 4px;
+          z-index: 4;
+        }
+        .spot-slider-dot {
+          width: 5px; height: 5px;
+          border-radius: 999px;
+          background: rgba(247, 241, 227, 0.55);
+          transition: all 0.25s ease;
+        }
+        .spot-slider-dot.active {
+          width: 14px;
+          background: #F7F1E3;
+        }
         .spot-cat {
           position: absolute; top: 8px; left: 8px;
           font-size: 9px; font-weight: 700;
@@ -1348,7 +1512,7 @@ const Landing = () => {
           letter-spacing: 0.04em;
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
-          z-index: 4;
+          z-index: 5;
         }
         .spot-premium {
           position: absolute; top: 8px; right: 8px;
@@ -1357,29 +1521,29 @@ const Landing = () => {
           border-radius: 6px;
           background: #F0D9A8;
           box-shadow: 0 2px 6px rgba(22, 38, 31, 0.25);
-          z-index: 4;
+          z-index: 5;
         }
         .spot-info {
-          padding: 8px 2px 0;
+          padding: 10px 2px 0;
           display: flex; flex-direction: column; gap: 3px;
         }
         .spot-title {
-          font-size: 12px; font-weight: 600;
+          font-size: 12.5px; font-weight: 600;
           color: #201F1B;
           line-height: 1.3;
           overflow: hidden; text-overflow: ellipsis;
           display: -webkit-box;
-          -webkit-line-clamp: 1;
+          -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
         }
         .spot-price {
           font-family: 'Fraunces', Georgia, serif;
-          font-size: 12.5px; font-weight: 600;
+          font-size: 13px; font-weight: 600;
           color: #24453B;
           letter-spacing: -0.01em;
         }
 
-        /* ---------- Category pill bar ---------- */
+        /* CATEGORY PILL BAR */
         .cats-wrap {
           max-width: 1200px;
           margin: 14px auto 0;
@@ -1408,7 +1572,7 @@ const Landing = () => {
         }
         .cat-pill.active { color: #F7F1E3; }
 
-        /* ---------- Tabs ---------- */
+        /* TABS */
         .tabs-section {
           display: flex; gap: 22px;
           padding: 14px 20px 0;
@@ -1430,7 +1594,7 @@ const Landing = () => {
           height: 2px; background: #BC5B34; border-radius: 2px;
         }
 
-        /* ---------- Featured card ---------- */
+        /* FEATURED */
         .featured-wrap {
           max-width: 1200px;
           margin: 16px auto 0;
@@ -1593,15 +1757,16 @@ const Landing = () => {
         .fcard-msg:hover { background: #F0D9A8; }
         .fcard-msg:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* ---------- Feed sections ---------- */
+        /* FEED */
         .section {
           max-width: 1200px;
           margin: 22px auto 0;
           padding: 0 20px;
         }
         .section-head {
-          display: flex; justify-content: space-between; align-items: baseline;
+          display: flex; justify-content: space-between; align-items: center;
           margin-bottom: 12px;
+          gap: 10px;
         }
         .section-title {
           font-family: 'Fraunces', Georgia, serif;
@@ -1616,14 +1781,6 @@ const Landing = () => {
           color: #9C9482;
           margin-left: 2px;
         }
-        .section-tag {
-          display: inline-flex; align-items: center; gap: 4px;
-          font-size: 10px; font-weight: 700;
-          color: #BC5B34;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-        }
-        .section-tag.live { color: #EA580C; }
         .filter-btn {
           width: 32px; height: 32px; border-radius: 9px;
           border: 1px solid #EFE6CE; background: #FFFDF8;
@@ -1641,7 +1798,7 @@ const Landing = () => {
         @media (min-width: 640px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
         @media (min-width: 1024px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
 
-        /* ---------- Product compact card ---------- */
+        /* PRODUCT CARD */
         .pcard {
           display: flex; flex-direction: column;
           background: #FFFDF8;
@@ -1793,7 +1950,7 @@ const Landing = () => {
         .pcard-msg:hover { background: #BC5B34; }
         .pcard-msg:disabled { opacity: 0.55; cursor: not-allowed; }
 
-        /* ---------- Businesses ---------- */
+        /* BUSINESSES */
         .biz-section { padding-bottom: 10px; }
         .biz-scroll {
           display: flex; gap: 10px;
@@ -1816,7 +1973,7 @@ const Landing = () => {
           background: #F7F1E3; border: 1px solid #EFE6CE;
           display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-        .biz-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .biz-logo img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .biz-text { min-width: 0; }
         .biz-name {
           font-size: 12px; font-weight: 600; color: #201F1B;
@@ -1827,7 +1984,7 @@ const Landing = () => {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
-        /* ---------- Comments pop-up ---------- */
+        /* COMMENTS POP-UP */
         .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
@@ -1880,7 +2037,7 @@ const Landing = () => {
           overflow: hidden; background: #F0E9D6;
           flex-shrink: 0; border: 1px solid #EFE6CE;
         }
-        .pop-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .pop-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .pop-thumb-fallback {
           width: 100%; height: 100%;
           display: flex; align-items: center; justify-content: center;
@@ -1912,7 +2069,7 @@ const Landing = () => {
           background: #FFFDF8;
         }
 
-        /* ---------- Empty state ---------- */
+        /* EMPTY */
         .empty-state { text-align: center; padding: 56px 20px; }
         .empty-title {
           font-family: 'Fraunces', Georgia, serif;
@@ -1920,7 +2077,7 @@ const Landing = () => {
         }
         .empty-desc { font-size: 13px; color: #9C9482; margin: 0; }
 
-        /* ---------- Bottom nav ---------- */
+        /* BOTTOM NAV */
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
           background: rgba(255, 253, 248, 0.97);
@@ -1952,7 +2109,7 @@ const Landing = () => {
           .search-sticky { padding: 0 16px 10px; }
           .spotlight-header { padding: 0 16px; }
           .spotlight-scroll { padding: 4px 16px 8px; }
-          .spot-tile { width: 132px; }
+          .spot-tile { width: 152px; }
           .cats-wrap { padding: 0 16px; }
           .tabs-section { padding: 12px 16px 0; }
           .featured-wrap { padding: 0 16px; }
@@ -1964,14 +2121,16 @@ const Landing = () => {
           .fcard-price { font-size: 14.5px; }
           .fcard-glass { left: 10px; right: 10px; bottom: 10px; padding: 11px 13px 10px; }
           .pslider-arrow { display: none; }
+          .fresh-live-text { font-size: 9px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .pslider-track { transition: none; }
+          .pslider-track, .spot-slider-track { transition: none; }
           .pcard, .pcard-heart, .pcard-icon-btn, .pcard-msg,
           .fcard-media, .fcard-heart, .fcard-action, .fcard-msg,
           .spot-tile, .search-btn, .filter-btn, .biz-card,
           .nav-icon-wrap, .pop, .pop-overlay { transition: none; animation: none; }
+          .flame-outer, .flame-mid, .flame-core { animation: none; }
         }
       `}</style>
     </div>
