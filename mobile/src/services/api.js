@@ -157,6 +157,16 @@ const normalizeMessage = (m) => {
   };
 };
 
+// ★ Normalize the response from the interactions API
+const normalizeInteractionCounts = (payload) => {
+  if (!payload) return {};
+  const out = {};
+  for (const [k, v] of Object.entries(payload)) {
+    out[k] = Number(v) || 0;
+  }
+  return out;
+};
+
 // ============================================
 // REQUEST INTERCEPTOR
 // ============================================
@@ -433,6 +443,103 @@ export const listingsAPI = {
     api.delete(`/listings/${id}/boost`, { cache: false }),
   getBoostStatus: (id) =>
     api.get(`/listings/${id}/boost`, { cache: false }),
+};
+
+// ============================================
+// ★ INTERACTIONS API — Likes + Comments
+// Uses the new /api/interactions endpoints which persist to the DB
+// and are shared across all users / devices.
+// ============================================
+export const interactionsAPI = {
+  // ---- LIKES ----
+  // Toggle like on a listing → returns { success, liked, count }
+  toggleLike: async (listingId) => {
+    const res = await api.post(
+      `/interactions/likes/${listingId}`,
+      {},
+      { cache: false }
+    );
+    const data = res?.data || {};
+    return {
+      ...res,
+      data: {
+        ...data,
+        liked: !!data.liked,
+        count: Number(data.count || 0),
+      },
+    };
+  },
+
+  // Batch like states → { counts: {id: n}, userLikes: {id: true} }
+  batchLikeStates: async (listingIds) => {
+    const res = await api.post(
+      '/interactions/likes/batch',
+      { listingIds },
+      { cache: false }
+    );
+    const data = res?.data || {};
+    return {
+      ...res,
+      data: {
+        ...data,
+        counts: normalizeInteractionCounts(data.counts),
+        userLikes: data.userLikes || {},
+      },
+    };
+  },
+
+  // ---- COMMENTS ----
+  // Batch comment counts → { counts: {id: n} }
+  getCommentCounts: async (listingIds) => {
+    const res = await api.post(
+      '/interactions/comments/counts',
+      { listingIds },
+      { cache: false }
+    );
+    const data = res?.data || {};
+    return {
+      ...res,
+      data: {
+        ...data,
+        counts: normalizeInteractionCounts(data.counts),
+      },
+    };
+  },
+
+  // List comments for a listing
+  getComments: async (listingId, params) => {
+    const res = await api.get(`/interactions/comments/${listingId}`, {
+      params,
+      cache: false,
+    });
+    const raw = res?.data?.comments || [];
+    return {
+      ...res,
+      data: {
+        ...res.data,
+        comments: Array.isArray(raw) ? raw.map(normalizeComment) : [],
+        total: Number(res?.data?.total || raw.length || 0),
+      },
+    };
+  },
+
+  // Create a comment
+  createComment: async (listingId, text) => {
+    const res = await api.post(
+      `/interactions/comments/${listingId}`,
+      { text },
+      { cache: false }
+    );
+    const saved = res?.data?.comment;
+    if (saved) {
+      return { ...res, data: { ...res.data, comment: normalizeComment(saved) } };
+    }
+    return res;
+  },
+
+  // Delete a comment (owner only)
+  deleteComment: (commentId) =>
+    api.delete(`/interactions/comments/${commentId}`, { cache: false }),
 };
 
 // ============================================

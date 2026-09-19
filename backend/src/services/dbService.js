@@ -878,6 +878,230 @@ class DBService {
       throw error;
     }
   }
+
+  // ============================================
+  // LISTING LIKES
+  // ============================================
+
+  /**
+   * Toggle a like. Returns the new state + total count.
+   */
+  async toggleListingLike(listingId, userId) {
+    try {
+      // Check if the like exists
+      const existing = await this.db
+        .select()
+        .from(this.schema.listingLikes)
+        .where(
+          and(
+            eq(this.schema.listingLikes.listingId, listingId),
+            eq(this.schema.listingLikes.userId, userId)
+          )
+        )
+        .limit(1);
+
+      let liked;
+      if (existing[0]) {
+        await this.db
+          .delete(this.schema.listingLikes)
+          .where(eq(this.schema.listingLikes.id, existing[0].id));
+        liked = false;
+      } else {
+        await this.db
+          .insert(this.schema.listingLikes)
+          .values({ listingId, userId });
+        liked = true;
+      }
+
+      const countResult = await this.db
+        .select({ count: sql`count(*)` })
+        .from(this.schema.listingLikes)
+        .where(eq(this.schema.listingLikes.listingId, listingId));
+
+      return {
+        liked,
+        count: Number(countResult[0]?.count || 0),
+      };
+    } catch (error) {
+      logger.error('Toggle listing like error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch: get like counts for many listings + whether current user has liked each.
+   * Used by Landing / Search / CategoryBrowse when rendering many cards.
+   */
+  async getLikeStatesForListings(listingIds, userId = null) {
+    try {
+      if (!listingIds || listingIds.length === 0) {
+        return { counts: {}, userLikes: {} };
+      }
+
+      const countsRows = await this.db
+        .select({
+          listingId: this.schema.listingLikes.listingId,
+          count: sql`count(*)`.as('count'),
+        })
+        .from(this.schema.listingLikes)
+        .where(inArray(this.schema.listingLikes.listingId, listingIds))
+        .groupBy(this.schema.listingLikes.listingId);
+
+      const counts = {};
+      for (const row of countsRows) {
+        counts[row.listingId] = Number(row.count || 0);
+      }
+
+      let userLikes = {};
+      if (userId) {
+        const userRows = await this.db
+          .select({ listingId: this.schema.listingLikes.listingId })
+          .from(this.schema.listingLikes)
+          .where(
+            and(
+              eq(this.schema.listingLikes.userId, userId),
+              inArray(this.schema.listingLikes.listingId, listingIds)
+            )
+          );
+        for (const row of userRows) {
+          userLikes[row.listingId] = true;
+        }
+      }
+
+      return { counts, userLikes };
+    } catch (error) {
+      logger.error('Get like states error:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // LISTING COMMENTS
+  // ============================================
+
+  /**
+   * Create a comment. Enforces non-empty, trims text.
+   */
+  async createListingComment(listingId, userId, text) {
+    try {
+      const trimmed = String(text || '').trim();
+      if (!trimmed) throw new Error('Comment text is required');
+      if (trimmed.length > 1000) throw new Error('Comment is too long (max 1000 characters)');
+
+      const inserted = await this.db
+        .insert(this.schema.listingComments)
+        .values({
+          listingId,
+          userId,
+          text: trimmed,
+        })
+        .returning();
+
+      return inserted[0];
+    } catch (error) {
+      logger.error('Create listing comment error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get comments for a listing, joined with the commenter's profile.
+   */
+  async getListingComments(listingId, params = {}) {
+    try {
+      const { limit = 50, offset = 0 } = params;
+
+      const rows = await this.db
+        .select({
+          comment: this.schema.listingComments,
+          user: {
+            id: this.schema.profiles.id,
+            fullName: this.schema.profiles.fullName,
+            email: this.schema.profiles.email,
+            avatarUrl: this.schema.profiles.avatarUrl,
+          },
+        })
+        .from(this.schema.listingComments)
+        .leftJoin(
+          this.schema.profiles,
+          eq(this.schema.listingComments.userId, this.schema.profiles.id)
+        )
+        .where(eq(this.schema.listingComments.listingId, listingId))
+        .orderBy(desc(this.schema.listingComments.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      const comments = rows.map((row) => ({
+        ...row.comment,
+        user: row.user,
+      }));
+
+      const countResult = await this.db
+        .select({ count: sql`count(*)` })
+        .from(this.schema.listingComments)
+        .where(eq(this.schema.listingComments.listingId, listingId));
+
+      return {
+        comments,
+        total: Number(countResult[0]?.count || 0),
+      };
+    } catch (error) {
+      logger.error('Get listing comments error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Batch: get comment counts for many listings.
+   */
+  async getCommentCountsForListings(listingIds) {
+    try {
+      if (!listingIds || listingIds.length === 0) return {};
+
+      const rows = await this.db
+        .select({
+          listingId: this.schema.listingComments.listingId,
+          count: sql`count(*)`.as('count'),
+        })
+        .from(this.schema.listingComments)
+        .where(inArray(this.schema.listingComments.listingId, listingIds))
+        .groupBy(this.schema.listingComments.listingId);
+
+      const counts = {};
+      for (const row of rows) {
+        counts[row.listingId] = Number(row.count || 0);
+      }
+      return counts;
+    } catch (error) {
+      logger.error('Get comment counts error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a comment (only the owner can delete their own).
+   */
+  async deleteListingComment(commentId, userId) {
+    try {
+      const rows = await this.db
+        .select()
+        .from(this.schema.listingComments)
+        .where(eq(this.schema.listingComments.id, commentId))
+        .limit(1);
+
+      if (!rows[0]) throw new Error('Comment not found');
+      if (rows[0].userId !== userId) throw new Error('Not authorized to delete this comment');
+
+      await this.db
+        .delete(this.schema.listingComments)
+        .where(eq(this.schema.listingComments.id, commentId));
+
+      return { success: true };
+    } catch (error) {
+      logger.error('Delete listing comment error:', error);
+      throw error;
+    }
+  }
 }
 
 export default new DBService();

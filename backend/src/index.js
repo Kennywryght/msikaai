@@ -64,6 +64,7 @@ import matchingRoutes from './api/matching.js';
 import paymentRoutes from './api/payment.js';
 import searchRoutes from './api/search.js';
 import messagesRoutes from './api/messages.js'; // ✅ NEW
+import interactionsRoutes from './api/interactions.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -292,6 +293,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use(logHttpRequest);
+app.use('/api/interactions', authenticateToken, interactionsRoutes);
 
 // ============================================
 // RATE LIMITING

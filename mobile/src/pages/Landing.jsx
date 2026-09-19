@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { listingsAPI, businessAPI, messagesAPI } from '../services/api';
+import { listingsAPI, businessAPI, messagesAPI, interactionsAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
 
@@ -46,6 +46,35 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
+/* ---------- Live Burning Fire Icon ---------- */
+/* A pure-CSS/SVG animated flame that flickers and glows — used on the
+   "Fresh this week" section header to show live, burning activity. */
+const BurningFire = ({ size = 16 }) => (
+  <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
+    <span className="burning-fire-glow" />
+    <svg viewBox="0 0 24 24" width={size} height={size} className="burning-fire-svg">
+      {/* Outer flame */}
+      <path
+        className="flame-outer"
+        d="M12 2s4.5 5.2 4.5 9.5a4.5 4.5 0 11-9 0c0-1.7.8-3 1.7-3.9C10.2 6.3 12 2 12 2z"
+        fill="#F97316"
+      />
+      {/* Mid flame */}
+      <path
+        className="flame-mid"
+        d="M12 6s2.6 3.2 2.6 5.8a2.6 2.6 0 11-5.2 0c0-1 .5-1.9 1.1-2.4C11.1 8.7 12 6 12 6z"
+        fill="#FBBF24"
+      />
+      {/* Inner core */}
+      <path
+        className="flame-core"
+        d="M12 10.5s1.2 1.6 1.2 2.8a1.2 1.2 0 11-2.4 0c0-.5.2-.9.6-1.2.4-.3.6-.9.6-1.6z"
+        fill="#FEF3C7"
+      />
+    </svg>
+  </span>
+);
+
 const CATEGORIES = [
   { label: 'All', icon: 'layers', color: '#BC5B34' },
   { label: 'Food', icon: 'coffee', color: '#BC5B34' },
@@ -56,7 +85,7 @@ const CATEGORIES = [
 ];
 
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
-const ASPECT_RATIOS = ['4 / 5', '4 / 6.4', '4 / 4.4', '4 / 5.4'];
+const ASPECT_RATIOS = ['4 / 5', '4 / 5.4', '4 / 5', '4 / 5.4'];
 const SPOTLIGHT_MAX = 8;
 
 const getCategoryColor = (category) => {
@@ -84,6 +113,9 @@ const isPremium = (item) => {
 };
 
 /* ---------- Photo slider (used by every card) ---------- */
+/* Images render with object-fit: cover and a fixed aspect-ratio on the
+   wrapper, so photos always appear upright, uncropped (visually balanced),
+   and never stretched. */
 const PhotoSlider = ({
   images = [],
   alt = '',
@@ -190,13 +222,13 @@ const PhotoSlider = ({
 
 /* ---------- Reusable compact card ---------- */
 const ProductCard = ({
-  item, index, user, openingChatId, onLike, onOpen, onMessage, onOpenComments,
+  item, index, user, openingChatId, likeState, commentCount,
+  onLike, onOpen, onMessage, onOpenComments,
 }) => {
-  const isLiked = !!item.liked_by_me;
-  const likeCount = item.likes ?? 0;
+  const liked = !!likeState?.liked;
+  const likeCount = likeState?.count ?? 0;
   const sellerUserId = item.businesses?.user_id || item.businesses?.userId || item.businesses?.owner_id || null;
   const canMessage = !!sellerUserId && sellerUserId !== user?.id;
-  const commentCount = item.comment_count ?? 0;
   const catColor = getCategoryColor(item.category);
   const aspect = ASPECT_RATIOS[index % ASPECT_RATIOS.length];
 
@@ -221,11 +253,11 @@ const ProductCard = ({
         )}
 
         <button
-          className={`pcard-heart ${isLiked ? 'liked' : ''}`}
+          className={`pcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
-          aria-label={isLiked ? 'Unlike' : 'Like'}
+          aria-label={liked ? 'Unlike' : 'Like'}
         >
-          <Icon name="heart" size={13} color="#F7F1E3" strokeWidth={isLiked ? 2.6 : 1.9} />
+          <Icon name="heart" size={13} color="#F7F1E3" strokeWidth={liked ? 2.6 : 1.9} />
         </button>
 
         {item.delivery_available && (
@@ -261,11 +293,11 @@ const ProductCard = ({
 
         <div className="pcard-actions">
           <button
-            className={`pcard-icon-btn ${isLiked ? 'liked' : ''}`}
+            className={`pcard-icon-btn ${liked ? 'liked' : ''}`}
             onClick={(e) => onLike(e, item)}
             aria-label="Like"
           >
-            <Icon name="heart" size={13} color={isLiked ? '#BC5B34' : '#8A8578'} strokeWidth={isLiked ? 2.5 : 1.8} />
+            <Icon name="heart" size={13} color={liked ? '#BC5B34' : '#8A8578'} strokeWidth={liked ? 2.5 : 1.8} />
             {likeCount > 0 && <span>{likeCount}</span>}
           </button>
 
@@ -296,12 +328,11 @@ const ProductCard = ({
 };
 
 /* ---------- Featured (2-col wide hero card) ---------- */
-const FeaturedCard = ({ item, user, openingChatId, onLike, onOpen, onMessage, onOpenComments }) => {
-  const isLiked = !!item.liked_by_me;
-  const likeCount = item.likes ?? 0;
+const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLike, onOpen, onMessage, onOpenComments }) => {
+  const liked = !!likeState?.liked;
+  const likeCount = likeState?.count ?? 0;
   const sellerUserId = item.businesses?.user_id || item.businesses?.userId || item.businesses?.owner_id || null;
   const canMessage = !!sellerUserId && sellerUserId !== user?.id;
-  const commentCount = item.comment_count ?? 0;
   const catColor = getCategoryColor(item.category);
   const premium = isPremium(item);
 
@@ -329,11 +360,11 @@ const FeaturedCard = ({ item, user, openingChatId, onLike, onOpen, onMessage, on
         </div>
 
         <button
-          className={`fcard-heart ${isLiked ? 'liked' : ''}`}
+          className={`fcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
-          aria-label={isLiked ? 'Unlike' : 'Like'}
+          aria-label={liked ? 'Unlike' : 'Like'}
         >
-          <Icon name="heart" size={14} color="#F7F1E3" strokeWidth={isLiked ? 2.6 : 1.9} />
+          <Icon name="heart" size={14} color="#F7F1E3" strokeWidth={liked ? 2.6 : 1.9} />
           {likeCount > 0 && <span>{likeCount}</span>}
         </button>
 
@@ -436,6 +467,10 @@ const Landing = () => {
   const [openingChatId, setOpeningChatId] = useState(null);
   const [commentsListing, setCommentsListing] = useState(null);
 
+  // ★ Real interaction state, keyed by listing ID
+  const [likeStates, setLikeStates] = useState({});   // { [id]: { liked, count } }
+  const [commentCounts, setCommentCounts] = useState({}); // { [id]: number }
+
   const searchInputRef = useRef(null);
   const isMobile = windowWidth <= 768;
 
@@ -464,63 +499,7 @@ const Landing = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [commentsListing]);
 
-  /* ---------- LIKE ---------- */
-  const handleLike = useCallback(async (e, item) => {
-    e.stopPropagation();
-    if (!isAuthenticated) { showToast('Please sign in to like', 'warning'); return; }
-
-    const wasLiked = !!item.liked_by_me;
-    const prevLikes = item.likes ?? 0;
-
-    setAllListings((prev) =>
-      prev.map((l) =>
-        l.id === item.id
-          ? { ...l, liked_by_me: !wasLiked, likes: prevLikes + (wasLiked ? -1 : 1) }
-          : l
-      )
-    );
-
-    try {
-      if (wasLiked) await listingsAPI.unlike(item.id);
-      else await listingsAPI.like(item.id);
-    } catch (err) {
-      console.error('like error:', err);
-      setAllListings((prev) =>
-        prev.map((l) =>
-          l.id === item.id
-            ? { ...l, liked_by_me: wasLiked, likes: prevLikes }
-            : l
-        )
-      );
-      showToast('Failed to update like', 'error');
-    }
-  }, [isAuthenticated, showToast]);
-
-  const handleQuickMessage = useCallback(async (e, item) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (!user) { showToast('Please sign in to message the seller', 'warning'); navigate('/login'); return; }
-
-    const sellerUserId = item?.businesses?.user_id || item?.businesses?.userId || item?.businesses?.owner_id || null;
-    if (!sellerUserId) { showToast('Seller information is unavailable', 'error'); return; }
-    if (sellerUserId === user.id) { showToast("You can't message yourself about your own listing", 'warning'); return; }
-    if (openingChatId === item.id) return;
-    setOpeningChatId(item.id);
-
-    try {
-      const res = await messagesAPI.createConversation(sellerUserId, item.id);
-      const conversationId = res?.data?.conversation?.id;
-      if (!conversationId) throw new Error('Could not open conversation');
-      navigate(`/chat/${conversationId}`);
-    } catch (err) {
-      console.error('Quick message error:', err);
-      showToast(err?.response?.data?.error || 'Failed to open chat', 'error');
-    } finally {
-      setOpeningChatId(null);
-    }
-  }, [user, navigate, showToast, openingChatId]);
-
-  /* ---------- Fetch ---------- */
+  /* ---------- Fetch listings ---------- */
   useEffect(() => {
     let mounted = true;
     const fetchData = async () => {
@@ -549,9 +528,6 @@ const Landing = () => {
             location_area: b.location_text || '',
             delivery_available: b.delivery_available || false,
             business_id: b.id,
-            likes: b.likes ?? 0,
-            liked_by_me: b.liked_by_me ?? false,
-            comment_count: b.comment_count ?? 0,
           }));
         }
         if (mounted) {
@@ -568,6 +544,106 @@ const Landing = () => {
     fetchData();
     return () => { mounted = false; };
   }, []);
+
+  /* ---------- Hydrate like + comment state from the API ---------- */
+  useEffect(() => {
+    const realListingIds = allListings
+      .filter((item) => !item.is_business && item.id && !String(item.id).startsWith('biz-'))
+      .map((item) => item.id);
+
+    if (realListingIds.length === 0) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const [likesRes, countsRes] = await Promise.all([
+          interactionsAPI.batchLikeStates(realListingIds).catch(() => ({ data: {} })),
+          interactionsAPI.getCommentCounts(realListingIds).catch(() => ({ data: {} })),
+        ]);
+
+        if (cancelled) return;
+
+        const counts = likesRes?.data?.counts || {};
+        const userLikes = likesRes?.data?.userLikes || {};
+
+        const nextLikeState = {};
+        for (const id of realListingIds) {
+          nextLikeState[id] = {
+            count: counts[id] || 0,
+            liked: !!userLikes[id],
+          };
+        }
+        setLikeStates(nextLikeState);
+        setCommentCounts(countsRes?.data?.counts || {});
+      } catch (err) {
+        console.warn('Failed to load interactions:', err?.message);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [allListings]);
+
+  /* ---------- LIKE (optimistic + persisted) ---------- */
+  const handleLike = useCallback(async (e, item) => {
+    e.stopPropagation();
+    if (!isAuthenticated) { showToast('Please sign in to like', 'warning'); return; }
+    if (item.is_business) { showToast('Businesses can\u2019t be liked yet', 'info'); return; }
+
+    const listingId = item.id;
+    const current = likeStates[listingId] || { count: 0, liked: false };
+
+    // Optimistically flip
+    setLikeStates((prev) => ({
+      ...prev,
+      [listingId]: {
+        count: current.liked ? Math.max(0, current.count - 1) : current.count + 1,
+        liked: !current.liked,
+      },
+    }));
+
+    try {
+      const res = await interactionsAPI.toggleLike(listingId);
+      const real = res.data;
+      // Reconcile with server truth
+      setLikeStates((prev) => ({
+        ...prev,
+        [listingId]: { count: real.count, liked: real.liked },
+      }));
+    } catch (err) {
+      console.error('like error:', err);
+      // Revert on failure
+      setLikeStates((prev) => ({
+        ...prev,
+        [listingId]: current,
+      }));
+      showToast('Failed to update like', 'error');
+    }
+  }, [isAuthenticated, showToast, likeStates]);
+
+  const handleQuickMessage = useCallback(async (e, item) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!user) { showToast('Please sign in to message the seller', 'warning'); navigate('/login'); return; }
+
+    const sellerUserId = item?.businesses?.user_id || item?.businesses?.userId || item?.businesses?.owner_id || null;
+    if (!sellerUserId) { showToast('Seller information is unavailable', 'error'); return; }
+    if (sellerUserId === user.id) { showToast("You can't message yourself about your own listing", 'warning'); return; }
+    if (openingChatId === item.id) return;
+    setOpeningChatId(item.id);
+
+    try {
+      const res = await messagesAPI.createConversation(sellerUserId, item.id);
+      const conversationId = res?.data?.conversation?.id;
+      if (!conversationId) throw new Error('Could not open conversation');
+      navigate(`/chat/${conversationId}`);
+    } catch (err) {
+      console.error('Quick message error:', err);
+      showToast(err?.response?.data?.error || 'Failed to open chat', 'error');
+    } finally {
+      setOpeningChatId(null);
+    }
+  }, [user, navigate, showToast, openingChatId]);
 
   /* ---------- Filtering ---------- */
   const isService = useCallback((item) => {
@@ -618,8 +694,12 @@ const Landing = () => {
     if (pool.length < 3) return null;
     const premiumPool = pool.filter(isPremium);
     const chooseFrom = premiumPool.length ? premiumPool : pool;
-    return [...chooseFrom].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))[0] || null;
-  }, [baseFiltered]);
+    return [...chooseFrom].sort((a, b) => {
+      const la = likeStates[a.id]?.count ?? 0;
+      const lb = likeStates[b.id]?.count ?? 0;
+      return lb - la;
+    })[0] || null;
+  }, [baseFiltered, likeStates]);
 
   const featuredId = featured?.id;
 
@@ -787,6 +867,8 @@ const Landing = () => {
             item={featured}
             user={user}
             openingChatId={openingChatId}
+            likeState={likeStates[featured.id]}
+            commentCount={commentCounts[featured.id] || 0}
             onLike={handleLike}
             onOpen={handleListingClick}
             onMessage={handleQuickMessage}
@@ -802,12 +884,13 @@ const Landing = () => {
             <section className="section">
               <header className="section-head">
                 <h2 className="section-title">
+                  <BurningFire size={18} />
                   Fresh this week
                   <span className="section-title-count">{freshListings.length}</span>
                 </h2>
-                <span className="section-tag">
-                  <Icon name="flame" size={12} color="#BC5B34" strokeWidth={2} />
-                  new
+                <span className="section-tag live">
+                  <BurningFire size={12} />
+                  live
                 </span>
               </header>
               <div className="grid">
@@ -818,6 +901,8 @@ const Landing = () => {
                     index={i}
                     user={user}
                     openingChatId={openingChatId}
+                    likeState={likeStates[item.id]}
+                    commentCount={commentCounts[item.id] || 0}
                     onLike={handleLike}
                     onOpen={handleListingClick}
                     onMessage={handleQuickMessage}
@@ -847,6 +932,8 @@ const Landing = () => {
                     index={i}
                     user={user}
                     openingChatId={openingChatId}
+                    likeState={likeStates[item.id]}
+                    commentCount={commentCounts[item.id] || 0}
                     onLike={handleLike}
                     onOpen={handleListingClick}
                     onMessage={handleQuickMessage}
@@ -921,9 +1008,7 @@ const Landing = () => {
               <CommentSection
                 listingId={commentsListing.id}
                 onCountChange={(count) => {
-                  setAllListings((prev) =>
-                    prev.map((l) => (l.id === commentsListing.id ? { ...l, comment_count: count } : l))
-                  );
+                  setCommentCounts((prev) => ({ ...prev, [commentsListing.id]: count }));
                   setCommentsListing((c) => (c ? { ...c, comment_count: count } : c));
                 }}
               />
@@ -1053,6 +1138,8 @@ const Landing = () => {
         .search-btn:hover { background: #BC5B34; transform: translateY(-1px); }
 
         /* ---------- Photo slider ---------- */
+        /* Images render with object-fit: cover so photos are always upright,
+           never stretched, and are balanced within a fixed aspect-ratio box. */
         .pslider {
           position: absolute; inset: 0;
           overflow: hidden;
@@ -1072,8 +1159,10 @@ const Landing = () => {
           width: 100%;
           height: 100%;
           object-fit: cover;
+          object-position: center;
           display: block;
           -webkit-user-drag: none;
+          background: #F0E9D6;
         }
         .pslider-empty {
           width: 100%; height: 100%;
@@ -1131,6 +1220,54 @@ const Landing = () => {
           z-index: 3;
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
+        }
+
+        /* ---------- Live burning fire ---------- */
+        .burning-fire {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          vertical-align: middle;
+        }
+        .burning-fire-svg {
+          position: relative;
+          z-index: 2;
+          display: block;
+          filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.55));
+        }
+        .burning-fire-glow {
+          position: absolute;
+          inset: -30%;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(249, 115, 22, 0.55), rgba(249, 115, 22, 0) 70%);
+          animation: fireGlow 1.4s ease-in-out infinite;
+          z-index: 1;
+        }
+        .flame-outer { transform-origin: 50% 80%; animation: flameFlickerOuter 0.9s ease-in-out infinite; }
+        .flame-mid   { transform-origin: 50% 80%; animation: flameFlickerMid 0.7s ease-in-out infinite; }
+        .flame-core  { transform-origin: 50% 80%; animation: flameFlickerCore 0.5s ease-in-out infinite; }
+        @keyframes flameFlickerOuter {
+          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          30%      { transform: scale(1.06, 1.12) rotate(-2deg); opacity: 0.95; }
+          60%      { transform: scale(0.97, 1.05) rotate(2deg); opacity: 0.9; }
+        }
+        @keyframes flameFlickerMid {
+          0%, 100% { transform: scale(1) rotate(0deg); }
+          35%      { transform: scale(1.12, 1.18) rotate(-3deg); }
+          70%      { transform: scale(0.94, 1.06) rotate(3deg); }
+        }
+        @keyframes flameFlickerCore {
+          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          50%      { transform: scale(1.18, 1.25) rotate(2deg); opacity: 0.85; }
+        }
+        @keyframes fireGlow {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50%      { opacity: 0.95; transform: scale(1.15); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .flame-outer, .flame-mid, .flame-core, .burning-fire-glow { animation: none; }
         }
 
         /* ---------- Spotlight ---------- */
@@ -1471,12 +1608,13 @@ const Landing = () => {
           font-weight: 600; font-size: 17px;
           margin: 0; color: #201F1B;
           letter-spacing: -0.01em;
-          display: inline-flex; align-items: baseline; gap: 8px;
+          display: inline-flex; align-items: center; gap: 8px;
         }
         .section-title-count {
           font-family: 'Work Sans', sans-serif;
           font-size: 12px; font-weight: 500;
           color: #9C9482;
+          margin-left: 2px;
         }
         .section-tag {
           display: inline-flex; align-items: center; gap: 4px;
@@ -1485,6 +1623,7 @@ const Landing = () => {
           text-transform: uppercase;
           letter-spacing: 0.08em;
         }
+        .section-tag.live { color: #EA580C; }
         .filter-btn {
           width: 32px; height: 32px; border-radius: 9px;
           border: 1px solid #EFE6CE; background: #FFFDF8;
@@ -1677,7 +1816,7 @@ const Landing = () => {
           background: #F7F1E3; border: 1px solid #EFE6CE;
           display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-        .biz-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .biz-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .biz-text { min-width: 0; }
         .biz-name {
           font-size: 12px; font-weight: 600; color: #201F1B;

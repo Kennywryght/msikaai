@@ -274,6 +274,45 @@ export const messages = pgTable('messages', {
 }));
 
 // ============================================
+// LISTING LIKES
+// ============================================
+export const listingLikes = pgTable('listing_likes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listingId: uuid('listing_id')
+    .notNull()
+    .references(() => listings.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  uniqueLike: uniqueIndex('listing_likes_listing_user_idx')
+    .on(table.listingId, table.userId),
+  listingIdx: index('listing_likes_listing_idx').on(table.listingId),
+  userIdx: index('listing_likes_user_idx').on(table.userId),
+}));
+
+// ============================================
+// LISTING COMMENTS
+// ============================================
+export const listingComments = pgTable('listing_comments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listingId: uuid('listing_id')
+    .notNull()
+    .references(() => listings.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  text: text('text').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  listingIdx: index('listing_comments_listing_idx')
+    .on(table.listingId, table.createdAt),
+  userIdx: index('listing_comments_user_idx').on(table.userId),
+}));
+
+// ============================================
 // RELATIONS
 // ============================================
 export const profilesRelations = relations(profiles, ({ many, one }) => ({
@@ -292,6 +331,8 @@ export const profilesRelations = relations(profiles, ({ many, one }) => ({
   conversationsAsOne: many(conversations, { relationName: 'conversationParticipantOne' }),
   conversationsAsTwo: many(conversations, { relationName: 'conversationParticipantTwo' }),
   sentMessages: many(messages),
+  listingLikes: many(listingLikes),
+  listingComments: many(listingComments),
 }));
 
 export const businessesRelations = relations(businesses, ({ one, many }) => ({
@@ -310,6 +351,8 @@ export const listingsRelations = relations(listings, ({ one, many }) => ({
   }),
   orders: many(orders),
   analyticsEvents: many(analyticsEvents),
+  likes: many(listingLikes),
+  comments: many(listingComments),
 }));
 
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
@@ -409,6 +452,28 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
+export const listingLikesRelations = relations(listingLikes, ({ one }) => ({
+  listing: one(listings, {
+    fields: [listingLikes.listingId],
+    references: [listings.id],
+  }),
+  user: one(profiles, {
+    fields: [listingLikes.userId],
+    references: [profiles.id],
+  }),
+}));
+
+export const listingCommentsRelations = relations(listingComments, ({ one }) => ({
+  listing: one(listings, {
+    fields: [listingComments.listingId],
+    references: [listings.id],
+  }),
+  user: one(profiles, {
+    fields: [listingComments.userId],
+    references: [profiles.id],
+  }),
+}));
+
 // ============================================
 // EXPORTS
 // ============================================
@@ -426,4 +491,6 @@ export default {
   sessions,
   conversations,
   messages,
+  listingLikes,
+  listingComments,
 };

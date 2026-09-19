@@ -8,6 +8,7 @@ import {
   analyticsAPI,
   messagesAPI,
   paymentAPI,
+  interactionsAPI,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
@@ -50,6 +51,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     heart: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
     comment: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
     shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    flame: 'M12 2s4 5 4 9a4 4 0 11-8 0c0-1.5.7-2.7 1.5-3.5C10 6 12 2 12 2z',
   };
   const d = icons[name] || icons.store;
   return (
@@ -62,9 +64,42 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
+/* ---------- Live Burning Fire Icon ---------- */
+const BurningFire = ({ size = 16 }) => (
+  <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
+    <span className="burning-fire-glow" />
+    <svg viewBox="0 0 24 24" width={size} height={size} className="burning-fire-svg">
+      <path
+        className="flame-outer"
+        d="M12 2s4.5 5.2 4.5 9.5a4.5 4.5 0 11-9 0c0-1.7.8-3 1.7-3.9C10.2 6.3 12 2 12 2z"
+        fill="#F97316"
+      />
+      <path
+        className="flame-mid"
+        d="M12 6s2.6 3.2 2.6 5.8a2.6 2.6 0 11-5.2 0c0-1 .5-1.9 1.1-2.4C11.1 8.7 12 6 12 6z"
+        fill="#FBBF24"
+      />
+      <path
+        className="flame-core"
+        d="M12 10.5s1.2 1.6 1.2 2.8a1.2 1.2 0 11-2.4 0c0-.5.2-.9.6-1.2.4-.3.6-.9.6-1.6z"
+        fill="#FEF3C7"
+      />
+    </svg>
+  </span>
+);
+
 // ============================================================
 // HELPERS
 // ============================================================
+
+const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+const isFreshListing = (item) => {
+  if (!item?.created_at) return false;
+  const t = new Date(item.created_at).getTime();
+  if (Number.isNaN(t)) return false;
+  return Date.now() - t < NEW_WINDOW_MS;
+};
 
 /**
  * ★ THE CORE FIX
@@ -486,6 +521,10 @@ const ListingDetails = () => {
   const [showComments, setShowComments] = useState(false);
   const [liking, setLiking] = useState(false);
 
+  // ★ Real interaction state
+  const [likeState, setLikeState] = useState({ liked: false, count: 0 });
+  const [commentCount, setCommentCount] = useState(0);
+
   // ★ Seller fallback: if the listing doesn't contain a seller id,
   //   we fetch the business directly and stash it here.
   const [resolvedBusiness, setResolvedBusiness] = useState(null);
@@ -566,6 +605,28 @@ const ListingDetails = () => {
 
         setListing(normalized);
 
+        // ★ Fetch live like/comment state for this listing
+        try {
+          const [likesRes, countsRes] = await Promise.all([
+            interactionsAPI.batchLikeStates([normalized.id]).catch(() => ({ data: {} })),
+            interactionsAPI.getCommentCounts([normalized.id]).catch(() => ({ data: {} })),
+          ]);
+          const counts = likesRes?.data?.counts || {};
+          const userLikes = likesRes?.data?.userLikes || {};
+          setLikeState({
+            count: counts[normalized.id] || 0,
+            liked: !!userLikes[normalized.id],
+          });
+          setCommentCount(countsRes?.data?.counts?.[normalized.id] || 0);
+        } catch (e) {
+          // Fall back to values on the listing if any
+          setLikeState({
+            count: normalized.likes ?? 0,
+            liked: !!normalized.liked_by_me,
+          });
+          setCommentCount(normalized.comment_count ?? 0);
+        }
+
         // ★ If the normalized listing still has no seller id, fetch the
         //   business directly using its id (last-resort fallback).
         const sellerId = extractSellerUserId(normalized);
@@ -638,27 +699,27 @@ const ListingDetails = () => {
     [user, navigate, location.pathname]
   );
 
-  // ---- LIKE ----
+  // ---- LIKE (real, persisted) ----
   const handleLike = async () => {
     if (!requireAuth('like this listing')) return;
     if (liking) return;
 
-    const wasLiked = !!listing.liked_by_me;
-    const prevLikes = listing.likes ?? 0;
-
+    const prev = likeState;
     setLiking(true);
-    setListing((prev) =>
-      prev ? { ...prev, liked_by_me: !wasLiked, likes: prevLikes + (wasLiked ? -1 : 1) } : prev
-    );
+    // Optimistic
+    setLikeState({
+      count: prev.liked ? Math.max(0, prev.count - 1) : prev.count + 1,
+      liked: !prev.liked,
+    });
 
     try {
-      if (wasLiked) await listingsAPI.unlike(listing.id);
-      else await listingsAPI.like(listing.id);
+      const res = await interactionsAPI.toggleLike(listing.id);
+      const real = res.data;
+      setLikeState({ count: real.count, liked: real.liked });
     } catch (err) {
       console.error('like error:', err);
-      setListing((prev) =>
-        prev ? { ...prev, liked_by_me: wasLiked, likes: prevLikes } : prev
-      );
+      // Revert
+      setLikeState(prev);
       showToast('Failed to update like', 'error');
     } finally {
       setLiking(false);
@@ -709,23 +770,14 @@ const ListingDetails = () => {
 
   // ============================================================
   // ★ MESSAGE SELLER — the primary buyer action
-  //   Uses the extracted seller ID with a fallback chain.
   // ============================================================
   const handleMessageSeller = async () => {
     if (!requireAuth('message the seller')) return;
 
-    // Resolve seller id from EVERYWHERE (listing + fetched business)
     let sellerId = extractSellerUserId(listing);
     if (!sellerId && resolvedBusiness) {
       sellerId = extractSellerUserId({ businesses: resolvedBusiness });
     }
-
-    console.log('[Message] resolved seller id:', sellerId, 'listing:', {
-      listingId: listing.id,
-      businesses: listing.businesses,
-      businessId: listing.business_id,
-      resolvedBusiness,
-    });
 
     if (!sellerId) {
       showToast('Seller information is unavailable for this listing', 'error');
@@ -745,7 +797,6 @@ const ListingDetails = () => {
         res?.data?.id;
 
       if (!conversationId) {
-        console.error('[Message] createConversation returned no id:', res?.data);
         throw new Error('Could not open conversation');
       }
 
@@ -977,9 +1028,9 @@ const ListingDetails = () => {
   const premiumUntil = getPremiumUntil(listing);
   const daysLeft = daysUntil(premiumUntil);
   const images = listing.images || [];
-  const isLiked = !!listing.liked_by_me;
-  const likeCount = listing.likes ?? 0;
-  const commentCount = listing.comment_count ?? 0;
+  const isLiked = likeState.liked;
+  const likeCount = likeState.count;
+  const isFresh = isFreshListing(listing);
 
   return (
     <div className={`listing-details ${isMobile && !isOwnListing ? 'has-sticky-bar' : ''}`}>
@@ -1123,6 +1174,12 @@ const ListingDetails = () => {
               <span className="badge badge-delivery">
                 <Icon name="delivery" size={12} color="#1E40AF" strokeWidth={1.75} />
                 Delivery
+              </span>
+            )}
+            {isFresh && (
+              <span className="badge badge-fresh">
+                <BurningFire size={12} />
+                Fresh
               </span>
             )}
             {premium && (
@@ -1492,9 +1549,7 @@ const ListingDetails = () => {
             <div className="pop-body">
               <CommentSection
                 listingId={listing.id}
-                onCountChange={(count) => {
-                  setListing((prev) => (prev ? { ...prev, comment_count: count } : prev));
-                }}
+                onCountChange={(count) => setCommentCount(count)}
               />
             </div>
           </div>
@@ -1635,6 +1690,8 @@ const ListingDetails = () => {
           padding: 16px 18px;
           border: 1px solid #f1f5f9; margin-bottom: 16px;
         }
+        /* Gallery images render with object-fit: cover + fixed aspect-ratio,
+           so photos are always upright, never stretched, and look balanced. */
         .gallery { margin-bottom: 16px; }
         .gallery-viewport {
           position: relative; width: 100%;
@@ -1648,7 +1705,8 @@ const ListingDetails = () => {
         }
         .gallery-image {
           flex: 0 0 100%; width: 100%; height: 100%;
-          object-fit: cover; display: block;
+          object-fit: cover; object-position: center;
+          display: block; background: #f1f5f9;
         }
         .gallery-arrow {
           position: absolute; top: 50%;
@@ -1680,7 +1738,8 @@ const ListingDetails = () => {
           border-radius: 8px; overflow: hidden;
           cursor: pointer; background: #f1f5f9;
         }
-        .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        /* Thumbnails also use object-fit: cover to keep proportions upright */
+        .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .gallery-thumb.active {
           border-color: #f59e0b;
           box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
@@ -1727,6 +1786,55 @@ const ListingDetails = () => {
         .badge-sub { background: #f1f5f9; color: #64748b; }
         .badge-delivery { background: #dbeafe; color: #1e40af; }
         .badge-premium { background: #F0D9A8; color: #7A5A16; }
+        .badge-fresh { background: #FFEDD5; color: #C2410C; }
+
+        /* ---------- Live burning fire (shared with Landing) ---------- */
+        .burning-fire {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          vertical-align: middle;
+        }
+        .burning-fire-svg {
+          position: relative;
+          z-index: 2;
+          display: block;
+          filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.55));
+        }
+        .burning-fire-glow {
+          position: absolute;
+          inset: -30%;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(249, 115, 22, 0.55), rgba(249, 115, 22, 0) 70%);
+          animation: fireGlow 1.4s ease-in-out infinite;
+          z-index: 1;
+        }
+        .flame-outer { transform-origin: 50% 80%; animation: flameFlickerOuter 0.9s ease-in-out infinite; }
+        .flame-mid   { transform-origin: 50% 80%; animation: flameFlickerMid 0.7s ease-in-out infinite; }
+        .flame-core  { transform-origin: 50% 80%; animation: flameFlickerCore 0.5s ease-in-out infinite; }
+        @keyframes flameFlickerOuter {
+          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          30%      { transform: scale(1.06, 1.12) rotate(-2deg); opacity: 0.95; }
+          60%      { transform: scale(0.97, 1.05) rotate(2deg); opacity: 0.9; }
+        }
+        @keyframes flameFlickerMid {
+          0%, 100% { transform: scale(1) rotate(0deg); }
+          35%      { transform: scale(1.12, 1.18) rotate(-3deg); }
+          70%      { transform: scale(0.94, 1.06) rotate(3deg); }
+        }
+        @keyframes flameFlickerCore {
+          0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          50%      { transform: scale(1.18, 1.25) rotate(2deg); opacity: 0.85; }
+        }
+        @keyframes fireGlow {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50%      { opacity: 0.95; transform: scale(1.15); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .flame-outer, .flame-mid, .flame-core, .burning-fire-glow { animation: none; }
+        }
 
         .engage-row {
           display: flex; align-items: center; gap: 8px;
@@ -1968,7 +2076,7 @@ const ListingDetails = () => {
           overflow: hidden; background: #F0E9D6;
           flex-shrink: 0; border: 1px solid #EFE6CE;
         }
-        .pop-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .pop-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .pop-thumb-fallback {
           width: 100%; height: 100%;
           display: flex; align-items: center; justify-content: center;
