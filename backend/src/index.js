@@ -63,7 +63,7 @@ import notificationsRoutes from './api/notifications.js';
 import matchingRoutes from './api/matching.js';
 import paymentRoutes from './api/payment.js';
 import searchRoutes from './api/search.js';
-import messagesRoutes from './api/messages.js'; // ✅ NEW
+import messagesRoutes from './api/messages.js';
 import interactionsRoutes from './api/interactions.js';
 
 const app = express();
@@ -227,11 +227,20 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:", "https://res.cloudinary.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "https://res.cloudinary.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      connectSrc: ["'self'", "https:", "wss:"],
+      mediaSrc: ["'self'", "blob:", "data:", "https:"],
+      workerSrc: ["'self'", "blob:"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
     },
   },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,
@@ -249,12 +258,14 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'https://msikaai.vercel.app',
   'https://msikaai-mauve.vercel.app',
+  'https://msika-wa-mitundu.vercel.app',
   'https://msikaai-backend.onrender.com',
-  'https://msikaai.onrender.com'
+  'https://msikaai.onrender.com',
 ].filter(Boolean);
 
 const uniqueOrigins = [...new Set(allowedOrigins)];
 const vercelPreviewPattern = /^https:\/\/msikaai-[a-z0-9]+-kennedy-bandas-projects\.vercel\.app$/;
+const msikaVercelPattern = /^https:\/\/msika-wa-mitundu[a-z0-9-]*\.vercel\.app$/;
 
 logger.info(`🌐 Allowed origins: ${uniqueOrigins.join(', ')} + Vercel preview deployments`);
 
@@ -264,8 +275,9 @@ app.use(cors({
 
     const isExplicitlyAllowed = uniqueOrigins.indexOf(origin) !== -1;
     const isVercelPreview = vercelPreviewPattern.test(origin);
+    const isMsikaVercel = msikaVercelPattern.test(origin);
 
-    if (isExplicitlyAllowed || isVercelPreview || !isProduction) {
+    if (isExplicitlyAllowed || isVercelPreview || isMsikaVercel || !isProduction) {
       callback(null, true);
     } else {
       logger.warn(`❌ CORS blocked for origin: ${origin}`);
@@ -293,7 +305,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use(logHttpRequest);
-app.use('/api/interactions', authenticateToken, interactionsRoutes);
 
 // ============================================
 // RATE LIMITING
@@ -613,7 +624,8 @@ app.use('/api/matching', authenticateToken, matchingRoutes);
 app.use('/api/ai', authenticateToken, aiLimiter, aiRoutes);
 app.use('/api/payment', authenticateToken, paymentRoutes);
 app.use('/api/search', searchRoutes);
-app.use('/api/messages', authenticateToken, messagesRoutes); // ✅ NEW
+app.use('/api/messages', authenticateToken, messagesRoutes);
+app.use('/api/interactions', authenticateToken, interactionsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

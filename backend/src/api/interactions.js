@@ -5,23 +5,16 @@ import { logger } from '../utils/logger.js';
 
 const router = Router();
 
-// ============================================
-// POST /api/interactions/likes/:listingId
-// Toggle a like on a listing
-// ============================================
-router.post('/likes/:listingId', async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { listingId } = req.params;
-
-    const result = await dbService.toggleListingLike(listingId, userId);
-
-    res.json({ success: true, ...result });
-  } catch (error) {
-    logger.error('Toggle like error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+// ============================================================
+// ⚠️  ROUTE ORDER MATTERS
+//
+// Express matches routes in the order they are declared.
+// Specific literal paths (/likes/batch, /comments/counts) MUST
+// come BEFORE parameterized paths (/likes/:listingId,
+// /comments/:listingId), otherwise "batch" gets captured as the
+// :listingId param and Postgres throws:
+//   "invalid input syntax for type uuid: batch"
+// ============================================================
 
 // ============================================
 // POST /api/interactions/likes/batch
@@ -45,6 +38,24 @@ router.post('/likes/batch', async (req, res) => {
     res.json({ success: true, ...result });
   } catch (error) {
     logger.error('Batch like states error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// POST /api/interactions/likes/:listingId
+// Toggle a like on a listing
+// ============================================
+router.post('/likes/:listingId', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { listingId } = req.params;
+
+    const result = await dbService.toggleListingLike(listingId, userId);
+
+    res.json({ success: true, ...result });
+  } catch (error) {
+    logger.error('Toggle like error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
