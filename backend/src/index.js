@@ -315,18 +315,6 @@ app.use(logHttpRequest);
 // limiter via the `skip` function below. They still run through the
 // pollingLimiter, which has a much higher ceiling, so real abuse is
 // still throttled but normal app traffic is never blocked.
-//
-// Symptom this fixes:
-//   POST /api/interactions/likes/batch   429
-//   POST /api/interactions/comments/counts   429
-//   GET  /api/notifications/user/:id   429
-//   POST /api/interactions/likes/:id   429
-//
-// Root cause:
-//   A single landing page load fires ~10-20 requests; after 3-4 reloads
-//   the general bucket (100/15min) was exhausted and every subsequent
-//   request was rejected — including user-initiated likes and comments,
-//   which then silently failed to persist.
 
 const rateLimitCommon = {
   standardHeaders: true,
@@ -679,7 +667,11 @@ app.use('/api/ai', authenticateToken, aiLimiter, aiRoutes);
 app.use('/api/payment', authenticateToken, paymentRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/messages', authenticateToken, messagesRoutes);
-app.use('/api/interactions', authenticateToken, interactionsRoutes);
+
+// ★ Interactions: the router itself decides which routes need auth.
+//   GET /comments/:listingId and POST /comments/counts are public.
+//   Everything else (likes, create comment, delete comment) requires auth.
+app.use('/api/interactions', interactionsRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

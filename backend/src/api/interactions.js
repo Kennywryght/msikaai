@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import dbService from '../services/dbService.js';
 import { logger } from '../utils/logger.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -17,53 +18,16 @@ const router = Router();
 // ============================================================
 
 // ============================================
-// POST /api/interactions/likes/batch
-// Body: { listingIds: string[] }
-// Returns like counts + which ones the current user liked
+// PUBLIC ROUTES — no auth required
+//
+// Reading comments should not require a login. Guests and
+// signed-out visitors can browse the discussion on any listing.
 // ============================================
-router.post('/likes/batch', async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { listingIds } = req.body;
-
-    if (!Array.isArray(listingIds)) {
-      return res.status(400).json({
-        success: false,
-        error: 'listingIds must be an array',
-      });
-    }
-
-    const result = await dbService.getLikeStatesForListings(listingIds, userId);
-
-    res.json({ success: true, ...result });
-  } catch (error) {
-    logger.error('Batch like states error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// ============================================
-// POST /api/interactions/likes/:listingId
-// Toggle a like on a listing
-// ============================================
-router.post('/likes/:listingId', async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { listingId } = req.params;
-
-    const result = await dbService.toggleListingLike(listingId, userId);
-
-    res.json({ success: true, ...result });
-  } catch (error) {
-    logger.error('Toggle like error:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 // ============================================
 // POST /api/interactions/comments/counts
 // Body: { listingIds: string[] }
-// Returns comment counts per listing
+// Returns comment counts per listing (public)
 // ============================================
 router.post('/comments/counts', async (req, res) => {
   try {
@@ -87,7 +51,7 @@ router.post('/comments/counts', async (req, res) => {
 
 // ============================================
 // GET /api/interactions/comments/:listingId
-// List comments for a listing
+// List comments for a listing (public)
 // ============================================
 router.get('/comments/:listingId', async (req, res) => {
   try {
@@ -107,11 +71,60 @@ router.get('/comments/:listingId', async (req, res) => {
 });
 
 // ============================================
+// PROTECTED ROUTES — auth required
+// ============================================
+
+// ============================================
+// POST /api/interactions/likes/batch
+// Body: { listingIds: string[] }
+// Returns like counts + which ones the current user liked
+// (auth required because it returns `userLikes`)
+// ============================================
+router.post('/likes/batch', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { listingIds } = req.body;
+
+    if (!Array.isArray(listingIds)) {
+      return res.status(400).json({
+        success: false,
+        error: 'listingIds must be an array',
+      });
+    }
+
+    const result = await dbService.getLikeStatesForListings(listingIds, userId);
+
+    res.json({ success: true, ...result });
+  } catch (error) {
+    logger.error('Batch like states error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// POST /api/interactions/likes/:listingId
+// Toggle a like on a listing (auth required)
+// ============================================
+router.post('/likes/:listingId', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { listingId } = req.params;
+
+    const result = await dbService.toggleListingLike(listingId, userId);
+
+    res.json({ success: true, ...result });
+  } catch (error) {
+    logger.error('Toggle like error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
 // POST /api/interactions/comments/:listingId
 // Body: { text }
-// Create a comment
+// Create a comment (auth required)
 // ============================================
-router.post('/comments/:listingId', async (req, res) => {
+router.post('/comments/:listingId', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { listingId } = req.params;
@@ -135,9 +148,9 @@ router.post('/comments/:listingId', async (req, res) => {
 
 // ============================================
 // DELETE /api/interactions/comments/:commentId
-// Delete a comment (only owner)
+// Delete a comment (only owner, auth required)
 // ============================================
-router.delete('/comments/:commentId', async (req, res) => {
+router.delete('/comments/:commentId', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { commentId } = req.params;
