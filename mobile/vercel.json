@@ -1,7 +1,8 @@
 {
-  "buildCommand": "cd mobile && npm run build",
-  "outputDirectory": "mobile/dist",
-  "installCommand": "cd mobile && npm install --legacy-peer-deps",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install --legacy-peer-deps",
   "framework": "vite",
   "rewrites": [
     {
