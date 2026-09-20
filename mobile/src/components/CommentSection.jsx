@@ -96,16 +96,36 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
 
   /* ---------- Fetch ---------- */
   const fetchComments = useCallback(async () => {
-    if (!listingId) return;
+    if (!listingId) {
+      console.log('[CommentSection] No listingId, skipping fetch');
+      return;
+    }
+    console.log('[CommentSection] Fetching comments for listingId:', listingId);
     setLoading(true);
     try {
       const res = await interactionsAPI.getComments(listingId, { limit: 100 });
+
+      console.log('[CommentSection] raw response:', res);
+      console.log('[CommentSection] res.data:', res?.data);
+      console.log('[CommentSection] res.data.comments:', res?.data?.comments);
+      console.log(
+        '[CommentSection] comments count:',
+        Array.isArray(res?.data?.comments) ? res.data.comments.length : 'NOT AN ARRAY'
+      );
+      if (Array.isArray(res?.data?.comments) && res.data.comments[0]) {
+        console.log('[CommentSection] first comment shape:', res.data.comments[0]);
+        console.log('[CommentSection] first comment keys:', Object.keys(res.data.comments[0]));
+      }
+
       const data = res?.data?.comments || [];
       const list = Array.isArray(data) ? data : [];
       setComments(list);
       onCountChange?.(list.length);
     } catch (err) {
-      console.error('fetchComments error:', err);
+      console.error('[CommentSection] fetchComments error:', err);
+      console.error('[CommentSection] error status:', err?.response?.status);
+      console.error('[CommentSection] error response data:', err?.response?.data);
+      console.error('[CommentSection] error message:', err?.message);
       setComments([]);
     } finally {
       setLoading(false);
@@ -180,7 +200,11 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
     }
 
     try {
+      console.log('[CommentSection] Submitting comment for listingId:', listingId, 'content:', content);
       const res = await interactionsAPI.createComment(listingId, content);
+      console.log('[CommentSection] createComment response:', res);
+      console.log('[CommentSection] createComment res.data:', res?.data);
+      console.log('[CommentSection] createComment res.data.comment:', res?.data?.comment);
       const saved = res?.data?.comment;
       if (saved) {
         setComments((prev) =>
@@ -197,7 +221,9 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
       }
       onCountChange?.(comments.length + 1);
     } catch (err) {
-      console.error('addComment error:', err);
+      console.error('[CommentSection] addComment error:', err);
+      console.error('[CommentSection] addComment error status:', err?.response?.status);
+      console.error('[CommentSection] addComment error data:', err?.response?.data);
       setComments((prev) => prev.filter((c) => c.id !== optimistic.id));
       if (parentId) setReplyDraft(content);
       else setDraft(content);
