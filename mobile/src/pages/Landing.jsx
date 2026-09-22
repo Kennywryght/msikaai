@@ -567,6 +567,13 @@ const Landing = () => {
   const spotlightTileRefs = useRef([]);
   const isMobile = windowWidth <= 768;
 
+  // Keep a stable ref of the current commentsListing id so the count
+  // callback doesn't need to change identity on every render.
+  const commentsListingIdRef = useRef(null);
+  useEffect(() => {
+    commentsListingIdRef.current = commentsListing?.id ?? null;
+  }, [commentsListing?.id]);
+
   useEffect(() => {
     if (!isAuthenticated) navigate('/login', { replace: true });
   }, [isAuthenticated, navigate]);
@@ -858,6 +865,27 @@ const Landing = () => {
     navigate(`/search?q=${encodeURIComponent(business.business_name)}`);
   }, [navigate]);
 
+  /* ---------- Open comments (guards business cards) ---------- */
+  const handleOpenComments = useCallback((item) => {
+    if (!item) return;
+    const id = String(item.id || '');
+    if (item.is_business || id.startsWith('biz-')) {
+      showToast('Comments are only available on listings', 'info');
+      return;
+    }
+    setCommentsListing(item);
+  }, [showToast]);
+
+  /* ---------- Stable count callback for CommentSection ---------- */
+  const handleCommentCountChange = useCallback((count) => {
+    const id = commentsListingIdRef.current;
+    if (!id) return;
+    setCommentCounts((prev) => {
+      if (prev[id] === count) return prev; // avoid pointless re-render
+      return { ...prev, [id]: count };
+    });
+  }, []);
+
   const handleBottomNav = (id) => {
     if (id === 'home') navigate('/landing');
     else if (id === 'search') navigate('/search');
@@ -1005,7 +1033,7 @@ const Landing = () => {
             onLike={handleLike}
             onOpen={handleListingClick}
             onMessage={handleQuickMessage}
-            onOpenComments={(it) => setCommentsListing(it)}
+            onOpenComments={handleOpenComments}
           />
         </section>
       )}
@@ -1038,7 +1066,7 @@ const Landing = () => {
                     onLike={handleLike}
                     onOpen={handleListingClick}
                     onMessage={handleQuickMessage}
-                    onOpenComments={(it) => setCommentsListing(it)}
+                    onOpenComments={handleOpenComments}
                   />
                 ))}
               </div>
@@ -1069,7 +1097,7 @@ const Landing = () => {
                     onLike={handleLike}
                     onOpen={handleListingClick}
                     onMessage={handleQuickMessage}
-                    onOpenComments={(it) => setCommentsListing(it)}
+                    onOpenComments={handleOpenComments}
                   />
                 ))}
               </div>
@@ -1138,11 +1166,9 @@ const Landing = () => {
             </div>
             <div className="pop-body">
               <CommentSection
+                key={commentsListing.id}
                 listingId={commentsListing.id}
-                onCountChange={(count) => {
-                  setCommentCounts((prev) => ({ ...prev, [commentsListing.id]: count }));
-                  setCommentsListing((c) => (c ? { ...c, comment_count: count } : c));
-                }}
+                onCountChange={handleCommentCountChange}
               />
             </div>
           </div>
@@ -2127,8 +2153,15 @@ const Landing = () => {
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
           padding: 12px 14px 18px;
-          background: #FFFDF8;
+          background: #FFFFFF;
         }
+        /* Slightly stronger contrast for comments inside the pop-up */
+        .pop-body :global(.cs-title) { color: #101010; font-weight: 700; }
+        .pop-body :global(.cs-subtitle) { color: #6B6259; }
+        .pop-body :global(.cmt-name) { color: #101010; }
+        .pop-body :global(.cmt-text) { color: #1F1B15; }
+        .pop-body :global(.cmt-time) { color: #6B6259; }
+        .pop-body :global(.cmt-act) { color: #5A554C; font-weight: 600; }
 
         /* EMPTY */
         .empty-state { text-align: center; padding: 56px 20px; }

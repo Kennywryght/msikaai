@@ -94,10 +94,19 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
   const draftInputRef = useRef(null);
   const replyInputRef = useRef(null);
 
+  // Keep latest onCountChange in a ref so it never invalidates fetchComments
+  const onCountChangeRef = useRef(onCountChange);
+  useEffect(() => {
+    onCountChangeRef.current = onCountChange;
+  }, [onCountChange]);
+
   /* ---------- Fetch ---------- */
   const fetchComments = useCallback(async () => {
     if (!listingId) {
-      console.log('[CommentSection] No listingId, skipping fetch');
+      console.warn('[CommentSection] No listingId provided — skipping fetch');
+      setComments([]);
+      setLoading(false);
+      onCountChangeRef.current?.(0);
       return;
     }
     console.log('[CommentSection] Fetching comments for listingId:', listingId);
@@ -120,7 +129,7 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
       const data = res?.data?.comments || [];
       const list = Array.isArray(data) ? data : [];
       setComments(list);
-      onCountChange?.(list.length);
+      onCountChangeRef.current?.(list.length);
     } catch (err) {
       console.error('[CommentSection] fetchComments error:', err);
       console.error('[CommentSection] error status:', err?.response?.status);
@@ -130,7 +139,7 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
     } finally {
       setLoading(false);
     }
-  }, [listingId, onCountChange]);
+  }, [listingId]); // <-- ONLY listingId; onCountChange accessed via ref
 
   useEffect(() => {
     fetchComments();
@@ -219,7 +228,11 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
           )
         );
       }
-      onCountChange?.(comments.length + 1);
+      // Use functional update to get the true length
+      setComments((prev) => {
+        onCountChangeRef.current?.(prev.length);
+        return prev;
+      });
     } catch (err) {
       console.error('[CommentSection] addComment error:', err);
       console.error('[CommentSection] addComment error status:', err?.response?.status);
@@ -256,14 +269,9 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
       if (wasLiked) await commentsAPI.unlike(comment.id);
       else await commentsAPI.like(comment.id);
     } catch (err) {
-      console.warn('likeComment error (non-fatal):', err?.message);
-      setComments((prev) =>
-        prev.map((c) =>
-          c.id === comment.id
-            ? { ...c, liked_by_me: wasLiked, likes: comment.likes ?? 0 }
-            : c
-        )
-      );
+      // Comment likes are not yet persisted on the backend. Keep the
+      // optimistic UI state so the button doesn't yank back on every click.
+      console.warn('likeComment not persisted (endpoint not implemented):', err?.message);
     } finally {
       setLikingIds((p) => {
         const next = { ...p };
@@ -282,7 +290,10 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
         prev.filter((c) => c.id !== comment.id && c.parent_id !== comment.id)
       );
       showToast('Comment deleted', 'success');
-      onCountChange?.(Math.max(0, comments.length - 1));
+      setComments((prev) => {
+        onCountChangeRef.current?.(prev.length);
+        return prev;
+      });
     } catch (err) {
       console.error('deleteComment error:', err);
       showToast('Failed to delete comment', 'error');
