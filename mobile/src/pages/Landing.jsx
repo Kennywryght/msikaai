@@ -16,7 +16,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     arrowRight: "M5 12h14M12 5l7 7-7 7",
     store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
     heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
-    /* ★ FIRE — used for listing likes ("flame on") */
     fire: "M12 2c1.5 3.5 4 5.5 4 9a4 4 0 11-8 0c0-1.4.5-2.5 1.2-3.4.3-.4.6-.9.8-1.4.2-.5.2-1 0-1.4-.2-.4-.3-.6-.3-.8 0-.3.2-.6.5-.7.3-.2.6-.1.8.2.6.7.8 1.4.5 2.5.7-.5 1.2-1.1 1.5-1.9.1-.4.1-.7 0-1 0-.2 0-.4.2-.5.2-.1.4-.1.5 0 .3.3.4.6.3.9z",
     star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
     message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
@@ -268,10 +267,7 @@ const PhotoSlider = ({
   );
 };
 
-/* ---------- Reusable compact card ----------
- * Like icon is a FIRE (flame) — used to "flame on" a listing.
- * Comment icon stays as a message bubble.
- */
+/* ---------- Product card ---------- */
 const ProductCard = ({
   item, index, user, openingChatId, likeState, commentCount,
   onLike, onOpen, onMessage, onOpenComments,
@@ -303,7 +299,6 @@ const ProductCard = ({
           </span>
         )}
 
-        {/* ★ Fire badge on the top-right of the image */}
         <button
           className={`pcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
@@ -344,7 +339,6 @@ const ProductCard = ({
         </div>
 
         <div className="pcard-actions">
-          {/* ★ Fire action button */}
           <button
             className={`pcard-icon-btn ${liked ? 'liked' : ''}`}
             onClick={(e) => onLike(e, item)}
@@ -354,7 +348,6 @@ const ProductCard = ({
             {likeCount > 0 && <span>{likeCount}</span>}
           </button>
 
-          {/* Comment button stays as a message bubble */}
           <button
             className="pcard-icon-btn"
             onClick={(e) => { e.stopPropagation(); onOpenComments(item); }}
@@ -413,7 +406,6 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
           )}
         </div>
 
-        {/* ★ Fire button */}
         <button
           className={`fcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
@@ -449,8 +441,7 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
             )}
           </div>
           <div className="fcard-actions">
-            <button
-              className="fcard-action"
+            <button              className="fcard-action"
               onClick={(e) => { e.stopPropagation(); onOpenComments(item); }}
             >
               <Icon name="comment" size={13} color="#F7F1E3" strokeWidth={1.9} />
@@ -567,8 +558,6 @@ const Landing = () => {
   const spotlightTileRefs = useRef([]);
   const isMobile = windowWidth <= 768;
 
-  // Keep a stable ref of the current commentsListing id so the count
-  // callback doesn't need to change identity on every render.
   const commentsListingIdRef = useRef(null);
   useEffect(() => {
     commentsListingIdRef.current = commentsListing?.id ?? null;
@@ -865,7 +854,6 @@ const Landing = () => {
     navigate(`/search?q=${encodeURIComponent(business.business_name)}`);
   }, [navigate]);
 
-  /* ---------- Open comments (guards business cards) ---------- */
   const handleOpenComments = useCallback((item) => {
     if (!item) return;
     const id = String(item.id || '');
@@ -876,12 +864,11 @@ const Landing = () => {
     setCommentsListing(item);
   }, [showToast]);
 
-  /* ---------- Stable count callback for CommentSection ---------- */
   const handleCommentCountChange = useCallback((count) => {
     const id = commentsListingIdRef.current;
     if (!id) return;
     setCommentCounts((prev) => {
-      if (prev[id] === count) return prev; // avoid pointless re-render
+      if (prev[id] === count) return prev;
       return { ...prev, [id]: count };
     });
   }, []);
@@ -1441,7 +1428,6 @@ const Landing = () => {
           .flame-outer, .flame-mid, .flame-core, .ember { animation: none; }
         }
 
-        /* "Fresh this week" right-side fire + NEW label */
         .fresh-live-badge {
           display: inline-flex;
           align-items: center;
@@ -1747,7 +1733,6 @@ const Landing = () => {
           transition: background 0.2s, transform 0.15s;
         }
         .fcard-heart:hover { background: rgba(22, 38, 31, 0.78); transform: scale(1.04); }
-        /* ★ Flamed = bright orange gradient */
         .fcard-heart.liked {
           background: linear-gradient(135deg, #F97316 0%, #DC2626 100%);
           box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
@@ -1933,7 +1918,6 @@ const Landing = () => {
           z-index: 5;
         }
         .pcard-heart:hover { background: rgba(22, 38, 31, 0.72); transform: scale(1.06); }
-        /* ★ Flamed = orange gradient + pop */
         .pcard-heart.liked {
           background: linear-gradient(135deg, #F97316 0%, #DC2626 100%);
           box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
@@ -2021,7 +2005,6 @@ const Landing = () => {
         }
         .pcard-icon-btn:hover { background: rgba(234, 88, 12, 0.08); color: #201F1B; }
         .pcard-icon-btn:active { transform: scale(0.96); }
-        /* ★ Flamed action button */
         .pcard-icon-btn.liked { color: #EA580C; font-weight: 700; }
 
         .pcard-msg {
@@ -2155,7 +2138,6 @@ const Landing = () => {
           padding: 12px 14px 18px;
           background: #FFFFFF;
         }
-        /* Slightly stronger contrast for comments inside the pop-up */
         .pop-body :global(.cs-title) { color: #101010; font-weight: 700; }
         .pop-body :global(.cs-subtitle) { color: #6B6259; }
         .pop-body :global(.cmt-name) { color: #101010; }
