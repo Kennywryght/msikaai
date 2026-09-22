@@ -19,7 +19,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     user: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
     clock: 'M12 6v6l4 2M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z',
     refresh: 'M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15',
-    // ★ New icons for polish
     check: 'M20 6L9 17l-5-5',
     checkCheck: 'M18 6L7 17l-4-4M22 6l-11 11',
     image: 'M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21',
@@ -49,7 +48,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 // ============================================================
 // HELPERS
 // ============================================================
-const AVATAR_COLORS = ['#F59E0B', '#3B82F6', '#10B981', '#8B5CF6', '#EC4899', '#EF4444'];
+const AVATAR_COLORS = ['#24453B', '#BC5B34', '#8B5A83', '#3E6C76', '#5B7B5E', '#D99A3B'];
 
 const pickColor = (str) => {
   if (!str) return AVATAR_COLORS[0];
@@ -83,15 +82,14 @@ const formatTime = (date) => {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
 
-/* Classify last message preview so we can show a tiny icon for
-   image / voice messages instead of raw text. */
 const previewOf = (thread) => {
   const text = thread.lastMessageText || '';
   const lower = text.toLowerCase();
   if (lower === '[image]') return { kind: 'image', text: 'Photo' };
   if (lower === '[voice message]' || lower === '[voice]')
     return { kind: 'audio', text: 'Voice message' };
-  if (lower.startsWith('[image]')) return { kind: 'image', text: text.replace('[image]', '').trim() || 'Photo' };
+  if (lower.startsWith('[image]'))
+    return { kind: 'image', text: text.replace('[image]', '').trim() || 'Photo' };
   if (lower.startsWith('[voice')) return { kind: 'audio', text: 'Voice message' };
   return { kind: 'text', text: text || 'Start the conversation…' };
 };
@@ -143,7 +141,7 @@ const Messages = () => {
   }, [loadConversations]);
 
   // ============================================================
-  // REALTIME (unchanged logic, cleaner merge)
+  // REALTIME
   // ============================================================
   useEffect(() => {
     if (!user?.id) return;
@@ -288,13 +286,13 @@ const Messages = () => {
                 title="Refresh"
                 aria-label="Refresh conversations"
               >
-                <Icon name="refresh" size={17} color="#64748B" strokeWidth={2} />
+                <Icon name="refresh" size={17} color="#6B6259" strokeWidth={2} />
               </button>
             </div>
           </div>
 
           <div className="search-wrapper">
-            <Icon name="search" size={16} color="#94A3B8" strokeWidth={2} />
+            <Icon name="search" size={16} color="#9C9482" strokeWidth={2} />
             <input
               type="text"
               placeholder="Search by name or message…"
@@ -310,7 +308,7 @@ const Messages = () => {
                 onClick={handleClearSearch}
                 aria-label="Clear search"
               >
-                <Icon name="close" size={14} color="#64748B" strokeWidth={2.2} />
+                <Icon name="close" size={14} color="#6B6259" strokeWidth={2.2} />
               </button>
             )}
           </div>
@@ -362,7 +360,7 @@ const Messages = () => {
                     <div className="thread-avatar-wrap">
                       <div
                         className="thread-avatar"
-                        style={{ background: `${color}15`, color }}
+                        style={{ background: color }}
                       >
                         {initials}
                       </div>
@@ -380,12 +378,12 @@ const Messages = () => {
                       <div className="thread-preview-row">
                         {preview.kind === 'image' && (
                           <span className="preview-icon preview-icon-img">
-                            <Icon name="image" size={12} color="#64748B" strokeWidth={2} />
+                            <Icon name="image" size={12} color="#3B82F6" strokeWidth={2} />
                           </span>
                         )}
                         {preview.kind === 'audio' && (
                           <span className="preview-icon preview-icon-mic">
-                            <Icon name="mic" size={11} color="#64748B" strokeWidth={2} />
+                            <Icon name="mic" size={11} color="#10B981" strokeWidth={2} />
                           </span>
                         )}
                         <p className={`thread-message ${isUnread ? 'unread' : ''}`}>
@@ -408,7 +406,7 @@ const Messages = () => {
           <div className="empty-state">
             <div className="empty-icon-wrap">
               <div className="empty-icon-inner">
-                <Icon name="message" size={34} color="#F59E0B" strokeWidth={1.6} />
+                <Icon name="message" size={34} color="#D99A3B" strokeWidth={1.6} />
               </div>
             </div>
             <h3 className="empty-title">
@@ -427,9 +425,9 @@ const Messages = () => {
             </p>
             {!searchQuery && activeFilter === 'all' && (
               <button className="empty-btn" onClick={() => navigate('/landing')}>
-                <Icon name="search" size={14} color="#FFFFFF" strokeWidth={2.2} />
+                <Icon name="search" size={14} color="#F7F1E3" strokeWidth={2.2} />
                 Browse listings
-                <Icon name="arrowRight" size={14} color="#FFFFFF" strokeWidth={2.2} />
+                <Icon name="arrowRight" size={14} color="#F7F1E3" strokeWidth={2.2} />
               </button>
             )}
           </div>
@@ -457,8 +455,8 @@ const Messages = () => {
                   <Icon
                     name={item.icon}
                     size={20}
-                    color={active ? '#FFFFFF' : '#94A3B8'}
-                    strokeWidth={1.75}
+                    color={active ? '#F7F1E3' : '#9C9482'}
+                    strokeWidth={1.85}
                   />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>
@@ -477,13 +475,16 @@ const Messages = () => {
 
       <style jsx>{`
         /* ============================================================
-           MESSAGES PAGE
+           MESSAGES PAGE — warm, premium, matches the marketplace
            ============================================================ */
         .messages-page {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: #F7F1E3;
+          background-image:
+            radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #201F1B;
           padding-bottom: 100px;
         }
         @media (min-width: 769px) {
@@ -492,163 +493,183 @@ const Messages = () => {
 
         /* ---------- HEADER ---------- */
         .page-header {
-          background: #FFFFFF;
-          border-bottom: 1px solid #F1F5F9;
+          background: rgba(255, 253, 248, 0.94);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(239, 230, 206, 0.9);
           position: sticky;
           top: 0;
           z-index: 10;
-          padding: 16px 16px 14px;
+          padding: 18px 16px 14px;
         }
         .header-inner { max-width: 800px; margin: 0 auto; }
         .header-top {
           display: flex; justify-content: space-between; align-items: center;
-          margin-bottom: 14px;
+          margin-bottom: 16px;
         }
         .header-title-wrap {
-          display: flex; align-items: center; gap: 8px;
+          display: flex; align-items: center; gap: 10px;
         }
         .page-title {
-          font-size: clamp(22px, 3vw, 26px);
-          font-weight: 800;
-          color: #0F172A;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: clamp(24px, 3.2vw, 28px);
+          font-weight: 600;
+          color: #201F1B;
           margin: 0;
           letter-spacing: -0.02em;
         }
         .unread-badge {
-          font-size: 12px; font-weight: 700; color: #FFFFFF;
-          background: linear-gradient(135deg, #F59E0B, #EA580C);
-          padding: 3px 9px; border-radius: 10px;
-          min-width: 22px; text-align: center;
-          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+          font-size: 12px; font-weight: 800; color: #F7F1E3;
+          background: linear-gradient(135deg, #BC5B34, #A04724);
+          padding: 4px 10px; border-radius: 10px;
+          min-width: 24px; text-align: center;
+          box-shadow: 0 3px 8px rgba(188, 91, 52, 0.35);
+          letter-spacing: 0.02em;
         }
         .header-actions { display: flex; gap: 8px; }
         .icon-btn {
-          width: 38px; height: 38px; border-radius: 11px;
-          border: 1px solid #F1F5F9; background: #FFFFFF;
+          width: 40px; height: 40px; border-radius: 12px;
+          border: 1px solid rgba(239, 230, 206, 0.9);
+          background: #FFFDF8;
           cursor: pointer; display: flex; align-items: center;
           justify-content: center;
           transition: background 0.15s, border-color 0.15s, transform 0.1s;
         }
-        .icon-btn:hover { background: #F8FAFC; border-color: #E2E8F0; }
+        .icon-btn:hover {
+          background: #F7F1E3;
+          border-color: rgba(217, 154, 59, 0.4);
+        }
         .icon-btn:active { transform: scale(0.95); }
 
         /* ---------- SEARCH ---------- */
         .search-wrapper {
           display: flex; align-items: center; gap: 10px;
-          background: #F8FAFC;
-          border: 1.5px solid #F1F5F9;
-          border-radius: 14px;
-          padding: 11px 14px;
+          background: #F7F1E3;
+          border: 1.5px solid rgba(239, 230, 206, 0.9);
+          border-radius: 15px;
+          padding: 12px 15px;
           margin-bottom: 12px;
           transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
         }
         .search-wrapper:focus-within {
-          border-color: #F59E0B;
-          background: #FFFFFF;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+          border-color: #D99A3B;
+          background: #FFFDF8;
+          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.12);
         }
         .search-input {
           flex: 1; border: none; outline: none; font-size: 14px;
-          color: #1E293B; background: transparent; font-family: inherit;
+          color: #201F1B; background: transparent; font-family: inherit;
           min-width: 0;
         }
-        .search-input::placeholder { color: #94A3B8; }
+        .search-input::placeholder { color: #B7AD98; }
         .clear-btn {
           width: 22px; height: 22px; border-radius: 50%;
-          border: none; background: #E2E8F0;
+          border: none; background: #E4D9BD;
           cursor: pointer; display: flex; align-items: center;
           justify-content: center; flex-shrink: 0;
           transition: background 0.15s;
         }
-        .clear-btn:hover { background: #CBD5E1; }
+        .clear-btn:hover { background: #D9C79E; }
 
         /* ---------- FILTER CHIPS ---------- */
         .filter-chips { display: flex; gap: 8px; }
         .filter-chip {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 7px 15px; border-radius: 20px;
-          border: 1px solid #E2E8F0; background: #FFFFFF;
-          font-size: 13px; font-weight: 600; color: #64748B;
+          display: inline-flex; align-items: center; gap: 7px;
+          padding: 8px 16px; border-radius: 20px;
+          border: 1.5px solid rgba(239, 230, 206, 0.9);
+          background: #FFFDF8;
+          font-size: 13px; font-weight: 600; color: #6B6259;
           cursor: pointer; font-family: inherit;
           transition: all 0.18s;
         }
-        .filter-chip:hover { border-color: #CBD5E1; color: #1E293B; }
+        .filter-chip:hover {
+          border-color: rgba(217, 154, 59, 0.4);
+          color: #201F1B;
+        }
         .filter-chip.active {
-          background: #0F172A; border-color: #0F172A; color: #FFFFFF;
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          border-color: #24453B;
+          color: #F7F1E3;
+          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.22);
         }
         .chip-count {
-          font-size: 11px; font-weight: 700;
-          padding: 1px 6px; border-radius: 8px;
-          background: rgba(15, 23, 42, 0.08);
+          font-size: 11px; font-weight: 800;
+          padding: 2px 7px; border-radius: 8px;
+          background: rgba(36, 69, 59, 0.08);
           color: inherit; line-height: 1.4;
         }
         .filter-chip.active .chip-count {
-          background: rgba(255, 255, 255, 0.18);
+          background: rgba(247, 241, 227, 0.18);
         }
         .chip-badge {
-          font-size: 10px; font-weight: 800; background: #F59E0B;
-          color: #FFFFFF; padding: 2px 7px; border-radius: 8px;
+          font-size: 10px; font-weight: 800;
+          background: linear-gradient(135deg, #BC5B34, #A04724);
+          color: #F7F1E3;
+          padding: 2px 8px; border-radius: 8px;
           line-height: 1.4;
         }
 
         /* ---------- THREADS LIST ---------- */
         .threads-container {
           max-width: 800px; margin: 0 auto;
-          padding: 14px 16px;
+          padding: 16px 16px;
         }
         .threads-list {
           list-style: none; padding: 0; margin: 0;
-          display: flex; flex-direction: column; gap: 8px;
+          display: flex; flex-direction: column; gap: 10px;
         }
 
         .thread-card {
-          display: flex; align-items: center; gap: 12px;
-          padding: 14px; background: #FFFFFF;
-          border-radius: 14px; border: 1px solid #F1F5F9;
-          cursor: pointer; transition: all 0.2s;
+          display: flex; align-items: center; gap: 13px;
+          padding: 14px; background: #FFFDF8;
+          border-radius: 16px;
+          border: 1px solid rgba(239, 230, 206, 0.9);
+          cursor: pointer;
+          transition: all 0.2s ease;
           position: relative;
           font-family: inherit;
           text-align: left;
           width: 100%;
           outline: none;
+          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
         }
         .thread-card:hover {
-          border-color: #E2E8F0;
-          transform: translateY(-1px);
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+          border-color: rgba(217, 154, 59, 0.4);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px rgba(22, 38, 31, 0.08);
         }
         .thread-card:active { transform: translateY(0); }
         .thread-card:focus-visible {
-          border-color: #F59E0B;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+          border-color: #D99A3B;
+          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.18);
         }
         .thread-card.unread {
-          background: #FFFFFF;
-          border-color: rgba(245, 158, 11, 0.25);
-          box-shadow: 0 4px 14px rgba(245, 158, 11, 0.06);
+          background: linear-gradient(135deg, #FFFDF8 0%, #FEF8EB 100%);
+          border-color: rgba(217, 154, 59, 0.35);
+          box-shadow: 0 6px 20px rgba(217, 154, 59, 0.08);
         }
         .thread-card.unread::before {
           content: '';
           position: absolute;
-          left: 0; top: 14px; bottom: 14px;
-          width: 3px; border-radius: 0 3px 3px 0;
-          background: linear-gradient(180deg, #F59E0B, #EA580C);
+          left: 0; top: 16px; bottom: 16px;
+          width: 3.5px; border-radius: 0 3px 3px 0;
+          background: linear-gradient(180deg, #D99A3B, #BC5B34);
         }
 
         .thread-avatar-wrap { position: relative; flex-shrink: 0; }
         .thread-avatar {
-          width: 50px; height: 50px; border-radius: 50%;
+          width: 52px; height: 52px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          font-size: 16px; font-weight: 700;
+          font-size: 17px; font-weight: 700;
+          color: #F7F1E3;
           letter-spacing: 0.02em;
-          box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 4px 12px rgba(22, 38, 31, 0.12);
         }
         .thread-online-dot {
           position: absolute; bottom: 2px; right: 2px;
-          width: 12px; height: 12px; border-radius: 50%;
+          width: 13px; height: 13px; border-radius: 50%;
           background: #10B981;
-          border: 2px solid #FFFFFF;
+          border: 2.5px solid #FFFDF8;
         }
 
         .thread-content { flex: 1; min-width: 0; }
@@ -657,24 +678,24 @@ const Messages = () => {
           align-items: center; gap: 8px; margin-bottom: 4px;
         }
         .thread-name {
-          font-size: 14.5px; font-weight: 700;
-          color: #0F172A;
+          font-size: 15px; font-weight: 700;
+          color: #201F1B;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
           letter-spacing: -0.01em;
         }
         .thread-time {
-          font-size: 11.5px; color: #94A3B8;
+          font-size: 11.5px; color: #9C9482;
           flex-shrink: 0; font-weight: 600;
           font-variant-numeric: tabular-nums;
         }
-        .thread-card.unread .thread-time { color: #F59E0B; }
+        .thread-card.unread .thread-time { color: #BC5B34; }
 
         .thread-preview-row {
           display: flex; align-items: center; gap: 6px;
           min-width: 0;
         }
         .preview-icon {
-          width: 18px; height: 18px; border-radius: 5px;
+          width: 20px; height: 20px; border-radius: 6px;
           display: inline-flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
@@ -682,24 +703,26 @@ const Messages = () => {
         .preview-icon-mic { background: rgba(16, 185, 129, 0.1); }
 
         .thread-message {
-          font-size: 13px; color: #64748B; margin: 0;
+          font-size: 13px; color: #9C9482; margin: 0;
           overflow: hidden; text-overflow: ellipsis;
-          white-space: nowrap; line-height: 1.4;
+          white-space: nowrap; line-height: 1.45;
           min-width: 0;
         }
         .thread-message.unread {
-          color: #334155; font-weight: 600;
+          color: #3A362E; font-weight: 600;
         }
 
         .unread-count {
-          min-width: 22px; height: 22px; padding: 0 7px;
-          border-radius: 11px;
-          background: linear-gradient(135deg, #F59E0B, #EA580C);
-          color: #FFFFFF; font-size: 11px; font-weight: 800;
+          min-width: 24px; height: 24px; padding: 0 8px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #BC5B34, #A04724);
+          color: #F7F1E3;
+          font-size: 11px; font-weight: 800;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
-          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+          box-shadow: 0 3px 8px rgba(188, 91, 52, 0.32);
           font-variant-numeric: tabular-nums;
+          letter-spacing: 0.02em;
         }
 
         /* ---------- LOADING ---------- */
@@ -707,9 +730,9 @@ const Messages = () => {
           display: flex; justify-content: center; padding: 60px 20px;
         }
         .loading-spinner {
-          width: 32px; height: 32px;
-          border: 3px solid #E2E8F0;
-          border-top-color: #F59E0B; border-radius: 50%;
+          width: 34px; height: 34px;
+          border: 3px solid rgba(36, 69, 59, 0.15);
+          border-top-color: #BC5B34; border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -718,98 +741,107 @@ const Messages = () => {
         .empty-state {
           text-align: center;
           padding: 56px 24px 64px;
-          background: #FFFFFF;
-          border-radius: 18px;
-          border: 1px solid #F1F5F9;
+          background: #FFFDF8;
+          border-radius: 20px;
+          border: 1px solid rgba(239, 230, 206, 0.9);
+          box-shadow: 0 4px 20px rgba(22, 38, 31, 0.04);
         }
         .empty-icon-wrap {
           display: inline-flex;
           align-items: center; justify-content: center;
-          width: 80px; height: 80px;
+          width: 88px; height: 88px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
-          margin-bottom: 18px;
-          box-shadow: 0 10px 30px rgba(245, 158, 11, 0.15);
+          background: linear-gradient(135deg, #FFF3E0, #FDEBCB);
+          margin-bottom: 20px;
+          box-shadow: 0 12px 32px rgba(217, 154, 59, 0.2);
         }
         .empty-icon-inner {
           display: flex; align-items: center; justify-content: center;
         }
         .empty-title {
-          font-size: 18px; font-weight: 800;
-          color: #0F172A; margin: 0 0 6px;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 19px; font-weight: 600;
+          color: #201F1B; margin: 0 0 6px;
           letter-spacing: -0.01em;
         }
         .empty-text {
-          font-size: 13.5px; color: #64748B;
-          margin: 0 auto 22px; line-height: 1.55;
+          font-size: 13.5px; color: #9C9482;
+          margin: 0 auto 24px; line-height: 1.55;
           max-width: 340px;
         }
         .empty-btn {
-          display: inline-flex; align-items: center; gap: 7px;
-          padding: 11px 22px;
-          background: #0F172A;
-          border: none; border-radius: 12px;
-          color: #FFFFFF;
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 12px 24px;
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          border: none; border-radius: 13px;
+          color: #F7F1E3;
           font-size: 14px; font-weight: 700;
           cursor: pointer; font-family: inherit;
-          transition: background 0.2s, transform 0.12s, box-shadow 0.2s;
-          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15);
+          transition: transform 0.12s, box-shadow 0.2s;
+          box-shadow: 0 8px 20px rgba(36, 69, 59, 0.25);
         }
         .empty-btn:hover {
-          background: #F59E0B;
-          transform: translateY(-1px);
-          box-shadow: 0 10px 22px rgba(245, 158, 11, 0.3);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px rgba(36, 69, 59, 0.35);
         }
         .empty-btn:active { transform: translateY(0); }
 
         /* ---------- BOTTOM NAV ---------- */
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          background: rgba(255, 253, 248, 0.96);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border-top: 1px solid rgba(239, 230, 206, 0.9);
           display: flex; justify-content: space-around;
-          padding: 4px 0 8px; z-index: 100;
+          padding: 4px 0 10px; z-index: 100;
         }
         .nav-btn {
           display: flex; flex-direction: column; align-items: center;
-          gap: 2px; background: none; border: none; cursor: pointer;
+          gap: 3px; background: none; border: none; cursor: pointer;
           padding: 4px 8px; font-family: inherit;
           min-width: 44px; position: relative;
         }
         .nav-icon-wrap {
-          width: 34px; height: 34px; border-radius: 10px;
+          width: 34px; height: 34px; border-radius: 9px;
           display: flex; align-items: center; justify-content: center;
-          transition: background 0.2s;
+          transition: background 0.2s, transform 0.15s;
         }
-        .nav-icon-wrap.active { background: #1E293B; }
-        .nav-label { font-size: 9px; font-weight: 500; color: #94A3B8; }
-        .nav-label.active { color: #1E293B; font-weight: 600; }
+        .nav-icon-wrap.active {
+          background: #24453B;
+          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+        }
+        .nav-btn:hover .nav-icon-wrap:not(.active) {
+          background: rgba(239, 230, 206, 0.6);
+        }
+        .nav-label { font-size: 9px; font-weight: 500; color: #9C9482; }
+        .nav-label.active { color: #201F1B; font-weight: 600; }
         .nav-badge {
           position: absolute; top: 0; right: 6px;
-          min-width: 16px; height: 16px; padding: 0 4px;
-          border-radius: 8px;
-          background: linear-gradient(135deg, #F59E0B, #EA580C);
-          color: #FFFFFF; font-size: 9px; font-weight: 800;
+          min-width: 17px; height: 17px; padding: 0 5px;
+          border-radius: 9px;
+          background: linear-gradient(135deg, #BC5B34, #A04724);
+          color: #F7F1E3;
+          font-size: 9px; font-weight: 800;
           display: flex; align-items: center; justify-content: center;
-          border: 2px solid #FFFFFF;
+          border: 2px solid #FFFDF8;
           font-variant-numeric: tabular-nums;
+          box-shadow: 0 2px 6px rgba(188, 91, 52, 0.3);
         }
 
         /* ---------- MOBILE ---------- */
         @media (max-width: 480px) {
-          .page-header { padding: 14px 14px 12px; }
-          .threads-container { padding: 12px 12px; }
-          .page-title { font-size: 21px; }
-          .thread-card { padding: 12px; gap: 10px; border-radius: 12px; }
-          .thread-avatar { width: 46px; height: 46px; font-size: 15px; }
-          .thread-name { font-size: 14px; }
+          .page-header { padding: 16px 14px 12px; }
+          .threads-container { padding: 14px 12px; }
+          .page-title { font-size: 23px; }
+          .thread-card { padding: 13px; gap: 11px; border-radius: 14px; }
+          .thread-avatar { width: 48px; height: 48px; font-size: 16px; }
+          .thread-name { font-size: 14.5px; }
           .thread-message { font-size: 12.5px; }
           .empty-state { padding: 44px 20px 52px; }
         }
         @media (max-width: 380px) {
-          .thread-avatar { width: 42px; height: 42px; font-size: 13px; }
+          .thread-avatar { width: 44px; height: 44px; font-size: 14px; }
           .thread-card { padding: 11px 10px; }
         }
 
@@ -819,9 +851,7 @@ const Messages = () => {
           }
           .thread-card:hover,
           .empty-btn:hover,
-          .icon-btn:active {
-            transform: none;
-          }
+          .icon-btn:active { transform: none; }
           .loading-spinner { animation: none; }
         }
       `}</style>
