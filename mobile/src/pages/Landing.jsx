@@ -7,7 +7,7 @@ import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
 
 /* ---------- Icons ---------- */
-const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
+const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '', fill = 'none' }) => {
   const icons = {
     home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
     search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
@@ -15,7 +15,9 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
     arrowRight: "M5 12h14M12 5l7 7-7 7",
     store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+    /* ★ Heart (love) — primary like icon across the marketplace */
     heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
+    /* Kept for any legacy usage / decorative spark */
     fire: "M12 2c1.5 3.5 4 5.5 4 9a4 4 0 11-8 0c0-1.4.5-2.5 1.2-3.4.3-.4.6-.9.8-1.4.2-.5.2-1 0-1.4-.2-.4-.3-.6-.3-.8 0-.3.2-.6.5-.7.3-.2.6-.1.8.2.6.7.8 1.4.5 2.5.7-.5 1.2-1.1 1.5-1.9.1-.4.1-.7 0-1 0-.2 0-.4.2-.5.2-.1.4-.1.5 0 .3.3.4.6.3.9z",
     star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
     message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
@@ -38,7 +40,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
   const d = icons[name] || icons.store;
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color}
       strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
       className={className}
       style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}>
@@ -48,7 +50,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 };
 
 /* ============================================================
-   LIVE BURNING FIRE — more realistic
+   LIVE BURNING FIRE — decorative "NEW" spark, not a like icon
    ============================================================ */
 const BurningFire = ({ size = 16 }) => (
   <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
@@ -299,12 +301,19 @@ const ProductCard = ({
           </span>
         )}
 
+        {/* ★ Heart (love) badge on the image */}
         <button
           className={`pcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
-          aria-label={liked ? 'Unflame' : 'Flame'}
+          aria-label={liked ? 'Unlike' : 'Like'}
         >
-          <Icon name="fire" size={14} color="#F7F1E3" strokeWidth={liked ? 2.2 : 1.8} />
+          <Icon
+            name="heart"
+            size={14}
+            color={liked ? '#FFFFFF' : '#F7F1E3'}
+            strokeWidth={liked ? 2.4 : 1.9}
+            fill={liked ? '#FFFFFF' : 'none'}
+          />
         </button>
 
         {item.delivery_available && (
@@ -339,12 +348,19 @@ const ProductCard = ({
         </div>
 
         <div className="pcard-actions">
+          {/* ★ Heart (love) action button */}
           <button
             className={`pcard-icon-btn ${liked ? 'liked' : ''}`}
             onClick={(e) => onLike(e, item)}
-            aria-label="Flame"
+            aria-label="Like"
           >
-            <Icon name="fire" size={14} color={liked ? '#EA580C' : '#8A8578'} strokeWidth={liked ? 2.3 : 1.7} />
+            <Icon
+              name="heart"
+              size={14}
+              color={liked ? '#BC5B34' : '#8A8578'}
+              strokeWidth={liked ? 2.4 : 1.9}
+              fill={liked ? '#BC5B34' : 'none'}
+            />
             {likeCount > 0 && <span>{likeCount}</span>}
           </button>
 
@@ -406,12 +422,19 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
           )}
         </div>
 
+        {/* ★ Heart (love) button */}
         <button
           className={`fcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
-          aria-label={liked ? 'Unflame' : 'Flame'}
+          aria-label={liked ? 'Unlike' : 'Like'}
         >
-          <Icon name="fire" size={15} color="#F7F1E3" strokeWidth={liked ? 2.3 : 1.8} />
+          <Icon
+            name="heart"
+            size={15}
+            color="#F7F1E3"
+            strokeWidth={liked ? 2.5 : 1.9}
+            fill={liked ? '#F7F1E3' : 'none'}
+          />
           {likeCount > 0 && <span>{likeCount}</span>}
         </button>
 
@@ -441,7 +464,8 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
             )}
           </div>
           <div className="fcard-actions">
-            <button              className="fcard-action"
+            <button
+              className="fcard-action"
               onClick={(e) => { e.stopPropagation(); onOpenComments(item); }}
             >
               <Icon name="comment" size={13} color="#F7F1E3" strokeWidth={1.9} />
@@ -680,8 +704,8 @@ const Landing = () => {
 
   const handleLike = useCallback(async (e, item) => {
     e.stopPropagation();
-    if (!isAuthenticated) { showToast('Please sign in to flame', 'warning'); return; }
-    if (item.is_business) { showToast('Businesses can\u2019t be flamed yet', 'info'); return; }
+    if (!isAuthenticated) { showToast('Please sign in to like', 'warning'); return; }
+    if (item.is_business) { showToast('Businesses can\u2019t be liked yet', 'info'); return; }
 
     const listingId = item.id;
     const current = likeStates[listingId] || { count: 0, liked: false };
@@ -1366,7 +1390,7 @@ const Landing = () => {
           -webkit-backdrop-filter: blur(6px);
         }
 
-        /* LIVE BURNING FIRE */
+        /* LIVE BURNING FIRE (decorative, "NEW") */
         .burning-fire {
           position: relative;
           display: inline-flex;
@@ -1733,9 +1757,10 @@ const Landing = () => {
           transition: background 0.2s, transform 0.15s;
         }
         .fcard-heart:hover { background: rgba(22, 38, 31, 0.78); transform: scale(1.04); }
+        /* ★ Liked = warm terracotta heart gradient */
         .fcard-heart.liked {
-          background: linear-gradient(135deg, #F97316 0%, #DC2626 100%);
-          box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+          background: linear-gradient(135deg, #BC5B34 0%, #A04724 100%);
+          box-shadow: 0 4px 14px rgba(188, 91, 52, 0.35);
         }
         .fcard-glass {
           position: absolute;
@@ -1918,9 +1943,10 @@ const Landing = () => {
           z-index: 5;
         }
         .pcard-heart:hover { background: rgba(22, 38, 31, 0.72); transform: scale(1.06); }
+        /* ★ Liked = warm terracotta heart gradient + pop */
         .pcard-heart.liked {
-          background: linear-gradient(135deg, #F97316 0%, #DC2626 100%);
-          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+          background: linear-gradient(135deg, #BC5B34 0%, #A04724 100%);
+          box-shadow: 0 4px 12px rgba(188, 91, 52, 0.4);
           animation: heartPop 0.35s ease;
         }
         @keyframes heartPop {
@@ -2003,9 +2029,10 @@ const Landing = () => {
           font-family: inherit;
           transition: background 0.15s, color 0.15s, transform 0.1s;
         }
-        .pcard-icon-btn:hover { background: rgba(234, 88, 12, 0.08); color: #201F1B; }
+        .pcard-icon-btn:hover { background: rgba(188, 91, 52, 0.08); color: #201F1B; }
         .pcard-icon-btn:active { transform: scale(0.96); }
-        .pcard-icon-btn.liked { color: #EA580C; font-weight: 700; }
+        /* ★ Liked action button */
+        .pcard-icon-btn.liked { color: #BC5B34; font-weight: 700; }
 
         .pcard-msg {
           margin-left: auto;
