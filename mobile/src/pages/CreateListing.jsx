@@ -33,7 +33,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -133,7 +133,7 @@ const CreateListing = () => {
 
   const fetchBusinesses = async () => {
     if (!user?.id) return;
-    
+
     try {
       const response = await businessAPI.getByUser(user.id);
       if (response.data?.business) {
@@ -162,7 +162,6 @@ const CreateListing = () => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
       setUploading(true);
-      // Simulate upload
       setTimeout(() => {
         setImageFiles(prev => [...prev, ...files]);
         const newPreviews = files.map(file => URL.createObjectURL(file));
@@ -181,16 +180,16 @@ const CreateListing = () => {
     URL.revokeObjectURL(newPreviews[index]);
     newPreviews.splice(index, 1);
     setImagePreviews(newPreviews);
-    
+
     const newFiles = [...imageFiles];
     newFiles.splice(index, 1);
     setImageFiles(newFiles);
-    
+
     setFormData(prev => ({
       ...prev,
       images: newPreviews
     }));
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -212,7 +211,7 @@ const CreateListing = () => {
 
     try {
       const token = localStorage.getItem('access_token') || '';
-      
+
       const formDataToSend = new FormData();
       formDataToSend.append('businessId', selectedBusiness);
       formDataToSend.append('title', formData.title);
@@ -255,7 +254,7 @@ const CreateListing = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         success('🎉 Listing created successfully!');
         navigate('/dashboard');
@@ -288,11 +287,16 @@ const CreateListing = () => {
     <div className="create-listing">
       {/* Header */}
       <div className="page-header">
-        <button className="back-btn" onClick={() => navigate('/dashboard')}>
-          <Icon name="arrowLeft" size={18} color="#1E293B" strokeWidth={1.75} />
-        </button>
-        <h1 className="page-title">New Listing</h1>
-        <div className="header-spacer" />
+        <div className="header-inner">
+          <button className="back-btn" onClick={() => navigate('/dashboard')} aria-label="Back">
+            <Icon name="arrowLeft" size={18} color="#201F1B" strokeWidth={2.2} />
+          </button>
+          <div className="header-text">
+            <h1 className="page-title">New Listing</h1>
+            <p className="page-subtitle">Share what you're selling</p>
+          </div>
+          <div className="header-spacer" />
+        </div>
       </div>
 
       {/* Main Form */}
@@ -300,6 +304,11 @@ const CreateListing = () => {
         <form onSubmit={handleSubmit}>
           {/* Image Upload */}
           <div className="upload-section">
+            <label className="form-label">
+              <Icon name="camera" size={14} color="#BC5B34" strokeWidth={2} />
+              Photos
+              <span className="form-label-hint">Up to 4 images</span>
+            </label>
             <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
               <input
                 ref={fileInputRef}
@@ -317,31 +326,34 @@ const CreateListing = () => {
                       <button
                         type="button"
                         className="image-remove"
-                        onClick={() => removeImage(index)}
+                        onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                        aria-label="Remove image"
                       >
-                        ×
+                        <Icon name="close" size={11} color="#FFFFFF" strokeWidth={3} />
                       </button>
                     </div>
                   ))}
                   {imagePreviews.length < 4 && (
                     <div className="image-upload-btn">
-                      <Icon name="camera" size={24} color="#94A3B8" strokeWidth={1.5} />
+                      <Icon name="plus" size={20} color="#D99A3B" strokeWidth={2.2} />
                       <span>Add</span>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="upload-placeholder">
-                  <Icon name="camera" size={32} color="#94A3B8" strokeWidth={1.5} />
+                  <div className="upload-icon-wrap">
+                    <Icon name="camera" size={28} color="#D99A3B" strokeWidth={1.6} />
+                  </div>
                   <span className="upload-text">Add photos</span>
-                  <span className="upload-hint">Up to 4 images</span>
+                  <span className="upload-hint">Tap to upload</span>
                 </div>
               )}
             </div>
             {uploading && (
               <div className="upload-progress">
                 <span className="upload-loader" />
-                <span>Uploading...</span>
+                <span>Uploading…</span>
               </div>
             )}
           </div>
@@ -389,7 +401,7 @@ const CreateListing = () => {
               value={formData.description}
               onChange={handleChange}
               className="form-textarea"
-              placeholder="Describe your product or service..."
+              placeholder="Describe your product or service…"
               rows={3}
             />
           </div>
@@ -505,15 +517,21 @@ const CreateListing = () => {
 
           {/* Delivery */}
           <div className="form-group">
+            <label className="form-label">Delivery</label>
             <div className="delivery-toggle">
-              <label className="checkbox-label">
+              <label className={`checkbox-card ${formData.deliveryAvailable ? 'checked' : ''}`}>
                 <input
                   type="checkbox"
                   name="deliveryAvailable"
                   checked={formData.deliveryAvailable}
                   onChange={handleChange}
                 />
-                <span>Delivery available</span>
+                <span className="checkbox-box">
+                  {formData.deliveryAvailable && (
+                    <Icon name="check" size={12} color="#F7F1E3" strokeWidth={3} />
+                  )}
+                </span>
+                <span className="checkbox-text">Delivery available</span>
               </label>
               {formData.deliveryAvailable && (
                 <input
@@ -522,7 +540,7 @@ const CreateListing = () => {
                   value={formData.deliveryFee}
                   onChange={handleChange}
                   className="form-input delivery-fee"
-                  placeholder="Delivery fee"
+                  placeholder="Delivery fee (MWK)"
                 />
               )}
             </div>
@@ -549,7 +567,7 @@ const CreateListing = () => {
               <span className="btn-loader" />
             ) : (
               <>
-                <Icon name="check" size={18} color="#FFFFFF" strokeWidth={2} />
+                <Icon name="check" size={18} color="#F7F1E3" strokeWidth={2.4} />
                 Post Listing
               </>
             )}
@@ -571,7 +589,7 @@ const CreateListing = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? '#F7F1E3' : '#9C9482'} strokeWidth={1.85} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -583,93 +601,130 @@ const CreateListing = () => {
       <style jsx>{`
         .create-listing {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
-          padding-bottom: 80px;
+          background: #F7F1E3;
+          background-image: radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #201F1B;
+          padding-bottom: 100px;
         }
 
         @media (min-width: 769px) {
-          .create-listing {
-            padding-bottom: 0;
-          }
+          .create-listing { padding-bottom: 40px; }
         }
 
         /* ===== HEADER ===== */
         .page-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 14px 16px;
-          background: #FFFFFF;
-          border-bottom: 1px solid #F1F5F9;
+          background: rgba(255, 253, 248, 0.94);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(239, 230, 206, 0.9);
           position: sticky;
           top: 0;
           z-index: 10;
+          padding: 14px 16px;
+        }
+
+        .header-inner {
+          max-width: 600px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
 
         .back-btn {
-          background: none;
-          border: none;
-          padding: 8px;
+          width: 40px;
+          height: 40px;
+          border-radius: 11px;
+          border: 1px solid rgba(239, 230, 206, 0.9);
+          background: #FFFDF8;
           cursor: pointer;
-          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: all 0.15s;
+          flex-shrink: 0;
         }
 
         .back-btn:hover {
-          background: #F1F5F9;
+          background: #F7F1E3;
+          border-color: rgba(217, 154, 59, 0.4);
+        }
+
+        .header-text {
+          flex: 1;
+          min-width: 0;
+          text-align: center;
         }
 
         .page-title {
+          font-family: 'Fraunces', Georgia, serif;
           font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: #201F1B;
           margin: 0;
-          font-family: 'Georgia', serif;
+          letter-spacing: -0.01em;
+        }
+
+        .page-subtitle {
+          font-size: 11.5px;
+          color: #9C9482;
+          margin: 1px 0 0;
         }
 
         .header-spacer {
           width: 40px;
+          flex-shrink: 0;
         }
 
         /* ===== FORM ===== */
         .form-container {
-          max-width: 560px;
+          max-width: 600px;
           margin: 0 auto;
-          padding: 16px;
+          padding: 20px 16px;
         }
 
         .form-group {
-          margin-bottom: 14px;
+          margin-bottom: 16px;
         }
 
         .form-label {
-          display: block;
-          font-size: 13px;
-          font-weight: 600;
-          color: #475569;
-          margin-bottom: 4px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12.5px;
+          font-weight: 700;
+          color: #3A362E;
+          margin-bottom: 7px;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+        }
+
+        .form-label-hint {
+          font-weight: 500;
+          font-size: 10.5px;
+          color: #9C9482;
+          text-transform: none;
+          letter-spacing: 0;
+          margin-left: auto;
         }
 
         .required {
-          color: #EF4444;
+          color: #DC2626;
         }
 
         .form-input,
         .form-textarea,
         .form-select {
           width: 100%;
-          padding: 10px 14px;
-          border: 1px solid #E2E8F0;
-          border-radius: 10px;
+          padding: 12px 15px;
+          border: 1.5px solid rgba(239, 230, 206, 0.9);
+          border-radius: 12px;
           font-size: 14px;
-          color: #1E293B;
+          color: #201F1B;
           outline: none;
-          background: #FFFFFF;
+          background: #FFFDF8;
           font-family: inherit;
           transition: all 0.2s;
           box-sizing: border-box;
@@ -678,21 +733,22 @@ const CreateListing = () => {
         .form-input:focus,
         .form-textarea:focus,
         .form-select:focus {
-          border-color: #F59E0B;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+          border-color: #D99A3B;
+          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.12);
         }
 
         .form-textarea {
           resize: vertical;
-          min-height: 80px;
+          min-height: 84px;
+          line-height: 1.5;
         }
 
         .form-select {
           appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B6259' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
-          background-position: right 12px center;
-          padding-right: 32px;
+          background-position: right 14px center;
+          padding-right: 36px;
         }
 
         .form-row {
@@ -707,59 +763,74 @@ const CreateListing = () => {
 
         /* ===== UPLOAD ===== */
         .upload-section {
-          margin-bottom: 16px;
+          margin-bottom: 18px;
         }
 
         .upload-area {
-          border: 2px dashed #E2E8F0;
-          border-radius: 12px;
+          border: 2px dashed rgba(217, 154, 59, 0.45);
+          border-radius: 16px;
           padding: 20px;
           cursor: pointer;
-          background: #FFFFFF;
-          transition: all 0.2s;
-          min-height: 100px;
+          background: linear-gradient(135deg, #FFFDF8 0%, #FEF6E7 100%);
+          transition: all 0.22s ease;
+          min-height: 120px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
         .upload-area:hover {
-          border-color: #F59E0B;
-          background: #FEFCF5;
+          border-color: #D99A3B;
+          background: linear-gradient(135deg, #FEF6E7 0%, #FDEBCB 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 8px 20px rgba(217, 154, 59, 0.12);
         }
 
         .upload-placeholder {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 4px;
+          gap: 6px;
+        }
+
+        .upload-icon-wrap {
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: #FEF6E7;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 6px;
+          box-shadow: 0 6px 16px rgba(217, 154, 59, 0.15);
         }
 
         .upload-text {
           font-size: 14px;
-          font-weight: 500;
-          color: #64748B;
+          font-weight: 700;
+          color: #201F1B;
         }
 
         .upload-hint {
-          font-size: 12px;
-          color: #94A3B8;
+          font-size: 11.5px;
+          color: #9C9482;
         }
 
         .image-preview-grid {
           display: flex;
-          gap: 8px;
+          gap: 10px;
           flex-wrap: wrap;
           width: 100%;
         }
 
         .image-preview-item {
           position: relative;
-          width: 72px;
-          height: 72px;
-          border-radius: 8px;
+          width: 82px;
+          height: 82px;
+          border-radius: 12px;
           overflow: hidden;
-          border: 1px solid #F1F5F9;
+          border: 1px solid rgba(239, 230, 206, 0.9);
+          box-shadow: 0 2px 6px rgba(22, 38, 31, 0.05);
         }
 
         .image-preview {
@@ -770,59 +841,63 @@ const CreateListing = () => {
 
         .image-remove {
           position: absolute;
-          top: -4px;
-          right: -4px;
-          width: 20px;
-          height: 20px;
+          top: 4px;
+          right: 4px;
+          width: 22px;
+          height: 22px;
           border-radius: 50%;
-          background: #EF4444;
+          background: rgba(220, 38, 38, 0.92);
           color: #FFFFFF;
-          border: none;
+          border: 2px solid #FFFDF8;
           cursor: pointer;
-          font-size: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: all 0.15s;
+          backdrop-filter: blur(4px);
         }
 
         .image-remove:hover {
-          transform: scale(1.1);
+          background: #DC2626;
+          transform: scale(1.08);
         }
 
         .image-upload-btn {
-          width: 72px;
-          height: 72px;
-          border-radius: 8px;
-          border: 1px dashed #E2E8F0;
+          width: 82px;
+          height: 82px;
+          border-radius: 12px;
+          border: 1.5px dashed rgba(217, 154, 59, 0.5);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           gap: 2px;
-          color: #94A3B8;
-          font-size: 11px;
+          color: #D99A3B;
+          font-size: 10.5px;
+          font-weight: 700;
           transition: all 0.2s;
+          background: #FFFDF8;
         }
 
         .image-upload-btn:hover {
-          border-color: #F59E0B;
+          border-color: #D99A3B;
+          background: #FEF6E7;
         }
 
         .upload-progress {
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-top: 8px;
+          margin-top: 10px;
           font-size: 13px;
-          color: #94A3B8;
+          color: #9C9482;
         }
 
         .upload-loader {
           width: 16px;
           height: 16px;
-          border: 2px solid #E2E8F0;
-          border-top-color: #F59E0B;
+          border: 2px solid rgba(217, 154, 59, 0.2);
+          border-top-color: #D99A3B;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -839,63 +914,101 @@ const CreateListing = () => {
           flex-wrap: wrap;
         }
 
-        .checkbox-label {
-          display: flex;
+        .checkbox-card {
+          display: inline-flex;
           align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          color: #64748B;
+          gap: 9px;
+          padding: 11px 16px;
+          border: 1.5px solid rgba(239, 230, 206, 0.9);
+          border-radius: 12px;
+          background: #FFFDF8;
           cursor: pointer;
+          font-size: 13.5px;
+          font-weight: 600;
+          color: #6B6259;
+          transition: all 0.2s;
+          user-select: none;
         }
 
-        .checkbox-label input[type="checkbox"] {
-          width: 18px;
-          height: 18px;
-          accent-color: #F59E0B;
-          cursor: pointer;
+        .checkbox-card input[type="checkbox"] {
+          display: none;
+        }
+
+        .checkbox-card.checked {
+          border-color: #24453B;
+          background: rgba(36, 69, 59, 0.06);
+          color: #24453B;
+        }
+
+        .checkbox-box {
+          width: 20px;
+          height: 20px;
+          border-radius: 6px;
+          border: 1.5px solid #D9C79E;
+          background: #FFFDF8;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: all 0.2s;
+        }
+
+        .checkbox-card.checked .checkbox-box {
+          background: #24453B;
+          border-color: #24453B;
+        }
+
+        .checkbox-text {
+          font-size: 13.5px;
         }
 
         .delivery-fee {
           flex: 1;
-          min-width: 120px;
+          min-width: 140px;
         }
 
         /* ===== SUBMIT ===== */
         .submit-btn {
           width: 100%;
-          padding: 14px;
-          background: #1E293B;
+          padding: 16px;
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
           border: none;
-          border-radius: 12px;
-          font-size: 16px;
+          border-radius: 14px;
+          font-size: 15px;
           font-weight: 700;
-          color: #FFFFFF;
+          color: #F7F1E3;
           cursor: pointer;
           font-family: inherit;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 9px;
           transition: all 0.2s;
-          margin-top: 4px;
-          min-height: 50px;
+          margin-top: 8px;
+          min-height: 54px;
+          box-shadow: 0 10px 24px rgba(36, 69, 59, 0.28);
+          letter-spacing: 0.01em;
         }
 
         .submit-btn:hover:not(:disabled) {
-          background: #F59E0B;
-          transform: scale(0.98);
+          transform: translateY(-2px);
+          box-shadow: 0 14px 30px rgba(36, 69, 59, 0.4);
+        }
+
+        .submit-btn:active:not(:disabled) {
+          transform: translateY(0);
         }
 
         .submit-btn:disabled {
-          opacity: 0.5;
+          opacity: 0.6;
           cursor: not-allowed;
         }
 
         .btn-loader {
           width: 22px;
           height: 22px;
-          border: 2px solid rgba(255,255,255,0.2);
-          border-top-color: #FFFFFF;
+          border: 2px solid rgba(247, 241, 227, 0.25);
+          border-top-color: #F7F1E3;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -906,12 +1019,13 @@ const CreateListing = () => {
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(255,255,255,0.96);
-          backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226,232,240,0.4);
+          background: rgba(255, 253, 248, 0.96);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border-top: 1px solid rgba(239, 230, 206, 0.9);
           display: flex;
           justify-content: space-around;
-          padding: 4px 0 8px;
+          padding: 4px 0 10px;
           z-index: 100;
         }
 
@@ -919,7 +1033,7 @@ const CreateListing = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 2px;
+          gap: 3px;
           background: none;
           border: none;
           cursor: pointer;
@@ -931,76 +1045,65 @@ const CreateListing = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: 9px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: background 0.2s, transform 0.15s;
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: #24453B;
+          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+        }
+
+        .nav-btn:hover .nav-icon-wrap:not(.active) {
+          background: rgba(239, 230, 206, 0.6);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: #9C9482;
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: #201F1B;
           font-weight: 600;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .form-container {
-            padding: 12px;
-          }
-          .form-row {
-            flex-direction: column;
-          }
-          .form-row .half {
-            min-width: 100%;
-          }
-          .page-title {
-            font-size: 16px;
-          }
+          .form-container { padding: 16px 12px; }
+          .form-row { flex-direction: column; gap: 0; }
+          .form-row .half { min-width: 100%; }
+          .page-title { font-size: 17px; }
           .image-preview-item,
-          .image-upload-btn {
-            width: 60px;
-            height: 60px;
-          }
-          .delivery-toggle {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .delivery-fee {
-            width: 100%;
-          }
+          .image-upload-btn { width: 72px; height: 72px; }
+          .delivery-toggle { flex-direction: column; align-items: stretch; }
+          .delivery-fee { width: 100%; }
         }
 
         @media (max-width: 380px) {
-          .form-container {
-            padding: 8px;
-          }
+          .form-container { padding: 12px 10px; }
           .form-input,
           .form-textarea,
           .form-select {
             font-size: 13px;
-            padding: 8px 12px;
+            padding: 10px 12px;
           }
           .image-preview-item,
-          .image-upload-btn {
-            width: 52px;
-            height: 52px;
+          .image-upload-btn { width: 64px; height: 64px; }
+          .submit-btn { font-size: 14px; padding: 14px; min-height: 48px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .upload-area, .back-btn, .submit-btn, .image-remove, .checkbox-card, .nav-icon-wrap {
+            transition: none;
           }
-          .submit-btn {
-            font-size: 14px;
-            padding: 12px;
-            min-height: 44px;
-          }
+          .upload-area:hover,
+          .submit-btn:hover,
+          .image-remove:hover { transform: none; }
         }
       `}</style>
     </div>

@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { useToast } from '../components/ToastContainer';
-import { usePushNotifications } from '../hooks/usePushNotifications'; // ✅ NEW
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -59,6 +59,30 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 };
 
 // ============================================================
+// HELPERS
+// ============================================================
+const getUserDisplayName = (user) => {
+  if (!user) return 'User';
+  const full =
+    user.full_name || user.fullName || user.name || user.display_name || '';
+  if (full && String(full).trim()) return String(full).trim();
+  if (user.email) {
+    const prefix = user.email.split('@')[0];
+    const cleaned = prefix.split(/[._-]/)[0];
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+  return 'User';
+};
+
+const getInitials = (name) => {
+  if (!name) return 'U';
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'U';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+// ============================================================
 // MAIN COMPONENT
 // ============================================================
 const Settings = () => {
@@ -74,7 +98,6 @@ const Settings = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currentRole, setCurrentRole] = useState(user?.role || 'buyer');
 
-  // ✅ NEW: Push notification hook
   const {
     supported: pushSupported,
     permission: pushPermission,
@@ -124,7 +147,6 @@ const Settings = () => {
     }
   };
 
-  // ✅ NEW: toggle push notifications
   const handleTogglePush = async () => {
     if (pushSubscribed) {
       const res = await unsubscribePush();
@@ -147,16 +169,16 @@ const Settings = () => {
     else if (id === 'profile') navigate('/profile');
   };
 
-  const userName = user?.email?.split('@')[0] || 'User';
-  const userInitial = user?.email?.[0]?.toUpperCase() || 'U';
+  const userName = getUserDisplayName(user);
+  const userInitial = getInitials(userName);
 
   return (
     <div className="settings-page">
       {/* Header */}
       <div className="page-header">
         <div className="header-top">
-          <button className="header-btn" onClick={() => navigate(-1)}>
-            <Icon name="arrowLeft" size={20} color="#1E293B" strokeWidth={1.75} />
+          <button className="header-btn" onClick={() => navigate(-1)} aria-label="Back">
+            <Icon name="arrowLeft" size={20} color="#201F1B" strokeWidth={2.2} />
           </button>
         </div>
         <div className="header-content">
@@ -174,7 +196,7 @@ const Settings = () => {
             <span className="profile-name">{userName}</span>
             <span className="profile-email">{user?.email || 'No email'}</span>
           </div>
-          <Icon name="chevronRight" size={18} color="#94A3B8" strokeWidth={1.75} />
+          <Icon name="chevronRight" size={18} color="#9C9482" strokeWidth={2} />
         </Link>
 
         {/* Account Section */}
@@ -182,36 +204,36 @@ const Settings = () => {
           <h2 className="section-title">Account</h2>
           <div className="settings-group">
             <Link to="/profile" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(59, 130, 246, 0.08)' }}>
-                <Icon name="user" size={18} color="#3B82F6" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(62, 108, 118, 0.12)' }}>
+                <Icon name="user" size={18} color="#3E6C76" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Edit Profile</span>
                 <span className="item-desc">Update your personal information</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#CBD5E1" strokeWidth={1.75} />
+              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
             </Link>
 
             <Link to="/dashboard" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.08)' }}>
-                <Icon name="store" size={18} color="#F59E0B" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(217, 154, 59, 0.14)' }}>
+                <Icon name="store" size={18} color="#D99A3B" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Business Information</span>
                 <span className="item-desc">Manage your business details</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#CBD5E1" strokeWidth={1.75} />
+              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
             </Link>
 
             <Link to="/my-reservations" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(139, 92, 246, 0.08)' }}>
-                <Icon name="fileText" size={18} color="#8B5CF6" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
+                <Icon name="fileText" size={18} color="#8B5A83" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">My Reservations</span>
                 <span className="item-desc">View your orders and history</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#CBD5E1" strokeWidth={1.75} />
+              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
             </Link>
           </div>
         </section>
@@ -237,7 +259,7 @@ const Settings = () => {
                     <span className="role-emoji">{role.emoji}</span>
                     <span className="role-label">{role.label}</span>
                     {currentRole === role.id && (
-                      <Icon name="check" size={12} color="#FFFFFF" strokeWidth={3} />
+                      <Icon name="check" size={12} color="#F7F1E3" strokeWidth={3} />
                     )}
                   </button>
                 ))}
@@ -252,8 +274,8 @@ const Settings = () => {
           <div className="settings-group">
             {/* Language */}
             <div className="settings-item-static">
-              <div className="item-icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.08)' }}>
-                <Icon name="globe" size={18} color="#10B981" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(91, 123, 94, 0.12)' }}>
+                <Icon name="globe" size={18} color="#5B7B5E" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Language</span>
@@ -265,12 +287,14 @@ const Settings = () => {
                 <button
                   className={`lang-btn ${language === 'ny' ? 'active' : ''}`}
                   onClick={() => handleLanguageChange('ny')}
+                  aria-label="Chichewa"
                 >
                   🇲🇼
                 </button>
                 <button
                   className={`lang-btn ${language === 'en' ? 'active' : ''}`}
                   onClick={() => handleLanguageChange('en')}
+                  aria-label="English"
                 >
                   🇬🇧
                 </button>
@@ -279,8 +303,8 @@ const Settings = () => {
 
             {/* In-app notifications */}
             <div className="settings-item-static">
-              <div className="item-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.08)' }}>
-                <Icon name="bell" size={18} color="#F59E0B" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(217, 154, 59, 0.14)' }}>
+                <Icon name="bell" size={18} color="#D99A3B" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">In-app notifications</span>
@@ -292,16 +316,17 @@ const Settings = () => {
                   setNotificationsEnabled(!notificationsEnabled);
                   success(notificationsEnabled ? 'Notifications off' : 'Notifications on');
                 }}
+                aria-label="Toggle in-app notifications"
               >
                 <span className="toggle-thumb" />
               </button>
             </div>
 
-            {/* ✅ NEW: Push notifications */}
+            {/* Push notifications */}
             {pushSupported && (
               <div className="settings-item-static">
-                <div className="item-icon-wrap" style={{ background: 'rgba(139, 92, 246, 0.08)' }}>
-                  <Icon name="send" size={18} color="#8B5CF6" strokeWidth={1.75} />
+                <div className="item-icon-wrap" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
+                  <Icon name="send" size={18} color="#8B5A83" strokeWidth={1.9} />
                 </div>
                 <div className="item-content">
                   <span className="item-label">Push notifications</span>
@@ -317,6 +342,7 @@ const Settings = () => {
                   className={`toggle-switch ${pushSubscribed ? 'on' : ''}`}
                   onClick={handleTogglePush}
                   disabled={pushBusy || pushPermission === 'denied'}
+                  aria-label="Toggle push notifications"
                 >
                   <span className="toggle-thumb" />
                 </button>
@@ -330,39 +356,39 @@ const Settings = () => {
           <h2 className="section-title">Support</h2>
           <div className="settings-group">
             <a href="mailto:support@kumsika.com" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(59, 130, 246, 0.08)' }}>
-                <Icon name="helpCircle" size={18} color="#3B82F6" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(62, 108, 118, 0.12)' }}>
+                <Icon name="helpCircle" size={18} color="#3E6C76" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Help & Support</span>
                 <span className="item-desc">Get help with your account</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#CBD5E1" strokeWidth={1.75} />
+              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
             </a>
 
             <button
               className="settings-item"
               onClick={() => showToast('Report submitted', 'success')}
             >
-              <div className="item-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.08)' }}>
-                <Icon name="messageCircle" size={18} color="#EF4444" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(188, 91, 52, 0.12)' }}>
+                <Icon name="messageCircle" size={18} color="#BC5B34" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Report a Problem</span>
                 <span className="item-desc">Let us know what's wrong</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#CBD5E1" strokeWidth={1.75} />
+              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
             </button>
 
             <Link to="/about" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(139, 92, 246, 0.08)' }}>
-                <Icon name="info" size={18} color="#8B5CF6" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
+                <Icon name="info" size={18} color="#8B5A83" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">About Kumsika</span>
                 <span className="item-desc">Learn more about the platform</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#CBD5E1" strokeWidth={1.75} />
+              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
             </Link>
           </div>
         </section>
@@ -372,8 +398,8 @@ const Settings = () => {
           <h2 className="section-title danger">Danger Zone</h2>
           <div className="settings-group">
             <button className="settings-item danger" onClick={() => setShowLogoutConfirm(true)}>
-              <div className="item-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.08)' }}>
-                <Icon name="logout" size={18} color="#EF4444" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.1)' }}>
+                <Icon name="logout" size={18} color="#DC2626" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label danger-text">Log Out</span>
@@ -382,8 +408,8 @@ const Settings = () => {
             </button>
 
             <button className="settings-item danger" onClick={() => setShowDeleteConfirm(true)}>
-              <div className="item-icon-wrap" style={{ background: 'rgba(239, 68, 68, 0.08)' }}>
-                <Icon name="trash" size={18} color="#EF4444" strokeWidth={1.75} />
+              <div className="item-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.1)' }}>
+                <Icon name="trash" size={18} color="#DC2626" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label danger-text">Delete Account</span>
@@ -411,7 +437,7 @@ const Settings = () => {
         <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-icon-wrap">
-              <Icon name="logout" size={28} color="#EF4444" strokeWidth={1.75} />
+              <Icon name="logout" size={28} color="#DC2626" strokeWidth={1.85} />
             </div>
             <h3 className="modal-title">Log out?</h3>
             <p className="modal-desc">
@@ -434,7 +460,7 @@ const Settings = () => {
         <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-icon-wrap danger">
-              <Icon name="trash" size={28} color="#EF4444" strokeWidth={1.75} />
+              <Icon name="trash" size={28} color="#DC2626" strokeWidth={1.85} />
             </div>
             <h3 className="modal-title">Delete account?</h3>
             <p className="modal-desc">
@@ -476,8 +502,8 @@ const Settings = () => {
                   <Icon
                     name={item.icon}
                     size={20}
-                    color={active ? '#FFFFFF' : '#94A3B8'}
-                    strokeWidth={1.75}
+                    color={active ? '#F7F1E3' : '#9C9482'}
+                    strokeWidth={1.85}
                   />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
@@ -489,14 +515,15 @@ const Settings = () => {
 
       <style jsx>{`
         /* ========================================================
-           KEEP ALL EXISTING STYLES — unchanged from your file
-           (only the toggle-switch:disabled rule is added below)
+           SETTINGS — warm, editorial, matches the marketplace
            ======================================================== */
         .settings-page {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: #F7F1E3;
+          background-image: radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #201F1B;
           padding-bottom: 100px;
         }
 
@@ -505,9 +532,14 @@ const Settings = () => {
         }
 
         .page-header {
-          background: #FFFFFF;
+          background: rgba(255, 253, 248, 0.94);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           padding: 14px 16px 20px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid rgba(239, 230, 206, 0.9);
+          position: sticky;
+          top: 0;
+          z-index: 10;
         }
 
         .header-top {
@@ -518,19 +550,22 @@ const Settings = () => {
         }
 
         .header-btn {
-          width: 38px;
-          height: 38px;
-          border-radius: 10px;
-          border: none;
-          background: #F8FAFC;
+          width: 40px;
+          height: 40px;
+          border-radius: 11px;
+          border: 1px solid rgba(239, 230, 206, 0.9);
+          background: #FFFDF8;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: all 0.15s;
         }
 
-        .header-btn:hover { background: #F1F5F9; }
+        .header-btn:hover {
+          background: #F7F1E3;
+          border-color: rgba(217, 154, 59, 0.4);
+        }
 
         .header-content {
           max-width: 600px;
@@ -538,60 +573,62 @@ const Settings = () => {
         }
 
         .page-title {
-          font-size: clamp(24px, 3vw, 28px);
-          font-weight: 700;
-          color: #1E293B;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: clamp(24px, 3.2vw, 28px);
+          font-weight: 600;
+          color: #201F1B;
           margin: 0 0 4px;
-          font-family: 'Georgia', serif;
           letter-spacing: -0.02em;
         }
 
         .page-subtitle {
-          font-size: 14px;
-          color: #94A3B8;
+          font-size: 13.5px;
+          color: #9C9482;
           margin: 0;
         }
 
         .main-content {
           max-width: 600px;
           margin: 0 auto;
-          padding: 16px;
+          padding: 20px 16px;
         }
 
+        /* ===== PROFILE CARD ===== */
         .profile-card {
           display: flex;
           align-items: center;
           gap: 14px;
           padding: 16px;
-          background: #FFFFFF;
-          border-radius: 14px;
-          border: 1px solid #F1F5F9;
+          background: #FFFDF8;
+          border-radius: 16px;
+          border: 1px solid rgba(239, 230, 206, 0.9);
           text-decoration: none;
           color: inherit;
           margin-bottom: 24px;
-          transition: all 0.2s;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          transition: all 0.22s ease;
+          box-shadow: 0 1px 3px rgba(22, 38, 31, 0.04);
         }
 
         .profile-card:hover {
-          border-color: #E2E8F0;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+          border-color: rgba(217, 154, 59, 0.4);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px rgba(22, 38, 31, 0.08);
         }
 
         .profile-avatar {
-          width: 52px;
-          height: 52px;
+          width: 54px;
+          height: 54px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #F59E0B, #D97706);
-          color: #FFFFFF;
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          color: #F7F1E3;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
+          font-size: 19px;
           font-weight: 700;
           flex-shrink: 0;
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.25);
+          letter-spacing: 0.02em;
         }
 
         .profile-info {
@@ -603,41 +640,44 @@ const Settings = () => {
         }
 
         .profile-name {
-          font-size: 15px;
-          font-weight: 700;
-          color: #1E293B;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 16px;
+          font-weight: 600;
+          color: #201F1B;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          letter-spacing: -0.01em;
         }
 
         .profile-email {
-          font-size: 12px;
-          color: #94A3B8;
+          font-size: 12.5px;
+          color: #9C9482;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
+        /* ===== SECTIONS ===== */
         .settings-section { margin-bottom: 24px; }
 
         .section-title {
-          font-size: 12px;
-          font-weight: 700;
-          color: #94A3B8;
-          margin: 0 0 8px 4px;
+          font-size: 11.5px;
+          font-weight: 800;
+          color: #9C9482;
+          margin: 0 0 10px 6px;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.08em;
         }
 
-        .section-title.danger { color: #EF4444; }
+        .section-title.danger { color: #DC2626; }
 
         .settings-group {
-          background: #FFFFFF;
-          border-radius: 14px;
-          border: 1px solid #F1F5F9;
+          background: #FFFDF8;
+          border-radius: 16px;
+          border: 1px solid rgba(239, 230, 206, 0.9);
           overflow: hidden;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: 0 1px 3px rgba(22, 38, 31, 0.04);
         }
 
         .settings-item,
@@ -654,8 +694,8 @@ const Settings = () => {
           cursor: pointer;
           font-family: inherit;
           text-align: left;
-          transition: all 0.15s;
-          border-bottom: 1px solid #F8FAFC;
+          transition: background 0.15s;
+          border-bottom: 1px solid rgba(239, 230, 206, 0.55);
         }
 
         .settings-item:last-child,
@@ -663,14 +703,14 @@ const Settings = () => {
           border-bottom: none;
         }
 
-        .settings-item:hover { background: #F8FAFC; }
+        .settings-item:hover { background: #F7F1E3; }
 
         .settings-item-static { cursor: default; }
 
         .item-icon-wrap {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+          width: 38px;
+          height: 38px;
+          border-radius: 11px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -687,29 +727,32 @@ const Settings = () => {
 
         .item-label {
           font-size: 14px;
-          font-weight: 600;
-          color: #1E293B;
+          font-weight: 700;
+          color: #201F1B;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          letter-spacing: -0.005em;
         }
 
-        .item-label.danger-text { color: #EF4444; }
+        .item-label.danger-text { color: #DC2626; }
 
         .item-desc {
           font-size: 12px;
-          color: #94A3B8;
+          color: #9C9482;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
+        /* ===== ROLE SELECTOR ===== */
         .role-selector { padding: 16px; }
 
         .role-desc {
           font-size: 13px;
-          color: #64748B;
+          color: #6B6259;
           margin: 0 0 12px;
+          font-weight: 500;
         }
 
         .role-options {
@@ -722,46 +765,49 @@ const Settings = () => {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 6px;
-          padding: 10px 12px;
-          border: 1.5px solid #E2E8F0;
-          border-radius: 10px;
-          background: #FFFFFF;
+          gap: 7px;
+          padding: 11px 12px;
+          border: 1.5px solid rgba(239, 230, 206, 0.9);
+          border-radius: 12px;
+          background: #F7F1E3;
           font-size: 13px;
-          font-weight: 600;
-          color: #475569;
+          font-weight: 700;
+          color: #6B6259;
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
-          min-height: 44px;
+          min-height: 46px;
         }
 
         .role-chip:hover {
-          border-color: #CBD5E1;
-          background: #F8FAFC;
+          border-color: rgba(217, 154, 59, 0.5);
+          background: #FFFDF8;
+          color: #201F1B;
         }
 
         .role-chip.active {
-          background: #1E293B;
-          border-color: #1E293B;
-          color: #FFFFFF;
-          box-shadow: 0 2px 8px rgba(30, 41, 59, 0.15);
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          border-color: #24453B;
+          color: #F7F1E3;
+          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.25);
         }
 
-        .role-emoji { font-size: 14px; }
+        .role-emoji { font-size: 15px; }
         .role-label { font-size: 13px; }
 
+        /* ===== LANGUAGE ===== */
         .language-toggle {
           display: flex;
           gap: 4px;
           padding: 3px;
-          background: #F8FAFC;
-          border-radius: 10px;
+          background: #F7F1E3;
+          border-radius: 11px;
           flex-shrink: 0;
+          border: 1px solid rgba(239, 230, 206, 0.9);
         }
 
         .lang-btn {
-          width: 36px;
+          width: 38px;
           height: 32px;
           border-radius: 8px;
           border: none;
@@ -774,29 +820,32 @@ const Settings = () => {
           transition: all 0.2s;
         }
 
-        .lang-btn:hover { background: #F1F5F9; }
+        .lang-btn:hover { background: rgba(239, 230, 206, 0.6); }
 
         .lang-btn.active {
-          background: #FFFFFF;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+          background: #FFFDF8;
+          box-shadow: 0 2px 6px rgba(22, 38, 31, 0.08);
         }
 
+        /* ===== TOGGLE ===== */
         .toggle-switch {
           position: relative;
-          width: 44px;
-          height: 26px;
-          border-radius: 13px;
+          width: 46px;
+          height: 27px;
+          border-radius: 14px;
           border: none;
-          background: #E2E8F0;
+          background: #E4D9BD;
           cursor: pointer;
           padding: 3px;
-          transition: all 0.3s ease;
+          transition: all 0.28s ease;
           flex-shrink: 0;
         }
 
-        .toggle-switch.on { background: #10B981; }
+        .toggle-switch.on {
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          box-shadow: 0 3px 8px rgba(36, 69, 59, 0.25);
+        }
 
-        /* ✅ NEW: disabled state for the push toggle */
         .toggle-switch:disabled {
           opacity: 0.5;
           cursor: not-allowed;
@@ -804,66 +853,72 @@ const Settings = () => {
 
         .toggle-thumb {
           display: block;
-          width: 20px;
-          height: 20px;
+          width: 21px;
+          height: 21px;
           border-radius: 50%;
-          background: #FFFFFF;
-          transition: transform 0.3s ease;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+          background: #FFFDF8;
+          transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
+          box-shadow: 0 2px 4px rgba(22, 38, 31, 0.2);
         }
 
-        .toggle-switch.on .toggle-thumb { transform: translateX(18px); }
+        .toggle-switch.on .toggle-thumb { transform: translateX(19px); }
 
+        /* ===== APP INFO ===== */
         .app-info {
           text-align: center;
-          padding: 24px 16px 16px;
+          padding: 28px 16px 16px;
         }
 
         .app-logo {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 9px;
           margin-bottom: 8px;
         }
 
         .logo-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 10px;
-          background: #1E293B;
-          color: #F59E0B;
+          width: 34px;
+          height: 34px;
+          border-radius: 11px;
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          color: #F0D9A8;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 15px;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 16px;
           font-weight: 700;
+          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.22);
         }
 
         .logo-text {
-          font-size: 16px;
-          font-weight: 700;
-          color: #1E293B;
-          font-family: 'Georgia', serif;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 17px;
+          font-weight: 600;
+          color: #201F1B;
+          letter-spacing: -0.01em;
         }
 
         .app-version {
-          font-size: 12px;
-          color: #94A3B8;
+          font-size: 11.5px;
+          color: #9C9482;
           margin: 0 0 4px;
-          font-family: 'SF Mono', monospace;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         }
 
         .app-copyright {
           font-size: 11px;
-          color: #CBD5E1;
+          color: #C9BB98;
           margin: 0;
         }
 
+        /* ===== MODALS ===== */
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.5);
+          background: rgba(22, 38, 31, 0.5);
           backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -878,14 +933,15 @@ const Settings = () => {
         }
 
         .modal-content {
-          background: #FFFFFF;
-          border-radius: 20px;
+          background: #FFFDF8;
+          border-radius: 22px;
           max-width: 380px;
           width: 100%;
           padding: 28px 24px 24px;
           text-align: center;
-          box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2);
+          box-shadow: 0 24px 60px rgba(22, 38, 31, 0.28);
           animation: slideUp 0.25s ease-out;
+          border: 1px solid rgba(239, 230, 206, 0.9);
         }
 
         @keyframes slideUp {
@@ -894,10 +950,10 @@ const Settings = () => {
         }
 
         .modal-icon-wrap {
-          width: 64px;
-          height: 64px;
+          width: 66px;
+          height: 66px;
           border-radius: 50%;
-          background: rgba(239, 68, 68, 0.08);
+          background: rgba(220, 38, 38, 0.1);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -905,15 +961,17 @@ const Settings = () => {
         }
 
         .modal-title {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 19px;
+          font-weight: 600;
+          color: #201F1B;
           margin: 0 0 8px;
+          letter-spacing: -0.01em;
         }
 
         .modal-desc {
-          font-size: 14px;
-          color: #64748B;
+          font-size: 13.5px;
+          color: #6B6259;
           margin: 0 0 24px;
           line-height: 1.6;
         }
@@ -925,46 +983,49 @@ const Settings = () => {
 
         .modal-btn {
           flex: 1;
-          padding: 12px;
-          border-radius: 12px;
+          padding: 13px;
+          border-radius: 13px;
           font-size: 14px;
           font-weight: 700;
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
-          min-height: 44px;
+          min-height: 46px;
         }
 
         .modal-btn.secondary {
-          background: #F8FAFC;
-          border: 1px solid #E2E8F0;
-          color: #64748B;
+          background: #F7F1E3;
+          border: 1.5px solid rgba(239, 230, 206, 0.9);
+          color: #6B6259;
         }
 
-        .modal-btn.secondary:hover { background: #F1F5F9; }
+        .modal-btn.secondary:hover { background: #EFE6CE; }
 
         .modal-btn.danger {
-          background: #EF4444;
+          background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
           border: none;
           color: #FFFFFF;
+          box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
         }
 
         .modal-btn.danger:hover {
-          background: #DC2626;
-          transform: scale(0.98);
+          transform: translateY(-1px);
+          box-shadow: 0 10px 22px rgba(220, 38, 38, 0.35);
         }
 
+        /* ===== BOTTOM NAV ===== */
         .bottom-nav {
           position: fixed;
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          background: rgba(255, 253, 248, 0.96);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border-top: 1px solid rgba(239, 230, 206, 0.9);
           display: flex;
           justify-content: space-around;
-          padding: 4px 0 8px;
+          padding: 4px 0 10px;
           z-index: 100;
         }
 
@@ -972,7 +1033,7 @@ const Settings = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 2px;
+          gap: 3px;
           background: none;
           border: none;
           cursor: pointer;
@@ -984,34 +1045,42 @@ const Settings = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: 9px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: background 0.2s, transform 0.15s;
         }
 
-        .nav-icon-wrap.active { background: #1E293B; }
+        .nav-icon-wrap.active {
+          background: #24453B;
+          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+        }
+
+        .nav-btn:hover .nav-icon-wrap:not(.active) {
+          background: rgba(239, 230, 206, 0.6);
+        }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: #9C9482;
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: #201F1B;
           font-weight: 600;
         }
 
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
           .page-header { padding: 12px 12px 16px; }
-          .main-content { padding: 12px; }
+          .main-content { padding: 16px 12px; }
           .page-title { font-size: 22px; }
           .profile-card { padding: 14px; }
-          .profile-avatar { width: 44px; height: 44px; font-size: 17px; }
+          .profile-avatar { width: 48px; height: 48px; font-size: 17px; }
           .settings-item,
-          .settings-item-static { padding: 12px 14px; }
+          .settings-item-static { padding: 13px 14px; }
         }
 
         @media (max-width: 380px) {
@@ -1024,7 +1093,8 @@ const Settings = () => {
           .role-chip,
           .toggle-switch,
           .lang-btn,
-          .modal-btn { transition: none; }
+          .modal-btn,
+          .nav-icon-wrap { transition: none; }
           .profile-card:hover,
           .modal-btn.danger:hover { transform: none; }
           .modal-overlay,

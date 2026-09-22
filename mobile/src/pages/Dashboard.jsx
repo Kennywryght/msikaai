@@ -35,10 +35,13 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
     sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
     export: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5-5 5 5M12 15V3",
+    crown: "M3 8l4 4 5-7 5 7 4-4v10a1 1 0 01-1 1H4a1 1 0 01-1-1V8z",
+    flame: "M12 2s4 5 4 9a4 4 0 11-8 0c0-1.5.7-2.7 1.5-3.5C10 6 12 2 12 2z",
+    camera: "M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 13a3 3 0 100-6 3 3 0 000 6z",
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -55,6 +58,48 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
       <path d={d} />
     </svg>
   );
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+};
+
+/** Get the best possible display name for the user. */
+const getUserDisplayName = (user) => {
+  if (!user) return 'there';
+  const full =
+    user.full_name ||
+    user.fullName ||
+    user.name ||
+    user.display_name ||
+    user.displayName ||
+    '';
+  if (full && String(full).trim()) {
+    // Capitalize each word lightly (but keep whatever casing the user set)
+    return String(full).trim();
+  }
+  // Fall back to email prefix, but only if there's no full name
+  if (user.email) {
+    const prefix = user.email.split('@')[0];
+    // Convert "john.doe" / "john_doe" to "john" for a cleaner display
+    const cleaned = prefix.split(/[._-]/)[0];
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  }
+  return 'there';
+};
+
+const getInitials = (name) => {
+  if (!name || typeof name !== 'string') return 'U';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'U';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
 // ============================================================
@@ -76,7 +121,7 @@ const Dashboard = () => {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  
+
   const [stats, setStats] = useState({
     totalListings: 0,
     totalViews: 0,
@@ -339,7 +384,7 @@ const Dashboard = () => {
         plan: paymentData.plan,
         paymentId: paymentData.paymentId
       });
-      
+
       if (response.data.success) {
         setSubscription(response.data.subscription);
         success('🎉 Subscription upgraded successfully!');
@@ -383,59 +428,57 @@ const Dashboard = () => {
         <style jsx>{`
           .loading-skeleton {
             min-height: 100vh;
-            background: #F8FAFC;
+            background: #F7F1E3;
+            background-image: radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+            background-size: 22px 22px;
             padding: 20px 16px 80px;
             max-width: 1200px;
             margin: 0 auto;
           }
           .skeleton-header {
             height: 60px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            background: #EFE6CE;
+            border-radius: 14px;
             margin-bottom: 20px;
             animation: pulse 1.5s ease-in-out infinite;
           }
           .skeleton-stats {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
             margin-bottom: 20px;
           }
           .skeleton-stat {
-            height: 70px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            height: 78px;
+            background: #EFE6CE;
+            border-radius: 14px;
             animation: pulse 1.5s ease-in-out infinite;
           }
           .skeleton-card {
-            height: 80px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            height: 88px;
+            background: #EFE6CE;
+            border-radius: 14px;
             margin-bottom: 16px;
             animation: pulse 1.5s ease-in-out infinite;
           }
           .skeleton-actions {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
           }
           .skeleton-action {
-            height: 80px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            height: 96px;
+            background: #EFE6CE;
+            border-radius: 14px;
             animation: pulse 1.5s ease-in-out infinite;
           }
           @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.55; }
           }
-          @media (max-width: 480px) {
-            .skeleton-stats {
-              grid-template-columns: repeat(2, 1fr);
-            }
-            .skeleton-actions {
-              grid-template-columns: repeat(2, 1fr);
-            }
+          @media (min-width: 480px) {
+            .skeleton-stats { grid-template-columns: repeat(4, 1fr); }
+            .skeleton-actions { grid-template-columns: repeat(4, 1fr); }
           }
         `}</style>
       </div>
@@ -443,26 +486,30 @@ const Dashboard = () => {
   }
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const displayName = getUserDisplayName(user);
+  const initials = getInitials(displayName);
+  const greeting = getGreeting();
 
   return (
     <div className="dashboard">
       <div className="dashboard-main">
         {/* Welcome Header */}
         <div className="welcome-section">
-          <div className="welcome-badge">
-            <Icon name="sparkles" size={16} color="#F59E0B" strokeWidth={1.75} />
+          <div className="welcome-avatar">{initials}</div>
+          <div className="welcome-text">
+            <p className="welcome-greeting">{greeting},</p>
+            <h1 className="welcome-title">{displayName}</h1>
+            <p className="welcome-subtitle">
+              Here's what's happening with your business today.
+            </p>
           </div>
-          <h1 className="welcome-title">
-            Welcome back, <span className="welcome-highlight">{user?.email?.split('@')[0] || 'User'}</span>
-          </h1>
-          <p className="welcome-subtitle">Here's what's happening with your business today</p>
         </div>
 
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-              <Icon name="box" size={18} color="#F59E0B" strokeWidth={1.75} />
+            <div className="stat-icon" style={{ background: 'rgba(217, 154, 59, 0.12)' }}>
+              <Icon name="box" size={18} color="#D99A3B" strokeWidth={1.85} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.totalListings}</div>
@@ -470,8 +517,8 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-              <Icon name="check" size={18} color="#10B981" strokeWidth={1.75} />
+            <div className="stat-icon" style={{ background: 'rgba(91, 123, 94, 0.12)' }}>
+              <Icon name="check" size={18} color="#5B7B5E" strokeWidth={1.85} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.activeListings}</div>
@@ -479,8 +526,8 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
-              <Icon name="eye" size={18} color="#3B82F6" strokeWidth={1.75} />
+            <div className="stat-icon" style={{ background: 'rgba(62, 108, 118, 0.12)' }}>
+              <Icon name="eye" size={18} color="#3E6C76" strokeWidth={1.85} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.totalViews}</div>
@@ -488,8 +535,8 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-              <Icon name="phone" size={18} color="#8B5CF6" strokeWidth={1.75} />
+            <div className="stat-icon" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
+              <Icon name="phone" size={18} color="#8B5A83" strokeWidth={1.85} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.totalContacts}</div>
@@ -508,10 +555,10 @@ const Dashboard = () => {
               <div className="business-details">
                 <div className="business-name">{business.business_name}</div>
                 <div className="business-meta">
-                  <Icon name="tag" size={12} color="#94A3B8" strokeWidth={1.75} />
+                  <Icon name="tag" size={12} color="#9C9482" strokeWidth={1.85} />
                   {business.category}
-                  <span className="business-meta-divider">•</span>
-                  <Icon name="mapPin" size={12} color="#94A3B8" strokeWidth={1.75} />
+                  <span className="business-meta-divider">·</span>
+                  <Icon name="mapPin" size={12} color="#9C9482" strokeWidth={1.85} />
                   {business.address || 'Location not set'}
                 </div>
               </div>
@@ -520,13 +567,15 @@ const Dashboard = () => {
         ) : (
           <div className="empty-business">
             <div className="empty-content">
-              <div className="empty-icon">🏪</div>
+              <div className="empty-icon">
+                <Icon name="store" size={36} color="#D99A3B" strokeWidth={1.5} />
+              </div>
               <h3 className="empty-title">No Business Registered</h3>
               <p className="empty-text">
                 Register your business to start listing products and reaching customers.
               </p>
               <button className="btn-primary" onClick={() => navigate('/edit-profile')}>
-                <Icon name="plus" size={16} color="#FFFFFF" strokeWidth={1.75} />
+                <Icon name="plus" size={16} color="#F7F1E3" strokeWidth={2} />
                 Register Business
               </button>
             </div>
@@ -537,28 +586,36 @@ const Dashboard = () => {
         <div className="section-card">
           <div className="section-header">
             <h3 className="section-title">
-              <Icon name="sparkles" size={18} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="sparkles" size={18} color="#D99A3B" strokeWidth={1.85} />
               Quick Actions
             </h3>
           </div>
           <div className="actions-grid">
             <div className="action-item" onClick={() => navigate('/create-listing')}>
-              <div className="action-icon">➕</div>
+              <div className="action-icon" style={{ background: 'rgba(217, 154, 59, 0.12)' }}>
+                <Icon name="plus" size={22} color="#D99A3B" strokeWidth={2} />
+              </div>
               <div className="action-name">Add Listing</div>
               <div className="action-desc">Create new product</div>
             </div>
             <div className="action-item" onClick={() => navigate('/search')}>
-              <div className="action-icon">🔍</div>
+              <div className="action-icon" style={{ background: 'rgba(62, 108, 118, 0.12)' }}>
+                <Icon name="search" size={22} color="#3E6C76" strokeWidth={1.9} />
+              </div>
               <div className="action-name">Browse</div>
               <div className="action-desc">Discover products</div>
             </div>
             <div className="action-item" onClick={() => navigate('/ai-search')}>
-              <div className="action-icon">🤖</div>
+              <div className="action-icon" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
+                <Icon name="robot" size={22} color="#8B5A83" strokeWidth={1.9} />
+              </div>
               <div className="action-name">AI Search</div>
               <div className="action-desc">Smart search & insights</div>
             </div>
             <div className="action-item" onClick={() => navigate('/voice-listing')}>
-              <div className="action-icon">🎤</div>
+              <div className="action-icon" style={{ background: 'rgba(91, 123, 94, 0.12)' }}>
+                <Icon name="mic" size={22} color="#5B7B5E" strokeWidth={1.9} />
+              </div>
               <div className="action-name">Voice Listing</div>
               <div className="action-desc">List with your voice</div>
             </div>
@@ -570,11 +627,11 @@ const Dashboard = () => {
           <div className="section-card">
             <div className="section-header">
               <h3 className="section-title">
-                <Icon name="store" size={18} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="store" size={18} color="#D99A3B" strokeWidth={1.85} />
                 Recent Listings
               </h3>
               <button className="link-btn" onClick={() => navigate('/search')}>
-                View All <Icon name="arrowRight" size={14} color="#F59E0B" strokeWidth={1.75} />
+                View All <Icon name="arrowRight" size={14} color="#BC5B34" strokeWidth={2} />
               </button>
             </div>
             <div className="listings-list">
@@ -589,16 +646,16 @@ const Dashboard = () => {
                       <img src={listing.images[0]} alt={listing.title} className="listing-image" />
                     ) : (
                       <div className="listing-image-placeholder">
-                        <Icon name="store" size={16} color="#CBD5E1" strokeWidth={1.5} />
+                        <Icon name="store" size={16} color="#C9BB98" strokeWidth={1.5} />
                       </div>
                     )}
                     <div className="listing-details">
                       <div className="listing-title">{listing.title}</div>
                       <div className="listing-meta">
-                        <Icon name="tag" size={10} color="#94A3B8" strokeWidth={1.75} />
+                        <Icon name="tag" size={10} color="#9C9482" strokeWidth={1.85} />
                         {listing.category}
-                        <span className="listing-meta-dot">•</span>
-                        <Icon name="mapPin" size={10} color="#94A3B8" strokeWidth={1.75} />
+                        <span className="listing-meta-dot">·</span>
+                        <Icon name="mapPin" size={10} color="#9C9482" strokeWidth={1.85} />
                         {listing.location_area || 'Location not set'}
                       </div>
                     </div>
@@ -606,7 +663,7 @@ const Dashboard = () => {
                   <div className="listing-right">
                     <div className="listing-price">{formatPrice(listing.price)}</div>
                     <div className="listing-views">
-                      <Icon name="eye" size={10} color="#94A3B8" strokeWidth={1.75} />
+                      <Icon name="eye" size={10} color="#9C9482" strokeWidth={1.85} />
                       {listing.view_count || 0}
                     </div>
                   </div>
@@ -631,7 +688,7 @@ const Dashboard = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? '#F7F1E3' : '#9C9482'} strokeWidth={1.85} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -646,17 +703,17 @@ const Dashboard = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
-                <Icon name="store" size={20} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="store" size={20} color="#D99A3B" strokeWidth={1.85} />
                 Register Business
               </h3>
               <button onClick={() => setShowCreateForm(false)} className="modal-close">
-                <Icon name="close" size={18} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="close" size={18} color="#9C9482" strokeWidth={2} />
               </button>
             </div>
 
             {errorMsg && (
               <div className="error-banner">
-                <Icon name="close" size={16} color="#EF4444" strokeWidth={1.75} />
+                <Icon name="close" size={16} color="#DC2626" strokeWidth={2} />
                 {errorMsg}
               </div>
             )}
@@ -765,63 +822,85 @@ const Dashboard = () => {
       )}
 
       <style jsx>{`
+        /* ============================================================
+           DASHBOARD — warm, editorial, cohesive with the marketplace
+           ============================================================ */
         .dashboard {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: #F7F1E3;
+          background-image: radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          color: #201F1B;
           padding-bottom: 80px;
         }
 
         @media (min-width: 769px) {
-          .dashboard {
-            padding-bottom: 0;
-          }
+          .dashboard { padding-bottom: 0; }
         }
 
         /* ===== MAIN ===== */
         .dashboard-main {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 20px 16px 40px;
+          padding: 24px 16px 40px;
         }
 
         /* ===== WELCOME ===== */
         .welcome-section {
+          display: flex;
+          align-items: center;
+          gap: 16px;
           margin-bottom: 24px;
         }
 
-        .welcome-badge {
-          display: inline-flex;
+        .welcome-avatar {
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          color: #F7F1E3;
+          display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(245, 158, 11, 0.08);
-          padding: 4px 10px;
-          border-radius: 20px;
-          margin-bottom: 8px;
-          gap: 4px;
-          font-size: 12px;
-          color: #F59E0B;
-          font-weight: 500;
+          font-size: 20px;
+          font-weight: 700;
+          flex-shrink: 0;
+          box-shadow: 0 8px 20px rgba(36, 69, 59, 0.25);
+          letter-spacing: 0.02em;
+        }
+
+        .welcome-text {
+          min-width: 0;
+        }
+
+        .welcome-greeting {
+          font-size: 12.5px;
+          font-weight: 600;
+          color: #BC5B34;
+          margin: 0 0 2px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
         }
 
         .welcome-title {
-          font-size: clamp(22px, 2.8vw, 30px);
-          font-weight: 700;
-          margin: 0 0 4px;
-          letter-spacing: -0.5px;
-        }
-
-        .welcome-highlight {
-          background: linear-gradient(135deg, #F59E0B, #D97706);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: clamp(22px, 3vw, 30px);
+          font-weight: 600;
+          margin: 0 0 2px;
+          letter-spacing: -0.02em;
+          color: #201F1B;
+          line-height: 1.15;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .welcome-subtitle {
-          font-size: 14px;
-          color: #94A3B8;
+          font-size: 13px;
+          color: #9C9482;
           margin: 0;
+          line-height: 1.45;
         }
 
         /* ===== STATS ===== */
@@ -833,32 +912,31 @@ const Dashboard = () => {
         }
 
         @media (min-width: 480px) {
-          .stats-grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
+          .stats-grid { grid-template-columns: repeat(4, 1fr); }
         }
 
         .stat-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: #FFFDF8;
+          border-radius: 14px;
           padding: 14px 16px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid rgba(239, 230, 206, 0.9);
           display: flex;
           align-items: center;
           gap: 12px;
-          transition: all 0.2s;
+          transition: all 0.22s ease;
+          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
         }
 
         .stat-card:hover {
-          border-color: #E2E8F0;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+          border-color: rgba(217, 154, 59, 0.4);
+          transform: translateY(-2px);
+          box-shadow: 0 10px 24px rgba(22, 38, 31, 0.07);
         }
 
         .stat-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+          width: 38px;
+          height: 38px;
+          border-radius: 11px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -871,26 +949,31 @@ const Dashboard = () => {
         }
 
         .stat-value {
-          font-size: clamp(18px, 1.8vw, 22px);
-          font-weight: 700;
-          color: #1E293B;
-          line-height: 1.2;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: clamp(18px, 1.9vw, 22px);
+          font-weight: 600;
+          color: #201F1B;
+          line-height: 1.15;
+          letter-spacing: -0.01em;
         }
 
         .stat-label {
-          font-size: 11px;
-          color: #94A3B8;
+          font-size: 10.5px;
+          color: #9C9482;
           text-transform: uppercase;
-          letter-spacing: 0.03em;
+          letter-spacing: 0.06em;
+          font-weight: 600;
+          margin-top: 1px;
         }
 
         /* ===== BUSINESS CARD ===== */
         .business-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: #FFFDF8;
+          border-radius: 14px;
           padding: 16px 18px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid rgba(239, 230, 206, 0.9);
           margin-bottom: 16px;
+          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
         }
 
         .business-info {
@@ -900,17 +983,19 @@ const Dashboard = () => {
         }
 
         .business-avatar {
-          width: 44px;
-          height: 44px;
+          width: 46px;
+          height: 46px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #EDE9F5, #F59E0B);
+          background: linear-gradient(135deg, #D99A3B 0%, #BC5B34 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 19px;
+          font-weight: 600;
+          color: #F7F1E3;
           flex-shrink: 0;
+          box-shadow: 0 4px 12px rgba(188, 91, 52, 0.22);
         }
 
         .business-details {
@@ -919,63 +1004,79 @@ const Dashboard = () => {
         }
 
         .business-name {
+          font-family: 'Fraunces', Georgia, serif;
           font-size: 17px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: #201F1B;
+          letter-spacing: -0.01em;
         }
 
         .business-meta {
-          font-size: 13px;
-          color: #94A3B8;
+          font-size: 12.5px;
+          color: #9C9482;
           display: flex;
           align-items: center;
           gap: 4px;
           flex-wrap: wrap;
+          margin-top: 2px;
         }
 
         .business-meta-divider {
-          color: #E2E8F0;
+          color: #D9C79E;
         }
 
         /* ===== EMPTY BUSINESS ===== */
         .empty-business {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: #FFFDF8;
+          border-radius: 14px;
           padding: 32px 20px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid rgba(239, 230, 206, 0.9);
           text-align: center;
           margin-bottom: 16px;
+          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
         }
 
         .empty-content {
-          max-width: 320px;
+          max-width: 340px;
           margin: 0 auto;
         }
 
         .empty-icon {
-          font-size: 40px;
-          margin-bottom: 8px;
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #FFF3E0, #FDEBCB);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 14px;
+          box-shadow: 0 10px 26px rgba(217, 154, 59, 0.18);
         }
 
         .empty-title {
-          font-size: 17px;
-          font-weight: 700;
-          margin: 0 0 4px;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 18px;
+          font-weight: 600;
+          color: #201F1B;
+          margin: 0 0 6px;
+          letter-spacing: -0.01em;
         }
 
         .empty-text {
-          font-size: 14px;
-          color: #94A3B8;
-          margin: 0 0 16px;
+          font-size: 13.5px;
+          color: #9C9482;
+          margin: 0 0 18px;
+          line-height: 1.55;
         }
 
         /* ===== SECTION CARD ===== */
         .section-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: #FFFDF8;
+          border-radius: 14px;
           padding: 16px 18px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid rgba(239, 230, 206, 0.9);
           margin-bottom: 16px;
+          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
         }
 
         .section-header {
@@ -986,31 +1087,36 @@ const Dashboard = () => {
         }
 
         .section-title {
+          font-family: 'Fraunces', Georgia, serif;
           font-size: 16px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: #201F1B;
           margin: 0;
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
+          letter-spacing: -0.01em;
         }
 
         .link-btn {
           background: none;
           border: none;
-          color: #F59E0B;
-          font-weight: 600;
-          font-size: 13px;
+          color: #BC5B34;
+          font-weight: 700;
+          font-size: 12.5px;
           cursor: pointer;
           font-family: inherit;
           display: flex;
           align-items: center;
           gap: 4px;
           transition: all 0.2s;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         .link-btn:hover {
-          color: #D97706;
+          color: #A04724;
+          transform: translateX(2px);
         }
 
         /* ===== ACTIONS GRID ===== */
@@ -1021,41 +1127,47 @@ const Dashboard = () => {
         }
 
         @media (min-width: 480px) {
-          .actions-grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
+          .actions-grid { grid-template-columns: repeat(4, 1fr); }
         }
 
         .action-item {
-          padding: 14px 12px;
-          border-radius: 10px;
-          border: 1px solid #F1F5F9;
-          background: #F8FAFC;
+          padding: 16px 12px;
+          border-radius: 13px;
+          border: 1px solid rgba(239, 230, 206, 0.9);
+          background: #F7F1E3;
           text-align: center;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.22s ease;
         }
 
         .action-item:hover {
-          border-color: #E2E8F0;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+          border-color: rgba(217, 154, 59, 0.45);
+          background: #FFFDF8;
+          transform: translateY(-3px);
+          box-shadow: 0 10px 22px rgba(22, 38, 31, 0.08);
         }
 
         .action-icon {
-          font-size: 24px;
-          margin-bottom: 4px;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 8px;
         }
 
         .action-name {
           font-size: 13px;
-          font-weight: 600;
-          color: #1E293B;
+          font-weight: 700;
+          color: #201F1B;
+          letter-spacing: -0.005em;
         }
 
         .action-desc {
-          font-size: 10px;
-          color: #94A3B8;
+          font-size: 10.5px;
+          color: #9C9482;
+          margin-top: 2px;
         }
 
         /* ===== LISTINGS ===== */
@@ -1068,18 +1180,19 @@ const Dashboard = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 10px 0;
-          border-bottom: 1px solid #F1F5F9;
+          padding: 12px 0;
+          border-bottom: 1px solid rgba(239, 230, 206, 0.6);
           cursor: pointer;
           gap: 10px;
           transition: all 0.2s;
         }
 
         .listing-item:hover {
-          background: #F8FAFC;
-          margin: 0 -4px;
-          padding: 10px 4px;
-          border-radius: 6px;
+          background: #F7F1E3;
+          margin: 0 -8px;
+          padding: 12px 8px;
+          border-radius: 10px;
+          border-bottom-color: transparent;
         }
 
         .listing-item-last {
@@ -1089,25 +1202,27 @@ const Dashboard = () => {
         .listing-info {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 11px;
           flex: 1;
           min-width: 0;
         }
 
         .listing-image {
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
+          width: 44px;
+          height: 44px;
+          border-radius: 11px;
           object-fit: cover;
-          background: #F1F5F9;
+          background: #F7F1E3;
           flex-shrink: 0;
+          border: 1px solid rgba(239, 230, 206, 0.9);
         }
 
         .listing-image-placeholder {
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
-          background: #F1F5F9;
+          width: 44px;
+          height: 44px;
+          border-radius: 11px;
+          background: #F7F1E3;
+          border: 1px solid rgba(239, 230, 206, 0.9);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1121,23 +1236,25 @@ const Dashboard = () => {
 
         .listing-title {
           font-size: 14px;
-          font-weight: 600;
-          color: #1E293B;
+          font-weight: 700;
+          color: #201F1B;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          letter-spacing: -0.005em;
         }
 
         .listing-meta {
-          font-size: 12px;
-          color: #94A3B8;
+          font-size: 11.5px;
+          color: #9C9482;
           display: flex;
           align-items: center;
           gap: 4px;
+          margin-top: 2px;
         }
 
         .listing-meta-dot {
-          color: #E2E8F0;
+          color: #D9C79E;
         }
 
         .listing-right {
@@ -1146,40 +1263,45 @@ const Dashboard = () => {
         }
 
         .listing-price {
+          font-family: 'Fraunces', Georgia, serif;
           font-size: 14px;
-          font-weight: 700;
-          color: #10B981;
+          font-weight: 600;
+          color: #24453B;
+          letter-spacing: -0.01em;
         }
 
         .listing-views {
-          font-size: 11px;
-          color: #94A3B8;
+          font-size: 10.5px;
+          color: #9C9482;
           display: flex;
           align-items: center;
           gap: 4px;
           justify-content: flex-end;
+          margin-top: 2px;
         }
 
         /* ===== BUTTONS ===== */
         .btn-primary {
-          padding: 10px 24px;
-          background: #1E293B;
+          padding: 12px 26px;
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
           border: none;
-          border-radius: 10px;
-          color: #FFFFFF;
-          font-weight: 600;
-          font-size: 14px;
+          border-radius: 12px;
+          color: #F7F1E3;
+          font-weight: 700;
+          font-size: 13.5px;
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
           display: inline-flex;
           align-items: center;
           gap: 8px;
+          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.25);
+          letter-spacing: 0.01em;
         }
 
         .btn-primary:hover:not(:disabled) {
-          background: #F59E0B;
-          transform: scale(0.98);
+          transform: translateY(-2px);
+          box-shadow: 0 10px 22px rgba(36, 69, 59, 0.35);
         }
 
         .btn-primary:disabled {
@@ -1188,27 +1310,28 @@ const Dashboard = () => {
         }
 
         .btn-outline {
-          padding: 10px 24px;
+          padding: 12px 26px;
           background: transparent;
-          border: 1px solid #E2E8F0;
-          border-radius: 10px;
-          color: #64748B;
+          border: 1.5px solid rgba(239, 230, 206, 0.9);
+          border-radius: 12px;
+          color: #6B6259;
           font-weight: 600;
-          font-size: 14px;
+          font-size: 13.5px;
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
         }
 
         .btn-outline:hover {
-          background: #F1F5F9;
+          background: #F7F1E3;
+          border-color: rgba(217, 154, 59, 0.4);
         }
 
         /* ===== MODAL ===== */
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.5);
+          background: rgba(22, 38, 31, 0.5);
           backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
@@ -1224,15 +1347,16 @@ const Dashboard = () => {
         }
 
         .modal-content {
-          background: #FFFFFF;
-          border-radius: 16px;
+          background: #FFFDF8;
+          border-radius: 20px;
           max-width: 480px;
           width: 100%;
-          padding: 20px;
+          padding: 22px;
           max-height: 90vh;
           overflow-y: auto;
-          box-shadow: 0 20px 40px rgba(30, 41, 59, 0.15);
+          box-shadow: 0 24px 60px rgba(22, 38, 31, 0.25);
           animation: slideUp 0.25s ease;
+          border: 1px solid rgba(239, 230, 206, 0.9);
         }
 
         @keyframes slideUp {
@@ -1248,57 +1372,62 @@ const Dashboard = () => {
         }
 
         .modal-title {
+          font-family: 'Fraunces', Georgia, serif;
           font-size: 18px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: #201F1B;
           margin: 0;
           display: flex;
           align-items: center;
           gap: 8px;
+          letter-spacing: -0.01em;
         }
 
         .modal-close {
           background: none;
           border: none;
           cursor: pointer;
-          color: #94A3B8;
-          padding: 4px;
+          color: #9C9482;
+          padding: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
+          border-radius: 8px;
+          transition: all 0.15s;
         }
 
         .modal-close:hover {
-          color: #475569;
+          color: #201F1B;
+          background: #F7F1E3;
         }
 
         .field-group {
-          margin-bottom: 12px;
+          margin-bottom: 14px;
         }
 
         .field-label {
           display: block;
-          font-size: 12px;
-          font-weight: 600;
-          color: #475569;
-          margin-bottom: 4px;
+          font-size: 12.5px;
+          font-weight: 700;
+          color: #3A362E;
+          margin-bottom: 6px;
         }
 
         .required {
-          color: #EF4444;
+          color: #DC2626;
         }
 
         .field-input,
         .field-select,
         .field-textarea {
           width: 100%;
-          padding: 8px 12px;
-          border: 1px solid #E2E8F0;
-          border-radius: 10px;
+          padding: 11px 14px;
+          border: 1.5px solid rgba(239, 230, 206, 0.9);
+          border-radius: 11px;
           font-size: 14px;
-          color: #1E293B;
+          color: #201F1B;
           outline: none;
-          background: #FFFFFF;
+          background: #F7F1E3;
           font-family: inherit;
           transition: all 0.2s;
           box-sizing: border-box;
@@ -1307,34 +1436,44 @@ const Dashboard = () => {
         .field-input:focus,
         .field-select:focus,
         .field-textarea:focus {
-          border-color: #F59E0B;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+          border-color: #D99A3B;
+          background: #FFFDF8;
+          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.12);
         }
 
         .field-textarea {
           resize: vertical;
-          min-height: 60px;
+          min-height: 70px;
+        }
+
+        .field-select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B6259' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 14px center;
+          padding-right: 36px;
         }
 
         .modal-actions {
           display: flex;
           gap: 10px;
-          margin-top: 16px;
+          margin-top: 18px;
           flex-wrap: wrap;
         }
 
         .error-banner {
-          color: #EF4444;
+          color: #991B1B;
           font-size: 13px;
           margin-bottom: 16px;
-          padding: 10px 14px;
+          padding: 11px 14px;
           background: #FEF2F2;
-          border-radius: 10px;
+          border-radius: 11px;
           border: 1px solid #FECACA;
           display: flex;
           align-items: center;
           gap: 8px;
           flex-wrap: wrap;
+          font-weight: 500;
         }
 
         /* ===== BOTTOM NAV ===== */
@@ -1343,12 +1482,13 @@ const Dashboard = () => {
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          background: rgba(255, 253, 248, 0.96);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border-top: 1px solid rgba(239, 230, 206, 0.9);
           display: flex;
           justify-content: space-around;
-          padding: 4px 0 8px;
+          padding: 4px 0 10px;
           z-index: 100;
         }
 
@@ -1356,7 +1496,7 @@ const Dashboard = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 2px;
+          gap: 3px;
           background: none;
           border: none;
           cursor: pointer;
@@ -1368,71 +1508,53 @@ const Dashboard = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: 9px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: background 0.2s, transform 0.15s;
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: #24453B;
+          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+        }
+
+        .nav-btn:hover .nav-icon-wrap:not(.active) {
+          background: rgba(239, 230, 206, 0.6);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: #9C9482;
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: #201F1B;
           font-weight: 600;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 380px) {
-          .stats-grid {
-            gap: 8px;
-          }
-          .stat-card {
-            padding: 10px 12px;
-          }
-          .stat-icon {
-            width: 32px;
-            height: 32px;
-          }
-          .stat-value {
-            font-size: 16px;
-          }
-          .actions-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-          }
-          .action-item {
-            padding: 10px 8px;
-          }
-          .action-icon {
-            font-size: 20px;
-          }
-          .action-name {
-            font-size: 12px;
-          }
-          .listing-meta {
-            font-size: 10px;
-          }
-          .listing-price {
-            font-size: 12px;
-          }
+          .stats-grid { gap: 8px; }
+          .stat-card { padding: 12px 12px; }
+          .stat-icon { width: 34px; height: 34px; }
+          .actions-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+          .action-item { padding: 12px 8px; }
+          .listing-meta { font-size: 10px; }
+          .listing-price { font-size: 12px; }
+          .welcome-avatar { width: 48px; height: 48px; font-size: 17px; }
         }
 
-        @media (min-width: 481px) and (max-width: 768px) {
-          .stats-grid {
-            grid-template-columns: repeat(4, 1fr);
+        @media (prefers-reduced-motion: reduce) {
+          .stat-card, .action-item, .btn-primary, .link-btn, .nav-icon-wrap {
+            transition: none;
           }
-          .actions-grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
+          .stat-card:hover,
+          .action-item:hover,
+          .btn-primary:hover,
+          .link-btn:hover { transform: none; }
         }
       `}</style>
     </div>
