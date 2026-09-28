@@ -327,51 +327,21 @@ export const AuthProvider = ({ children }) => {
 
   // ============================================================
   // LOGIN
+  //
+  // ★ FIX: login() no longer tries to "upgrade" an anonymous session
+  //   with updateUser(). That call tried to attach the typed email to
+  //   the anonymous user, which fails with 422 "already registered"
+  //   when the email belongs to an existing account, and each attempt
+  //   also sent a confirmation email (→ 429 email rate limit).
+  //
+  //   Logging in to an existing account is a plain signInWithPassword;
+  //   it replaces the anonymous session automatically. Upgrading an
+  //   anonymous user only makes sense for SIGN-UP (see register()).
   // ============================================================
   const login = async (email, password, rememberMe = false) => {
     try {
       setLoading(true);
 
-      // If this device has an anonymous session, upgrade instead of
-      // creating a fresh identity — preserves their likes/comments/messages.
-      const { data: current } = await supabase.auth.getUser();
-      const hasAnonSession = isAnonymousUser(current?.user);
-
-      if (hasAnonSession) {
-        // Link identity: attach email + password to the existing anon user.
-        // Then sign in with the password to get a fresh verified session.
-        const { error: updateError } = await supabase.auth.updateUser({
-          email: email.trim().toLowerCase(),
-          password,
-          data: { is_anonymous: false },
-        });
-
-        if (updateError) throw updateError;
-
-        // Some Supabase versions don't flip is_anonymous in the JWT until
-        // re-auth. Sign in explicitly to guarantee a fresh verified token.
-        const { data, error: signInError } =
-          await supabase.auth.signInWithPassword({
-            email: email.trim().toLowerCase(),
-            password,
-          });
-        if (signInError) throw signInError;
-
-        if (data.session?.access_token) {
-          localStorage.setItem('access_token', data.session.access_token);
-          localStorage.setItem('refresh_token', data.session.refresh_token);
-        }
-
-        await fetchUserProfile(data.user);
-        setSession(data.session);
-        setIsAuthenticated(true);
-        setIsAnonymous(false);
-        scheduleTokenRefresh(data.session);
-
-        return { success: true, user: data.user, upgraded: true };
-      }
-
-      // Normal login path (no anon session present)
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
@@ -433,7 +403,17 @@ export const AuthProvider = ({ children }) => {
           },
         });
 
-        if (updateError) throw updateError;
+        // ★ FIX: turn the raw Supabase 422 into a readable message.
+        if (updateError) {
+          if (/already (been )?registered/i.test(updateError.message)) {
+            return {
+              success: false,
+              error:
+                'An account with this email already exists. Please sign in instead.',
+            };
+          }
+          throw updateError;
+        }
 
         // Force a fresh verified session
         const { data, error: signInError } =

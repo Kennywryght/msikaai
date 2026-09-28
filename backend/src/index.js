@@ -264,7 +264,9 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 const uniqueOrigins = [...new Set(allowedOrigins)];
-const vercelPreviewPattern = /^https:\/\/msikaai-[a-z0-9]+-kennedy-bandas-projects\.vercel\.app$/;
+// ★ FIX: added "-" to the character class so branch previews like
+//   msikaai-git-master-kennedy-bandas-projects.vercel.app match.
+const vercelPreviewPattern = /^https:\/\/msikaai-[a-z0-9-]+-kennedy-bandas-projects\.vercel\.app$/;
 const msikaVercelPattern = /^https:\/\/msika-wa-mitundu[a-z0-9-]*\.vercel\.app$/;
 
 logger.info(`🌐 Allowed origins: ${uniqueOrigins.join(', ')} + Vercel preview deployments`);
