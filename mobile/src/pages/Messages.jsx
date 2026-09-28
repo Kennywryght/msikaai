@@ -6,9 +6,6 @@ import { useToast } from '../components/ToastContainer';
 import { messagesAPI } from '../services/api';
 import { supabase } from '../lib/supabase';
 
-// ============================================================
-// ICONS
-// ============================================================
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
     arrowLeft: 'M19 12H5M12 19l-7-7 7-7',
@@ -45,10 +42,14 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-// ============================================================
-// HELPERS
-// ============================================================
-const AVATAR_COLORS = ['#24453B', '#BC5B34', '#8B5A83', '#3E6C76', '#5B7B5E', '#D99A3B'];
+const AVATAR_COLORS = [
+  'var(--color-primary)',
+  'var(--color-accent)',
+  'var(--color-secondary-hover)',
+  '#8B5CF6',
+  'var(--color-success)',
+  '#EC4899',
+];
 
 const pickColor = (str) => {
   if (!str) return AVATAR_COLORS[0];
@@ -94,9 +95,6 @@ const previewOf = (thread) => {
   return { kind: 'text', text: text || 'Start the conversation…' };
 };
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const Messages = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -140,9 +138,6 @@ const Messages = () => {
     loadConversations();
   }, [loadConversations]);
 
-  // ============================================================
-  // REALTIME
-  // ============================================================
   useEffect(() => {
     if (!user?.id) return;
 
@@ -216,7 +211,6 @@ const Messages = () => {
     };
   }, [user?.id, loadConversations]);
 
-  // Refresh on tab focus
   useEffect(() => {
     const handleVisibility = () => {
       if (!document.hidden) loadConversations({ silent: true });
@@ -225,9 +219,6 @@ const Messages = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [loadConversations]);
 
-  // ============================================================
-  // DERIVED
-  // ============================================================
   const filteredThreads = useMemo(() => {
     return threads.filter((t) => {
       const other = t.otherParticipant || {};
@@ -263,12 +254,8 @@ const Messages = () => {
     else if (id === 'profile') navigate('/profile');
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
   return (
     <div className="messages-page">
-      {/* ============ HEADER ============ */}
       <header className="page-header">
         <div className="header-inner">
           <div className="header-top">
@@ -286,13 +273,13 @@ const Messages = () => {
                 title="Refresh"
                 aria-label="Refresh conversations"
               >
-                <Icon name="refresh" size={17} color="#6B6259" strokeWidth={2} />
+                <Icon name="refresh" size={17} color="var(--color-text-secondary)" strokeWidth={2} />
               </button>
             </div>
           </div>
 
           <div className="search-wrapper">
-            <Icon name="search" size={16} color="#9C9482" strokeWidth={2} />
+            <Icon name="search" size={16} color="var(--color-text-muted)" strokeWidth={2} />
             <input
               type="text"
               placeholder="Search by name or message…"
@@ -308,7 +295,7 @@ const Messages = () => {
                 onClick={handleClearSearch}
                 aria-label="Clear search"
               >
-                <Icon name="close" size={14} color="#6B6259" strokeWidth={2.2} />
+                <Icon name="close" size={14} color="var(--color-text-secondary)" strokeWidth={2.2} />
               </button>
             )}
           </div>
@@ -334,7 +321,6 @@ const Messages = () => {
         </div>
       </header>
 
-      {/* ============ THREADS ============ */}
       <main className="threads-container">
         {loading ? (
           <div className="loading-state">
@@ -378,12 +364,12 @@ const Messages = () => {
                       <div className="thread-preview-row">
                         {preview.kind === 'image' && (
                           <span className="preview-icon preview-icon-img">
-                            <Icon name="image" size={12} color="#3B82F6" strokeWidth={2} />
+                            <Icon name="image" size={12} color="var(--color-secondary-hover)" strokeWidth={2} />
                           </span>
                         )}
                         {preview.kind === 'audio' && (
                           <span className="preview-icon preview-icon-mic">
-                            <Icon name="mic" size={11} color="#10B981" strokeWidth={2} />
+                            <Icon name="mic" size={11} color="var(--color-success)" strokeWidth={2} />
                           </span>
                         )}
                         <p className={`thread-message ${isUnread ? 'unread' : ''}`}>
@@ -406,7 +392,7 @@ const Messages = () => {
           <div className="empty-state">
             <div className="empty-icon-wrap">
               <div className="empty-icon-inner">
-                <Icon name="message" size={34} color="#D99A3B" strokeWidth={1.6} />
+                <Icon name="message" size={34} color="var(--color-accent)" strokeWidth={1.6} />
               </div>
             </div>
             <h3 className="empty-title">
@@ -425,16 +411,15 @@ const Messages = () => {
             </p>
             {!searchQuery && activeFilter === 'all' && (
               <button className="empty-btn" onClick={() => navigate('/landing')}>
-                <Icon name="search" size={14} color="#F7F1E3" strokeWidth={2.2} />
+                <Icon name="search" size={14} color="var(--color-text-inverse)" strokeWidth={2.2} />
                 Browse listings
-                <Icon name="arrowRight" size={14} color="#F7F1E3" strokeWidth={2.2} />
+                <Icon name="arrowRight" size={14} color="var(--color-text-inverse)" strokeWidth={2.2} />
               </button>
             )}
           </div>
         )}
       </main>
 
-      {/* ============ BOTTOM NAV ============ */}
       {isMobile && (
         <nav className="bottom-nav" aria-label="Primary navigation">
           {[
@@ -455,7 +440,7 @@ const Messages = () => {
                   <Icon
                     name={item.icon}
                     size={20}
-                    color={active ? '#F7F1E3' : '#9C9482'}
+                    color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'}
                     strokeWidth={1.85}
                   />
                 </div>
@@ -474,29 +459,24 @@ const Messages = () => {
       )}
 
       <style jsx>{`
-        /* ============================================================
-           MESSAGES PAGE — warm, premium, matches the marketplace
-           ============================================================ */
         .messages-page {
           min-height: 100vh;
-          background: #F7F1E3;
-          background-image:
-            radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
           background-size: 22px 22px;
-          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #201F1B;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 100px;
         }
         @media (min-width: 769px) {
           .messages-page { padding-bottom: 40px; }
         }
 
-        /* ---------- HEADER ---------- */
         .page-header {
-          background: rgba(255, 253, 248, 0.94);
+          background: rgba(255, 255, 255, 0.94);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(239, 230, 206, 0.9);
+          border-bottom: 1px solid var(--color-border);
           position: sticky;
           top: 0;
           z-index: 10;
@@ -511,105 +491,102 @@ const Messages = () => {
           display: flex; align-items: center; gap: 10px;
         }
         .page-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: clamp(24px, 3.2vw, 28px);
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           margin: 0;
           letter-spacing: -0.02em;
         }
         .unread-badge {
-          font-size: 12px; font-weight: 800; color: #F7F1E3;
-          background: linear-gradient(135deg, #BC5B34, #A04724);
-          padding: 4px 10px; border-radius: 10px;
+          font-size: 12px; font-weight: 800; color: var(--color-text-inverse);
+          background: var(--color-accent);
+          padding: 4px 10px; border-radius: var(--radius-lg);
           min-width: 24px; text-align: center;
-          box-shadow: 0 3px 8px rgba(188, 91, 52, 0.35);
+          box-shadow: var(--shadow-accent);
           letter-spacing: 0.02em;
         }
         .header-actions { display: flex; gap: 8px; }
         .icon-btn {
-          width: 40px; height: 40px; border-radius: 12px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          background: #FFFDF8;
+          width: 40px; height: 40px; border-radius: var(--radius-xl);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface);
           cursor: pointer; display: flex; align-items: center;
           justify-content: center;
-          transition: background 0.15s, border-color 0.15s, transform 0.1s;
+          transition: background var(--transition-fast), border-color var(--transition-fast), transform 0.1s;
         }
         .icon-btn:hover {
-          background: #F7F1E3;
-          border-color: rgba(217, 154, 59, 0.4);
+          background: var(--color-surface-alt);
+          border-color: var(--color-accent);
         }
         .icon-btn:active { transform: scale(0.95); }
 
-        /* ---------- SEARCH ---------- */
         .search-wrapper {
           display: flex; align-items: center; gap: 10px;
-          background: #F7F1E3;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
-          border-radius: 15px;
+          background: var(--color-surface-alt);
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-2xl);
           padding: 12px 15px;
           margin-bottom: 12px;
-          transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+          transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
         }
         .search-wrapper:focus-within {
-          border-color: #D99A3B;
-          background: #FFFDF8;
-          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.12);
+          border-color: var(--color-accent);
+          background: var(--color-surface);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
         .search-input {
           flex: 1; border: none; outline: none; font-size: 14px;
-          color: #201F1B; background: transparent; font-family: inherit;
+          color: var(--color-text); background: transparent; font-family: inherit;
           min-width: 0;
         }
-        .search-input::placeholder { color: #B7AD98; }
+        .search-input::placeholder { color: var(--color-text-muted); }
         .clear-btn {
           width: 22px; height: 22px; border-radius: 50%;
-          border: none; background: #E4D9BD;
+          border: none; background: var(--color-border-strong);
           cursor: pointer; display: flex; align-items: center;
           justify-content: center; flex-shrink: 0;
-          transition: background 0.15s;
+          transition: background var(--transition-fast);
         }
-        .clear-btn:hover { background: #D9C79E; }
+        .clear-btn:hover { background: var(--color-text-muted); }
 
-        /* ---------- FILTER CHIPS ---------- */
         .filter-chips { display: flex; gap: 8px; }
         .filter-chip {
           display: inline-flex; align-items: center; gap: 7px;
           padding: 8px 16px; border-radius: 20px;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
-          background: #FFFDF8;
-          font-size: 13px; font-weight: 600; color: #6B6259;
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
+          font-size: 13px; font-weight: 600; color: var(--color-text-secondary);
           cursor: pointer; font-family: inherit;
           transition: all 0.18s;
         }
         .filter-chip:hover {
-          border-color: rgba(217, 154, 59, 0.4);
-          color: #201F1B;
+          border-color: var(--color-accent);
+          color: var(--color-text);
         }
         .filter-chip.active {
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          border-color: #24453B;
-          color: #F7F1E3;
-          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.22);
+          background: var(--color-primary);
+          border-color: var(--color-primary);
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-primary);
         }
         .chip-count {
           font-size: 11px; font-weight: 800;
-          padding: 2px 7px; border-radius: 8px;
-          background: rgba(36, 69, 59, 0.08);
+          padding: 2px 7px; border-radius: var(--radius-md);
+          background: var(--color-primary-tint);
           color: inherit; line-height: 1.4;
         }
         .filter-chip.active .chip-count {
-          background: rgba(247, 241, 227, 0.18);
+          background: rgba(255, 255, 255, 0.18);
         }
         .chip-badge {
           font-size: 10px; font-weight: 800;
-          background: linear-gradient(135deg, #BC5B34, #A04724);
-          color: #F7F1E3;
-          padding: 2px 8px; border-radius: 8px;
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
+          padding: 2px 8px; border-radius: var(--radius-md);
           line-height: 1.4;
         }
 
-        /* ---------- THREADS LIST ---------- */
         .threads-container {
           max-width: 800px; margin: 0 auto;
           padding: 16px 16px;
@@ -621,9 +598,9 @@ const Messages = () => {
 
         .thread-card {
           display: flex; align-items: center; gap: 13px;
-          padding: 14px; background: #FFFDF8;
-          border-radius: 16px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          padding: 14px; background: var(--color-surface);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
           cursor: pointer;
           transition: all 0.2s ease;
           position: relative;
@@ -631,29 +608,29 @@ const Messages = () => {
           text-align: left;
           width: 100%;
           outline: none;
-          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
+          box-shadow: var(--shadow-xs);
         }
         .thread-card:hover {
-          border-color: rgba(217, 154, 59, 0.4);
+          border-color: var(--color-accent);
           transform: translateY(-2px);
-          box-shadow: 0 12px 28px rgba(22, 38, 31, 0.08);
+          box-shadow: var(--shadow-lg);
         }
         .thread-card:active { transform: translateY(0); }
         .thread-card:focus-visible {
-          border-color: #D99A3B;
-          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.18);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
         .thread-card.unread {
-          background: linear-gradient(135deg, #FFFDF8 0%, #FEF8EB 100%);
-          border-color: rgba(217, 154, 59, 0.35);
-          box-shadow: 0 6px 20px rgba(217, 154, 59, 0.08);
+          background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-accent-soft) 100%);
+          border-color: var(--color-accent);
+          box-shadow: 0 6px 20px rgba(255, 92, 35, 0.08);
         }
         .thread-card.unread::before {
           content: '';
           position: absolute;
           left: 0; top: 16px; bottom: 16px;
           width: 3.5px; border-radius: 0 3px 3px 0;
-          background: linear-gradient(180deg, #D99A3B, #BC5B34);
+          background: var(--color-accent);
         }
 
         .thread-avatar-wrap { position: relative; flex-shrink: 0; }
@@ -661,15 +638,15 @@ const Messages = () => {
           width: 52px; height: 52px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
           font-size: 17px; font-weight: 700;
-          color: #F7F1E3;
+          color: var(--color-text-inverse);
           letter-spacing: 0.02em;
-          box-shadow: 0 4px 12px rgba(22, 38, 31, 0.12);
+          box-shadow: var(--shadow-md);
         }
         .thread-online-dot {
           position: absolute; bottom: 2px; right: 2px;
           width: 13px; height: 13px; border-radius: 50%;
-          background: #10B981;
-          border: 2.5px solid #FFFDF8;
+          background: var(--color-success);
+          border: 2.5px solid var(--color-surface);
         }
 
         .thread-content { flex: 1; min-width: 0; }
@@ -679,120 +656,118 @@ const Messages = () => {
         }
         .thread-name {
           font-size: 15px; font-weight: 700;
-          color: #201F1B;
+          color: var(--color-text);
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
           letter-spacing: -0.01em;
         }
         .thread-time {
-          font-size: 11.5px; color: #9C9482;
+          font-size: 11.5px; color: var(--color-text-muted);
           flex-shrink: 0; font-weight: 600;
           font-variant-numeric: tabular-nums;
         }
-        .thread-card.unread .thread-time { color: #BC5B34; }
+        .thread-card.unread .thread-time { color: var(--color-accent); }
 
         .thread-preview-row {
           display: flex; align-items: center; gap: 6px;
           min-width: 0;
         }
         .preview-icon {
-          width: 20px; height: 20px; border-radius: 6px;
+          width: 20px; height: 20px; border-radius: var(--radius-sm);
           display: inline-flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
-        .preview-icon-img { background: rgba(59, 130, 246, 0.1); }
-        .preview-icon-mic { background: rgba(16, 185, 129, 0.1); }
+        .preview-icon-img { background: var(--color-secondary-tint); }
+        .preview-icon-mic { background: var(--color-success-bg); }
 
         .thread-message {
-          font-size: 13px; color: #9C9482; margin: 0;
+          font-size: 13px; color: var(--color-text-muted); margin: 0;
           overflow: hidden; text-overflow: ellipsis;
           white-space: nowrap; line-height: 1.45;
           min-width: 0;
         }
         .thread-message.unread {
-          color: #3A362E; font-weight: 600;
+          color: var(--color-text); font-weight: 600;
         }
 
         .unread-count {
           min-width: 24px; height: 24px; padding: 0 8px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #BC5B34, #A04724);
-          color: #F7F1E3;
+          border-radius: var(--radius-xl);
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
           font-size: 11px; font-weight: 800;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
-          box-shadow: 0 3px 8px rgba(188, 91, 52, 0.32);
+          box-shadow: var(--shadow-accent);
           font-variant-numeric: tabular-nums;
           letter-spacing: 0.02em;
         }
 
-        /* ---------- LOADING ---------- */
         .loading-state {
           display: flex; justify-content: center; padding: 60px 20px;
         }
         .loading-spinner {
           width: 34px; height: 34px;
-          border: 3px solid rgba(36, 69, 59, 0.15);
-          border-top-color: #BC5B34; border-radius: 50%;
+          border: 3px solid var(--color-primary-tint);
+          border-top-color: var(--color-accent); border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ---------- EMPTY ---------- */
         .empty-state {
           text-align: center;
           padding: 56px 24px 64px;
-          background: #FFFDF8;
-          border-radius: 20px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          box-shadow: 0 4px 20px rgba(22, 38, 31, 0.04);
+          background: var(--color-surface);
+          border-radius: var(--radius-3xl);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-md);
         }
         .empty-icon-wrap {
           display: inline-flex;
           align-items: center; justify-content: center;
           width: 88px; height: 88px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #FFF3E0, #FDEBCB);
+          background: var(--color-accent-soft);
           margin-bottom: 20px;
-          box-shadow: 0 12px 32px rgba(217, 154, 59, 0.2);
+          box-shadow: 0 12px 32px rgba(255, 92, 35, 0.2);
         }
         .empty-icon-inner {
           display: flex; align-items: center; justify-content: center;
         }
         .empty-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 19px; font-weight: 600;
-          color: #201F1B; margin: 0 0 6px;
+          color: var(--color-text); margin: 0 0 6px;
           letter-spacing: -0.01em;
         }
         .empty-text {
-          font-size: 13.5px; color: #9C9482;
+          font-size: 13.5px; color: var(--color-text-muted);
           margin: 0 auto 24px; line-height: 1.55;
           max-width: 340px;
         }
         .empty-btn {
           display: inline-flex; align-items: center; gap: 8px;
           padding: 12px 24px;
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          border: none; border-radius: 13px;
-          color: #F7F1E3;
+          background: var(--color-accent);
+          border: none; border-radius: var(--radius-xl);
+          color: var(--color-text-inverse);
           font-size: 14px; font-weight: 700;
           cursor: pointer; font-family: inherit;
-          transition: transform 0.12s, box-shadow 0.2s;
-          box-shadow: 0 8px 20px rgba(36, 69, 59, 0.25);
+          transition: transform 0.12s, box-shadow 0.2s, background 0.15s;
+          box-shadow: var(--shadow-accent);
         }
         .empty-btn:hover {
+          background: var(--color-accent-hover);
           transform: translateY(-2px);
-          box-shadow: 0 12px 28px rgba(36, 69, 59, 0.35);
+          box-shadow: 0 12px 28px rgba(255, 92, 35, 0.35);
         }
         .empty-btn:active { transform: translateY(0); }
 
-        /* ---------- BOTTOM NAV ---------- */
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
-          background: rgba(255, 253, 248, 0.96);
+          background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
-          border-top: 1px solid rgba(239, 230, 206, 0.9);
+          border-top: 1px solid var(--color-border);
           display: flex; justify-content: space-around;
           padding: 4px 0 10px; z-index: 100;
         }
@@ -803,38 +778,37 @@ const Messages = () => {
           min-width: 44px; position: relative;
         }
         .nav-icon-wrap {
-          width: 34px; height: 34px; border-radius: 9px;
+          width: 34px; height: 34px; border-radius: var(--radius-md);
           display: flex; align-items: center; justify-content: center;
           transition: background 0.2s, transform 0.15s;
         }
         .nav-icon-wrap.active {
-          background: #24453B;
-          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
         .nav-btn:hover .nav-icon-wrap:not(.active) {
-          background: rgba(239, 230, 206, 0.6);
+          background: var(--color-surface-alt);
         }
-        .nav-label { font-size: 9px; font-weight: 500; color: #9C9482; }
-        .nav-label.active { color: #201F1B; font-weight: 600; }
+        .nav-label { font-size: 9px; font-weight: 500; color: var(--color-text-muted); }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
         .nav-badge {
           position: absolute; top: 0; right: 6px;
           min-width: 17px; height: 17px; padding: 0 5px;
-          border-radius: 9px;
-          background: linear-gradient(135deg, #BC5B34, #A04724);
-          color: #F7F1E3;
+          border-radius: var(--radius-lg);
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
           font-size: 9px; font-weight: 800;
           display: flex; align-items: center; justify-content: center;
-          border: 2px solid #FFFDF8;
+          border: 2px solid var(--color-surface);
           font-variant-numeric: tabular-nums;
-          box-shadow: 0 2px 6px rgba(188, 91, 52, 0.3);
+          box-shadow: var(--shadow-accent);
         }
 
-        /* ---------- MOBILE ---------- */
         @media (max-width: 480px) {
           .page-header { padding: 16px 14px 12px; }
           .threads-container { padding: 14px 12px; }
           .page-title { font-size: 23px; }
-          .thread-card { padding: 13px; gap: 11px; border-radius: 14px; }
+          .thread-card { padding: 13px; gap: 11px; border-radius: var(--radius-xl); }
           .thread-avatar { width: 48px; height: 48px; font-size: 16px; }
           .thread-name { font-size: 14.5px; }
           .thread-message { font-size: 12.5px; }
@@ -846,12 +820,8 @@ const Messages = () => {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .thread-card, .nav-icon-wrap, .empty-btn, .icon-btn {
-            transition: none;
-          }
-          .thread-card:hover,
-          .empty-btn:hover,
-          .icon-btn:active { transform: none; }
+          .thread-card, .nav-icon-wrap, .empty-btn, .icon-btn { transition: none; }
+          .thread-card:hover, .empty-btn:hover, .icon-btn:active { transform: none; }
           .loading-spinner { animation: none; }
         }
       `}</style>

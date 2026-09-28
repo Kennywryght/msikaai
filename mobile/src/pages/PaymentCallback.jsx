@@ -30,7 +30,7 @@ const PaymentCallback = () => {
   const [status, setStatus] = useState('verifying');
   const [errorMsg, setErrorMsg] = useState('');
   const [attempts, setAttempts] = useState(0);
-  const [resultKind, setResultKind] = useState(null); // 'subscription' | 'boost' | null
+  const [resultKind, setResultKind] = useState(null);
 
   const pollTimerRef = useRef(null);
   const MAX_ATTEMPTS = 20;
@@ -120,7 +120,6 @@ const PaymentCallback = () => {
     };
   }, [authInitialized, isAuthenticated, txRef, location.pathname, location.search, navigate]);
 
-  // ★ Choose destination based on kind
   const destination = resultKind === 'boost' ? '/landing' : '/settings#subscription';
 
   const successTitle =
@@ -156,13 +155,13 @@ const PaymentCallback = () => {
         {status === 'success' && (
           <>
             <div className="callback-icon success">
-              <Icon name="check" size={32} color="#065F46" strokeWidth={2.6} />
+              <Icon name="check" size={32} color="var(--color-success)" strokeWidth={2.6} />
             </div>
             <h1 className="callback-title">{successTitle}</h1>
             <p className="callback-desc">{successDesc}</p>
             <div className="callback-actions">
               <button className="callback-btn primary" onClick={() => navigate(destination)}>
-                <Icon name="home" size={16} color="#FFFFFF" strokeWidth={2} />
+                <Icon name="home" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                 {resultKind === 'boost' ? 'Back to marketplace' : 'View my plan'}
               </button>
             </div>
@@ -172,7 +171,7 @@ const PaymentCallback = () => {
         {status === 'pending' && (
           <>
             <div className="callback-icon amber">
-              <Icon name="alertCircle" size={28} color="#92400E" strokeWidth={2} />
+              <Icon name="alertCircle" size={28} color="var(--color-warning)" strokeWidth={2} />
             </div>
             <h1 className="callback-title">Still processing</h1>
             <p className="callback-desc">{errorMsg}</p>
@@ -184,7 +183,7 @@ const PaymentCallback = () => {
                   setStatus('verifying');
                 }}
               >
-                <Icon name="refresh" size={16} color="#FFFFFF" strokeWidth={2} />
+                <Icon name="refresh" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                 Check again
               </button>
               <button className="callback-btn secondary" onClick={() => navigate('/landing')}>
@@ -197,7 +196,7 @@ const PaymentCallback = () => {
         {status === 'failed' && (
           <>
             <div className="callback-icon red">
-              <Icon name="alertCircle" size={28} color="#7F1D1D" strokeWidth={2} />
+              <Icon name="alertCircle" size={28} color="var(--color-error)" strokeWidth={2} />
             </div>
             <h1 className="callback-title">Payment not completed</h1>
             <p className="callback-desc">{errorMsg || 'Something went wrong.'}</p>
@@ -216,28 +215,30 @@ const PaymentCallback = () => {
       <style jsx>{`
         .callback-page {
           min-height: 100vh;
-          background: #f8fafc;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 24px 16px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: var(--font-sans);
         }
         .callback-card {
           width: 100%;
           max-width: 420px;
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 18px;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-3xl);
           padding: 32px 24px;
           text-align: center;
-          box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
+          box-shadow: var(--shadow-lg);
         }
         .callback-spinner {
           width: 44px;
           height: 44px;
-          border: 3px solid #e2e8f0;
-          border-top-color: #f59e0b;
+          border: 3px solid var(--color-border);
+          border-top-color: var(--color-accent);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
           margin: 0 auto 20px;
@@ -252,25 +253,25 @@ const PaymentCallback = () => {
           justify-content: center;
           margin: 0 auto 20px;
         }
-        .callback-icon.success { background: #d1fae5; }
-        .callback-icon.amber { background: #fef3c7; }
-        .callback-icon.red { background: #fee2e2; }
+        .callback-icon.success { background: var(--color-success-bg); }
+        .callback-icon.amber { background: var(--color-warning-bg); }
+        .callback-icon.red { background: var(--color-error-bg); }
         .callback-title {
           font-size: 20px;
           font-weight: 700;
-          color: #0f172a;
+          color: var(--color-text);
           margin: 0 0 8px;
-          font-family: Georgia, serif;
+          font-family: var(--font-serif);
         }
         .callback-desc {
           font-size: 14px;
-          color: #64748b;
+          color: var(--color-text-secondary);
           line-height: 1.5;
           margin: 0 0 20px;
         }
         .callback-attempts {
           font-size: 12px;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           margin: -12px 0 0;
         }
         .callback-actions {
@@ -284,23 +285,31 @@ const PaymentCallback = () => {
           justify-content: center;
           gap: 6px;
           height: 46px;
-          border-radius: 11px;
+          border-radius: var(--radius-lg);
           font-family: inherit;
           font-size: 14px;
-          font-weight: 600;
+          font-weight: 700;
           cursor: pointer;
           border: none;
+          transition: background var(--transition-fast), transform 0.1s;
         }
         .callback-btn.primary {
-          background: #1e293b;
-          color: #ffffff;
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-accent);
         }
-        .callback-btn.primary:hover { background: #f59e0b; }
+        .callback-btn.primary:hover { background: var(--color-accent-hover); }
+        .callback-btn.primary:active { transform: scale(0.98); }
         .callback-btn.secondary {
           background: transparent;
-          color: #94a3b8;
+          color: var(--color-text-muted);
         }
-        .callback-btn.secondary:hover { color: #1e293b; }
+        .callback-btn.secondary:hover { color: var(--color-text); }
+
+        @media (prefers-reduced-motion: reduce) {
+          .callback-btn { transition: none; }
+          .callback-btn.primary:active { transform: none; }
+        }
       `}</style>
     </div>
   );

@@ -8,16 +8,12 @@ import { supabase } from '../lib/supabase';
 import { useUserPresence } from '../hooks/usePresence';
 import { useTyping } from '../hooks/useTyping';
 
-// ============================================================
-// ICONS
-// ============================================================
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
     arrowLeft: 'M19 12H5M12 19l-7-7 7-7',
     send: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
     message: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z',
-    moreVertical:
-      'M12 5a1 1 0 100-2 1 1 0 000 2zM12 13a1 1 0 100-2 1 1 0 000 2zM12 21a1 1 0 100-2 1 1 0 000 2z',
+    moreVertical: 'M12 5a1 1 0 100-2 1 1 0 000 2zM12 13a1 1 0 100-2 1 1 0 000 2zM12 21a1 1 0 100-2 1 1 0 000 2z',
     check: 'M20 6L9 17l-5-5',
     checkCheck: 'M18 6L7 17l-4-4M22 6l-11 11',
     image: 'M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM21 15l-5-5L5 21',
@@ -52,9 +48,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-// ============================================================
-// NORMALIZERS
-// ============================================================
 const normalizeMessage = (raw) => {
   if (!raw) return raw;
   const createdAt = raw.createdAt || raw.created_at || raw.timestamp || null;
@@ -125,10 +118,14 @@ const normalizeConversation = (raw) => {
   };
 };
 
-// ============================================================
-// HELPERS
-// ============================================================
-const AVATAR_COLORS = ['#F59E0B', '#3B82F6', '#10B981', '#8B5CF6', '#EC4899', '#EF4444'];
+const AVATAR_COLORS = [
+  'var(--color-primary)',
+  'var(--color-accent)',
+  'var(--color-secondary-hover)',
+  '#8B5CF6',
+  'var(--color-success)',
+  '#EC4899',
+];
 
 const pickColor = (str) => {
   if (!str) return AVATAR_COLORS[0];
@@ -213,9 +210,6 @@ const MAX_IMAGE_MB = 10;
 const MAX_AUDIO_SECONDS = 120;
 const MAX_AUDIO_MB = 15;
 
-// ============================================================
-// AUDIO RECORDER HOOK
-// ============================================================
 const useAudioRecorder = ({ onComplete, onError, maxSeconds = MAX_AUDIO_SECONDS }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -326,9 +320,6 @@ const useAudioRecorder = ({ onComplete, onError, maxSeconds = MAX_AUDIO_SECONDS 
   return { isRecording, seconds, start, stop, cancel };
 };
 
-// ============================================================
-// VOICE MESSAGE PLAYER
-// ============================================================
 const VoiceMessage = ({ url, durationHint, isMine }) => {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -374,7 +365,6 @@ const VoiceMessage = ({ url, durationHint, isMine }) => {
 
   const displayTime = playing || currentTime > 0 ? currentTime : duration;
 
-  // Simple fake waveform bars (static heights)
   const bars = [6, 11, 7, 14, 9, 13, 8, 15, 10, 7, 12, 9, 13, 6, 11, 8, 14, 10, 7, 12];
 
   return (
@@ -389,7 +379,7 @@ const VoiceMessage = ({ url, durationHint, isMine }) => {
         <Icon
           name={playing ? 'pause' : 'play'}
           size={13}
-          color={isMine ? '#1E293B' : '#FFFFFF'}
+          color={isMine ? 'var(--color-primary)' : 'var(--color-text-inverse)'}
           strokeWidth={2.2}
         />
       </button>
@@ -412,9 +402,6 @@ const VoiceMessage = ({ url, durationHint, isMine }) => {
   );
 };
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const Chat = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -496,7 +483,6 @@ const Chat = () => {
 
   useEffect(() => { loadConversation(); }, [loadConversation]);
 
-  // Realtime
   useEffect(() => {
     if (!id || !user?.id) return;
     if (channelRef.current) {
@@ -566,9 +552,6 @@ const Chat = () => {
     return () => container.removeEventListener('scroll', handleScroll);
   }, [messages.length]);
 
-  // ============================================================
-  // SEND TEXT
-  // ============================================================
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || sending) return;
@@ -607,9 +590,6 @@ const Chat = () => {
     }
   };
 
-  // ============================================================
-  // SEND IMAGE
-  // ============================================================
   const handlePickImage = () => {
     if (uploadingImage || recorder.isRecording) return;
     fileInputRef.current?.click();
@@ -665,9 +645,6 @@ const Chat = () => {
     }
   };
 
-  // ============================================================
-  // SEND AUDIO
-  // ============================================================
   const sendAudioBlob = async ({ blob, mimeType, seconds }) => {
     if (!blob || blob.size < 500) return;
 
@@ -690,11 +667,7 @@ const Chat = () => {
     scrollToBottom(true);
 
     try {
-      const ext = mimeType.includes('mp4')
-        ? 'm4a'
-        : mimeType.includes('ogg')
-        ? 'ogg'
-        : 'webm';
+      const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
       const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: mimeType });
 
       const uploadRes = await messagesAPI.uploadAudio(file);
@@ -776,15 +749,15 @@ const Chat = () => {
           .chat-page {
             height: 100vh; height: 100dvh;
             display: flex; flex-direction: column;
-            background: #F7F1E3;
+            background: var(--color-bg);
           }
           .chat-loading {
             flex: 1; display: flex; align-items: center; justify-content: center;
           }
           .loading-spinner {
             width: 34px; height: 34px;
-            border: 3px solid rgba(36, 69, 59, 0.15);
-            border-top-color: #BC5B34; border-radius: 50%;
+            border: 3px solid var(--color-primary-tint);
+            border-top-color: var(--color-accent); border-radius: 50%;
             animation: spin 0.8s linear infinite;
           }
           @keyframes spin { to { transform: rotate(360deg); } }
@@ -803,14 +776,13 @@ const Chat = () => {
         style={{ display: 'none' }}
       />
 
-      {/* ============ HEADER ============ */}
       <div className="chat-header">
         <button
           className="header-btn"
           onClick={() => navigate('/messages', { replace: true })}
           aria-label="Back to messages"
         >
-          <Icon name="arrowLeft" size={20} color="#201F1B" strokeWidth={2.2} />
+          <Icon name="arrowLeft" size={20} color="var(--color-text)" strokeWidth={2.2} />
         </button>
 
         <div className="header-user" onClick={handleViewListing}>
@@ -842,12 +814,11 @@ const Chat = () => {
 
         <div className="header-actions">
           <button className="header-btn" aria-label="More options">
-            <Icon name="moreVertical" size={18} color="#6B6259" strokeWidth={1.9} />
+            <Icon name="moreVertical" size={18} color="var(--color-text-secondary)" strokeWidth={1.9} />
           </button>
         </div>
       </div>
 
-      {/* ============ LISTING PINNED ============ */}
       {conversation?.listing && (
         <button className="listing-pinned" onClick={handleViewListing}>
           <div className="pinned-thumb">
@@ -868,12 +839,11 @@ const Chat = () => {
           </div>
           <span className="pinned-arrow">
             View
-            <Icon name="externalLink" size={12} color="#FFFFFF" strokeWidth={2.2} />
+            <Icon name="externalLink" size={12} color="var(--color-text-inverse)" strokeWidth={2.2} />
           </span>
         </button>
       )}
 
-      {/* ============ MESSAGES ============ */}
       <div className="messages-container" ref={messagesContainerRef}>
         {messages.length === 0 ? (
           <div className="empty-chat">
@@ -933,7 +903,11 @@ const Chat = () => {
                           <Icon
                             name={msg.readAt ? 'checkCheck' : 'check'}
                             size={12}
-                            color={msg.readAt ? '#3B82F6' : isMine ? 'rgba(247,241,227,0.55)' : '#9C9482'}
+                            color={
+                              msg.readAt
+                                ? 'var(--color-secondary-hover)'
+                                : 'rgba(255, 255, 255, 0.55)'
+                            }
                             strokeWidth={2}
                           />
                         )}
@@ -959,18 +933,16 @@ const Chat = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* SCROLL DOWN */}
       {showScrollDown && !recorder.isRecording && (
         <button
           className="scroll-down-btn"
           onClick={() => scrollToBottom(true)}
           aria-label="Scroll to bottom"
         >
-          <Icon name="chevronDown" size={18} color="#201F1B" strokeWidth={2.2} />
+          <Icon name="chevronDown" size={18} color="var(--color-text)" strokeWidth={2.2} />
         </button>
       )}
 
-      {/* QUICK REPLIES */}
       {showQuickReplies && messages.length < 4 && !uploadingImage && !uploadingAudio && !recorder.isRecording && (
         <div className="quick-replies">
           <div className="quick-replies-scroll">
@@ -987,7 +959,6 @@ const Chat = () => {
         </div>
       )}
 
-      {/* ============ INPUT BAR ============ */}
       <div className="chat-input-wrapper">
         {recorder.isRecording ? (
           <div className="recording-row">
@@ -997,7 +968,7 @@ const Chat = () => {
               onClick={() => recorder.cancel()}
               aria-label="Cancel recording"
             >
-              <Icon name="trash" size={18} color="#DC2626" strokeWidth={2} />
+              <Icon name="trash" size={18} color="var(--color-error)" strokeWidth={2} />
             </button>
 
             <div className="recording-pill">
@@ -1019,7 +990,7 @@ const Chat = () => {
               onClick={() => recorder.stop()}
               aria-label="Send recording"
             >
-              <Icon name="send" size={16} color="#FFFFFF" strokeWidth={2.2} />
+              <Icon name="send" size={16} color="var(--color-text-inverse)" strokeWidth={2.2} />
             </button>
           </div>
         ) : (
@@ -1034,7 +1005,7 @@ const Chat = () => {
               {uploadingImage ? (
                 <div className="mini-spinner mini-spinner-dark" />
               ) : (
-                <Icon name="image" size={20} color="#6B6259" strokeWidth={1.9} />
+                <Icon name="image" size={20} color="var(--color-text-secondary)" strokeWidth={1.9} />
               )}
             </button>
 
@@ -1066,7 +1037,7 @@ const Chat = () => {
                 {sending ? (
                   <div className="mini-spinner" />
                 ) : (
-                  <Icon name="send" size={18} color="#F7F1E3" strokeWidth={2.2} />
+                  <Icon name="send" size={18} color="var(--color-text-inverse)" strokeWidth={2.2} />
                 )}
               </button>
             ) : (
@@ -1079,7 +1050,7 @@ const Chat = () => {
                 {uploadingAudio ? (
                   <div className="mini-spinner" />
                 ) : (
-                  <Icon name="mic" size={20} color="#F7F1E3" strokeWidth={2} />
+                  <Icon name="mic" size={20} color="var(--color-text-inverse)" strokeWidth={2} />
                 )}
               </button>
             )}
@@ -1087,7 +1058,6 @@ const Chat = () => {
         )}
       </div>
 
-      {/* LIGHTBOX */}
       {lightboxUrl && (
         <div className="lightbox" onClick={() => setLightboxUrl(null)} role="dialog" aria-label="Image preview">
           <button
@@ -1095,7 +1065,7 @@ const Chat = () => {
             onClick={(e) => { e.stopPropagation(); setLightboxUrl(null); }}
             aria-label="Close"
           >
-            <Icon name="close" size={22} color="#FFFFFF" strokeWidth={2} />
+            <Icon name="close" size={22} color="var(--color-text-inverse)" strokeWidth={2} />
           </button>
           <img
             src={lightboxUrl}
@@ -1106,7 +1076,6 @@ const Chat = () => {
         </div>
       )}
 
-      {/* BOTTOM NAV */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -1120,7 +1089,7 @@ const Chat = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#F7F1E3' : '#9C9482'} strokeWidth={1.85} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.85} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -1130,56 +1099,52 @@ const Chat = () => {
       )}
 
       <style jsx>{`
-        /* ============================================================
-           CHAT PAGE — warm, premium, cohesive with the marketplace
-           ============================================================ */
         .chat-page {
           height: 100vh;
           height: 100dvh;
           display: flex;
           flex-direction: column;
-          background: #F7F1E3;
-          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #201F1B;
+          background: var(--color-bg);
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 70px;
           position: relative;
-          background-image:
-            radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
           background-size: 22px 22px;
         }
         @media (min-width: 769px) { .chat-page { padding-bottom: 0; } }
 
-        /* HEADER */
         .chat-header {
           display: flex; align-items: center; gap: 10px;
           padding: 12px 14px;
-          background: rgba(255, 253, 248, 0.92);
+          background: rgba(255, 255, 255, 0.92);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(239, 230, 206, 0.9);
+          border-bottom: 1px solid var(--color-border);
           flex-shrink: 0;
           position: sticky; top: 0; z-index: 20;
         }
         .header-btn {
-          width: 40px; height: 40px; border-radius: 11px; border: none;
+          width: 40px; height: 40px; border-radius: var(--radius-lg); border: none;
           background: transparent; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          transition: background 0.15s; flex-shrink: 0;
+          transition: background var(--transition-fast); flex-shrink: 0;
         }
-        .header-btn:hover { background: rgba(239, 230, 206, 0.5); }
+        .header-btn:hover { background: var(--color-surface-alt); }
         .header-user { flex: 1; display: flex; align-items: center; gap: 11px; cursor: pointer; min-width: 0; }
         .header-avatar-wrap { position: relative; flex-shrink: 0; }
         .header-avatar {
           width: 42px; height: 42px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
           font-size: 15px; font-weight: 700;
-          color: #F7F1E3;
-          box-shadow: 0 4px 10px rgba(22, 38, 31, 0.15);
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-md);
         }
         .header-online {
           position: absolute; bottom: 1px; right: 1px;
           width: 12px; height: 12px; border-radius: 50%;
-          background: #10B981; border: 2px solid #FFFDF8;
+          background: var(--color-success);
+          border: 2px solid var(--color-surface);
           animation: presencePulse 2.4s ease-in-out infinite;
         }
         @keyframes presencePulse {
@@ -1188,43 +1153,42 @@ const Chat = () => {
         }
         .header-info { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
         .header-name {
-          font-family: 'Fraunces', Georgia, serif;
-          font-size: 16px; font-weight: 600; color: #201F1B;
+          font-family: var(--font-serif);
+          font-size: 16px; font-weight: 600; color: var(--color-text);
           letter-spacing: -0.01em;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .header-status {
           display: inline-flex; align-items: center; gap: 5px;
-          font-size: 12px; color: #9C9482; font-weight: 500;
+          font-size: 12px; color: var(--color-text-muted); font-weight: 500;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .header-status.online,
-        .header-status.typing { color: #10B981; font-weight: 600; }
+        .header-status.typing { color: var(--color-success); font-weight: 600; }
         .header-status.typing { font-style: italic; }
         .status-dot {
           width: 6px; height: 6px; border-radius: 50%;
-          background: #10B981;
+          background: var(--color-success);
           box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
         }
         .header-actions { display: flex; gap: 2px; flex-shrink: 0; }
 
-        /* LISTING PINNED */
         .listing-pinned {
           display: flex; align-items: center; gap: 12px;
           padding: 11px 14px;
-          background: linear-gradient(135deg, #FEF6E7 0%, #FDEBCB 100%);
+          background: var(--color-accent-soft);
           border: none;
-          border-bottom: 1px solid rgba(217, 154, 59, 0.25);
+          border-bottom: 1px solid var(--color-accent);
           flex-shrink: 0; cursor: pointer;
           font-family: inherit; text-align: left; width: 100%;
-          transition: filter 0.15s;
+          transition: filter var(--transition-fast);
         }
         .listing-pinned:hover { filter: brightness(1.02); }
         .pinned-thumb {
-          width: 44px; height: 44px; border-radius: 10px; overflow: hidden;
-          background: #F7F1E3; flex-shrink: 0;
-          border: 1px solid rgba(217, 154, 59, 0.3);
-          box-shadow: 0 2px 6px rgba(217, 154, 59, 0.12);
+          width: 44px; height: 44px; border-radius: var(--radius-lg); overflow: hidden;
+          background: var(--color-surface-alt); flex-shrink: 0;
+          border: 1px solid var(--color-accent);
+          box-shadow: var(--shadow-xs);
         }
         .pinned-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .pinned-thumb-fallback {
@@ -1234,62 +1198,61 @@ const Chat = () => {
         }
         .pinned-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
         .pinned-label {
-          font-size: 10px; font-weight: 700; color: #92400E;
+          font-size: 10px; font-weight: 700; color: var(--color-accent-hover);
           text-transform: uppercase; letter-spacing: 0.1em;
         }
         .pinned-title {
-          font-size: 13.5px; font-weight: 700; color: #201F1B;
+          font-size: 13.5px; font-weight: 700; color: var(--color-text);
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
           letter-spacing: -0.005em;
         }
-        .pinned-price { font-size: 12.5px; font-weight: 700; color: #24453B; margin-top: 1px; }
+        .pinned-price { font-size: 12.5px; font-weight: 700; color: var(--color-primary); margin-top: 1px; }
         .pinned-arrow {
           display: inline-flex; align-items: center; gap: 5px;
           font-size: 11px; font-weight: 700;
-          color: #F7F1E3;
-          padding: 6px 11px; border-radius: 8px;
-          background: #24453B;
+          color: var(--color-text-inverse);
+          padding: 6px 11px; border-radius: var(--radius-md);
+          background: var(--color-primary);
           flex-shrink: 0;
-          transition: background 0.15s, transform 0.12s;
+          transition: background var(--transition-fast), transform 0.12s;
           text-transform: uppercase;
           letter-spacing: 0.04em;
         }
         .listing-pinned:hover .pinned-arrow {
-          background: #BC5B34;
+          background: var(--color-accent);
           transform: translateY(-1px);
         }
 
-        /* MESSAGES */
         .messages-container {
           flex: 1; overflow-y: auto;
           padding: 18px 14px 10px;
           display: flex; flex-direction: column; gap: 3px;
           scrollbar-width: thin;
-          scrollbar-color: rgba(217, 154, 59, 0.3) transparent;
+          scrollbar-color: var(--color-border-strong) transparent;
         }
         .messages-container::-webkit-scrollbar { width: 5px; }
         .messages-container::-webkit-scrollbar-thumb {
-          background: rgba(217, 154, 59, 0.25);
+          background: var(--color-border-strong);
           border-radius: 5px;
         }
         .messages-container::-webkit-scrollbar-thumb:hover {
-          background: rgba(217, 154, 59, 0.45);
+          background: var(--color-text-muted);
         }
 
         .day-divider {
           display: flex; align-items: center; justify-content: center;
           margin: 18px 0 10px;
           font-size: 10.5px;
-          color: #8A6A20;
+          color: var(--color-text-secondary);
           font-weight: 700;
           letter-spacing: 0.08em;
         }
         .day-divider span {
-          padding: 4px 12px; border-radius: 999px;
-          background: rgba(255, 253, 248, 0.9);
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          padding: 4px 12px; border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, 0.9);
+          border: 1px solid var(--color-border);
           text-transform: uppercase;
-          box-shadow: 0 1px 3px rgba(22, 38, 31, 0.04);
+          box-shadow: var(--shadow-xs);
         }
 
         .empty-chat {
@@ -1301,18 +1264,18 @@ const Chat = () => {
           width: 72px; height: 72px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
           font-size: 24px; font-weight: 700;
-          color: #F7F1E3;
+          color: var(--color-text-inverse);
           margin-bottom: 18px;
-          box-shadow: 0 10px 24px rgba(22, 38, 31, 0.15);
+          box-shadow: var(--shadow-lg);
         }
         .empty-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 18px; font-weight: 600;
-          color: #201F1B; margin: 0 0 6px;
+          color: var(--color-text); margin: 0 0 6px;
           letter-spacing: -0.01em;
         }
         .empty-sub {
-          font-size: 13.5px; color: #9C9482; max-width: 300px;
+          font-size: 13.5px; color: var(--color-text-muted); max-width: 300px;
           line-height: 1.55; margin: 0;
         }
 
@@ -1325,7 +1288,7 @@ const Chat = () => {
         .message-bubble {
           padding: 10px 14px; border-radius: 18px;
           position: relative; word-wrap: break-word; max-width: 100%;
-          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.05);
+          box-shadow: var(--shadow-xs);
           animation: bubbleIn 0.22s cubic-bezier(0.2, 0.9, 0.2, 1) both;
         }
         @keyframes bubbleIn {
@@ -1334,15 +1297,15 @@ const Chat = () => {
         }
         .message-bubble.audio { padding: 8px 12px; }
         .message-bubble.sent {
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          color: #F7F1E3;
+          background: var(--color-primary);
+          color: var(--color-text-inverse);
           border-bottom-right-radius: 5px;
-          box-shadow: 0 3px 10px rgba(36, 69, 59, 0.2);
+          box-shadow: var(--shadow-primary);
         }
         .message-bubble.received {
-          background: #FFFDF8;
-          color: #201F1B;
-          border: 1px solid rgba(239, 230, 206, 0.95);
+          background: var(--color-surface);
+          color: var(--color-text);
+          border: 1px solid var(--color-border);
           border-bottom-left-radius: 5px;
         }
         .message-bubble.typing {
@@ -1351,7 +1314,7 @@ const Chat = () => {
         }
         .typing-dot {
           width: 6px; height: 6px; border-radius: 50%;
-          background: #9C9482;
+          background: var(--color-text-muted);
           animation: typingBounce 1.4s infinite;
         }
         .typing-dot:nth-child(2) { animation-delay: 0.2s; }
@@ -1363,16 +1326,16 @@ const Chat = () => {
         .message-image-btn {
           display: block; padding: 0; margin: 0 0 6px;
           border: none; background: transparent; cursor: pointer;
-          position: relative; border-radius: 12px; overflow: hidden;
+          position: relative; border-radius: var(--radius-xl); overflow: hidden;
           max-width: 240px;
         }
         .message-image {
           display: block; width: 100%; height: auto;
-          max-height: 320px; object-fit: cover; border-radius: 12px;
+          max-height: 320px; object-fit: cover; border-radius: var(--radius-xl);
         }
         .message-image-overlay {
           position: absolute; inset: 0;
-          background: rgba(22, 38, 31, 0.45);
+          background: rgba(10, 36, 114, 0.45);
           backdrop-filter: blur(2px);
           display: flex; align-items: center; justify-content: center;
         }
@@ -1384,21 +1347,20 @@ const Chat = () => {
           display: flex; align-items: center; gap: 4px;
           justify-content: flex-end; margin-top: 3px;
         }
-        .message-time { font-size: 10px; color: rgba(247, 241, 227, 0.55); }
-        .message-bubble.received .message-time { color: #9C9482; }
+        .message-time { font-size: 10px; color: rgba(255, 255, 255, 0.6); }
+        .message-bubble.received .message-time { color: var(--color-text-muted); }
         .mini-spinner {
           width: 16px; height: 16px;
-          border: 2px solid rgba(247, 241, 227, 0.35);
-          border-top-color: #F7F1E3; border-radius: 50%;
+          border: 2px solid rgba(255, 255, 255, 0.35);
+          border-top-color: var(--color-text-inverse); border-radius: 50%;
           animation: spin 0.7s linear infinite;
         }
         .mini-spinner-dark {
-          border-color: rgba(107, 98, 89, 0.25);
-          border-top-color: #6B6259;
+          border-color: rgba(71, 85, 105, 0.25);
+          border-top-color: var(--color-text-secondary);
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* VOICE MESSAGE */
         .voice-msg {
           display: flex; align-items: center; gap: 11px;
           min-width: 200px;
@@ -1408,11 +1370,11 @@ const Chat = () => {
           border: none; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
-          transition: transform 0.15s, background 0.15s;
+          transition: transform 0.15s, background var(--transition-fast);
         }
         .voice-btn:active { transform: scale(0.94); }
-        .voice-btn.mine { background: #F7F1E3; color: #24453B; }
-        .voice-btn.theirs { background: #D99A3B; color: #F7F1E3; }
+        .voice-btn.mine { background: var(--color-text-inverse); color: var(--color-primary); }
+        .voice-btn.theirs { background: var(--color-accent); color: var(--color-text-inverse); }
         .voice-track { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
         .voice-waveform {
           display: flex; align-items: center; gap: 2.5px;
@@ -1420,39 +1382,37 @@ const Chat = () => {
         }
         .voice-bar {
           width: 2.5px; border-radius: 2px;
-          transition: opacity 0.2s, background 0.2s;
+          transition: opacity var(--transition-fast), background var(--transition-fast);
         }
-        .voice-bar.mine { background: rgba(247, 241, 227, 0.35); }
-        .voice-bar.theirs { background: rgba(217, 154, 59, 0.35); }
-        .voice-bar.filled.mine { background: #F7F1E3; }
-        .voice-bar.filled.theirs { background: #D99A3B; }
+        .voice-bar.mine { background: rgba(255, 255, 255, 0.35); }
+        .voice-bar.theirs { background: rgba(255, 92, 35, 0.35); }
+        .voice-bar.filled.mine { background: var(--color-text-inverse); }
+        .voice-bar.filled.theirs { background: var(--color-accent); }
         .voice-time {
           font-size: 11px; font-weight: 600;
           font-variant-numeric: tabular-nums;
-          color: rgba(247, 241, 227, 0.85);
+          color: rgba(255, 255, 255, 0.85);
         }
-        .message-bubble.received .voice-time { color: #6B6259; }
+        .message-bubble.received .voice-time { color: var(--color-text-secondary); }
 
-        /* SCROLL DOWN */
         .scroll-down-btn {
           position: absolute; right: 16px; bottom: 190px;
           width: 42px; height: 42px; border-radius: 50%;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          background: #FFFDF8;
-          box-shadow: 0 6px 20px rgba(22, 38, 31, 0.12);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface);
+          box-shadow: var(--shadow-lg);
           cursor: pointer; display: flex; align-items: center; justify-content: center;
-          transition: transform 0.15s, background 0.15s;
+          transition: transform 0.15s, background var(--transition-fast);
           z-index: 15;
         }
-        .scroll-down-btn:hover { background: #F7F1E3; transform: translateY(-1px); }
+        .scroll-down-btn:hover { background: var(--color-surface-alt); transform: translateY(-1px); }
         @media (min-width: 769px) { .scroll-down-btn { bottom: 120px; } }
 
-        /* QUICK REPLIES */
         .quick-replies {
-          background: rgba(255, 253, 248, 0.92);
+          background: rgba(255, 255, 255, 0.92);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
-          border-top: 1px solid rgba(239, 230, 206, 0.9);
+          border-top: 1px solid var(--color-border);
           padding: 10px 0; flex-shrink: 0;
         }
         .quick-replies-scroll {
@@ -1461,28 +1421,27 @@ const Chat = () => {
         }
         .quick-replies-scroll::-webkit-scrollbar { display: none; }
         .quick-reply-chip {
-          padding: 8px 15px; border-radius: 20px;
-          border: 1.5px solid rgba(217, 154, 59, 0.35);
-          background: #FFFDF8;
-          font-size: 12.5px; color: #6B6259; font-weight: 600;
+          padding: 8px 15px; border-radius: var(--radius-full);
+          border: 1.5px solid var(--color-accent);
+          background: var(--color-surface);
+          font-size: 12.5px; color: var(--color-text-secondary); font-weight: 600;
           cursor: pointer; white-space: nowrap;
           font-family: inherit;
           transition: all 0.18s; flex-shrink: 0;
         }
         .quick-reply-chip:hover {
-          background: #24453B;
-          border-color: #24453B;
-          color: #F7F1E3;
+          background: var(--color-accent);
+          border-color: var(--color-accent);
+          color: var(--color-text-inverse);
           transform: translateY(-1px);
-          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.2);
+          box-shadow: var(--shadow-accent);
         }
 
-        /* INPUT BAR */
         .chat-input-wrapper {
-          background: rgba(255, 253, 248, 0.96);
+          background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(239, 230, 206, 0.9);
+          border-top: 1px solid var(--color-border);
           padding: 10px 12px; flex-shrink: 0;
         }
         .chat-input-row {
@@ -1492,66 +1451,65 @@ const Chat = () => {
           width: 42px; height: 42px; border-radius: 50%;
           border: none; background: transparent; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          transition: background 0.15s; flex-shrink: 0;
+          transition: background var(--transition-fast); flex-shrink: 0;
         }
-        .input-action-btn:hover:not(:disabled) { background: rgba(239, 230, 206, 0.5); }
+        .input-action-btn:hover:not(:disabled) { background: var(--color-surface-alt); }
         .input-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .input-field-wrap {
           flex: 1;
-          background: #F7F1E3;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
+          background: var(--color-surface-alt);
+          border: 1.5px solid var(--color-border);
           border-radius: 22px;
-          transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+          transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
           min-width: 0;
         }
         .input-field-wrap:focus-within {
-          border-color: #D99A3B;
-          background: #FFFDF8;
-          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.12);
+          border-color: var(--color-accent);
+          background: var(--color-surface);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
         .chat-input {
           width: 100%; padding: 10px 16px; border: none;
           outline: none; background: transparent; font-size: 14px;
-          color: #201F1B; font-family: inherit; resize: none;
+          color: var(--color-text); font-family: inherit; resize: none;
           max-height: 100px; line-height: 1.45; box-sizing: border-box;
         }
-        .chat-input::placeholder { color: #B7AD98; }
+        .chat-input::placeholder { color: var(--color-text-muted); }
 
-        /* SEND BUTTON */
         .send-btn {
           width: 44px; height: 44px; border-radius: 50%;
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          background: var(--color-accent);
           border: none; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
-          transition: transform 0.1s, box-shadow 0.15s;
-          box-shadow: 0 4px 12px rgba(36, 69, 59, 0.3);
+          transition: transform 0.1s, box-shadow var(--transition-fast), background var(--transition-fast);
+          box-shadow: var(--shadow-accent);
         }
         .send-btn:hover:not(:disabled) {
+          background: var(--color-accent-hover);
           transform: scale(1.04);
-          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.4);
+          box-shadow: 0 6px 16px rgba(255, 92, 35, 0.4);
         }
         .send-btn:active:not(:disabled) { transform: scale(0.96); }
-        .send-btn:disabled { background: #E4D9BD; box-shadow: none; cursor: not-allowed; }
+        .send-btn:disabled { background: var(--color-border-strong); box-shadow: none; cursor: not-allowed; }
 
-        /* MIC BUTTON */
         .mic-btn {
           width: 44px; height: 44px; border-radius: 50%;
-          background: linear-gradient(135deg, #BC5B34 0%, #A04724 100%);
+          background: var(--color-primary);
           border: none; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
-          transition: transform 0.1s, box-shadow 0.15s;
-          box-shadow: 0 4px 12px rgba(188, 91, 52, 0.3);
+          transition: transform 0.1s, box-shadow var(--transition-fast), background var(--transition-fast);
+          box-shadow: var(--shadow-primary);
         }
         .mic-btn:hover:not(:disabled) {
+          background: var(--color-primary-hover);
           transform: scale(1.04);
-          box-shadow: 0 6px 16px rgba(188, 91, 52, 0.4);
+          box-shadow: 0 6px 16px rgba(10, 36, 114, 0.4);
         }
         .mic-btn:active:not(:disabled) { transform: scale(0.96); }
         .mic-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* RECORDING STATE */
         .recording-row {
           display: flex; align-items: center; gap: 10px;
         }
@@ -1562,10 +1520,10 @@ const Chat = () => {
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
-          transition: background 0.15s, transform 0.1s;
+          transition: background var(--transition-fast), transform 0.1s;
         }
         .recording-cancel:hover {
-          background: #FEE2E2;
+          background: var(--color-error-bg);
           transform: scale(1.04);
         }
         .recording-cancel:active { transform: scale(0.94); }
@@ -1581,7 +1539,7 @@ const Chat = () => {
         }
         .recording-dot {
           width: 10px; height: 10px; border-radius: 50%;
-          background: #DC2626;
+          background: var(--color-error);
           animation: recordingPulse 1.2s ease-in-out infinite;
           flex-shrink: 0;
         }
@@ -1590,8 +1548,8 @@ const Chat = () => {
           50% { opacity: 0.5; transform: scale(1.15); }
         }
         .recording-time {
-          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-          font-size: 14px; font-weight: 700; color: #991B1B;
+          font-family: var(--font-mono);
+          font-size: 14px; font-weight: 700; color: var(--color-error);
           font-variant-numeric: tabular-nums;
           flex-shrink: 0;
         }
@@ -1602,7 +1560,7 @@ const Chat = () => {
         }
         .wave-bar {
           width: 3px; height: 12px;
-          background: #DC2626;
+          background: var(--color-error);
           border-radius: 2px;
           animation: waveAnim 1s ease-in-out infinite;
         }
@@ -1616,7 +1574,7 @@ const Chat = () => {
           50% { transform: scaleY(1.4); opacity: 1; }
         }
         .recording-hint {
-          font-size: 12px; font-weight: 600; color: #991B1B;
+          font-size: 12px; font-weight: 600; color: var(--color-error);
           flex-shrink: 0;
           display: none;
         }
@@ -1625,23 +1583,23 @@ const Chat = () => {
         }
         .recording-send {
           width: 44px; height: 44px; border-radius: 50%;
-          background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+          background: var(--color-error);
           border: none; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
-          transition: transform 0.1s, box-shadow 0.15s;
-          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+          transition: transform 0.1s, box-shadow var(--transition-fast), background var(--transition-fast);
+          box-shadow: var(--shadow-error);
         }
         .recording-send:hover {
+          background: #B91C1C;
           transform: scale(1.04);
           box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
         }
         .recording-send:active { transform: scale(0.96); }
 
-        /* LIGHTBOX */
         .lightbox {
           position: fixed; inset: 0;
-          background: rgba(15, 23, 42, 0.94);
+          background: rgba(10, 36, 114, 0.94);
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
           z-index: 1000;
@@ -1651,7 +1609,7 @@ const Chat = () => {
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .lightbox-image {
-          max-width: 100%; max-height: 100%; border-radius: 12px;
+          max-width: 100%; max-height: 100%; border-radius: var(--radius-xl);
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
         .lightbox-close {
@@ -1662,17 +1620,16 @@ const Chat = () => {
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
           cursor: pointer; display: flex; align-items: center;
-          justify-content: center; transition: background 0.2s;
+          justify-content: center; transition: background var(--transition-base);
         }
         .lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
 
-        /* BOTTOM NAV */
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
-          background: rgba(255, 253, 248, 0.96);
+          background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
-          border-top: 1px solid rgba(239, 230, 206, 0.9);
+          border-top: 1px solid var(--color-border);
           display: flex; justify-content: space-around;
           padding: 4px 0 10px; z-index: 100;
         }
@@ -1682,19 +1639,18 @@ const Chat = () => {
           padding: 4px 8px; font-family: inherit; min-width: 44px;
         }
         .nav-icon-wrap {
-          width: 34px; height: 34px; border-radius: 9px;
+          width: 34px; height: 34px; border-radius: var(--radius-md);
           display: flex; align-items: center; justify-content: center;
           transition: background 0.2s, transform 0.15s;
         }
         .nav-icon-wrap.active {
-          background: #24453B;
-          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
-        .nav-btn:hover .nav-icon-wrap:not(.active) { background: rgba(239, 230, 206, 0.6); }
-        .nav-label { font-size: 9px; font-weight: 500; color: #9C9482; }
-        .nav-label.active { color: #201F1B; font-weight: 600; }
+        .nav-btn:hover .nav-icon-wrap:not(.active) { background: var(--color-surface-alt); }
+        .nav-label { font-size: 9px; font-weight: 500; color: var(--color-text-muted); }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
 
-        /* MOBILE TWEAKS */
         @media (max-width: 480px) {
           .chat-header { padding: 10px 12px; }
           .header-avatar { width: 38px; height: 38px; font-size: 14px; }
