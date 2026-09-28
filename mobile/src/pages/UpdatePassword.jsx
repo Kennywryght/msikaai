@@ -3,10 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastContainer';
+import Logo from '../components/Logo';
 
-// ============================================================
-// ICONS
-// ============================================================
 const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) => {
   const icons = {
     lock: 'M12 2a4 4 0 00-4 4v4H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-2V6a4 4 0 00-4-4zM12 14v4M9 12h6',
@@ -36,9 +34,6 @@ const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) =
   );
 };
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const UpdatePassword = () => {
   const navigate = useNavigate();
   const { success } = useToast();
@@ -52,15 +47,6 @@ const UpdatePassword = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // ============================================================
-  // On mount: wait for Supabase to consume the recovery token from
-  // the URL hash and produce a session. Two cases:
-  //
-  //  1. PASSWORD_RECOVERY event fires via onAuthStateChange
-  //  2. getSession() shows an existing session (already recovered)
-  //
-  // If neither, the link is expired or invalid.
-  // ============================================================
   useEffect(() => {
     let cancelled = false;
 
@@ -72,7 +58,6 @@ const UpdatePassword = () => {
         setReady(true);
         setLinkValid(true);
       } else {
-        // Give onAuthStateChange a moment to fire (PKCE flow)
         setTimeout(async () => {
           if (cancelled) return;
           const { data: retry } = await supabase.auth.getSession();
@@ -87,7 +72,6 @@ const UpdatePassword = () => {
       }
     };
 
-    // Listen for the recovery event
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (cancelled) return;
@@ -107,12 +91,8 @@ const UpdatePassword = () => {
   }, []);
 
   const validate = () => {
-    if (password.length < 6) {
-      return 'Password must be at least 6 characters.';
-    }
-    if (password !== confirmPassword) {
-      return 'Passwords do not match.';
-    }
+    if (password.length < 6) return 'Password must be at least 6 characters.';
+    if (password !== confirmPassword) return 'Passwords do not match.';
     return null;
   };
 
@@ -133,11 +113,8 @@ const UpdatePassword = () => {
 
       success('Password updated successfully 🎉');
 
-      // Sign out so the user logs in fresh with the new password.
-      // This also invalidates any other sessions tied to the old password.
       await supabase.auth.signOut();
 
-      // Navigate to login after a beat so the toast is readable
       setTimeout(() => {
         navigate('/login', {
           replace: true,
@@ -159,9 +136,6 @@ const UpdatePassword = () => {
     }
   };
 
-  // ============================================================
-  // RENDER — loading / detecting
-  // ============================================================
   if (!ready) {
     return (
       <div className="auth-page">
@@ -174,17 +148,12 @@ const UpdatePassword = () => {
     );
   }
 
-  // ============================================================
-  // RENDER — invalid/expired link
-  // ============================================================
   if (!linkValid) {
     return (
       <div className="auth-page">
         <div className="auth-container">
           <div className="auth-brand">
-            <div className="brand-mark error-mark">
-              <Icon name="alert" size={24} color="#DC2626" strokeWidth={2} />
-            </div>
+            <Logo variant="full" size={120} clickable={false} />
             <h1 className="brand-name">Link expired</h1>
             <p className="brand-tagline">
               This password reset link is invalid or has expired.
@@ -193,12 +162,10 @@ const UpdatePassword = () => {
 
           <div className="auth-card">
             <div className="info-block warning">
-              <Icon name="info" size={16} color="#92400E" strokeWidth={1.75} />
+              <Icon name="info" size={16} color="var(--color-accent-hover)" strokeWidth={1.75} />
               <div>
                 <p className="info-title">Reset links expire after 1 hour</p>
-                <p className="info-body">
-                  Request a new link to continue.
-                </p>
+                <p className="info-body">Request a new link to continue.</p>
               </div>
             </div>
 
@@ -217,16 +184,11 @@ const UpdatePassword = () => {
     );
   }
 
-  // ============================================================
-  // RENDER — new password form
-  // ============================================================
   return (
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-brand">
-          <div className="brand-mark">
-            <Icon name="lock" size={24} color="#F59E0B" strokeWidth={2} />
-          </div>
+          <Logo variant="full" size={120} clickable={false} />
           <h1 className="brand-name">Set a new password</h1>
           <p className="brand-tagline">
             Choose a strong password you haven't used before.
@@ -256,7 +218,7 @@ const UpdatePassword = () => {
               </label>
               <div className="input-wrap">
                 <span className="input-icon">
-                  <Icon name="lock" size={16} color="#94a3b8" />
+                  <Icon name="lock" size={16} color="var(--color-text-muted)" />
                 </span>
                 <input
                   id="new-password"
@@ -280,7 +242,7 @@ const UpdatePassword = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  <Icon name={showPassword ? 'eyeOff' : 'eye'} size={16} color="#94a3b8" />
+                  <Icon name={showPassword ? 'eyeOff' : 'eye'} size={16} color="var(--color-text-muted)" />
                 </button>
               </div>
             </div>
@@ -291,7 +253,7 @@ const UpdatePassword = () => {
               </label>
               <div className="input-wrap">
                 <span className="input-icon">
-                  <Icon name="lock" size={16} color="#94a3b8" />
+                  <Icon name="lock" size={16} color="var(--color-text-muted)" />
                 </span>
                 <input
                   id="confirm-password"
@@ -314,7 +276,7 @@ const UpdatePassword = () => {
                   onClick={() => setShowConfirm(!showConfirm)}
                   aria-label={showConfirm ? 'Hide password' : 'Show password'}
                 >
-                  <Icon name={showConfirm ? 'eyeOff' : 'eye'} size={16} color="#94a3b8" />
+                  <Icon name={showConfirm ? 'eyeOff' : 'eye'} size={16} color="var(--color-text-muted)" />
                 </button>
               </div>
               {confirmPassword && password && password !== confirmPassword && (
@@ -322,7 +284,7 @@ const UpdatePassword = () => {
               )}
               {confirmPassword && password && password === confirmPassword && (
                 <p className="field-hint success-hint">
-                  <Icon name="check" size={12} color="#10B981" strokeWidth={2.5} />
+                  <Icon name="check" size={12} color="var(--color-success)" strokeWidth={2.5} />
                   {' '}Passwords match
                 </p>
               )}
@@ -341,7 +303,7 @@ const UpdatePassword = () => {
           </form>
 
           <div className="info-note">
-            <Icon name="info" size={14} color="#64748B" strokeWidth={1.75} />
+            <Icon name="info" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
             <span>
               You'll be signed out after updating. Sign in again with your new password.
             </span>
@@ -354,21 +316,20 @@ const UpdatePassword = () => {
   );
 };
 
-// ============================================================
-// SHARED STYLES
-// ============================================================
 const styles = `
   .auth-page {
     min-height: 100vh;
     min-height: 100dvh;
     width: 100%;
-    background: #f8fafc;
+    background: var(--color-bg);
+    background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+    background-size: 22px 22px;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 24px 16px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #0f172a;
+    font-family: var(--font-sans);
+    color: var(--color-text);
     box-sizing: border-box;
   }
 
@@ -385,67 +346,52 @@ const styles = `
     margin-bottom: 24px;
   }
 
-  .brand-mark {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    background: #1e293b;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .auth-brand :global(.kumsika-logo) {
     margin: 0 auto 14px;
-    box-shadow: 0 4px 16px rgba(30, 41, 59, 0.18);
-  }
-
-  .error-mark {
-    background: rgba(220, 38, 38, 0.1);
-    box-shadow: none;
   }
 
   .brand-name {
-    font-family: Georgia, serif;
+    font-family: var(--font-serif);
     font-size: 24px;
     font-weight: 700;
     letter-spacing: -0.02em;
     margin: 0 0 6px;
-    color: #1e293b;
+    color: var(--color-text);
   }
-
-  .brand-name-accent { color: #f59e0b; }
 
   .brand-tagline {
     font-size: 13px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     margin: 0;
     line-height: 1.5;
   }
 
   .auth-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
     padding: 24px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    box-shadow: var(--shadow-sm);
   }
 
   .error {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 10px;
+    background: var(--color-error-bg);
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-lg);
     padding: 10px 12px;
     margin-bottom: 16px;
     font-size: 13px;
-    color: #991b1b;
+    color: var(--color-error);
   }
 
   .error-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #ef4444;
+    background: var(--color-error);
     flex-shrink: 0;
   }
 
@@ -454,7 +400,7 @@ const styles = `
   .error-x {
     background: none;
     border: none;
-    color: #991b1b;
+    color: var(--color-error);
     font-size: 18px;
     line-height: 1;
     cursor: pointer;
@@ -468,7 +414,7 @@ const styles = `
   .label {
     font-size: 13px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
   }
 
   .input-wrap {
@@ -489,26 +435,26 @@ const styles = `
     width: 100%;
     height: 44px;
     padding: 0 12px 0 38px;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-lg);
     font-size: 14px;
-    color: #0f172a;
-    background: #ffffff;
+    color: var(--color-text);
+    background: var(--color-surface);
     font-family: inherit;
     outline: none;
     box-sizing: border-box;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   }
 
-  .input::placeholder { color: #94a3b8; }
+  .input::placeholder { color: var(--color-text-muted); }
 
   .input:focus {
-    border-color: #1e293b;
-    box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.08);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-tint);
   }
 
   .input:disabled {
-    background: #f8fafc;
+    background: var(--color-surface-alt);
     cursor: not-allowed;
     opacity: 0.7;
   }
@@ -526,33 +472,39 @@ const styles = `
     border: none;
     background: transparent;
     cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.15s;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
   }
 
-  .eye:hover { background: #f1f5f9; }
+  .eye:hover { background: var(--color-surface-alt); }
 
   .submit {
     width: 100%;
     height: 46px;
     margin-top: 4px;
-    background: #1e293b;
+    background: var(--color-accent);
     border: none;
-    border-radius: 10px;
-    color: #ffffff;
+    border-radius: var(--radius-lg);
+    color: var(--color-text-inverse);
     font-family: inherit;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: background 0.15s, transform 0.1s;
+    transition: background var(--transition-fast), transform 0.1s, box-shadow var(--transition-fast);
     text-decoration: none;
+    box-shadow: var(--shadow-accent);
   }
 
-  .submit:hover:not(:disabled) { background: #0f172a; }
+  .submit:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(255, 92, 35, 0.32);
+  }
+
   .submit:active:not(:disabled) { transform: scale(0.99); }
   .submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -562,7 +514,7 @@ const styles = `
     width: 18px;
     height: 18px;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #ffffff;
+    border-top-color: var(--color-text-inverse);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -577,19 +529,19 @@ const styles = `
     gap: 4px;
   }
 
-  .error-hint { color: #DC2626; }
-  .success-hint { color: #10B981; }
+  .error-hint { color: var(--color-error); }
+  .success-hint { color: var(--color-success); }
 
   .info-note {
     display: flex;
     align-items: flex-start;
     gap: 8px;
     padding: 10px 12px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
     font-size: 12px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     line-height: 1.5;
     margin-top: 16px;
   }
@@ -598,34 +550,35 @@ const styles = `
     display: flex;
     gap: 10px;
     padding: 12px 14px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 10px;
+    background: var(--color-info-bg);
+    border: 1px solid var(--color-primary-tint);
+    border-radius: var(--radius-lg);
     margin-bottom: 16px;
   }
 
   .info-block.warning {
-    background: #fffbeb;
-    border-color: #fde68a;
+    background: var(--color-accent-soft);
+    border-color: var(--color-accent);
   }
 
   .info-title {
     font-size: 13px;
-    font-weight: 600;
-    color: #1e40af;
+    font-weight: 700;
+    color: var(--color-primary);
     margin: 0 0 2px;
   }
 
-  .info-block.warning .info-title { color: #92400e; }
+  .info-block.warning .info-title { color: var(--color-accent-hover); }
 
   .info-body {
     font-size: 12px;
-    color: #1e40af;
+    color: var(--color-primary);
     line-height: 1.45;
     margin: 0;
+    opacity: 0.85;
   }
 
-  .info-block.warning .info-body { color: #92400e; }
+  .info-block.warning .info-body { color: var(--color-accent-hover); opacity: 0.9; }
 
   .back-link {
     margin-top: 16px;
@@ -634,13 +587,13 @@ const styles = `
     align-items: center;
     gap: 5px;
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--color-text-muted);
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.15s;
+    transition: color var(--transition-fast);
   }
 
-  .back-link:hover { color: #475569; }
+  .back-link:hover { color: var(--color-text-secondary); }
 
   .boot {
     display: flex;
@@ -652,16 +605,20 @@ const styles = `
   .boot-spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid #e2e8f0;
-    border-top-color: #f59e0b;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
 
   .boot-text {
     font-size: 13px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     margin: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .submit:hover:not(:disabled) { transform: none; }
   }
 `;
 

@@ -4,10 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
+import Logo from '../components/Logo';
 
-// ============================================================
-// LUCIDE-STYLE ICONS
-// ============================================================
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
     mail: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6",
@@ -22,7 +20,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -41,20 +39,17 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const Register = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const { showToast, success, error } = useToast();
-  
+  const { showToast, success } = useToast();
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -67,9 +62,7 @@ const Register = () => {
   const nameInputRef = useRef(null);
 
   useEffect(() => {
-    if (nameInputRef.current) {
-      nameInputRef.current.focus();
-    }
+    if (nameInputRef.current) nameInputRef.current.focus();
   }, []);
 
   const handleChange = (e) => {
@@ -82,46 +75,19 @@ const Register = () => {
   };
 
   const validateForm = () => {
-    if (!formData.fullName.trim()) {
-      setErrorMsg('Full name is required');
-      return false;
-    }
-
-    if (!formData.email.trim()) {
-      setErrorMsg('Email address is required');
-      return false;
-    }
-
+    if (!formData.fullName.trim()) { setErrorMsg('Full name is required'); return false; }
+    if (!formData.email.trim()) { setErrorMsg('Email address is required'); return false; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setErrorMsg('Please enter a valid email address');
-      return false;
-    }
-
-    if (formData.password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters');
-      return false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setErrorMsg('Passwords do not match');
-      return false;
-    }
-
-    if (!agreeToTerms) {
-      setErrorMsg('You must agree to the Terms of Service and Privacy Policy');
-      return false;
-    }
-
+    if (!emailRegex.test(formData.email)) { setErrorMsg('Please enter a valid email address'); return false; }
+    if (formData.password.length < 6) { setErrorMsg('Password must be at least 6 characters'); return false; }
+    if (formData.password !== formData.confirmPassword) { setErrorMsg('Passwords do not match'); return false; }
+    if (!agreeToTerms) { setErrorMsg('You must agree to the Terms of Service and Privacy Policy'); return false; }
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     setErrorMsg('');
@@ -155,18 +121,16 @@ const Register = () => {
             },
           ]);
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-        }
+        if (profileError) console.error('Profile creation error:', profileError);
 
         success('🎉 Account created successfully!');
 
         const loginResult = await login(formData.email, formData.password);
-        
+
         if (loginResult.success) {
           navigate('/onboarding', { replace: true });
         } else {
-          navigate('/login', { 
+          navigate('/login', {
             replace: true,
             state: { message: 'Account created! Please log in.' }
           });
@@ -174,9 +138,7 @@ const Register = () => {
       }
     } catch (err) {
       console.error('Registration error:', err);
-      
       let errorMessage = 'Registration failed. Please try again.';
-      
       if (err.message?.includes('User already registered')) {
         errorMessage = 'This email is already registered. Please log in instead.';
       } else if (err.message?.includes('password')) {
@@ -184,7 +146,6 @@ const Register = () => {
       } else if (err.message?.includes('email')) {
         errorMessage = 'Please enter a valid email address.';
       }
-      
       setErrorMsg(errorMessage);
       showToast(errorMessage, 'error');
     } finally {
@@ -195,25 +156,16 @@ const Register = () => {
   return (
     <div className="register-page">
       <div className="register-card">
-        {/* Logo */}
         <div className="logo-section">
-          <div className="logo-icon">
-            <Icon name="store" size={28} color="#1E293B" strokeWidth={2.5} />
-          </div>
-          <h1 className="brand-name">
-            <span className="brand-dark">Ku</span>
-            <span className="brand-gold">msika</span>
-          </h1>
+          <Logo variant="full" size={140} clickable={false} />
           <p className="brand-tagline">Malawi's Smart Marketplace</p>
         </div>
 
-        {/* Header */}
         <div className="header">
           <h2 className="title">Create Account</h2>
           <p className="subtitle">Join the Kumsika community today</p>
         </div>
 
-        {/* Error */}
         {errorMsg && (
           <div className="error-alert">
             <span className="error-icon">⚠️</span>
@@ -223,14 +175,11 @@ const Register = () => {
         )}
 
         <form onSubmit={handleSubmit} className="register-form">
-          {/* Full Name */}
           <div className="form-group">
-            <label className="label">
-              Full Name <span className="required">*</span>
-            </label>
+            <label className="label">Full Name <span className="required">*</span></label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="user" size={18} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="user" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 ref={nameInputRef}
@@ -246,14 +195,11 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Email */}
           <div className="form-group">
-            <label className="label">
-              Email Address <span className="required">*</span>
-            </label>
+            <label className="label">Email Address <span className="required">*</span></label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="mail" size={18} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="mail" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 type="email"
@@ -269,12 +215,11 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Phone */}
           <div className="form-group">
             <label className="label">Phone Number</label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="phone" size={18} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="phone" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 type="tel"
@@ -289,14 +234,11 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Password */}
           <div className="form-group">
-            <label className="label">
-              Password <span className="required">*</span>
-            </label>
+            <label className="label">Password <span className="required">*</span></label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="lock" size={18} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="lock" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -315,20 +257,17 @@ const Register = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                <Icon name={showPassword ? 'eyeOff' : 'eye'} size={18} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name={showPassword ? 'eyeOff' : 'eye'} size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               </button>
             </div>
             <p className="hint-text">Must be at least 6 characters</p>
           </div>
 
-          {/* Confirm Password */}
           <div className="form-group">
-            <label className="label">
-              Confirm Password <span className="required">*</span>
-            </label>
+            <label className="label">Confirm Password <span className="required">*</span></label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="lock" size={18} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="lock" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -351,7 +290,7 @@ const Register = () => {
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
-                <Icon name={showConfirmPassword ? 'eyeOff' : 'eye'} size={18} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name={showConfirmPassword ? 'eyeOff' : 'eye'} size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               </button>
             </div>
             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
@@ -362,7 +301,6 @@ const Register = () => {
             )}
           </div>
 
-          {/* Role Selection */}
           <div className="form-group">
             <label className="label">I am a...</label>
             <div className="radio-group">
@@ -405,7 +343,6 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Terms */}
           <div className="terms-group">
             <label className="checkbox-label">
               <input
@@ -418,43 +355,30 @@ const Register = () => {
               />
               <span className="checkbox-text">
                 I agree to the{' '}
-                <Link to="/terms" className="terms-link">
-                  Terms of Service
-                </Link>
+                <Link to="/terms" className="terms-link">Terms of Service</Link>
                 {' '}and{' '}
-                <Link to="/privacy" className="terms-link">
-                  Privacy Policy
-                </Link>
+                <Link to="/privacy" className="terms-link">Privacy Policy</Link>
               </span>
             </label>
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             className={`submit-btn ${loading || !agreeToTerms ? 'disabled' : ''}`}
             disabled={loading || !agreeToTerms}
           >
-            {loading ? (
-              <span className="btn-spinner" />
-            ) : (
-              'Create Account'
-            )}
+            {loading ? <span className="btn-spinner" /> : 'Create Account'}
           </button>
 
-          {/* Divider */}
           <div className="divider">
             <span className="divider-line" />
             <span className="divider-text">or</span>
             <span className="divider-line" />
           </div>
 
-          {/* Login Link */}
           <p className="footer-text">
             Already have an account?{' '}
-            <Link to="/login" className="footer-link">
-              Sign In
-            </Link>
+            <Link to="/login" className="footer-link">Sign In</Link>
           </p>
         </form>
       </div>
@@ -466,115 +390,78 @@ const Register = () => {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          background: #F8FAFC;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
           padding: 24px 16px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: var(--font-sans);
         }
 
-        /* ===== CARD ===== */
         .register-card {
           width: 100%;
           max-width: 440px;
-          background: #FFFFFF;
+          background: var(--color-surface);
           padding: 32px 24px;
-          border-radius: 16px;
-          border: 1px solid #F1F5F9;
-          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-sm);
         }
 
-        /* ===== LOGO ===== */
         .logo-section {
           text-align: center;
           margin-bottom: 24px;
         }
 
-        .logo-icon {
-          width: 48px;
-          height: 48px;
-          background: linear-gradient(135deg, #F59E0B, #D97706);
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 10px;
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
-        }
-
-        .brand-name {
-          font-size: 22px;
-          font-weight: 800;
-          margin: 0;
-          font-family: 'Georgia', serif;
-        }
-
-        .brand-dark {
-          color: #1E293B;
-        }
-
-        .brand-gold {
-          color: #F59E0B;
+        .logo-section :global(.kumsika-logo) {
+          margin: 0 auto 8px;
         }
 
         .brand-tagline {
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-weight: 500;
           text-transform: uppercase;
           letter-spacing: 0.3px;
-          margin: 2px 0 0;
+          margin: 0;
         }
 
-        /* ===== HEADER ===== */
-        .header {
-          text-align: center;
-          margin-bottom: 20px;
-        }
+        .header { text-align: center; margin-bottom: 20px; }
 
         .title {
           font-size: 20px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0;
         }
 
         .subtitle {
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 2px 0 0;
         }
 
-        /* ===== ERROR ===== */
         .error-alert {
           display: flex;
           align-items: center;
           gap: 10px;
-          background: #FEF2F2;
+          background: var(--color-error-bg);
           padding: 10px 14px;
-          border-radius: 10px;
-          border: 1px solid #FECACA;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-error);
           margin-bottom: 16px;
         }
 
-        .error-icon {
-          font-size: 14px;
-        }
-
-        .error-text {
-          flex: 1;
-          font-size: 13px;
-          color: #991B1B;
-        }
-
+        .error-icon { font-size: 14px; }
+        .error-text { flex: 1; font-size: 13px; color: var(--color-error); }
         .error-close {
           background: none;
           border: none;
           font-size: 18px;
-          color: #991B1B;
+          color: var(--color-error);
           cursor: pointer;
           padding: 0 4px;
         }
 
-        /* ===== FORM ===== */
         .register-form {
           display: flex;
           flex-direction: column;
@@ -590,12 +477,10 @@ const Register = () => {
         .label {
           font-size: 13px;
           font-weight: 600;
-          color: #475569;
+          color: var(--color-text-secondary);
         }
 
-        .required {
-          color: #EF4444;
-        }
+        .required { color: var(--color-error); }
 
         .input-wrapper {
           position: relative;
@@ -614,42 +499,27 @@ const Register = () => {
         .input-field {
           width: 100%;
           padding: 10px 14px 10px 40px;
-          border: 2px solid #E2E8F0;
-          border-radius: 10px;
+          border: 2px solid var(--color-border);
+          border-radius: var(--radius-lg);
           font-size: 14px;
-          color: #1E293B;
+          color: var(--color-text);
           outline: none;
           box-sizing: border-box;
-          background: #FFFFFF;
+          background: var(--color-surface);
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
         }
 
         .input-field:focus {
-          border-color: #F59E0B;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
-        .input-field::placeholder {
-          color: #94A3B8;
-        }
-
-        .input-field:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .input-field.error {
-          border-color: #EF4444;
-        }
-
-        .input-field.success {
-          border-color: #10B981;
-        }
-
-        .password-input {
-          padding-right: 42px;
-        }
+        .input-field::placeholder { color: var(--color-text-muted); }
+        .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
+        .input-field.error { border-color: var(--color-error); }
+        .input-field.success { border-color: var(--color-success); }
+        .password-input { padding-right: 42px; }
 
         .eye-btn {
           position: absolute;
@@ -663,22 +533,10 @@ const Register = () => {
           justify-content: center;
         }
 
-        .hint-text {
-          font-size: 12px;
-          color: #94A3B8;
-        }
+        .hint-text { font-size: 12px; color: var(--color-text-muted); }
+        .error-hint { font-size: 12px; color: var(--color-error); }
+        .success-hint { font-size: 12px; color: var(--color-success); }
 
-        .error-hint {
-          font-size: 12px;
-          color: #EF4444;
-        }
-
-        .success-hint {
-          font-size: 12px;
-          color: #10B981;
-        }
-
-        /* ===== RADIO ===== */
         .radio-group {
           display: flex;
           gap: 12px;
@@ -691,33 +549,28 @@ const Register = () => {
           gap: 6px;
           cursor: pointer;
           font-size: 14px;
-          color: #64748B;
+          color: var(--color-text-secondary);
           padding: 6px 12px;
-          border: 1px solid #E2E8F0;
-          border-radius: 8px;
-          transition: all 0.2s;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
+          transition: all var(--transition-fast);
         }
 
         .radio-label:hover {
-          border-color: #F59E0B;
+          border-color: var(--color-accent);
+          background: var(--color-accent-soft);
         }
 
         .radio-input {
           width: 16px;
           height: 16px;
           cursor: pointer;
-          accent-color: #F59E0B;
+          accent-color: var(--color-accent);
         }
 
-        .radio-text {
-          font-size: 13px;
-          font-weight: 500;
-        }
+        .radio-text { font-size: 13px; font-weight: 500; }
 
-        /* ===== TERMS ===== */
-        .terms-group {
-          margin: 2px 0;
-        }
+        .terms-group { margin: 2px 0; }
 
         .checkbox-label {
           display: flex;
@@ -725,7 +578,7 @@ const Register = () => {
           gap: 10px;
           cursor: pointer;
           font-size: 13px;
-          color: #64748B;
+          color: var(--color-text-secondary);
         }
 
         .checkbox-input {
@@ -734,67 +587,61 @@ const Register = () => {
           margin-top: 1px;
           flex-shrink: 0;
           cursor: pointer;
-          accent-color: #F59E0B;
+          accent-color: var(--color-accent);
         }
 
-        .checkbox-text {
-          line-height: 1.5;
-        }
+        .checkbox-text { line-height: 1.5; }
 
         .terms-link {
-          color: #F59E0B;
+          color: var(--color-accent);
           text-decoration: none;
-          font-weight: 500;
+          font-weight: 600;
         }
 
         .terms-link:hover {
+          color: var(--color-accent-hover);
           text-decoration: underline;
         }
 
-        /* ===== SUBMIT ===== */
         .submit-btn {
           width: 100%;
           padding: 12px;
-          background: #1E293B;
+          background: var(--color-accent);
           border: none;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           font-size: 15px;
           font-weight: 700;
-          color: #FFFFFF;
+          color: var(--color-text-inverse);
           cursor: pointer;
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           display: flex;
           align-items: center;
           justify-content: center;
           min-height: 48px;
           margin-top: 4px;
+          box-shadow: var(--shadow-accent);
         }
 
         .submit-btn:hover:not(.disabled) {
-          background: #F59E0B;
-          transform: scale(0.98);
+          background: var(--color-accent-hover);
+          transform: translateY(-1px);
+          box-shadow: 0 8px 20px rgba(255, 92, 35, 0.32);
         }
 
-        .submit-btn.disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
+        .submit-btn.disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
         .btn-spinner {
           width: 20px;
           height: 20px;
           border: 2px solid rgba(255,255,255,0.2);
-          border-top-color: #FFFFFF;
+          border-top-color: var(--color-text-inverse);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ===== DIVIDER ===== */
         .divider {
           display: flex;
           align-items: center;
@@ -805,73 +652,51 @@ const Register = () => {
         .divider-line {
           flex: 1;
           height: 1px;
-          background: #E2E8F0;
+          background: var(--color-border);
         }
 
         .divider-text {
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-weight: 500;
           white-space: nowrap;
         }
 
-        /* ===== FOOTER ===== */
         .footer-text {
           text-align: center;
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
         .footer-link {
-          color: #F59E0B;
+          color: var(--color-accent);
           text-decoration: none;
           font-weight: 600;
         }
 
         .footer-link:hover {
+          color: var(--color-accent-hover);
           text-decoration: underline;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .register-card {
-            padding: 24px 16px;
-          }
-          .brand-name {
-            font-size: 20px;
-          }
-          .radio-group {
-            gap: 8px;
-          }
-          .radio-label {
-            padding: 4px 10px;
-            font-size: 13px;
-          }
+          .register-card { padding: 24px 16px; }
+          .radio-group { gap: 8px; }
+          .radio-label { padding: 4px 10px; font-size: 13px; }
         }
 
         @media (max-width: 380px) {
-          .register-card {
-            padding: 20px 14px;
-          }
-          .title {
-            font-size: 18px;
-          }
-          .input-field {
-            font-size: 13px;
-            padding: 8px 12px 8px 36px;
-          }
-          .submit-btn {
-            font-size: 14px;
-            padding: 10px;
-            min-height: 44px;
-          }
-          .radio-group {
-            flex-direction: column;
-          }
-          .radio-label {
-            width: 100%;
-          }
+          .register-card { padding: 20px 14px; }
+          .title { font-size: 18px; }
+          .input-field { font-size: 13px; padding: 8px 12px 8px 36px; }
+          .submit-btn { font-size: 14px; padding: 10px; min-height: 44px; }
+          .radio-group { flex-direction: column; }
+          .radio-label { width: 100%; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .submit-btn:hover:not(.disabled) { transform: none; }
         }
       `}</style>
     </div>

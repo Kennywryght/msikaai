@@ -2,6 +2,7 @@
 import React, { useState, useEffect, memo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Logo from '../components/Logo';
 
 const SplashScreen = memo(({ onComplete }) => {
   const { isAuthenticated, loading, authInitialized } = useAuth();
@@ -15,7 +16,6 @@ const SplashScreen = memo(({ onComplete }) => {
   const [showFeatures, setShowFeatures] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
 
-  // Loading messages with timing
   const loadingMessages = [
     { text: 'Welcome to Kumsika', delay: 0 },
     { text: 'Connecting to marketplace...', delay: 800 },
@@ -24,18 +24,14 @@ const SplashScreen = memo(({ onComplete }) => {
     { text: 'Almost ready...', delay: 3200 },
   ];
 
-  // Staggered animations
   useEffect(() => {
     const timers = [];
-
     timers.push(setTimeout(() => setShowTagline(true), 400));
     timers.push(setTimeout(() => setShowFeatures(true), 900));
     timers.push(setTimeout(() => setShowProgress(true), 500));
-
     return () => timers.forEach(timer => clearTimeout(timer));
   }, []);
 
-  // Progress animation
   useEffect(() => {
     let progressValue = 0;
     let messageIndex = 0;
@@ -52,7 +48,7 @@ const SplashScreen = memo(({ onComplete }) => {
       if (progressValue > 80) increment = 1.8;
 
       progressValue += increment * (delta / 16);
-      
+
       if (progressValue >= 100) {
         progressValue = 100;
         clearInterval(interval);
@@ -76,7 +72,6 @@ const SplashScreen = memo(({ onComplete }) => {
     return () => clearInterval(interval);
   }, [onComplete, loadingMessages]);
 
-  // Auto-redirect
   useEffect(() => {
     if (!canRedirect || !authInitialized || hasNavigated.current) return;
 
@@ -93,7 +88,6 @@ const SplashScreen = memo(({ onComplete }) => {
     return () => clearTimeout(timer);
   }, [canRedirect, isAuthenticated, authInitialized, navigate]);
 
-  // Dot indicators for loading steps
   const renderDots = () => {
     const totalDots = loadingMessages.length;
     return (
@@ -110,39 +104,23 @@ const SplashScreen = memo(({ onComplete }) => {
 
   return (
     <div className="splash-screen">
-      {/* Background Effects */}
+      {/* Ambient background — soft navy glow orbs */}
       <div className="bg-gradient" />
       <div className="orb orb-1" />
       <div className="orb orb-2" />
       <div className="orb orb-3" />
       <div className="grid-overlay" />
 
-      {/* Version */}
       <div className="version">v2.0.0</div>
 
-      {/* Main Content */}
       <div className="content">
-        {/* Logo */}
-        <div className="logo-wrapper">
-          <div className="logo-badge">
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <path d="M18 2L4 12L18 22L32 12L18 2Z" stroke="#1E293B" strokeWidth="2.5" strokeLinejoin="round"/>
-              <path d="M4 24L18 34L32 24" stroke="#1E293B" strokeWidth="2.5" strokeLinejoin="round"/>
-              <path d="M4 18L18 28L32 18" stroke="#1E293B" strokeWidth="2.5" strokeLinejoin="round"/>
-              <circle cx="18" cy="18" r="4" fill="#1E293B"/>
-            </svg>
-          </div>
+        {/* Logo sits on a soft white card so it reads perfectly on navy */}
+        <div className="logo-card">
+          <Logo variant="full" size={170} clickable={false} />
         </div>
-
-        {/* ✅ Brand Name: "Ku" in white, "msika" in gold */}
-        <h1 className="title">
-          <span className="title-dark">Ku</span>
-          <span className="title-accent">msika</span>
-        </h1>
 
         <p className="subtitle">Malawi's Smart Local Marketplace</p>
 
-        {/* Tagline */}
         <div className={`tagline-wrapper ${showTagline ? 'visible' : ''}`}>
           <div className="tagline">
             <span className="tagline-icon">✨</span>
@@ -150,11 +128,10 @@ const SplashScreen = memo(({ onComplete }) => {
           </div>
         </div>
 
-        {/* Features */}
         <div className={`features ${showFeatures ? 'visible' : ''}`}>
           <div className="feature-item">
             <div className="feature-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
@@ -163,7 +140,7 @@ const SplashScreen = memo(({ onComplete }) => {
           </div>
           <div className="feature-item">
             <div className="feature-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                 <path d="M8 21h8"/>
@@ -173,10 +150,10 @@ const SplashScreen = memo(({ onComplete }) => {
           </div>
           <div className="feature-item">
             <div className="feature-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 2a2 2 0 0 1 2 2v2h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2z"/>
-                <circle cx="9" cy="12" r="0.5" fill="#F59E0B"/>
-                <circle cx="15" cy="12" r="0.5" fill="#F59E0B"/>
+                <circle cx="9" cy="12" r="0.5" fill="currentColor"/>
+                <circle cx="15" cy="12" r="0.5" fill="currentColor"/>
                 <path d="M10 16h4"/>
               </svg>
             </div>
@@ -184,7 +161,6 @@ const SplashScreen = memo(({ onComplete }) => {
           </div>
         </div>
 
-        {/* Progress */}
         <div className={`progress-wrapper ${showProgress ? 'visible' : ''}`}>
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: `${Math.min(progress, 100)}%` }}>
@@ -199,7 +175,6 @@ const SplashScreen = memo(({ onComplete }) => {
         </div>
       </div>
 
-      {/* Footer */}
       <div className="footer">
         <span className="footer-flag">🇲🇼</span>
         <span className="footer-text">Built for Malawi</span>
@@ -208,34 +183,33 @@ const SplashScreen = memo(({ onComplete }) => {
       <style jsx>{`
         .splash-screen {
           min-height: 100vh;
-          background: #0F172A;
+          background: linear-gradient(155deg, #0A2472 0%, #040D2E 100%);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           padding: 40px 24px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: var(--font-sans);
           position: relative;
           overflow: hidden;
         }
 
-        /* ===== BACKGROUND ===== */
         .bg-gradient {
           position: absolute;
           inset: 0;
-          background: 
-            radial-gradient(ellipse at 20% 50%, rgba(245, 158, 11, 0.06) 0%, transparent 60%),
-            radial-gradient(ellipse at 80% 20%, rgba(16, 185, 129, 0.04) 0%, transparent 50%),
-            radial-gradient(ellipse at 50% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+          background:
+            radial-gradient(ellipse at 20% 50%, rgba(255, 92, 35, 0.10) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 20%, rgba(51, 204, 255, 0.06) 0%, transparent 55%),
+            radial-gradient(ellipse at 50% 80%, rgba(10, 36, 114, 0.4) 0%, transparent 60%);
           pointer-events: none;
         }
 
         .grid-overlay {
           position: absolute;
           inset: 0;
-          background-image: 
-            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+          background-image:
+            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
           background-size: 40px 40px;
           pointer-events: none;
         }
@@ -244,31 +218,31 @@ const SplashScreen = memo(({ onComplete }) => {
           position: absolute;
           border-radius: 50%;
           pointer-events: none;
-          filter: blur(80px);
+          filter: blur(90px);
         }
 
         .orb-1 {
-          width: 500px;
-          height: 500px;
-          background: rgba(245, 158, 11, 0.06);
+          width: 520px;
+          height: 520px;
+          background: rgba(255, 92, 35, 0.10);
           top: -200px;
-          right: -150px;
+          right: -160px;
           animation: float 8s ease-in-out infinite;
         }
 
         .orb-2 {
-          width: 400px;
-          height: 400px;
-          background: rgba(16, 185, 129, 0.04);
-          bottom: -150px;
-          left: -120px;
+          width: 420px;
+          height: 420px;
+          background: rgba(51, 204, 255, 0.06);
+          bottom: -160px;
+          left: -130px;
           animation: float 10s ease-in-out infinite reverse;
         }
 
         .orb-3 {
-          width: 200px;
-          height: 200px;
-          background: rgba(139, 92, 246, 0.04);
+          width: 220px;
+          height: 220px;
+          background: rgba(255, 232, 222, 0.05);
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
@@ -285,33 +259,43 @@ const SplashScreen = memo(({ onComplete }) => {
           50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.8; }
         }
 
-        /* ===== VERSION ===== */
         .version {
           position: absolute;
           top: 20px;
           right: 24px;
-          color: rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.15);
           font-size: 11px;
           font-weight: 500;
-          font-family: 'SF Mono', 'Menlo', monospace;
+          font-family: var(--font-mono);
           z-index: 1;
           letter-spacing: 0.5px;
         }
 
-        /* ===== CONTENT ===== */
         .content {
           display: flex;
           flex-direction: column;
           align-items: center;
           z-index: 1;
-          max-width: 400px;
+          max-width: 420px;
           width: 100%;
         }
 
-        /* ===== LOGO ===== */
-        .logo-wrapper {
+        /* ============================================================
+           LOGO CARD — soft white surface so the logo blends perfectly
+           ============================================================ */
+        .logo-card {
+          background: #FFFFFF;
+          padding: 18px 24px;
+          border-radius: var(--radius-3xl);
+          box-shadow:
+            0 20px 60px rgba(0, 0, 0, 0.35),
+            0 8px 24px rgba(10, 36, 114, 0.4),
+            0 0 0 1px rgba(255, 255, 255, 0.08);
+          margin-bottom: 24px;
           animation: fadeInUp 0.8s ease-out;
-          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         @keyframes fadeInUp {
@@ -319,69 +303,8 @@ const SplashScreen = memo(({ onComplete }) => {
           to { opacity: 1; transform: translateY(0); }
         }
 
-        .logo-badge {
-          width: 72px;
-          height: 72px;
-          background: linear-gradient(135deg, #F59E0B, #D97706);
-          border-radius: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 8px 48px rgba(245, 158, 11, 0.25);
-          animation: logoPulse 2.5s ease-in-out infinite;
-          transition: all 0.3s;
-        }
-
-        .logo-badge svg {
-          width: 32px;
-          height: 32px;
-        }
-
-        @keyframes logoPulse {
-          0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 8px 48px rgba(245, 158, 11, 0.25);
-          }
-          50% {
-            transform: scale(1.04);
-            box-shadow: 0 8px 64px rgba(245, 158, 11, 0.4);
-          }
-        }
-
-        /* ===== TITLE ===== */
-        .title {
-          font-size: 40px;
-          font-weight: 800;
-          margin: 0 0 4px;
-          line-height: 1.1;
-          letter-spacing: -0.02em;
-          font-family: 'Fraunces', Georgia, serif;
-          animation: fadeInUp 0.8s ease-out 0.15s both;
-        }
-
-        /* ✅ "Ku" in white, "msika" in gold */
-        .title-dark {
-          color: #FFFFFF;
-        }
-
-        .title-accent {
-          color: #F59E0B;
-          position: relative;
-        }
-
-        .title-accent::after {
-          content: '';
-          position: absolute;
-          bottom: 2px;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, #F59E0B, transparent);
-          border-radius: 1px;
-        }
-
         .subtitle {
-          color: rgba(255, 255, 255, 0.4);
+          color: rgba(255, 255, 255, 0.55);
           font-size: 14px;
           margin: 0 0 12px;
           text-align: center;
@@ -390,7 +313,6 @@ const SplashScreen = memo(({ onComplete }) => {
           font-weight: 400;
         }
 
-        /* ===== TAGLINE ===== */
         .tagline-wrapper {
           overflow: hidden;
           max-height: 0;
@@ -405,25 +327,22 @@ const SplashScreen = memo(({ onComplete }) => {
         }
 
         .tagline {
-          color: #F59E0B;
+          color: var(--color-accent);
           font-size: 12px;
           font-weight: 600;
           text-align: center;
-          background: rgba(245, 158, 11, 0.08);
+          background: rgba(255, 92, 35, 0.10);
           padding: 6px 18px;
           border-radius: 20px;
-          border: 1px solid rgba(245, 158, 11, 0.1);
+          border: 1px solid rgba(255, 92, 35, 0.22);
           display: inline-flex;
           align-items: center;
           gap: 6px;
           backdrop-filter: blur(4px);
         }
 
-        .tagline-icon {
-          font-size: 14px;
-        }
+        .tagline-icon { font-size: 14px; }
 
-        /* ===== FEATURES ===== */
         .features {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -445,29 +364,30 @@ const SplashScreen = memo(({ onComplete }) => {
           flex-direction: column;
           align-items: center;
           gap: 4px;
-          color: rgba(255, 255, 255, 0.35);
+          color: rgba(255, 255, 255, 0.45);
           font-size: 10px;
           font-weight: 500;
           text-align: center;
           padding: 12px 6px;
-          background: rgba(255, 255, 255, 0.03);
-          border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.04);
+          background: rgba(255, 255, 255, 0.04);
+          border-radius: var(--radius-xl);
+          border: 1px solid rgba(255, 255, 255, 0.06);
           backdrop-filter: blur(4px);
           transition: all 0.3s;
         }
 
         .feature-item:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(245, 158, 11, 0.08);
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 92, 35, 0.2);
           transform: translateY(-2px);
         }
 
         .feature-icon {
           width: 40px;
           height: 40px;
-          background: rgba(245, 158, 11, 0.06);
-          border-radius: 10px;
+          background: rgba(255, 92, 35, 0.12);
+          color: var(--color-accent);
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -475,17 +395,16 @@ const SplashScreen = memo(({ onComplete }) => {
         }
 
         .feature-item:hover .feature-icon {
-          background: rgba(245, 158, 11, 0.12);
+          background: rgba(255, 92, 35, 0.22);
         }
 
         .feature-label {
           font-size: 9px;
-          color: rgba(255, 255, 255, 0.35);
+          color: rgba(255, 255, 255, 0.45);
           font-weight: 500;
           letter-spacing: 0.3px;
         }
 
-        /* ===== PROGRESS ===== */
         .progress-wrapper {
           width: 100%;
           max-width: 300px;
@@ -503,7 +422,7 @@ const SplashScreen = memo(({ onComplete }) => {
         .progress-bar {
           width: 100%;
           height: 3px;
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(255, 255, 255, 0.08);
           border-radius: 3px;
           overflow: hidden;
           position: relative;
@@ -511,11 +430,11 @@ const SplashScreen = memo(({ onComplete }) => {
 
         .progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, #F59E0B, #D97706);
+          background: linear-gradient(90deg, #FF5C23, #FF7F49);
           border-radius: 3px;
           transition: width 0.15s ease;
           position: relative;
-          box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+          box-shadow: 0 0 20px rgba(255, 92, 35, 0.35);
         }
 
         .progress-shimmer {
@@ -524,7 +443,7 @@ const SplashScreen = memo(({ onComplete }) => {
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
           animation: shimmer 1.8s infinite;
         }
 
@@ -541,21 +460,19 @@ const SplashScreen = memo(({ onComplete }) => {
         }
 
         .progress-text {
-          color: rgba(255, 255, 255, 0.25);
+          color: rgba(255, 255, 255, 0.35);
           font-size: 11px;
           font-weight: 400;
           letter-spacing: 0.3px;
-          font-family: 'SF Pro', -apple-system, sans-serif;
         }
 
         .percentage {
-          color: #F59E0B;
+          color: var(--color-accent);
           font-weight: 600;
           font-size: 11px;
-          font-family: 'SF Mono', 'Menlo', monospace;
+          font-family: var(--font-mono);
         }
 
-        /* ===== DOTS ===== */
         .dots-container {
           display: flex;
           justify-content: center;
@@ -567,21 +484,20 @@ const SplashScreen = memo(({ onComplete }) => {
           width: 6px;
           height: 6px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.1);
           transition: all 0.5s ease;
         }
 
         .dot.active {
-          background: #F59E0B;
+          background: var(--color-accent);
           width: 18px;
           border-radius: 3px;
         }
 
         .dot.completed {
-          background: rgba(245, 158, 11, 0.4);
+          background: rgba(255, 92, 35, 0.5);
         }
 
-        /* ===== FOOTER ===== */
         .footer {
           position: absolute;
           bottom: 28px;
@@ -590,123 +506,56 @@ const SplashScreen = memo(({ onComplete }) => {
           gap: 6px;
           z-index: 1;
           animation: fadeInUp 0.8s ease-out 0.9s both;
-          opacity: 0.3;
+          opacity: 0.4;
         }
 
-        .footer-flag {
-          font-size: 13px;
-        }
+        .footer-flag { font-size: 13px; }
 
         .footer-text {
-          color: rgba(255, 255, 255, 0.25);
+          color: rgba(255, 255, 255, 0.35);
           font-size: 11px;
           font-weight: 400;
           letter-spacing: 0.3px;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .title {
-            font-size: 32px;
-          }
-          .logo-badge {
-            width: 60px;
-            height: 60px;
-            border-radius: 16px;
-          }
-          .logo-badge svg {
-            width: 26px;
-            height: 26px;
+          .logo-card {
+            padding: 14px 20px;
+            border-radius: var(--radius-2xl);
+            margin-bottom: 20px;
           }
           .features {
             gap: 6px;
             margin-top: 16px;
           }
-          .feature-item {
-            padding: 8px 4px;
-          }
-          .feature-icon {
-            width: 34px;
-            height: 34px;
-          }
-          .feature-icon svg {
-            width: 16px;
-            height: 16px;
-          }
-          .feature-label {
-            font-size: 8px;
-          }
-          .subtitle {
-            font-size: 12px;
-          }
-          .tagline {
-            font-size: 11px;
-            padding: 4px 14px;
-          }
-          .version {
-            font-size: 10px;
-            top: 14px;
-            right: 16px;
-          }
-          .progress-wrapper {
-            margin-top: 20px;
-          }
-          .orb-1 {
-            width: 300px;
-            height: 300px;
-          }
-          .orb-2 {
-            width: 250px;
-            height: 250px;
-          }
+          .feature-item { padding: 8px 4px; }
+          .feature-icon { width: 34px; height: 34px; }
+          .feature-icon svg { width: 16px; height: 16px; }
+          .feature-label { font-size: 8px; }
+          .subtitle { font-size: 12px; }
+          .tagline { font-size: 11px; padding: 4px 14px; }
+          .version { font-size: 10px; top: 14px; right: 16px; }
+          .progress-wrapper { margin-top: 20px; }
+          .orb-1 { width: 300px; height: 300px; }
+          .orb-2 { width: 250px; height: 250px; }
         }
 
         @media (max-width: 380px) {
-          .title {
-            font-size: 28px;
-          }
-          .logo-badge {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
-          }
-          .logo-badge svg {
-            width: 22px;
-            height: 22px;
+          .logo-card {
+            padding: 12px 16px;
           }
           .features {
             grid-template-columns: repeat(3, 1fr);
             gap: 4px;
           }
-          .feature-item {
-            padding: 6px 4px;
-          }
-          .feature-icon {
-            width: 30px;
-            height: 30px;
-          }
-          .feature-icon svg {
-            width: 14px;
-            height: 14px;
-          }
-          .progress-wrapper {
-            max-width: 260px;
-          }
-          .progress-text {
-            font-size: 10px;
-          }
-          .percentage {
-            font-size: 10px;
-          }
+          .feature-item { padding: 6px 4px; }
+          .feature-icon { width: 30px; height: 30px; }
+          .feature-icon svg { width: 14px; height: 14px; }
+          .progress-wrapper { max-width: 260px; }
+          .progress-text { font-size: 10px; }
+          .percentage { font-size: 10px; }
         }
 
-        @media (min-width: 481px) and (max-width: 768px) {
-          .title {
-            font-size: 38px;
-          }
-        }
-
-        /* Safari/iOS safe area support */
         @supports (padding: max(0px)) {
           .splash-screen {
             padding-left: max(24px, env(safe-area-inset-left));
@@ -715,35 +564,15 @@ const SplashScreen = memo(({ onComplete }) => {
           }
         }
 
-        /* Reduced motion preference */
         @media (prefers-reduced-motion: reduce) {
-          .logo-badge {
-            animation: none;
-          }
-          .orb-1, .orb-2, .orb-3 {
-            animation: none;
-          }
-          .progress-shimmer {
-            animation: none;
-            display: none;
-          }
-          .feature-item {
-            transition: none;
-          }
-          .feature-item:hover {
-            transform: none;
-          }
-          .logo-wrapper,
-          .title,
-          .subtitle,
-          .footer {
-            animation: none;
-          }
+          .orb-1, .orb-2, .orb-3 { animation: none; }
+          .progress-shimmer { animation: none; display: none; }
+          .feature-item { transition: none; }
+          .feature-item:hover { transform: none; }
+          .logo-card, .subtitle, .footer { animation: none; }
           .tagline-wrapper,
           .features,
-          .progress-wrapper {
-            transition: none;
-          }
+          .progress-wrapper { transition: none; }
           .tagline-wrapper.visible,
           .features.visible,
           .progress-wrapper.visible {
@@ -751,9 +580,7 @@ const SplashScreen = memo(({ onComplete }) => {
             transform: none;
             max-height: none;
           }
-          .dot {
-            transition: none;
-          }
+          .dot { transition: none; }
         }
       `}</style>
     </div>

@@ -2,30 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/logo192.png" />
+
+    <!-- Favicon + PWA icons — using the symbol PNG for all -->
+    <link rel="icon" type="image/png" href="/kumsika-symbol.png" />
+    <link rel="apple-touch-icon" href="/kumsika-symbol.png" />
     <link rel="manifest" href="/manifest.json" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#1E293B" />
+
+    <!-- Browser / OS theme color -->
+    <meta name="theme-color" content="#FF5C23" />
+    <meta name="msapplication-TileColor" content="#1E3A8A" />
+
     <title>Kumsika - Smart Local Marketplace</title>
     <meta
       name="description"
       content="Kumsika - AI-powered marketplace for Mitundu and surrounding areas, Malawi. Buy, sell, and hire locally with smart AI assistance."
     />
+
+    <!-- Open Graph -->
     <meta property="og:title" content="Kumsika - Smart Local Marketplace" />
     <meta
       property="og:description"
       content="Trade, buy & hire locally in Mitundu with AI-powered assistance."
     />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="/kumsika-logo.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Kumsika - Smart Local Marketplace" />
+    <meta
+      name="twitter:description"
+      content="Trade, buy & hire locally in Mitundu with AI-powered assistance."
+    />
+    <meta name="twitter:image" content="/kumsika-logo.png" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- ============================================================ -->
-    <!-- Service Worker registration for PWA + push notifications     -->
-    <!-- ============================================================ -->
+    <!-- Service Worker registration for PWA + push notifications -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

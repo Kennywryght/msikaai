@@ -124,7 +124,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
       <div className="boost-modal" onClick={(e) => e.stopPropagation()}>
         <div className="boost-head">
           <div className="boost-head-icon">
-            <Icon name="crown" size={22} color="#F0D9A8" strokeWidth={2} />
+            <Icon name="crown" size={22} color="var(--color-text-inverse)" strokeWidth={2} />
           </div>
           <div className="boost-head-text">
             <h3 className="boost-title">Boost to Spotlight</h3>
@@ -135,7 +135,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
             </p>
           </div>
           <button className="boost-close" onClick={onClose} aria-label="Close">
-            <Icon name="close" size={16} color="#201F1B" strokeWidth={2.2} />
+            <Icon name="close" size={16} color="var(--color-text)" strokeWidth={2.2} />
           </button>
         </div>
 
@@ -147,7 +147,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
               <div className="boost-benefits">
                 <div className="boost-benefit">
                   <span className="boost-benefit-icon">
-                    <Icon name="sparkles" size={14} color="#BC5B34" strokeWidth={2.2} />
+                    <Icon name="sparkles" size={14} color="var(--color-accent)" strokeWidth={2.2} />
                   </span>
                   <div>
                     <div className="boost-benefit-title">Top of the homepage</div>
@@ -156,7 +156,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
                 </div>
                 <div className="boost-benefit">
                   <span className="boost-benefit-icon">
-                    <Icon name="crown" size={14} color="#BC5B34" strokeWidth={2.2} />
+                    <Icon name="crown" size={14} color="var(--color-accent)" strokeWidth={2.2} />
                   </span>
                   <div>
                     <div className="boost-benefit-title">Premium crown badge</div>
@@ -165,7 +165,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
                 </div>
                 <div className="boost-benefit">
                   <span className="boost-benefit-icon">
-                    <Icon name="zap" size={14} color="#BC5B34" strokeWidth={2.2} />
+                    <Icon name="zap" size={14} color="var(--color-accent)" strokeWidth={2.2} />
                   </span>
                   <div>
                     <div className="boost-benefit-title">More views & messages</div>
@@ -190,7 +190,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
                       <span className="boost-option-days">{opt.label}</span>
                       <span className="boost-option-price">{opt.price}</span>
                       <span className="boost-option-check">
-                        {active && <Icon name="check" size={12} color="#F7F1E3" strokeWidth={2.6} />}
+                        {active && <Icon name="check" size={12} color="var(--color-text-inverse)" strokeWidth={2.6} />}
                       </span>
                     </button>
                   );
@@ -212,7 +212,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
           {stage === 'success' && (
             <div className="boost-status">
               <div className="boost-status-badge green">
-                <Icon name="check" size={22} color="#065F46" strokeWidth={2.6} />
+                <Icon name="check" size={22} color="var(--color-success)" strokeWidth={2.6} />
               </div>
               <p className="boost-status-text">You're in the Spotlight ✨</p>
               <p className="boost-status-sub">
@@ -224,7 +224,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
           {stage === 'failed' && (
             <div className="boost-status">
               <div className="boost-status-badge red">
-                <Icon name="alertCircle" size={20} color="#7F1D1D" strokeWidth={2} />
+                <Icon name="alertCircle" size={20} color="var(--color-error)" strokeWidth={2} />
               </div>
               <p className="boost-status-text">Something went wrong</p>
               <p className="boost-status-sub">{message}</p>
@@ -237,7 +237,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
             <>
               <button className="boost-cancel" onClick={onClose}>Cancel</button>
               <button className="boost-confirm" onClick={startPayment}>
-                <Icon name="crown" size={14} color="#F7F1E3" strokeWidth={2.2} />
+                <Icon name="crown" size={14} color="var(--color-text-inverse)" strokeWidth={2.2} />
                 Boost now · {selectedPlan.price}
               </button>
             </>
@@ -252,7 +252,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
               className="boost-confirm wide"
               onClick={() => { onClose(); navigate('/landing'); }}
             >
-              <Icon name="externalLink" size={14} color="#F7F1E3" strokeWidth={2.2} />
+              <Icon name="externalLink" size={14} color="var(--color-text-inverse)" strokeWidth={2.2} />
               See it on the homepage
             </button>
           )}
@@ -261,7 +261,7 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
             <>
               <button className="boost-cancel" onClick={onClose}>Close</button>
               <button className="boost-confirm" onClick={() => setStage('pick')}>
-                <Icon name="refresh" size={14} color="#F7F1E3" strokeWidth={2.2} />
+                <Icon name="refresh" size={14} color="var(--color-text-inverse)" strokeWidth={2.2} />
                 Try again
               </button>
             </>
@@ -272,94 +272,95 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
       <style jsx>{`
         .boost-overlay {
           position: fixed; inset: 0;
-          background: rgba(22, 38, 31, 0.55);
+          background: rgba(10, 36, 114, 0.55);
           backdrop-filter: blur(6px);
           display: flex; align-items: center; justify-content: center;
           padding: 16px; z-index: 500;
         }
         .boost-modal {
           width: 100%; max-width: 440px; max-height: 92vh;
-          overflow-y: auto; background: #FFFDF8;
-          border-radius: 18px;
+          overflow-y: auto; background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           display: flex; flex-direction: column;
         }
         .boost-head {
           display: flex; align-items: center; gap: 12px;
           padding: 16px 16px 12px;
-          border-bottom: 1px solid #EFE6CE;
+          border-bottom: 1px solid var(--color-border);
         }
         .boost-head-icon {
-          width: 44px; height: 44px; border-radius: 12px;
-          background: #24453B;
+          width: 44px; height: 44px; border-radius: var(--radius-xl);
+          background: var(--color-primary);
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
+          box-shadow: var(--shadow-primary);
         }
         .boost-head-text { flex: 1; min-width: 0; }
         .boost-title {
-          font-family: Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 17px; font-weight: 600;
-          color: #201F1B; margin: 0;
+          color: var(--color-text); margin: 0;
         }
-        .boost-sub { font-size: 12px; color: #9C9482; margin: 2px 0 0; }
+        .boost-sub { font-size: 12px; color: var(--color-text-muted); margin: 2px 0 0; }
         .boost-close {
-          width: 32px; height: 32px; border-radius: 9px;
-          border: 1px solid #EFE6CE; background: #FFFDF8;
+          width: 32px; height: 32px; border-radius: var(--radius-md);
+          border: 1px solid var(--color-border); background: var(--color-surface);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; flex-shrink: 0;
         }
         .boost-body { padding: 14px 16px 8px; }
         .boost-preview-title {
-          font-size: 13px; color: #6B6259; font-style: italic;
+          font-size: 13px; color: var(--color-text-secondary); font-style: italic;
           margin: 0 0 12px; padding: 8px 10px;
-          background: #F7F1E3; border-radius: 8px;
-          border-left: 3px solid #D99A3B;
+          background: var(--color-surface-alt); border-radius: var(--radius-md);
+          border-left: 3px solid var(--color-accent);
         }
         .boost-benefits {
           display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;
         }
         .boost-benefit { display: flex; align-items: flex-start; gap: 10px; }
         .boost-benefit-icon {
-          width: 28px; height: 28px; border-radius: 8px;
-          background: #F7F1E3;
+          width: 28px; height: 28px; border-radius: var(--radius-md);
+          background: var(--color-accent-tint);
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
-        .boost-benefit-title { font-size: 13px; font-weight: 600; color: #201F1B; }
-        .boost-benefit-desc { font-size: 11.5px; color: #9C9482; margin-top: 1px; }
+        .boost-benefit-title { font-size: 13px; font-weight: 600; color: var(--color-text); }
+        .boost-benefit-desc { font-size: 11.5px; color: var(--color-text-muted); margin-top: 1px; }
         .boost-section-label {
-          font-size: 11px; font-weight: 700; color: #6B6259;
+          font-size: 11px; font-weight: 700; color: var(--color-text-secondary);
           text-transform: uppercase; letter-spacing: 0.08em;
           margin-bottom: 8px;
         }
         .boost-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
         .boost-option {
           position: relative; display: flex; align-items: center; gap: 10px;
-          padding: 12px 14px; background: #FFFDF8;
-          border: 1.5px solid #EFE6CE; border-radius: 12px;
+          padding: 12px 14px; background: var(--color-surface);
+          border: 1.5px solid var(--color-border); border-radius: var(--radius-xl);
           cursor: pointer; font-family: inherit; text-align: left;
         }
         .boost-option.active {
-          border-color: #24453B; background: #FDF9EF;
-          box-shadow: 0 0 0 3px rgba(36, 69, 59, 0.08);
+          border-color: var(--color-primary); background: var(--color-primary-tint);
+          box-shadow: 0 0 0 3px var(--color-primary-tint);
         }
         .boost-option-days {
-          font-size: 14px; font-weight: 700; color: #201F1B; flex: 1;
+          font-size: 14px; font-weight: 700; color: var(--color-text); flex: 1;
         }
         .boost-option-price {
-          font-family: Georgia, serif; font-size: 15px; font-weight: 600;
-          color: #24453B;
+          font-family: var(--font-serif); font-size: 15px; font-weight: 600;
+          color: var(--color-primary);
         }
         .boost-option-tag {
           position: absolute; top: -8px; left: 12px;
-          padding: 2px 7px; border-radius: 5px;
+          padding: 2px 7px; border-radius: var(--radius-xs);
           font-size: 9px; font-weight: 700;
           letter-spacing: 0.06em; text-transform: uppercase;
         }
-        .boost-option-tag.popular { background: #BC5B34; color: #FFFDF8; }
-        .boost-option-tag.best { background: #D99A3B; color: #201F1B; }
+        .boost-option-tag.popular { background: var(--color-accent); color: var(--color-text-inverse); }
+        .boost-option-tag.best { background: var(--color-primary); color: var(--color-text-inverse); }
         .boost-option-check {
           width: 20px; height: 20px; border-radius: 50%;
-          background: #24453B;
+          background: var(--color-primary);
           display: flex; align-items: center; justify-content: center;
           opacity: 0;
         }
@@ -373,35 +374,35 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
           width: 52px; height: 52px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
         }
-        .boost-status-badge.green { background: #D1FAE5; }
-        .boost-status-badge.red { background: #FEE2E2; }
+        .boost-status-badge.green { background: var(--color-success-bg); }
+        .boost-status-badge.red { background: var(--color-error-bg); }
         .boost-status-spinner {
           width: 32px; height: 32px;
-          border: 3px solid #EFE6CE;
-          border-top-color: #24453B;
+          border: 3px solid var(--color-border);
+          border-top-color: var(--color-primary);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         .boost-status-text {
-          font-family: Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 15px; font-weight: 600;
-          color: #201F1B; margin: 0;
+          color: var(--color-text); margin: 0;
         }
         .boost-status-sub {
-          font-size: 12.5px; color: #6B6259;
+          font-size: 12.5px; color: var(--color-text-secondary);
           margin: 0; max-width: 320px; line-height: 1.5;
         }
         .boost-foot {
           display: flex; gap: 10px;
           padding: 12px 16px 16px;
-          border-top: 1px solid #EFE6CE;
+          border-top: 1px solid var(--color-border);
         }
         .boost-cancel {
-          flex: 1; padding: 12px; background: #F7F1E3;
-          border: 1px solid #EFE6CE; border-radius: 10px;
+          flex: 1; padding: 12px; background: var(--color-surface-alt);
+          border: 1px solid var(--color-border); border-radius: var(--radius-lg);
           font-family: inherit; font-size: 13px; font-weight: 600;
-          color: #6B6259; cursor: pointer;
+          color: var(--color-text-secondary); cursor: pointer;
         }
         .boost-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
         .boost-cancel.wide { flex: 1; }
@@ -409,13 +410,21 @@ const BoostModal = ({ listing, onClose, onActivated }) => {
           flex: 1.6;
           display: inline-flex; align-items: center; justify-content: center;
           gap: 6px; padding: 12px;
-          background: #24453B; color: #F7F1E3;
-          border: none; border-radius: 10px;
+          background: var(--color-accent); color: var(--color-text-inverse);
+          border: none; border-radius: var(--radius-lg);
           font-family: inherit; font-size: 13px; font-weight: 700;
           cursor: pointer;
+          box-shadow: var(--shadow-accent);
+          transition: background var(--transition-fast), transform 0.1s;
         }
+        .boost-confirm:hover:not(:disabled) { background: var(--color-accent-hover); transform: translateY(-1px); }
         .boost-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
         .boost-confirm.wide { flex: 1; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .boost-confirm { transition: none; }
+          .boost-confirm:hover:not(:disabled) { transform: none; }
+        }
       `}</style>
     </div>
   );

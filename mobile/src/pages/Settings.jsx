@@ -6,10 +6,8 @@ import { useTranslation } from '../context/TranslationContext';
 import { useToast } from '../components/ToastContainer';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import SubscriptionSection from '../components/SubscriptionSection';
+import Logo from '../components/Logo';
 
-// ============================================================
-// LUCIDE-STYLE ICONS
-// ============================================================
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '', fill = 'none' }) => {
   const icons = {
     arrowLeft: "M19 12H5M12 19l-7-7 7-7",
@@ -172,7 +170,7 @@ const Settings = () => {
       <div className="page-header">
         <div className="header-top">
           <button className="header-btn" onClick={() => navigate(-1)} aria-label="Back">
-            <Icon name="arrowLeft" size={20} color="#201F1B" strokeWidth={2.2} />
+            <Icon name="arrowLeft" size={20} color="var(--color-text)" strokeWidth={2.2} />
           </button>
         </div>
         <div className="header-content">
@@ -182,61 +180,57 @@ const Settings = () => {
       </div>
 
       <div className="main-content">
-        {/* Profile Card */}
         <Link to="/profile" className="profile-card">
           <div className="profile-avatar">{userInitial}</div>
           <div className="profile-info">
             <span className="profile-name">{userName}</span>
             <span className="profile-email">{user?.email || 'No email'}</span>
           </div>
-          <Icon name="chevronRight" size={18} color="#9C9482" strokeWidth={2} />
+          <Icon name="chevronRight" size={18} color="var(--color-text-muted)" strokeWidth={2} />
         </Link>
 
-        {/* ★ Subscription — new in Phase 2C */}
         <div id="subscription">
           <SubscriptionSection />
         </div>
 
-        {/* Account Section */}
         <section className="settings-section">
           <h2 className="section-title">Account</h2>
           <div className="settings-group">
             <Link to="/profile" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(62, 108, 118, 0.12)' }}>
-                <Icon name="user" size={18} color="#3E6C76" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-primary-tint)' }}>
+                <Icon name="user" size={18} color="var(--color-primary)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Edit Profile</span>
                 <span className="item-desc">Update your personal information</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
+              <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
             </Link>
 
             <Link to="/dashboard" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(217, 154, 59, 0.14)' }}>
-                <Icon name="store" size={18} color="#D99A3B" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-accent-tint)' }}>
+                <Icon name="store" size={18} color="var(--color-accent)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Business Information</span>
                 <span className="item-desc">Manage your business details</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
+              <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
             </Link>
 
             <Link to="/my-reservations" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
-                <Icon name="fileText" size={18} color="#8B5A83" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-secondary-tint)' }}>
+                <Icon name="fileText" size={18} color="var(--color-secondary-hover)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">My Reservations</span>
                 <span className="item-desc">View your orders and history</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
+              <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
             </Link>
           </div>
         </section>
 
-        {/* Role Section */}
         <section className="settings-section">
           <h2 className="section-title">Role</h2>
           <div className="settings-group">
@@ -257,7 +251,7 @@ const Settings = () => {
                     <span className="role-emoji">{role.emoji}</span>
                     <span className="role-label">{role.label}</span>
                     {currentRole === role.id && (
-                      <Icon name="check" size={12} color="#F7F1E3" strokeWidth={3} />
+                      <Icon name="check" size={12} color="var(--color-text-inverse)" strokeWidth={3} />
                     )}
                   </button>
                 ))}
@@ -266,13 +260,12 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* Preferences */}
         <section className="settings-section">
           <h2 className="section-title">Preferences</h2>
           <div className="settings-group">
             <div className="settings-item-static">
-              <div className="item-icon-wrap" style={{ background: 'rgba(91, 123, 94, 0.12)' }}>
-                <Icon name="globe" size={18} color="#5B7B5E" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-secondary-tint)' }}>
+                <Icon name="globe" size={18} color="var(--color-secondary-hover)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Language</span>
@@ -299,8 +292,8 @@ const Settings = () => {
             </div>
 
             <div className="settings-item-static">
-              <div className="item-icon-wrap" style={{ background: 'rgba(217, 154, 59, 0.14)' }}>
-                <Icon name="bell" size={18} color="#D99A3B" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-accent-tint)' }}>
+                <Icon name="bell" size={18} color="var(--color-accent)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">In-app notifications</span>
@@ -320,8 +313,8 @@ const Settings = () => {
 
             {pushSupported && (
               <div className="settings-item-static">
-                <div className="item-icon-wrap" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
-                  <Icon name="send" size={18} color="#8B5A83" strokeWidth={1.9} />
+                <div className="item-icon-wrap" style={{ background: 'var(--color-secondary-tint)' }}>
+                  <Icon name="send" size={18} color="var(--color-secondary-hover)" strokeWidth={1.9} />
                 </div>
                 <div className="item-content">
                   <span className="item-label">Push notifications</span>
@@ -346,55 +339,53 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* Support */}
         <section className="settings-section">
           <h2 className="section-title">Support</h2>
           <div className="settings-group">
             <a href="mailto:support@kumsika.com" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(62, 108, 118, 0.12)' }}>
-                <Icon name="helpCircle" size={18} color="#3E6C76" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-primary-tint)' }}>
+                <Icon name="helpCircle" size={18} color="var(--color-primary)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Help & Support</span>
                 <span className="item-desc">Get help with your account</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
+              <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
             </a>
 
             <button
               className="settings-item"
               onClick={() => showToast('Report submitted', 'success')}
             >
-              <div className="item-icon-wrap" style={{ background: 'rgba(188, 91, 52, 0.12)' }}>
-                <Icon name="messageCircle" size={18} color="#BC5B34" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-accent-tint)' }}>
+                <Icon name="messageCircle" size={18} color="var(--color-accent)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Report a Problem</span>
                 <span className="item-desc">Let us know what's wrong</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
+              <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
             </button>
 
             <Link to="/about" className="settings-item">
-              <div className="item-icon-wrap" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
-                <Icon name="info" size={18} color="#8B5A83" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-secondary-tint)' }}>
+                <Icon name="info" size={18} color="var(--color-secondary-hover)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">About Kumsika</span>
                 <span className="item-desc">Learn more about the platform</span>
               </div>
-              <Icon name="chevronRight" size={16} color="#C9BB98" strokeWidth={2} />
+              <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
             </Link>
           </div>
         </section>
 
-        {/* Danger Zone */}
         <section className="settings-section">
           <h2 className="section-title danger">Danger Zone</h2>
           <div className="settings-group">
             <button className="settings-item danger" onClick={() => setShowLogoutConfirm(true)}>
-              <div className="item-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.1)' }}>
-                <Icon name="logout" size={18} color="#DC2626" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-error-bg)' }}>
+                <Icon name="logout" size={18} color="var(--color-error)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label danger-text">Log Out</span>
@@ -403,8 +394,8 @@ const Settings = () => {
             </button>
 
             <button className="settings-item danger" onClick={() => setShowDeleteConfirm(true)}>
-              <div className="item-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.1)' }}>
-                <Icon name="trash" size={18} color="#DC2626" strokeWidth={1.9} />
+              <div className="item-icon-wrap" style={{ background: 'var(--color-error-bg)' }}>
+                <Icon name="trash" size={18} color="var(--color-error)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label danger-text">Delete Account</span>
@@ -416,8 +407,7 @@ const Settings = () => {
 
         <div className="app-info">
           <div className="app-logo">
-            <span className="logo-icon">K</span>
-            <span className="logo-text">Kumsika</span>
+            <Logo variant="full" size={50} clickable={false} />
           </div>
           <p className="app-version">Version 2.0.0</p>
           <p className="app-copyright">
@@ -426,12 +416,11 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Logout Confirm Modal */}
       {showLogoutConfirm && (
         <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-icon-wrap">
-              <Icon name="logout" size={28} color="#DC2626" strokeWidth={1.85} />
+              <Icon name="logout" size={28} color="var(--color-error)" strokeWidth={1.85} />
             </div>
             <h3 className="modal-title">Log out?</h3>
             <p className="modal-desc">
@@ -449,12 +438,11 @@ const Settings = () => {
         </div>
       )}
 
-      {/* Delete Confirm Modal */}
       {showDeleteConfirm && (
         <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-icon-wrap danger">
-              <Icon name="trash" size={28} color="#DC2626" strokeWidth={1.85} />
+              <Icon name="trash" size={28} color="var(--color-error)" strokeWidth={1.85} />
             </div>
             <h3 className="modal-title">Delete account?</h3>
             <p className="modal-desc">
@@ -479,7 +467,6 @@ const Settings = () => {
         </div>
       )}
 
-      {/* Bottom Nav */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -496,7 +483,7 @@ const Settings = () => {
                   <Icon
                     name={item.icon}
                     size={20}
-                    color={active ? '#F7F1E3' : '#9C9482'}
+                    color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'}
                     strokeWidth={1.85}
                   />
                 </div>
@@ -510,11 +497,11 @@ const Settings = () => {
       <style jsx>{`
         .settings-page {
           min-height: 100vh;
-          background: #F7F1E3;
-          background-image: radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
           background-size: 22px 22px;
-          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #201F1B;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 100px;
         }
 
@@ -523,11 +510,11 @@ const Settings = () => {
         }
 
         .page-header {
-          background: rgba(255, 253, 248, 0.94);
+          background: rgba(255, 255, 255, 0.94);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
           padding: 14px 16px 20px;
-          border-bottom: 1px solid rgba(239, 230, 206, 0.9);
+          border-bottom: 1px solid var(--color-border);
           position: sticky;
           top: 0;
           z-index: 10;
@@ -543,19 +530,19 @@ const Settings = () => {
         .header-btn {
           width: 40px;
           height: 40px;
-          border-radius: 11px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          background: #FFFDF8;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.15s;
+          transition: all var(--transition-fast);
         }
 
         .header-btn:hover {
-          background: #F7F1E3;
-          border-color: rgba(217, 154, 59, 0.4);
+          background: var(--color-surface-alt);
+          border-color: var(--color-accent);
         }
 
         .header-content {
@@ -564,17 +551,17 @@ const Settings = () => {
         }
 
         .page-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: clamp(24px, 3.2vw, 28px);
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           margin: 0 0 4px;
           letter-spacing: -0.02em;
         }
 
         .page-subtitle {
           font-size: 13.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
@@ -589,35 +576,35 @@ const Settings = () => {
           align-items: center;
           gap: 14px;
           padding: 16px;
-          background: #FFFDF8;
-          border-radius: 16px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
           text-decoration: none;
           color: inherit;
           margin-bottom: 24px;
           transition: all 0.22s ease;
-          box-shadow: 0 1px 3px rgba(22, 38, 31, 0.04);
+          box-shadow: var(--shadow-xs);
         }
 
         .profile-card:hover {
-          border-color: rgba(217, 154, 59, 0.4);
+          border-color: var(--color-accent);
           transform: translateY(-2px);
-          box-shadow: 0 12px 28px rgba(22, 38, 31, 0.08);
+          box-shadow: var(--shadow-lg);
         }
 
         .profile-avatar {
           width: 54px;
           height: 54px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          color: #F7F1E3;
+          background: var(--color-primary);
+          color: var(--color-text-inverse);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 19px;
           font-weight: 700;
           flex-shrink: 0;
-          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.25);
+          box-shadow: var(--shadow-primary);
           letter-spacing: 0.02em;
         }
 
@@ -630,10 +617,10 @@ const Settings = () => {
         }
 
         .profile-name {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 16px;
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -642,7 +629,7 @@ const Settings = () => {
 
         .profile-email {
           font-size: 12.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -653,20 +640,20 @@ const Settings = () => {
         .section-title {
           font-size: 11.5px;
           font-weight: 800;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 0 0 10px 6px;
           text-transform: uppercase;
           letter-spacing: 0.08em;
         }
 
-        .section-title.danger { color: #DC2626; }
+        .section-title.danger { color: var(--color-error); }
 
         .settings-group {
-          background: #FFFDF8;
-          border-radius: 16px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
           overflow: hidden;
-          box-shadow: 0 1px 3px rgba(22, 38, 31, 0.04);
+          box-shadow: var(--shadow-xs);
         }
 
         .settings-item,
@@ -683,8 +670,8 @@ const Settings = () => {
           cursor: pointer;
           font-family: inherit;
           text-align: left;
-          transition: background 0.15s;
-          border-bottom: 1px solid rgba(239, 230, 206, 0.55);
+          transition: background var(--transition-fast);
+          border-bottom: 1px solid var(--color-border);
         }
 
         .settings-item:last-child,
@@ -692,13 +679,13 @@ const Settings = () => {
           border-bottom: none;
         }
 
-        .settings-item:hover { background: #F7F1E3; }
+        .settings-item:hover { background: var(--color-surface-alt); }
         .settings-item-static { cursor: default; }
 
         .item-icon-wrap {
           width: 38px;
           height: 38px;
-          border-radius: 11px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -716,18 +703,18 @@ const Settings = () => {
         .item-label {
           font-size: 14px;
           font-weight: 700;
-          color: #201F1B;
+          color: var(--color-text);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
           letter-spacing: -0.005em;
         }
 
-        .item-label.danger-text { color: #DC2626; }
+        .item-label.danger-text { color: var(--color-error); }
 
         .item-desc {
           font-size: 12px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -737,7 +724,7 @@ const Settings = () => {
 
         .role-desc {
           font-size: 13px;
-          color: #6B6259;
+          color: var(--color-text-secondary);
           margin: 0 0 12px;
           font-weight: 500;
         }
@@ -754,29 +741,29 @@ const Settings = () => {
           justify-content: center;
           gap: 7px;
           padding: 11px 12px;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
-          border-radius: 12px;
-          background: #F7F1E3;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-xl);
+          background: var(--color-surface-alt);
           font-size: 13px;
           font-weight: 700;
-          color: #6B6259;
+          color: var(--color-text-secondary);
           cursor: pointer;
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           min-height: 46px;
         }
 
         .role-chip:hover {
-          border-color: rgba(217, 154, 59, 0.5);
-          background: #FFFDF8;
-          color: #201F1B;
+          border-color: var(--color-accent);
+          background: var(--color-accent-tint);
+          color: var(--color-text);
         }
 
         .role-chip.active {
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          border-color: #24453B;
-          color: #F7F1E3;
-          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.25);
+          background: var(--color-primary);
+          border-color: var(--color-primary);
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-primary);
         }
 
         .role-emoji { font-size: 15px; }
@@ -786,16 +773,16 @@ const Settings = () => {
           display: flex;
           gap: 4px;
           padding: 3px;
-          background: #F7F1E3;
-          border-radius: 11px;
+          background: var(--color-surface-alt);
+          border-radius: var(--radius-lg);
           flex-shrink: 0;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          border: 1px solid var(--color-border);
         }
 
         .lang-btn {
           width: 38px;
           height: 32px;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           border: none;
           background: transparent;
           cursor: pointer;
@@ -803,14 +790,14 @@ const Settings = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
         }
 
-        .lang-btn:hover { background: rgba(239, 230, 206, 0.6); }
+        .lang-btn:hover { background: var(--color-border); }
 
         .lang-btn.active {
-          background: #FFFDF8;
-          box-shadow: 0 2px 6px rgba(22, 38, 31, 0.08);
+          background: var(--color-surface);
+          box-shadow: var(--shadow-xs);
         }
 
         .toggle-switch {
@@ -819,7 +806,7 @@ const Settings = () => {
           height: 27px;
           border-radius: 14px;
           border: none;
-          background: #E4D9BD;
+          background: var(--color-border-strong);
           cursor: pointer;
           padding: 3px;
           transition: all 0.28s ease;
@@ -827,8 +814,8 @@ const Settings = () => {
         }
 
         .toggle-switch.on {
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          box-shadow: 0 3px 8px rgba(36, 69, 59, 0.25);
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .toggle-switch:disabled {
@@ -841,9 +828,9 @@ const Settings = () => {
           width: 21px;
           height: 21px;
           border-radius: 50%;
-          background: #FFFDF8;
+          background: var(--color-surface);
           transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
-          box-shadow: 0 2px 4px rgba(22, 38, 31, 0.2);
+          box-shadow: 0 2px 4px rgba(10, 36, 114, 0.2);
         }
 
         .toggle-switch.on .toggle-thumb { transform: translateX(19px); }
@@ -856,50 +843,28 @@ const Settings = () => {
         .app-logo {
           display: inline-flex;
           align-items: center;
-          gap: 9px;
-          margin-bottom: 8px;
-        }
-
-        .logo-icon {
-          width: 34px;
-          height: 34px;
-          border-radius: 11px;
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          color: #F0D9A8;
-          display: flex;
-          align-items: center;
           justify-content: center;
-          font-family: 'Fraunces', Georgia, serif;
-          font-size: 16px;
-          font-weight: 700;
-          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.22);
-        }
-
-        .logo-text {
-          font-family: 'Fraunces', Georgia, serif;
-          font-size: 17px;
-          font-weight: 600;
-          color: #201F1B;
-          letter-spacing: -0.01em;
+          margin-bottom: 8px;
         }
 
         .app-version {
           font-size: 11.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 0 0 4px;
-          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-family: var(--font-mono);
         }
 
         .app-copyright {
           font-size: 11px;
-          color: #C9BB98;
+          color: var(--color-text-muted);
           margin: 0;
+          opacity: 0.7;
         }
 
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(22, 38, 31, 0.5);
+          background: rgba(10, 36, 114, 0.5);
           backdrop-filter: blur(4px);
           -webkit-backdrop-filter: blur(4px);
           display: flex;
@@ -916,15 +881,15 @@ const Settings = () => {
         }
 
         .modal-content {
-          background: #FFFDF8;
-          border-radius: 22px;
+          background: var(--color-surface);
+          border-radius: var(--radius-3xl);
           max-width: 380px;
           width: 100%;
           padding: 28px 24px 24px;
           text-align: center;
-          box-shadow: 0 24px 60px rgba(22, 38, 31, 0.28);
+          box-shadow: var(--shadow-2xl);
           animation: slideUp 0.25s ease-out;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          border: 1px solid var(--color-border);
         }
 
         @keyframes slideUp {
@@ -936,7 +901,7 @@ const Settings = () => {
           width: 66px;
           height: 66px;
           border-radius: 50%;
-          background: rgba(220, 38, 38, 0.1);
+          background: var(--color-error-bg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -944,17 +909,17 @@ const Settings = () => {
         }
 
         .modal-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 19px;
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           margin: 0 0 8px;
           letter-spacing: -0.01em;
         }
 
         .modal-desc {
           font-size: 13.5px;
-          color: #6B6259;
+          color: var(--color-text-secondary);
           margin: 0 0 24px;
           line-height: 1.6;
         }
@@ -967,28 +932,28 @@ const Settings = () => {
         .modal-btn {
           flex: 1;
           padding: 13px;
-          border-radius: 13px;
+          border-radius: var(--radius-xl);
           font-size: 14px;
           font-weight: 700;
           cursor: pointer;
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           min-height: 46px;
         }
 
         .modal-btn.secondary {
-          background: #F7F1E3;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
-          color: #6B6259;
+          background: var(--color-surface-alt);
+          border: 1.5px solid var(--color-border);
+          color: var(--color-text-secondary);
         }
 
-        .modal-btn.secondary:hover { background: #EFE6CE; }
+        .modal-btn.secondary:hover { background: var(--color-border); }
 
         .modal-btn.danger {
-          background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+          background: var(--color-error);
           border: none;
-          color: #FFFFFF;
-          box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-error);
         }
 
         .modal-btn.danger:hover {
@@ -1001,10 +966,10 @@ const Settings = () => {
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(255, 253, 248, 0.96);
+          background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
-          border-top: 1px solid rgba(239, 230, 206, 0.9);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 10px;
@@ -1027,30 +992,30 @@ const Settings = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 9px;
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: background 0.2s, transform 0.15s;
+          transition: background var(--transition-fast);
         }
 
         .nav-icon-wrap.active {
-          background: #24453B;
-          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-btn:hover .nav-icon-wrap:not(.active) {
-          background: rgba(239, 230, 206, 0.6);
+          background: var(--color-surface-alt);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #9C9482;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #201F1B;
+          color: var(--color-text);
           font-weight: 600;
         }
 
