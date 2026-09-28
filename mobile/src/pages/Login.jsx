@@ -6,18 +6,27 @@ import { useToast } from '../components/ToastContainer';
 import { supabase } from '../lib/supabase';
 import Logo from '../components/Logo';
 
-const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) => {
+const Icon = ({
+  name,
+  size = 18,
+  color = 'currentColor',
+  strokeWidth = 1.75,
+}) => {
   const icons = {
     mail: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6',
     lock: 'M12 2a4 4 0 00-4 4v4H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-2V6a4 4 0 00-4-4zM12 14v4M9 12h6',
     user: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
     eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z',
-    eyeOff: 'M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22',
+    eyeOff:
+      'M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22',
     arrowLeft: 'M19 12H5M12 19l-7-7 7-7',
     arrowRight: 'M5 12h14M12 5l7 7-7 7',
     shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    check: 'M20 6L9 17l-5-5',
   };
+
   const d = icons[name] || icons.mail;
+
   return (
     <svg
       width={size}
@@ -28,7 +37,11 @@ const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) =
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
+      style={{
+        display: 'inline-block',
+        verticalAlign: 'middle',
+        flexShrink: 0,
+      }}
       aria-hidden="true"
     >
       <path d={d} />
@@ -37,9 +50,14 @@ const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) =
 };
 
 const FacebookF = ({ size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+  >
     <path
-      fill="#1877F2"
+      fill="currentColor"
       d="M24 12.073C24 5.446 18.627 0 12 0S0 5.446 0 12.073c0 6.026 4.388 11.02 10.125 11.927v-8.438H7.078v-3.49h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.092 24 18.099 24 12.073z"
     />
   </svg>
@@ -54,6 +72,7 @@ const Login = () => {
     isAnonymous,
     user,
   } = useAuth();
+
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast, success } = useToast();
@@ -62,7 +81,9 @@ const Login = () => {
   const incomingRole = location.state?.role || null;
   const selectedRole = incomingRole || user?.role || 'buyer';
 
-  const [isLogin, setIsLogin] = useState(!isVerifyFlow && !incomingRole);
+  const [isLogin, setIsLogin] = useState(
+    !isVerifyFlow && !incomingRole
+  );
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -78,7 +99,9 @@ const Login = () => {
   const returnTo = location.state?.from || '/landing';
 
   useEffect(() => {
-    if (isVerified) navigate(returnTo, { replace: true });
+    if (isVerified) {
+      navigate(returnTo, { replace: true });
+    }
   }, [isVerified, navigate, returnTo]);
 
   useEffect(() => {
@@ -90,14 +113,22 @@ const Login = () => {
   useEffect(() => {
     const savedEmail = localStorage.getItem('remembered_email');
     const remember = localStorage.getItem('rememberMe') === 'true';
+
     if (savedEmail && remember) {
-      setFormData((p) => ({ ...p, email: savedEmail }));
+      setFormData((p) => ({
+        ...p,
+        email: savedEmail,
+      }));
       setRememberMe(true);
     }
   }, []);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+
     setErrorMsg('');
   };
 
@@ -108,8 +139,13 @@ const Login = () => {
 
     try {
       let result;
+
       if (isLogin) {
-        result = await login(formData.email, formData.password, rememberMe);
+        result = await login(
+          formData.email,
+          formData.password,
+          rememberMe
+        );
       } else {
         result = await register({
           email: formData.email,
@@ -120,25 +156,42 @@ const Login = () => {
       }
 
       if (result.success) {
-        success(isLogin ? 'Welcome back! 👋' : 'Account created! 🎉');
+        success(
+          isLogin
+            ? 'Welcome back! 👋'
+            : 'Account created! 🎉'
+        );
+
         sessionStorage.removeItem('redirectAfterLogin');
 
-        const needsOnboarding = !result.user?.profile?.onboarding_completed;
+        const needsOnboarding =
+          !result.user?.profile?.onboarding_completed;
 
         if (needsOnboarding) {
           navigate('/role-selection', {
             replace: true,
-            state: { from: returnTo },
+            state: {
+              from: returnTo,
+            },
           });
         } else {
-          navigate(returnTo, { replace: true });
+          navigate(returnTo, {
+            replace: true,
+          });
         }
       } else {
-        setErrorMsg(result.error || 'Invalid credentials. Please try again.');
+        setErrorMsg(
+          result.error ||
+            'Invalid credentials. Please try again.'
+        );
+
         showToast(result.error, 'error');
       }
     } catch (err) {
-      setErrorMsg('Something went wrong. Please try again.');
+      setErrorMsg(
+        'Something went wrong. Please try again.'
+      );
+
       showToast(err.message, 'error');
     } finally {
       setLoading(false);
@@ -151,23 +204,36 @@ const Login = () => {
 
     try {
       if (returnTo && returnTo !== '/landing') {
-        sessionStorage.setItem('redirectAfterLogin', returnTo);
+        sessionStorage.setItem(
+          'redirectAfterLogin',
+          returnTo
+        );
       } else {
-        sessionStorage.removeItem('redirectAfterLogin');
+        sessionStorage.removeItem(
+          'redirectAfterLogin'
+        );
       }
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'facebook',
-        options: {
-          redirectTo: `${window.location.origin}/landing`,
-          scopes: 'email public_profile',
-        },
-      });
+      const { data, error } =
+        await supabase.auth.signInWithOAuth({
+          provider: 'facebook',
+          options: {
+            redirectTo: `${window.location.origin}/landing`,
+            scopes: 'email public_profile',
+          },
+        });
 
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (err) {
-      setErrorMsg(err.message || 'Facebook sign-in failed. Please try again.');
+      setErrorMsg(
+        err.message ||
+          'Facebook sign-in failed. Please try again.'
+      );
+
       showToast(err.message, 'error');
       setSocialLoading(null);
     }
@@ -177,15 +243,19 @@ const Login = () => {
     return (
       <div className="boot">
         <div className="boot-spinner" />
+
         <style jsx>{`
           .boot {
+            width: 100%;
             height: 100vh;
             height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
             background: var(--color-bg);
+            overflow: hidden;
           }
+
           .boot-spinner {
             width: 32px;
             height: 32px;
@@ -194,7 +264,12 @@ const Login = () => {
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
           }
-          @keyframes spin { to { transform: rotate(360deg); } }
+
+          @keyframes spin {
+            to {
+              transform: rotate(360deg);
+            }
+          }
         `}</style>
       </div>
     );
@@ -202,656 +277,1626 @@ const Login = () => {
 
   const roleBadgeLabel =
     incomingRole === 'seller'
-      ? '🏪 Seller'
+      ? 'Seller'
       : incomingRole === 'provider'
-      ? '🔧 Service Provider'
+      ? 'Service Provider'
       : incomingRole === 'both'
-      ? '⚡ Buyer & Seller'
+      ? 'Buyer & Seller'
       : null;
+
+  const roleBadgeEmoji =
+    incomingRole === 'seller'
+      ? '🏪'
+      : incomingRole === 'provider'
+      ? '🔧'
+      : incomingRole === 'both'
+      ? '⚡'
+      : null;
+
+  const formTitle = isLogin
+    ? 'Welcome back'
+    : 'Create your account';
+
+  const formSubtitle = isLogin
+    ? 'Sign in to continue to your marketplace.'
+    : isVerifyFlow || isAnonymous
+    ? 'Create an account to start posting your listing.'
+    : incomingRole
+    ? `Set up your ${
+        incomingRole === 'seller'
+          ? 'seller'
+          : 'service provider'
+      } account.`
+    : 'Join the marketplace in under a minute.';
 
   return (
     <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-brand">
-          <Logo variant="full" size={140} clickable={false} />
-          <p className="brand-tagline">
-            {isVerifyFlow
-              ? 'Create your account to start posting'
-              : isLogin
-              ? 'Sign in to continue to your marketplace'
-              : incomingRole
-              ? `Sign up as a ${incomingRole === 'seller' ? 'seller' : 'service provider'}`
-              : isAnonymous
-              ? 'Create your account to start posting'
-              : 'Create your account to get started'}
-          </p>
-        </div>
+      <main className="auth-main">
+        <div className="auth-col">
+          <div className="form-shell">
+            <header className="auth-brand">
+              <Logo
+                variant="full"
+                size={104}
+                clickable={false}
+              />
+            </header>
 
-        <div className="auth-card">
-          {roleBadgeLabel && !isLogin && (
-            <div className="role-badge">
-              Signing up as <strong>{roleBadgeLabel}</strong>
+            <div className="card-head">
+              <h1 className="card-title">
+                {formTitle}
+              </h1>
+
+              <p className="card-subtitle">
+                {formSubtitle}
+              </p>
             </div>
-          )}
 
-          {isVerifyFlow && (
-            <div className="return-banner verify-banner">
-              <Icon name="shield" size={13} color="var(--color-primary)" />
-              <span>Verify your account to continue</span>
-            </div>
-          )}
+            {roleBadgeLabel && !isLogin && (
+              <div className="note">
+                <strong>
+                  {roleBadgeEmoji} Signing up as{' '}
+                  {roleBadgeLabel}
+                </strong>
 
-          {!isVerifyFlow &&
-            !roleBadgeLabel &&
-            returnTo &&
-            returnTo !== '/landing' &&
-            returnTo !== '/' && (
-              <div className="return-banner">
-                <Icon name="shield" size={13} color="var(--color-accent-hover)" />
-                <span>Sign in to continue where you left off</span>
+                <span>
+                  You can change this later in settings.
+                </span>
               </div>
             )}
 
-          {errorMsg && (
-            <div className="error" role="alert">
-              <span className="error-dot" />
-              <span className="error-msg">{errorMsg}</span>
-              <button
-                type="button"
-                className="error-x"
-                onClick={() => setErrorMsg('')}
-                aria-label="Dismiss"
-              >
-                ×
-              </button>
-            </div>
-          )}
+            {isVerifyFlow && (
+              <div className="note">
+                <strong>
+                  Verify your account
+                </strong>
 
-          <form onSubmit={handleEmailSubmit} className="form" noValidate>
-            {!isLogin && (
+                <span>
+                  Create an account to continue posting.
+                </span>
+              </div>
+            )}
+
+            {!isVerifyFlow &&
+              !roleBadgeLabel &&
+              returnTo &&
+              returnTo !== '/landing' &&
+              returnTo !== '/' && (
+                <div className="note">
+                  <strong>
+                    Continue where you left off
+                  </strong>
+
+                  <span>
+                    Sign in to access your saved session.
+                  </span>
+                </div>
+              )}
+
+            {errorMsg && (
+              <div
+                className="error"
+                role="alert"
+              >
+                <span className="error-msg">
+                  {errorMsg}
+                </span>
+
+                <button
+                  type="button"
+                  className="error-x"
+                  onClick={() => setErrorMsg('')}
+                  aria-label="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            <form
+              onSubmit={handleEmailSubmit}
+              className="form"
+              noValidate
+            >
+              {!isLogin && (
+                <div className="field">
+                  <label
+                    className="label"
+                    htmlFor="register-name"
+                  >
+                    Full name
+                  </label>
+
+                  <div className="input-wrap">
+                    <span className="input-icon">
+                      <Icon
+                        name="user"
+                        size={17}
+                      />
+                    </span>
+
+                    <input
+                      id="register-name"
+                      type="text"
+                      name="fullName"
+                      placeholder="Kondwani Banda"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      className="input input-with-icon"
+                      required
+                      disabled={loading}
+                      autoComplete="name"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="field">
-                <label className="label" htmlFor="register-name">
-                  Full name
+                <label
+                  className="label"
+                  htmlFor="email"
+                >
+                  Email
                 </label>
+
                 <div className="input-wrap">
                   <span className="input-icon">
-                    <Icon name="user" size={16} color="var(--color-text-muted)" />
+                    <Icon
+                      name="mail"
+                      size={17}
+                    />
                   </span>
+
                   <input
-                    id="register-name"
-                    type="text"
-                    name="fullName"
-                    placeholder="Kondwani Banda"
-                    value={formData.fullName}
+                    id="email"
+                    type="email"
+                    name="email"
+                    placeholder="name@example.com"
+                    value={formData.email}
                     onChange={handleChange}
-                    className="input"
+                    className="input input-with-icon"
                     required
                     disabled={loading}
-                    autoComplete="name"
+                    autoComplete="email"
+                    autoFocus={isLogin}
                   />
                 </div>
               </div>
-            )}
 
-            <div className="field">
-              <label className="label" htmlFor="email">
-                Email
-              </label>
-              <div className="input-wrap">
-                <span className="input-icon">
-                  <Icon name="mail" size={16} color="var(--color-text-muted)" />
-                </span>
-                <input
-                  id="email"
-                  type="email"
-                  name="email"
-                  placeholder="name@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="input"
-                  required
-                  disabled={loading}
-                  autoComplete="email"
-                  autoFocus={isLogin}
-                />
-              </div>
-            </div>
+              <div className="field">
+                <div className="label-row">
+                  <label
+                    className="label"
+                    htmlFor="password"
+                  >
+                    Password
+                  </label>
 
-            <div className="field">
-              <label className="label" htmlFor="password">
-                Password
-              </label>
-              <div className="input-wrap">
-                <span className="input-icon">
-                  <Icon name="lock" size={16} color="var(--color-text-muted)" />
-                </span>
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  placeholder={
-                    isLogin ? 'Enter your password' : 'At least 6 characters'
-                  }
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="input input-pw"
-                  required
-                  minLength={6}
-                  disabled={loading}
-                  autoComplete={isLogin ? 'current-password' : 'new-password'}
-                />
-                <button
-                  type="button"
-                  className="eye"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  <Icon
-                    name={showPassword ? 'eyeOff' : 'eye'}
-                    size={16}
-                    color="var(--color-text-muted)"
+                  {isLogin && (
+                    <Link
+                      to="/forgot-password"
+                      className="link"
+                    >
+                      Forgot password?
+                    </Link>
+                  )}
+                </div>
+
+                <div className="input-wrap">
+                  <span className="input-icon">
+                    <Icon
+                      name="lock"
+                      size={17}
+                    />
+                  </span>
+
+                  <input
+                    id="password"
+                    type={
+                      showPassword
+                        ? 'text'
+                        : 'password'
+                    }
+                    name="password"
+                    placeholder={
+                      isLogin
+                        ? 'Enter your password'
+                        : 'At least 6 characters'
+                    }
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="input input-with-icon input-pw"
+                    required
+                    minLength={6}
+                    disabled={loading}
+                    autoComplete={
+                      isLogin
+                        ? 'current-password'
+                        : 'new-password'
+                    }
                   />
-                </button>
-              </div>
-            </div>
 
-            {isLogin && (
-              <div className="row">
+                  <button
+                    type="button"
+                    className="eye"
+                    onClick={() =>
+                      setShowPassword(!showPassword)
+                    }
+                    aria-label={
+                      showPassword
+                        ? 'Hide password'
+                        : 'Show password'
+                    }
+                  >
+                    <Icon
+                      name={
+                        showPassword
+                          ? 'eyeOff'
+                          : 'eye'
+                      }
+                      size={18}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {isLogin && (
                 <label className="check-label">
                   <input
                     type="checkbox"
                     checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
+                    onChange={(e) =>
+                      setRememberMe(
+                        e.target.checked
+                      )
+                    }
                     className="check"
                   />
-                  <span>Remember me</span>
-                </label>
-                <Link to="/forgot-password" className="link">
-                  Forgot password?
-                </Link>
-              </div>
-            )}
 
-            <button type="submit" className="submit" disabled={loading}>
-              {loading ? (
-                <span className="spinner" />
+                  <span>
+                    Keep me signed in
+                  </span>
+                </label>
+              )}
+
+              <button
+                type="submit"
+                className="submit"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="spinner" />
+                ) : (
+                  <>
+                    <span>
+                      {isLogin
+                        ? 'Sign in'
+                        : isAnonymous
+                        ? 'Verify & continue'
+                        : 'Create account'}
+                    </span>
+
+                    <Icon
+                      name="arrowRight"
+                      size={17}
+                      strokeWidth={2}
+                    />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="divider">
+              <span className="divider-line" />
+              <span className="divider-text">
+                or
+              </span>
+              <span className="divider-line" />
+            </div>
+
+            <button
+              type="button"
+              className="social-btn"
+              onClick={handleFacebookLogin}
+              disabled={
+                loading ||
+                socialLoading === 'facebook'
+              }
+            >
+              {socialLoading === 'facebook' ? (
+                <span className="spinner spinner-dark" />
               ) : (
                 <>
-                  <span>
-                    {isLogin
-                      ? 'Sign in'
-                      : isAnonymous
-                      ? 'Verify & continue'
-                      : 'Create account'}
+                  <span className="fb-icon">
+                    <FacebookF size={17} />
                   </span>
-                  <Icon
-                    name="arrowRight"
-                    size={16}
-                    color="currentColor"
-                    strokeWidth={2.25}
-                  />
+
+                  <span>
+                    Continue with Facebook
+                  </span>
                 </>
               )}
             </button>
-          </form>
 
-          <div className="divider">
-            <span className="divider-line" />
-            <span className="divider-text">or</span>
-            <span className="divider-line" />
+            <p className="switch">
+              <span>
+                {isLogin
+                  ? "Don't have an account?"
+                  : 'Already have an account?'}
+              </span>
+
+              <button
+                type="button"
+                className="switch-btn"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setErrorMsg('');
+
+                  setFormData({
+                    email: '',
+                    password: '',
+                    fullName: '',
+                  });
+                }}
+              >
+                {isLogin
+                  ? 'Create one'
+                  : 'Sign in'}
+              </button>
+            </p>
+
+            <Link
+              to="/landing"
+              className="back-link"
+            >
+              <Icon
+                name="arrowLeft"
+                size={14}
+                strokeWidth={2}
+              />
+
+              <span>
+                Back to marketplace
+              </span>
+            </Link>
+          </div>
+        </div>
+      </main>
+
+      <aside
+        className="statement"
+        aria-hidden="true"
+      >
+        <div className="statement-glow statement-glow-one" />
+        <div className="statement-glow statement-glow-two" />
+
+        <div className="statement-inner">
+          <div className="statement-top">
+            <span className="made-badge">
+              <span className="made-dot" />
+              Made for Malawi
+            </span>
           </div>
 
-          <button
-            type="button"
-            className="social-btn facebook"
-            onClick={handleFacebookLogin}
-            disabled={loading || socialLoading === 'facebook'}
-          >
-            {socialLoading === 'facebook' ? (
-              <span className="spinner spinner-dark" />
-            ) : (
-              <>
-                <FacebookF size={18} />
-                <span>Continue with Facebook</span>
-              </>
-            )}
-          </button>
-        </div>
+          <div className="statement-content">
+            <p className="statement-eyebrow">
+              KUMSIKA MARKETPLACE
+            </p>
 
-        <div className="auth-footer">
-          <span className="footer-text">
-            {isLogin ? "Don't have an account?" : 'Already have an account?'}
-          </span>
-          <button
-            type="button"
-            className="footer-btn"
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setErrorMsg('');
-              setFormData({ email: '', password: '', fullName: '' });
-            }}
-          >
-            {isLogin ? 'Sign up' : 'Sign in'}
-          </button>
-        </div>
+            <h2 className="statement-title">
+              Discover.
+              <br />
+              Trade.
+              <br />
+              Connect.
+            </h2>
 
-        <Link to="/landing" className="back-link">
-          <Icon name="arrowLeft" size={14} color="var(--color-text-muted)" strokeWidth={2} />
-          Back to marketplace
-        </Link>
-      </div>
+            <p className="statement-sub">
+              Buy, sell and discover services
+              from people and businesses across
+              Malawi — all in one place.
+            </p>
+
+            <div className="statement-points">
+              <div className="statement-point">
+                <span className="point-icon">
+                  <Icon
+                    name="check"
+                    size={14}
+                    strokeWidth={2.4}
+                  />
+                </span>
+
+                <span>
+                  Trusted sellers &amp; providers
+                </span>
+              </div>
+
+              <div className="statement-point">
+                <span className="point-icon">
+                  <Icon
+                    name="check"
+                    size={14}
+                    strokeWidth={2.4}
+                  />
+                </span>
+
+                <span>
+                  Secure in-app conversations
+                </span>
+              </div>
+
+              <div className="statement-point">
+                <span className="point-icon">
+                  <Icon
+                    name="check"
+                    size={14}
+                    strokeWidth={2.4}
+                  />
+                </span>
+
+                <span>
+                  Free to list your products
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="statement-foot">
+            <div className="flag-stripe">
+              <i />
+              <i />
+              <i />
+            </div>
+
+            <span>
+              © {new Date().getFullYear()} Kumsika
+              · Made in Malawi
+            </span>
+          </div>
+        </div>
+      </aside>
 
       <style jsx>{`
-        .auth-page {
-          min-height: 100vh;
-          min-height: 100dvh;
+        /* =====================================================
+           GLOBAL AUTH VIEWPORT
+           ===================================================== */
+
+        :global(html),
+        :global(body),
+        :global(#root) {
           width: 100%;
-          background: var(--color-bg);
-          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
-          background-size: 22px 22px;
+          height: 100%;
+          margin: 0;
+          overflow: hidden;
+        }
+
+        .auth-page {
+          width: 100%;
+          height: 100vh;
+          height: 100dvh;
+          min-height: 100dvh;
           display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 24px 16px;
+          overflow: hidden;
+          background: #f5f7fb;
           font-family: var(--font-sans);
           color: var(--color-text);
           box-sizing: border-box;
         }
 
-        .auth-container {
+        /* =====================================================
+           FORM AREA
+           ===================================================== */
+
+        .auth-main {
           width: 100%;
-          max-width: 400px;
+          height: 100%;
+          min-height: 0;
           display: flex;
-          flex-direction: column;
-          align-items: stretch;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          box-sizing: border-box;
+          overflow: hidden;
         }
+
+        .auth-col {
+          width: 100%;
+          max-width: 430px;
+          max-height: calc(100dvh - 40px);
+          min-height: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+        }
+
+        /*
+         * This is intentionally a compact card.
+         * It prevents the form from visually filling the
+         * entire desktop screen.
+         */
+        .form-shell {
+          width: 100%;
+          max-height: calc(100dvh - 40px);
+          box-sizing: border-box;
+          padding: 28px 30px;
+          background: #ffffff;
+          border: 1px solid #e7ebf2;
+          border-radius: 24px;
+          box-shadow:
+            0 24px 60px rgba(15, 23, 42, 0.08),
+            0 5px 18px rgba(15, 23, 42, 0.04);
+          overflow: hidden;
+        }
+
+        /* =====================================================
+           BRAND / HEADING
+           ===================================================== */
 
         .auth-brand {
-          text-align: center;
-          margin-bottom: 24px;
-        }
-
-        .auth-brand :global(.kumsika-logo) {
-          margin: 0 auto 14px;
-        }
-
-        .brand-tagline {
-          font-size: 13px;
-          color: var(--color-text-secondary);
-          margin: 0;
-          line-height: 1.5;
-        }
-
-        .auth-card {
-          background: var(--color-surface);
-          border: 1px solid var(--color-border);
-          border-radius: var(--radius-2xl);
-          padding: 24px;
-          box-shadow: var(--shadow-sm);
-        }
-
-        .role-badge {
+          margin-bottom: 18px;
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          margin-bottom: 14px;
-          background: var(--color-surface-alt);
-          border: 1px solid var(--color-border);
-          border-radius: var(--radius-md);
-          font-size: 12px;
-          color: var(--color-text-secondary);
         }
 
-        .role-badge strong {
+        .card-head {
+          margin-bottom: 18px;
+        }
+
+        .card-title {
+          margin: 0 0 6px;
+          font-size: 28px;
+          line-height: 1.12;
+          font-weight: 800;
+          letter-spacing: -0.035em;
           color: var(--color-text);
-          font-weight: 700;
         }
 
-        .return-banner {
+        .card-subtitle {
+          margin: 0;
+          font-size: 13px;
+          line-height: 1.45;
+          color: var(--color-text-secondary);
+        }
+
+        /* =====================================================
+           CONTEXT NOTES
+           ===================================================== */
+
+        .note {
           display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 10px;
-          margin-bottom: 14px;
-          background: var(--color-accent-soft);
-          border: 1px solid var(--color-accent);
-          border-radius: var(--radius-md);
-          font-size: 12px;
-          color: var(--color-accent-hover);
-          font-weight: 500;
+          flex-direction: column;
+          gap: 1px;
+          margin-bottom: 12px;
+          padding: 7px 0 7px 10px;
+          border-left: 2px solid var(--color-accent);
+          font-size: 11px;
+          line-height: 1.35;
         }
 
-        .verify-banner {
-          background: var(--color-info-bg);
-          border-color: var(--color-primary);
-          color: var(--color-primary);
+        .note strong {
+          font-weight: 700;
+          color: var(--color-text);
         }
+
+        .note span {
+          color: var(--color-text-secondary);
+        }
+
+        /* =====================================================
+           ERROR
+           ===================================================== */
 
         .error {
           display: flex;
-          align-items: center;
-          gap: 10px;
+          align-items: flex-start;
+          gap: 8px;
+          margin-bottom: 12px;
+          padding: 8px 10px;
+          border-radius: 10px;
           background: var(--color-error-bg);
-          border: 1px solid var(--color-error);
-          border-radius: var(--radius-lg);
-          padding: 10px 12px;
-          margin-bottom: 16px;
-          font-size: 13px;
           color: var(--color-error);
+          font-size: 11px;
+          line-height: 1.35;
         }
 
-        .error-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--color-error);
-          flex-shrink: 0;
+        .error-msg {
+          flex: 1;
+          min-width: 0;
         }
-
-        .error-msg { flex: 1; line-height: 1.4; }
 
         .error-x {
+          flex-shrink: 0;
           background: none;
           border: none;
-          color: var(--color-error);
-          font-size: 18px;
+          padding: 0 2px;
+          font-size: 17px;
           line-height: 1;
+          color: var(--color-error);
           cursor: pointer;
-          padding: 0 4px;
         }
 
-        .form { display: flex; flex-direction: column; gap: 16px; }
+        /* =====================================================
+           FORM
+           ===================================================== */
 
-        .field { display: flex; flex-direction: column; gap: 6px; }
+        .form {
+          display: flex;
+          flex-direction: column;
+          gap: 11px;
+        }
+
+        .field {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .label-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
 
         .label {
-          font-size: 13px;
-          font-weight: 600;
+          font-size: 11px;
+          line-height: 1.2;
+          font-weight: 700;
           color: var(--color-text);
         }
+
+        .link {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--color-text-secondary);
+          text-decoration: none;
+        }
+
+        .link:hover {
+          color: var(--color-accent);
+        }
+
+        /* =====================================================
+           INPUTS
+           ===================================================== */
 
         .input-wrap {
           position: relative;
           display: flex;
           align-items: center;
-        }
-
-        .input-icon {
-          position: absolute;
-          left: 12px;
-          display: flex;
-          align-items: center;
-          pointer-events: none;
+          width: 100%;
         }
 
         .input {
           width: 100%;
-          height: 44px;
-          padding: 0 12px 0 38px;
-          border: 1px solid var(--color-border-strong);
-          border-radius: var(--radius-lg);
-          font-size: 14px;
+          height: 43px;
+          min-height: 43px;
+          padding: 0 13px;
+          border: 1px solid #dfe4ec;
+          border-radius: 10px;
+          background: #f8f9fc;
           color: var(--color-text);
-          background: var(--color-surface);
           font-family: inherit;
+          font-size: 13px;
           outline: none;
           box-sizing: border-box;
-          transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+          transition:
+            border-color 160ms ease,
+            background 160ms ease,
+            box-shadow 160ms ease;
         }
 
         .input::placeholder {
-          color: var(--color-text-muted);
+          color: #a5adba;
         }
 
-        .input:hover:not(:disabled):not(:focus) {
-          border-color: var(--color-text-muted);
+        .input:hover:not(:disabled) {
+          border-color: #cbd2dd;
         }
 
         .input:focus {
+          background: #ffffff;
           border-color: var(--color-accent);
-          box-shadow: 0 0 0 3px var(--color-accent-tint);
+          box-shadow: 0 0 0 3px
+            rgba(10, 36, 114, 0.08);
         }
 
         .input:disabled {
-          background: var(--color-surface-alt);
+          opacity: 0.6;
           cursor: not-allowed;
-          opacity: 0.7;
         }
 
-        .input-pw { padding-right: 42px; }
+        .input-with-icon {
+          padding-left: 39px;
+        }
+
+        .input-pw {
+          padding-right: 43px;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 13px;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #8d97a7;
+          pointer-events: none;
+        }
 
         .eye {
           position: absolute;
-          right: 6px;
-          width: 32px;
-          height: 32px;
+          right: 5px;
+          width: 34px;
+          height: 34px;
           display: flex;
           align-items: center;
           justify-content: center;
           border: none;
           background: transparent;
+          border-radius: 8px;
+          color: #8d97a7;
           cursor: pointer;
-          border-radius: var(--radius-sm);
-          transition: background var(--transition-fast);
         }
 
-        .eye:hover { background: var(--color-surface-alt); }
-
-        .row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-top: -4px;
+        .eye:hover {
+          color: var(--color-text);
+          background: #f1f3f7;
         }
+
+        /* =====================================================
+           REMEMBER ME
+           ===================================================== */
 
         .check-label {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-size: 13px;
+          gap: 7px;
+          min-height: 17px;
+          font-size: 11px;
           color: var(--color-text-secondary);
           cursor: pointer;
           user-select: none;
         }
 
         .check {
-          width: 16px;
-          height: 16px;
+          width: 15px;
+          height: 15px;
+          margin: 0;
           accent-color: var(--color-accent);
           cursor: pointer;
-          margin: 0;
         }
 
-        .link {
-          font-size: 13px;
-          color: var(--color-accent);
-          font-weight: 600;
-          text-decoration: none;
-        }
-
-        .link:hover {
-          color: var(--color-accent-hover);
-          text-decoration: underline;
-          text-underline-offset: 2px;
-        }
+        /* =====================================================
+           PRIMARY BUTTON
+           ===================================================== */
 
         .submit {
           width: 100%;
-          height: 46px;
-          margin-top: 4px;
-          background: var(--color-accent);
+          height: 44px;
+          min-height: 44px;
+          margin-top: 1px;
           border: none;
-          border-radius: var(--radius-lg);
+          border-radius: 10px;
+          background: var(--color-accent);
           color: var(--color-text-inverse);
           font-family: inherit;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 700;
-          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          transition: background var(--transition-fast), transform 0.1s, box-shadow var(--transition-fast);
-          box-shadow: var(--shadow-accent);
+          cursor: pointer;
+          transition:
+            transform 160ms ease,
+            background 160ms ease,
+            box-shadow 160ms ease;
         }
 
         .submit:hover:not(:disabled) {
           background: var(--color-accent-hover);
           transform: translateY(-1px);
-          box-shadow: 0 8px 20px rgba(255, 92, 35, 0.32);
+          box-shadow:
+            0 7px 18px rgba(10, 36, 114, 0.18);
         }
 
-        .submit:active:not(:disabled) { transform: scale(0.99); }
-        .submit:disabled { opacity: 0.6; cursor: not-allowed; }
+        .submit:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .submit:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* =====================================================
+           SPINNERS
+           ===================================================== */
 
         .spinner {
-          width: 18px;
-          height: 18px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: var(--color-text-inverse);
+          width: 17px;
+          height: 17px;
+          border: 2px solid rgba(255, 255, 255, 0.35);
+          border-top-color: #ffffff;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
         .spinner-dark {
-          border-color: rgba(10, 36, 114, 0.2);
-          border-top-color: var(--color-primary);
+          border-color: var(--color-border);
+          border-top-color: var(--color-text);
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* =====================================================
+           DIVIDER
+           ===================================================== */
 
         .divider {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin: 20px 0 16px;
+          gap: 10px;
+          margin: 13px 0;
         }
 
         .divider-line {
           flex: 1;
           height: 1px;
-          background: var(--color-border);
+          background: #e5e9ef;
         }
 
         .divider-text {
-          font-size: 11px;
+          font-size: 10px;
           color: var(--color-text-muted);
-          font-weight: 500;
           text-transform: uppercase;
-          letter-spacing: 0.06em;
-          white-space: nowrap;
+          letter-spacing: 0.08em;
+          font-weight: 600;
         }
+
+        /* =====================================================
+           FACEBOOK
+           ===================================================== */
 
         .social-btn {
           width: 100%;
-          height: 46px;
-          padding: 0 14px;
-          border: 1px solid var(--color-border-strong);
-          border-radius: var(--radius-lg);
-          background: var(--color-surface);
+          height: 42px;
+          min-height: 42px;
+          border: 1px solid #dfe4ec;
+          border-radius: 10px;
+          background: #ffffff;
           font-family: inherit;
-          font-size: 14px;
+          font-size: 12px;
           font-weight: 600;
           color: var(--color-text);
-          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          transition: background var(--transition-fast), border-color var(--transition-fast);
+          gap: 8px;
+          cursor: pointer;
+          transition:
+            background 160ms ease,
+            border-color 160ms ease;
         }
 
         .social-btn:hover:not(:disabled) {
-          background: var(--color-surface-alt);
-          border-color: var(--color-text-muted);
+          background: #f8f9fc;
+          border-color: #cdd4df;
         }
 
-        .social-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .social-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
 
-        .social-btn.facebook {
-          border-color: #1877f2;
+        .fb-icon {
+          display: inline-flex;
           color: #1877f2;
-          background: var(--color-surface);
         }
 
-        .social-btn.facebook:hover:not(:disabled) {
-          background: #f0f6ff;
-          border-color: #1877f2;
-        }
+        /* =====================================================
+           ACCOUNT SWITCH
+           ===================================================== */
 
-        .auth-footer {
-          margin-top: 20px;
-          text-align: center;
+        .switch {
+          margin: 13px 0 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 6px;
-          font-size: 13px;
+          gap: 5px;
+          flex-wrap: wrap;
+          font-size: 11px;
+          line-height: 1.3;
+          color: var(--color-text-secondary);
         }
 
-        .footer-text { color: var(--color-text-secondary); }
-
-        .footer-btn {
-          background: none;
-          border: none;
+        .switch-btn {
           padding: 0;
-          color: var(--color-accent);
-          font-weight: 700;
+          border: none;
+          background: none;
           font-family: inherit;
-          font-size: 13px;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--color-accent);
           cursor: pointer;
         }
 
-        .footer-btn:hover {
+        .switch-btn:hover {
           color: var(--color-accent-hover);
           text-decoration: underline;
-          text-underline-offset: 2px;
+          text-underline-offset: 3px;
         }
+
+        /* =====================================================
+           BACK LINK
+           ===================================================== */
 
         .back-link {
-          margin-top: 20px;
-          align-self: center;
-          display: inline-flex;
+          margin-top: 10px;
+          display: flex;
           align-items: center;
+          justify-content: center;
           gap: 5px;
-          font-size: 12px;
+          font-size: 10px;
+          font-weight: 500;
           color: var(--color-text-muted);
           text-decoration: none;
-          font-weight: 500;
-          transition: color var(--transition-fast);
         }
 
-        .back-link:hover { color: var(--color-text-secondary); }
+        .back-link:hover {
+          color: var(--color-text-secondary);
+        }
 
-        @media (max-width: 420px) {
-          .auth-page { padding: 16px 12px; }
-          .auth-brand { margin-bottom: 20px; }
-          .auth-card {
-            padding: 20px 18px;
-            border-radius: var(--radius-xl);
+        /* =====================================================
+           DESKTOP MARKETING PANEL
+           ===================================================== */
+
+        .statement {
+          position: relative;
+          flex: 1;
+          height: 100vh;
+          height: 100dvh;
+          min-height: 0;
+          overflow: hidden;
+          display: none;
+          background:
+            radial-gradient(
+              circle at 80% 20%,
+              rgba(44, 83, 180, 0.32),
+              transparent 34%
+            ),
+            #0a2472;
+        }
+
+        .statement-inner {
+          position: relative;
+          z-index: 2;
+          width: 100%;
+          height: 100%;
+          max-width: 650px;
+          padding: 54px 60px;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        .statement-top {
+          display: flex;
+          align-items: center;
+        }
+
+        .made-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 7px 11px;
+          border: 1px solid
+            rgba(255, 255, 255, 0.16);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.07);
+          color: rgba(255, 255, 255, 0.85);
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+        }
+
+        .made-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #55c76a;
+          box-shadow: 0 0 0 4px
+            rgba(85, 199, 106, 0.12);
+        }
+
+        .statement-content {
+          margin-top: auto;
+          margin-bottom: auto;
+          padding-top: 8vh;
+          padding-bottom: 5vh;
+        }
+
+        .statement-eyebrow {
+          margin: 0 0 18px;
+          color: rgba(255, 255, 255, 0.48);
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.16em;
+        }
+
+        .statement-title {
+          margin: 0 0 20px;
+          font-size: clamp(46px, 4.4vw, 70px);
+          line-height: 0.98;
+          font-weight: 800;
+          letter-spacing: -0.055em;
+          color: #ffffff;
+        }
+
+        .statement-sub {
+          max-width: 450px;
+          margin: 0 0 28px;
+          font-size: 15px;
+          line-height: 1.65;
+          color: rgba(255, 255, 255, 0.67);
+        }
+
+        .statement-points {
+          display: flex;
+          flex-direction: column;
+          gap: 11px;
+        }
+
+        .statement-point {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+        }
+
+        .point-icon {
+          width: 21px;
+          height: 21px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+        }
+
+        .statement-foot {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          color: rgba(255, 255, 255, 0.38);
+          font-size: 10px;
+        }
+
+        .flag-stripe {
+          width: 19px;
+          height: 12px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          border-radius: 2px;
+        }
+
+        .flag-stripe i {
+          flex: 1;
+          display: block;
+        }
+
+        .flag-stripe i:nth-child(1) {
+          background: #000000;
+        }
+
+        .flag-stripe i:nth-child(2) {
+          background: #ce1126;
+        }
+
+        .flag-stripe i:nth-child(3) {
+          background: #339e35;
+        }
+
+        .statement-glow {
+          position: absolute;
+          border-radius: 50%;
+          pointer-events: none;
+        }
+
+        .statement-glow-one {
+          width: 380px;
+          height: 380px;
+          top: -170px;
+          right: -100px;
+          background: rgba(255, 255, 255, 0.035);
+        }
+
+        .statement-glow-two {
+          width: 280px;
+          height: 280px;
+          bottom: -160px;
+          left: -100px;
+          border: 1px solid
+            rgba(255, 255, 255, 0.07);
+        }
+
+        /* =====================================================
+           DESKTOP
+           ===================================================== */
+
+        @media (min-width: 1024px) {
+          .auth-main {
+            flex: 0 0 55%;
+            width: 55%;
+            height: 100dvh;
+            padding: 24px 48px;
           }
-          .form { gap: 14px; }
-        }
 
-        @media (max-width: 360px) {
-          .auth-card { padding: 18px 16px; }
-        }
-
-        @media (max-height: 640px) {
-          .auth-page {
-            padding: 12px;
-            align-items: flex-start;
+          .auth-col {
+            max-width: 430px;
+            max-height: calc(100dvh - 48px);
           }
-          .brand-tagline { display: none; }
-          .auth-brand { margin-bottom: 14px; }
-          .back-link { margin-top: 12px; }
+
+          .form-shell {
+            max-height: calc(100dvh - 48px);
+          }
+
+          .statement {
+            display: flex;
+          }
+        }
+
+        /* =====================================================
+           LARGE DESKTOP
+           ===================================================== */
+
+        @media (min-width: 1440px) {
+          .auth-main {
+            padding-left: 70px;
+            padding-right: 70px;
+          }
+
+          .statement-inner {
+            padding: 64px 78px;
+          }
+
+          .statement-title {
+            font-size: 68px;
+          }
+        }
+
+        /* =====================================================
+           SHORT DESKTOP / LAPTOP
+           ===================================================== */
+
+        @media (min-width: 1024px) and (max-height: 800px) {
+          .auth-main {
+            padding: 14px 38px;
+          }
+
+          .auth-col {
+            max-height: calc(100dvh - 28px);
+          }
+
+          .form-shell {
+            max-height: calc(100dvh - 28px);
+            padding: 20px 25px;
+            border-radius: 20px;
+          }
+
+          .auth-brand {
+            margin-bottom: 11px;
+          }
+
+          .card-head {
+            margin-bottom: 12px;
+          }
+
+          .card-title {
+            font-size: 24px;
+          }
+
+          .card-subtitle {
+            font-size: 12px;
+          }
+
+          .form {
+            gap: 8px;
+          }
+
+          .field {
+            gap: 4px;
+          }
+
+          .input {
+            height: 39px;
+            min-height: 39px;
+          }
+
+          .submit {
+            height: 40px;
+            min-height: 40px;
+          }
+
+          .divider {
+            margin: 9px 0;
+          }
+
+          .social-btn {
+            height: 38px;
+            min-height: 38px;
+          }
+
+          .switch {
+            margin-top: 9px;
+          }
+
+          .back-link {
+            margin-top: 6px;
+          }
+
+          .statement-inner {
+            padding-top: 35px;
+            padding-bottom: 35px;
+          }
+
+          .statement-content {
+            padding-top: 3vh;
+            padding-bottom: 3vh;
+          }
+
+          .statement-title {
+            font-size: clamp(40px, 4vw, 56px);
+            margin-bottom: 14px;
+          }
+
+          .statement-sub {
+            margin-bottom: 20px;
+            font-size: 13px;
+          }
+
+          .statement-points {
+            gap: 8px;
+          }
+        }
+
+        /* =====================================================
+           MOBILE
+           ===================================================== */
+
+        @media (max-width: 1023px) {
+          .auth-main {
+            padding: 14px;
+          }
+
+          .auth-col {
+            max-width: 430px;
+            max-height: calc(100dvh - 28px);
+          }
+
+          .form-shell {
+            max-height: calc(100dvh - 28px);
+            padding: 22px 20px;
+            border-radius: 20px;
+          }
+        }
+
+        /* =====================================================
+           SMALL MOBILE
+           ===================================================== */
+
+        @media (max-width: 430px) {
+          .auth-main {
+            padding: 10px;
+          }
+
+          .auth-col {
+            max-height: calc(100dvh - 20px);
+          }
+
+          .form-shell {
+            max-height: calc(100dvh - 20px);
+            padding: 18px 17px;
+            border-radius: 18px;
+          }
+
+          .auth-brand {
+            margin-bottom: 11px;
+          }
+
+          .card-head {
+            margin-bottom: 12px;
+          }
+
+          .card-title {
+            font-size: 24px;
+          }
+
+          .card-subtitle {
+            font-size: 12px;
+          }
+
+          .form {
+            gap: 9px;
+          }
+
+          .field {
+            gap: 4px;
+          }
+
+          .input {
+            height: 40px;
+            min-height: 40px;
+          }
+
+          .submit {
+            height: 41px;
+            min-height: 41px;
+          }
+
+          .divider {
+            margin: 10px 0;
+          }
+
+          .social-btn {
+            height: 39px;
+            min-height: 39px;
+          }
+
+          .switch {
+            margin-top: 10px;
+          }
+
+          .back-link {
+            margin-top: 7px;
+          }
+        }
+
+        /* =====================================================
+           SHORT PHONES
+           ===================================================== */
+
+        @media (max-width: 430px) and (max-height: 720px) {
+          .auth-main {
+            padding: 7px;
+          }
+
+          .auth-col {
+            max-height: calc(100dvh - 14px);
+          }
+
+          .form-shell {
+            max-height: calc(100dvh - 14px);
+            padding: 14px 15px;
+            border-radius: 16px;
+          }
+
+          .auth-brand {
+            margin-bottom: 7px;
+          }
+
+          .card-head {
+            margin-bottom: 8px;
+          }
+
+          .card-title {
+            font-size: 21px;
+          }
+
+          .card-subtitle {
+            font-size: 11px;
+            line-height: 1.3;
+          }
+
+          .note {
+            margin-bottom: 7px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            font-size: 10px;
+          }
+
+          .error {
+            margin-bottom: 7px;
+            padding: 6px 8px;
+            font-size: 10px;
+          }
+
+          .form {
+            gap: 6px;
+          }
+
+          .field {
+            gap: 3px;
+          }
+
+          .label {
+            font-size: 10px;
+          }
+
+          .link {
+            font-size: 10px;
+          }
+
+          .input {
+            height: 36px;
+            min-height: 36px;
+            font-size: 12px;
+          }
+
+          .input-icon {
+            left: 11px;
+          }
+
+          .input-with-icon {
+            padding-left: 34px;
+          }
+
+          .input-pw {
+            padding-right: 38px;
+          }
+
+          .eye {
+            width: 30px;
+            height: 30px;
+          }
+
+          .check-label {
+            font-size: 10px;
+          }
+
+          .check {
+            width: 14px;
+            height: 14px;
+          }
+
+          .submit {
+            height: 37px;
+            min-height: 37px;
+            font-size: 12px;
+          }
+
+          .divider {
+            margin: 6px 0;
+          }
+
+          .divider-text {
+            font-size: 9px;
+          }
+
+          .social-btn {
+            height: 35px;
+            min-height: 35px;
+            font-size: 11px;
+          }
+
+          .switch {
+            margin-top: 6px;
+            font-size: 10px;
+          }
+
+          .switch-btn {
+            font-size: 10px;
+          }
+
+          .back-link {
+            margin-top: 4px;
+            font-size: 9px;
+          }
+        }
+
+        /* =====================================================
+           VERY SHORT PHONES
+           ===================================================== */
+
+        @media (max-width: 430px) and (max-height: 640px) {
+          .auth-main {
+            padding: 4px 6px;
+          }
+
+          .auth-col {
+            max-height: calc(100dvh - 8px);
+          }
+
+          .form-shell {
+            max-height: calc(100dvh - 8px);
+            padding: 10px 13px;
+            border-radius: 14px;
+          }
+
+          .auth-brand {
+            margin-bottom: 5px;
+          }
+
+          .card-head {
+            margin-bottom: 6px;
+          }
+
+          .card-title {
+            font-size: 19px;
+          }
+
+          .card-subtitle {
+            display: none;
+          }
+
+          .note {
+            margin-bottom: 5px;
+            font-size: 9px;
+            line-height: 1.2;
+          }
+
+          .form {
+            gap: 5px;
+          }
+
+          .input {
+            height: 33px;
+            min-height: 33px;
+            font-size: 11px;
+          }
+
+          .submit {
+            height: 34px;
+            min-height: 34px;
+          }
+
+          .divider {
+            margin: 5px 0;
+          }
+
+          .social-btn {
+            height: 32px;
+            min-height: 32px;
+            font-size: 10px;
+          }
+
+          .switch {
+            margin-top: 4px;
+          }
+
+          .back-link {
+            margin-top: 3px;
+          }
+        }
+
+        /* =====================================================
+           ACCESSIBILITY / REDUCED MOTION
+           ===================================================== */
+
+        .submit:focus-visible,
+        .social-btn:focus-visible,
+        .switch-btn:focus-visible,
+        .eye:focus-visible,
+        .link:focus-visible,
+        .back-link:focus-visible,
+        .check:focus-visible {
+          outline: 2px solid var(--color-accent);
+          outline-offset: 2px;
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .submit, .social-btn, .input, .eye { transition: none; }
-          .submit:active:not(:disabled) { transform: none; }
-          .submit:hover:not(:disabled) { transform: none; }
+          .input,
+          .submit,
+          .social-btn {
+            transition: none;
+          }
+
+          .spinner,
+          .boot-spinner {
+            animation-duration: 1.5s;
+          }
         }
       `}</style>
     </div>
