@@ -4,10 +4,8 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 import { supabase } from '../lib/supabase';
+import Logo from '../components/Logo';
 
-// ============================================================
-// ICONS
-// ============================================================
 const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) => {
   const icons = {
     mail: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6',
@@ -18,8 +16,6 @@ const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) =
     arrowLeft: 'M19 12H5M12 19l-7-7 7-7',
     arrowRight: 'M5 12h14M12 5l7 7-7 7',
     shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-    store: 'M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9',
-    wrench: 'M14.7 6.3a4 4 0 11-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 015.4-5.4z',
   };
   const d = icons[name] || icons.mail;
   return (
@@ -49,9 +45,6 @@ const FacebookF = ({ size = 18 }) => (
   </svg>
 );
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const Login = () => {
   const {
     login,
@@ -66,11 +59,6 @@ const Login = () => {
   const { showToast, success } = useToast();
 
   const isVerifyFlow = location.state?.reason === 'verify';
-
-  // Role can arrive from three places:
-  //   1. location.state.role — set by RoleChoiceBlock (seller / provider)
-  //   2. existing user.profile.role — if they somehow already have one
-  //   3. fallback to 'buyer'
   const incomingRole = location.state?.role || null;
   const selectedRole = incomingRole || user?.role || 'buyer';
 
@@ -196,19 +184,17 @@ const Login = () => {
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f8fafc;
+            background: var(--color-bg);
           }
           .boot-spinner {
             width: 32px;
             height: 32px;
-            border: 3px solid #e2e8f0;
-            border-top-color: #f59e0b;
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-accent);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
           }
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
+          @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
       </div>
     );
@@ -227,10 +213,7 @@ const Login = () => {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-brand">
-          <div className="brand-mark">K</div>
-          <h1 className="brand-name">
-            Ku<span className="brand-name-accent">msika</span>
-          </h1>
+          <Logo variant="full" size={140} clickable={false} />
           <p className="brand-tagline">
             {isVerifyFlow
               ? 'Create your account to start posting'
@@ -253,7 +236,7 @@ const Login = () => {
 
           {isVerifyFlow && (
             <div className="return-banner verify-banner">
-              <Icon name="shield" size={13} color="#92400e" />
+              <Icon name="shield" size={13} color="var(--color-primary)" />
               <span>Verify your account to continue</span>
             </div>
           )}
@@ -264,7 +247,7 @@ const Login = () => {
             returnTo !== '/landing' &&
             returnTo !== '/' && (
               <div className="return-banner">
-                <Icon name="shield" size={13} color="#92400e" />
+                <Icon name="shield" size={13} color="var(--color-accent-hover)" />
                 <span>Sign in to continue where you left off</span>
               </div>
             )}
@@ -292,7 +275,7 @@ const Login = () => {
                 </label>
                 <div className="input-wrap">
                   <span className="input-icon">
-                    <Icon name="user" size={16} color="#94a3b8" />
+                    <Icon name="user" size={16} color="var(--color-text-muted)" />
                   </span>
                   <input
                     id="register-name"
@@ -316,7 +299,7 @@ const Login = () => {
               </label>
               <div className="input-wrap">
                 <span className="input-icon">
-                  <Icon name="mail" size={16} color="#94a3b8" />
+                  <Icon name="mail" size={16} color="var(--color-text-muted)" />
                 </span>
                 <input
                   id="email"
@@ -340,7 +323,7 @@ const Login = () => {
               </label>
               <div className="input-wrap">
                 <span className="input-icon">
-                  <Icon name="lock" size={16} color="#94a3b8" />
+                  <Icon name="lock" size={16} color="var(--color-text-muted)" />
                 </span>
                 <input
                   id="password"
@@ -366,7 +349,7 @@ const Login = () => {
                   <Icon
                     name={showPassword ? 'eyeOff' : 'eye'}
                     size={16}
-                    color="#94a3b8"
+                    color="var(--color-text-muted)"
                   />
                 </button>
               </div>
@@ -453,7 +436,7 @@ const Login = () => {
         </div>
 
         <Link to="/landing" className="back-link">
-          <Icon name="arrowLeft" size={14} color="#94a3b8" strokeWidth={2} />
+          <Icon name="arrowLeft" size={14} color="var(--color-text-muted)" strokeWidth={2} />
           Back to marketplace
         </Link>
       </div>
@@ -463,14 +446,15 @@ const Login = () => {
           min-height: 100vh;
           min-height: 100dvh;
           width: 100%;
-          background: #f8fafc;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 24px 16px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-            sans-serif;
-          color: #0f172a;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           box-sizing: border-box;
         }
 
@@ -482,40 +466,28 @@ const Login = () => {
           align-items: stretch;
         }
 
-        .auth-brand { text-align: center; margin-bottom: 24px; }
+        .auth-brand {
+          text-align: center;
+          margin-bottom: 24px;
+        }
 
-        .brand-mark {
-          width: 52px; height: 52px;
-          border-radius: 14px;
-          background: #1e293b; color: #f59e0b;
-          font-family: Georgia, serif;
-          font-weight: 700; font-size: 24px;
-          display: flex; align-items: center; justify-content: center;
+        .auth-brand :global(.kumsika-logo) {
           margin: 0 auto 14px;
-          box-shadow: 0 4px 16px rgba(30, 41, 59, 0.18);
         }
-
-        .brand-name {
-          font-family: Georgia, serif;
-          font-size: 24px; font-weight: 700;
-          letter-spacing: -0.02em;
-          margin: 0 0 6px;
-          color: #1e293b;
-        }
-
-        .brand-name-accent { color: #f59e0b; }
 
         .brand-tagline {
-          font-size: 13px; color: #64748b;
-          margin: 0; line-height: 1.5;
+          font-size: 13px;
+          color: var(--color-text-secondary);
+          margin: 0;
+          line-height: 1.5;
         }
 
         .auth-card {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-2xl);
           padding: 24px;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+          box-shadow: var(--shadow-sm);
         }
 
         .role-badge {
@@ -524,14 +496,17 @@ const Login = () => {
           gap: 6px;
           padding: 8px 12px;
           margin-bottom: 14px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
+          background: var(--color-surface-alt);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
           font-size: 12px;
-          color: #64748b;
+          color: var(--color-text-secondary);
         }
 
-        .role-badge strong { color: #1e293b; font-weight: 700; }
+        .role-badge strong {
+          color: var(--color-text);
+          font-weight: 700;
+        }
 
         .return-banner {
           display: flex;
@@ -539,41 +514,50 @@ const Login = () => {
           gap: 8px;
           padding: 8px 10px;
           margin-bottom: 14px;
-          background: #fffbeb;
-          border: 1px solid #fde68a;
-          border-radius: 8px;
+          background: var(--color-accent-soft);
+          border: 1px solid var(--color-accent);
+          border-radius: var(--radius-md);
           font-size: 12px;
-          color: #92400e;
+          color: var(--color-accent-hover);
           font-weight: 500;
         }
 
         .verify-banner {
-          background: #eff6ff;
-          border-color: #bfdbfe;
-          color: #1e40af;
+          background: var(--color-info-bg);
+          border-color: var(--color-primary);
+          color: var(--color-primary);
         }
 
         .error {
-          display: flex; align-items: center; gap: 10px;
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: var(--color-error-bg);
+          border: 1px solid var(--color-error);
+          border-radius: var(--radius-lg);
           padding: 10px 12px;
           margin-bottom: 16px;
-          font-size: 13px; color: #991b1b;
+          font-size: 13px;
+          color: var(--color-error);
         }
 
         .error-dot {
-          width: 6px; height: 6px; border-radius: 50%;
-          background: #ef4444; flex-shrink: 0;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--color-error);
+          flex-shrink: 0;
         }
 
         .error-msg { flex: 1; line-height: 1.4; }
 
         .error-x {
-          background: none; border: none;
-          color: #991b1b; font-size: 18px;
-          line-height: 1; cursor: pointer;
+          background: none;
+          border: none;
+          color: var(--color-error);
+          font-size: 18px;
+          line-height: 1;
+          cursor: pointer;
           padding: 0 4px;
         }
 
@@ -581,124 +565,178 @@ const Login = () => {
 
         .field { display: flex; flex-direction: column; gap: 6px; }
 
-        .label { font-size: 13px; font-weight: 600; color: #1e293b; }
+        .label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--color-text);
+        }
 
-        .input-wrap { position: relative; display: flex; align-items: center; }
+        .input-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
 
         .input-icon {
-          position: absolute; left: 12px;
-          display: flex; align-items: center;
+          position: absolute;
+          left: 12px;
+          display: flex;
+          align-items: center;
           pointer-events: none;
         }
 
         .input {
-          width: 100%; height: 44px;
+          width: 100%;
+          height: 44px;
           padding: 0 12px 0 38px;
-          border: 1px solid #cbd5e1;
-          border-radius: 10px;
-          font-size: 14px; color: #0f172a;
-          background: #ffffff;
-          font-family: inherit; outline: none;
+          border: 1px solid var(--color-border-strong);
+          border-radius: var(--radius-lg);
+          font-size: 14px;
+          color: var(--color-text);
+          background: var(--color-surface);
+          font-family: inherit;
+          outline: none;
           box-sizing: border-box;
-          transition: border-color 0.15s, box-shadow 0.15s;
+          transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
         }
 
-        .input::placeholder { color: #94a3b8; }
+        .input::placeholder {
+          color: var(--color-text-muted);
+        }
 
-        .input:hover:not(:disabled):not(:focus) { border-color: #94a3b8; }
+        .input:hover:not(:disabled):not(:focus) {
+          border-color: var(--color-text-muted);
+        }
 
         .input:focus {
-          border-color: #1e293b;
-          box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.08);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .input:disabled {
-          background: #f8fafc;
-          cursor: not-allowed; opacity: 0.7;
+          background: var(--color-surface-alt);
+          cursor: not-allowed;
+          opacity: 0.7;
         }
 
         .input-pw { padding-right: 42px; }
 
         .eye {
-          position: absolute; right: 6px;
-          width: 32px; height: 32px;
-          display: flex; align-items: center; justify-content: center;
-          border: none; background: transparent;
-          cursor: pointer; border-radius: 6px;
-          transition: background 0.15s;
+          position: absolute;
+          right: 6px;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          border-radius: var(--radius-sm);
+          transition: background var(--transition-fast);
         }
 
-        .eye:hover { background: #f1f5f9; }
+        .eye:hover { background: var(--color-surface-alt); }
 
         .row {
-          display: flex; align-items: center; justify-content: space-between;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           margin-top: -4px;
         }
 
         .check-label {
-          display: flex; align-items: center; gap: 8px;
-          font-size: 13px; color: #475569;
-          cursor: pointer; user-select: none;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          color: var(--color-text-secondary);
+          cursor: pointer;
+          user-select: none;
         }
 
         .check {
-          width: 16px; height: 16px;
-          accent-color: #1e293b;
-          cursor: pointer; margin: 0;
+          width: 16px;
+          height: 16px;
+          accent-color: var(--color-accent);
+          cursor: pointer;
+          margin: 0;
         }
 
         .link {
-          font-size: 13px; color: #1e293b;
-          font-weight: 600; text-decoration: none;
+          font-size: 13px;
+          color: var(--color-accent);
+          font-weight: 600;
+          text-decoration: none;
         }
 
         .link:hover {
+          color: var(--color-accent-hover);
           text-decoration: underline;
           text-underline-offset: 2px;
         }
 
         .submit {
-          width: 100%; height: 46px;
+          width: 100%;
+          height: 46px;
           margin-top: 4px;
-          background: #1e293b;
-          border: none; border-radius: 10px;
-          color: #ffffff;
+          background: var(--color-accent);
+          border: none;
+          border-radius: var(--radius-lg);
+          color: var(--color-text-inverse);
           font-family: inherit;
-          font-size: 14px; font-weight: 600;
+          font-size: 14px;
+          font-weight: 700;
           cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           gap: 8px;
-          transition: background 0.15s, transform 0.1s;
+          transition: background var(--transition-fast), transform 0.1s, box-shadow var(--transition-fast);
+          box-shadow: var(--shadow-accent);
         }
 
-        .submit:hover:not(:disabled) { background: #0f172a; }
+        .submit:hover:not(:disabled) {
+          background: var(--color-accent-hover);
+          transform: translateY(-1px);
+          box-shadow: 0 8px 20px rgba(255, 92, 35, 0.32);
+        }
+
         .submit:active:not(:disabled) { transform: scale(0.99); }
         .submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .spinner {
-          width: 18px; height: 18px;
+          width: 18px;
+          height: 18px;
           border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #ffffff;
+          border-top-color: var(--color-text-inverse);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
         .spinner-dark {
-          border-color: rgba(15, 23, 42, 0.2);
-          border-top-color: #0f172a;
+          border-color: rgba(10, 36, 114, 0.2);
+          border-top-color: var(--color-primary);
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
         .divider {
-          display: flex; align-items: center; gap: 12px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
           margin: 20px 0 16px;
         }
 
-        .divider-line { flex: 1; height: 1px; background: #e2e8f0; }
+        .divider-line {
+          flex: 1;
+          height: 1px;
+          background: var(--color-border);
+        }
 
         .divider-text {
-          font-size: 11px; color: #94a3b8;
+          font-size: 11px;
+          color: var(--color-text-muted);
           font-weight: 500;
           text-transform: uppercase;
           letter-spacing: 0.06em;
@@ -706,23 +744,27 @@ const Login = () => {
         }
 
         .social-btn {
-          width: 100%; height: 46px;
+          width: 100%;
+          height: 46px;
           padding: 0 14px;
-          border: 1px solid #cbd5e1;
-          border-radius: 10px;
-          background: #ffffff;
+          border: 1px solid var(--color-border-strong);
+          border-radius: var(--radius-lg);
+          background: var(--color-surface);
           font-family: inherit;
-          font-size: 14px; font-weight: 600;
-          color: #0f172a;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--color-text);
           cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           gap: 10px;
-          transition: background 0.15s, border-color 0.15s;
+          transition: background var(--transition-fast), border-color var(--transition-fast);
         }
 
         .social-btn:hover:not(:disabled) {
-          background: #f8fafc;
-          border-color: #94a3b8;
+          background: var(--color-surface-alt);
+          border-color: var(--color-text-muted);
         }
 
         .social-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -730,7 +772,7 @@ const Login = () => {
         .social-btn.facebook {
           border-color: #1877f2;
           color: #1877f2;
-          background: #ffffff;
+          background: var(--color-surface);
         }
 
         .social-btn.facebook:hover:not(:disabled) {
@@ -741,15 +783,20 @@ const Login = () => {
         .auth-footer {
           margin-top: 20px;
           text-align: center;
-          display: flex; align-items: center; justify-content: center;
-          gap: 6px; font-size: 13px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          font-size: 13px;
         }
 
-        .footer-text { color: #64748b; }
+        .footer-text { color: var(--color-text-secondary); }
 
         .footer-btn {
-          background: none; border: none;
-          padding: 0; color: #1e293b;
+          background: none;
+          border: none;
+          padding: 0;
+          color: var(--color-accent);
           font-weight: 700;
           font-family: inherit;
           font-size: 13px;
@@ -757,6 +804,7 @@ const Login = () => {
         }
 
         .footer-btn:hover {
+          color: var(--color-accent-hover);
           text-decoration: underline;
           text-underline-offset: 2px;
         }
@@ -764,25 +812,24 @@ const Login = () => {
         .back-link {
           margin-top: 20px;
           align-self: center;
-          display: inline-flex; align-items: center; gap: 5px;
-          font-size: 12px; color: #94a3b8;
-          text-decoration: none; font-weight: 500;
-          transition: color 0.15s;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 12px;
+          color: var(--color-text-muted);
+          text-decoration: none;
+          font-weight: 500;
+          transition: color var(--transition-fast);
         }
 
-        .back-link:hover { color: #475569; }
+        .back-link:hover { color: var(--color-text-secondary); }
 
         @media (max-width: 420px) {
           .auth-page { padding: 16px 12px; }
           .auth-brand { margin-bottom: 20px; }
-          .brand-mark {
-            width: 46px; height: 46px;
-            font-size: 21px; border-radius: 12px;
-          }
-          .brand-name { font-size: 22px; }
           .auth-card {
             padding: 20px 18px;
-            border-radius: 14px;
+            border-radius: var(--radius-xl);
           }
           .form { gap: 14px; }
         }
@@ -798,16 +845,13 @@ const Login = () => {
           }
           .brand-tagline { display: none; }
           .auth-brand { margin-bottom: 14px; }
-          .brand-mark {
-            width: 42px; height: 42px;
-            font-size: 19px; margin-bottom: 8px;
-          }
           .back-link { margin-top: 12px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
           .submit, .social-btn, .input, .eye { transition: none; }
           .submit:active:not(:disabled) { transform: none; }
+          .submit:hover:not(:disabled) { transform: none; }
         }
       `}</style>
     </div>

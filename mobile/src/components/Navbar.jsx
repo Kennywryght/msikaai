@@ -4,10 +4,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { notificationsAPI } from '../services/api';
+import Logo from './Logo';
 
-// ============================================================
-// LUCIDE-STYLE ICONS
-// ============================================================
 const Icon = ({
   name,
   size = 20,
@@ -62,9 +60,6 @@ const Icon = ({
   );
 };
 
-// ============================================================
-// NOTIFICATION ICON MAP
-// ============================================================
 const NOTIFICATION_ICONS = {
   message: '💬',
   view: '👁️',
@@ -80,11 +75,7 @@ const NOTIFICATION_ICONS = {
   default: '🔔',
 };
 
-// ============================================================
-// NAVBAR COMPONENT
-// ============================================================
 const Navbar = () => {
-  // ✅ FIX 1: use `logout` (not `signOut` — that isn't in AuthContext)
   const { user, logout, isAuthenticated } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -101,20 +92,17 @@ const Navbar = () => {
   const bellRef = useRef(null);
   const lastFetchRef = useRef(0);
 
-  // Scroll effect
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close menus on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsNotificationsOpen(false);
   }, [location.pathname]);
 
-  // Close notification dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -130,7 +118,6 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Lock body scroll when drawer open
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
     return () => {
@@ -138,9 +125,6 @@ const Navbar = () => {
     };
   }, [isMobileMenuOpen]);
 
-  // ============================================================
-  // FETCH NOTIFICATIONS
-  // ============================================================
   const fetchNotifications = async () => {
     if (!user?.id) return;
 
@@ -164,7 +148,6 @@ const Navbar = () => {
     }
   };
 
-  // Auto-fetch with 30s backoff
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
     const now = Date.now();
@@ -173,28 +156,19 @@ const Navbar = () => {
     fetchNotifications();
   }, [isAuthenticated, user?.id]);
 
-  // ============================================================
-  // SIGN OUT — ✅ FIXED: use `logout` + error handling
-  // ============================================================
   const handleSignOut = async () => {
     if (signingOut) return;
     setSigningOut(true);
 
     try {
-      // ✅ `logout` is the correct function from AuthContext
       if (typeof logout === 'function') {
         await logout();
       }
-
-      // Close the drawer immediately
       setIsMobileMenuOpen(false);
       setIsNotificationsOpen(false);
-
-      // Navigate to login
       navigate('/login', { replace: true });
     } catch (err) {
       console.error('Sign out failed:', err);
-      // Even if logout throws, still send the user to login
       setIsMobileMenuOpen(false);
       navigate('/login', { replace: true });
     } finally {
@@ -231,9 +205,6 @@ const Navbar = () => {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // ============================================================
-  // DISPLAY HELPERS
-  // ============================================================
   const displayName =
     user?.full_name?.trim() || user?.email?.split('@')[0] || 'User';
 
@@ -243,9 +214,6 @@ const Navbar = () => {
     'U'
   ).toUpperCase();
 
-  // ============================================================
-  // DRAWER NAV SECTIONS
-  // ============================================================
   const drawerNavSections = [
     {
       label: 'Main',
@@ -294,19 +262,15 @@ const Navbar = () => {
     <>
       <nav className={`navbar ${isScrolled ? 'navbar-scrolled' : ''}`}>
         <div className="navbar-inner">
-          {/* ===== LEFT: LOGO ===== */}
-          <Link to={isAuthenticated ? '/landing' : '/'} className="logo">
-            <div className="logo-icon">
-              <span className="logo-icon-text">K</span>
-            </div>
-            <span className="logo-text">
-              Ku<span className="logo-accent">msika</span>
-            </span>
+          <Link
+            to={isAuthenticated ? '/landing' : '/'}
+            className="logo"
+            aria-label="Kumsika home"
+          >
+            <Logo variant="full" size={38} clickable={false} />
           </Link>
 
-          {/* ===== RIGHT: bell + avatar + hamburger ===== */}
           <div className="nav-right">
-            {/* Notification Bell */}
             {isAuthenticated && (
               <div className="bell-wrapper">
                 <button
@@ -316,7 +280,7 @@ const Navbar = () => {
                   aria-label="Notifications"
                   aria-expanded={isNotificationsOpen}
                 >
-                  <Icon name="bell" size={20} color="#64748B" strokeWidth={1.75} />
+                  <Icon name="bell" size={20} color="var(--color-text-secondary)" strokeWidth={1.75} />
                   {unreadCount > 0 && <span className="bell-dot" />}
                 </button>
 
@@ -381,7 +345,7 @@ const Navbar = () => {
                                   <Icon
                                     name="clock"
                                     size={10}
-                                    color="#94A3B8"
+                                    color="var(--color-text-muted)"
                                     strokeWidth={1.75}
                                   />
                                   {notification.time_ago || 'Just now'}
@@ -422,7 +386,6 @@ const Navbar = () => {
               </div>
             )}
 
-            {/* Avatar */}
             {isAuthenticated && (
               <button
                 type="button"
@@ -434,7 +397,6 @@ const Navbar = () => {
               </button>
             )}
 
-            {/* Auth buttons */}
             {!isAuthenticated && (
               <div className="auth-buttons">
                 <Link to="/login" className="auth-link">
@@ -446,7 +408,6 @@ const Navbar = () => {
               </div>
             )}
 
-            {/* Hamburger */}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -457,7 +418,7 @@ const Navbar = () => {
               <Icon
                 name={isMobileMenuOpen ? 'close' : 'menu'}
                 size={22}
-                color="#1E293B"
+                color="var(--color-text)"
                 strokeWidth={1.75}
               />
             </button>
@@ -465,20 +426,15 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* ===== SIDE DRAWER ===== */}
       {isMobileMenuOpen && (
         <div
           className="drawer-overlay"
           onClick={() => setIsMobileMenuOpen(false)}
         >
           <aside className="drawer" onClick={(e) => e.stopPropagation()}>
-            {/* Drawer Header */}
             <div className="drawer-header">
               <div className="drawer-logo">
-                <div className="drawer-logo-icon">K</div>
-                <span>
-                  Ku<span className="drawer-logo-accent">msika</span>
-                </span>
+                <Logo variant="full" size={34} clickable={false} />
               </div>
               <button
                 type="button"
@@ -486,11 +442,10 @@ const Navbar = () => {
                 className="drawer-close"
                 aria-label="Close"
               >
-                <Icon name="close" size={18} color="#1E293B" strokeWidth={1.75} />
+                <Icon name="close" size={18} color="var(--color-text)" strokeWidth={1.75} />
               </button>
             </div>
 
-            {/* User Info */}
             {isAuthenticated && user && (
               <div className="drawer-user">
                 <div className="drawer-user-avatar">{avatarLetter}</div>
@@ -510,7 +465,6 @@ const Navbar = () => {
               </div>
             )}
 
-            {/* Nav Sections */}
             <nav className="drawer-nav">
               {isAuthenticated ? (
                 drawerNavSections.map((section) => (
@@ -549,7 +503,7 @@ const Navbar = () => {
                     <Icon
                       name="user"
                       size={16}
-                      color="#64748B"
+                      color="var(--color-text-secondary)"
                       strokeWidth={1.75}
                     />
                     Login
@@ -562,7 +516,7 @@ const Navbar = () => {
                     <Icon
                       name="plus"
                       size={16}
-                      color="#F59E0B"
+                      color="var(--color-accent)"
                       strokeWidth={1.75}
                     />
                     Sign Up
@@ -571,7 +525,6 @@ const Navbar = () => {
               )}
             </nav>
 
-            {/* Drawer Footer */}
             <div className="drawer-footer">
               <span className="drawer-version">v2.0.0</span>
               {isAuthenticated && (
@@ -584,7 +537,7 @@ const Navbar = () => {
                   <Icon
                     name="logout"
                     size={14}
-                    color="#EF4444"
+                    color="var(--color-error)"
                     strokeWidth={1.75}
                   />
                   {signingOut ? 'Signing out...' : 'Sign Out'}
@@ -596,7 +549,6 @@ const Navbar = () => {
       )}
 
       <style jsx>{`
-        /* ===== NAVBAR ===== */
         .navbar {
           position: fixed;
           top: 0;
@@ -611,7 +563,7 @@ const Navbar = () => {
           background: rgba(255, 255, 255, 0.95);
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.4);
+          border-bottom: 1px solid var(--color-border);
           height: 60px;
           display: flex;
           align-items: center;
@@ -619,7 +571,7 @@ const Navbar = () => {
 
         .navbar-scrolled {
           background: rgba(255, 255, 255, 0.98);
-          box-shadow: 0 2px 20px rgba(30, 41, 59, 0.04);
+          box-shadow: var(--shadow-sm);
         }
 
         .navbar-inner {
@@ -634,46 +586,13 @@ const Navbar = () => {
           height: 100%;
         }
 
-        /* ===== LOGO ===== */
         .logo {
           display: flex;
           align-items: center;
-          gap: 8px;
           text-decoration: none;
           flex-shrink: 0;
         }
 
-        .logo-icon {
-          width: 34px;
-          height: 34px;
-          background: #1e293b;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 2px 8px rgba(30, 41, 59, 0.15);
-        }
-
-        .logo-icon-text {
-          color: #f59e0b;
-          font-size: 17px;
-          font-weight: 700;
-          font-family: 'Georgia', serif;
-        }
-
-        .logo-text {
-          font-family: 'Georgia', serif;
-          font-size: 18px;
-          font-weight: 700;
-          color: #1e293b;
-          letter-spacing: -0.02em;
-        }
-
-        .logo-accent {
-          color: #f59e0b;
-        }
-
-        /* ===== RIGHT SIDE ===== */
         .nav-right {
           display: flex;
           align-items: center;
@@ -685,19 +604,17 @@ const Navbar = () => {
           position: relative;
           width: 40px;
           height: 40px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border: none;
           background: transparent;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: background var(--transition-fast);
         }
 
-        .icon-btn:hover {
-          background: #f8fafc;
-        }
+        .icon-btn:hover { background: var(--color-surface-alt); }
 
         .bell-dot {
           position: absolute;
@@ -705,22 +622,15 @@ const Navbar = () => {
           right: 8px;
           width: 8px;
           height: 8px;
-          background: #ef4444;
+          background: var(--color-error);
           border-radius: 50%;
-          border: 2px solid #ffffff;
+          border: 2px solid var(--color-surface);
           animation: pulse 2s ease-in-out infinite;
         }
 
         @keyframes pulse {
-          0%,
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          50% {
-            transform: scale(1.1);
-            opacity: 0.7;
-          }
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.7; }
         }
 
         .avatar-btn {
@@ -733,21 +643,21 @@ const Navbar = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: background var(--transition-fast);
         }
 
         .avatar {
           width: 32px;
           height: 32px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          color: #ffffff;
+          background: var(--color-primary);
+          color: var(--color-text-inverse);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 13px;
           font-weight: 700;
-          box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+          box-shadow: var(--shadow-primary);
         }
 
         .auth-buttons {
@@ -760,68 +670,59 @@ const Navbar = () => {
           padding: 6px 12px;
           font-size: 13px;
           font-weight: 500;
-          color: #64748b;
+          color: var(--color-text-secondary);
           text-decoration: none;
-          border-radius: 8px;
-          transition: all 0.2s;
+          border-radius: var(--radius-md);
+          transition: all var(--transition-fast);
         }
 
         .auth-link:hover {
-          background: #f8fafc;
-          color: #1e293b;
+          background: var(--color-surface-alt);
+          color: var(--color-text);
         }
 
         .auth-link-primary {
           padding: 6px 14px;
           font-size: 13px;
-          font-weight: 600;
-          color: #ffffff;
-          background: #1e293b;
+          font-weight: 700;
+          color: var(--color-text-inverse);
+          background: var(--color-accent);
           text-decoration: none;
-          border-radius: 8px;
-          transition: all 0.2s;
+          border-radius: var(--radius-md);
+          transition: all var(--transition-fast);
+          box-shadow: var(--shadow-accent);
         }
 
-        .auth-link-primary:hover {
-          background: #f59e0b;
-        }
+        .auth-link-primary:hover { background: var(--color-accent-hover); }
 
         .hamburger-btn {
           width: 40px;
           height: 40px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border: none;
           background: transparent;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: background var(--transition-fast);
           margin-left: 4px;
         }
 
-        .hamburger-btn:hover {
-          background: #f8fafc;
-        }
+        .hamburger-btn:hover { background: var(--color-surface-alt); }
 
-        /* ============================================
-           NOTIFICATION DROPDOWN — ✅ FIXED RESPONSIVENESS
-           ============================================ */
-        .bell-wrapper {
-          position: relative;
-        }
+        .bell-wrapper { position: relative; }
 
         .notification-dropdown {
           position: absolute;
           top: calc(100% + 8px);
           right: 0;
-          /* ✅ Fluid width that never overflows the viewport */
           width: min(360px, calc(100vw - 24px));
           max-height: min(480px, calc(100vh - 100px));
-          background: #ffffff;
-          border-radius: 16px;
-          border: 1px solid #f1f5f9;
-          box-shadow: 0 12px 48px rgba(30, 41, 59, 0.15);
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-xl);
           overflow: hidden;
           z-index: 1001;
           display: flex;
@@ -830,14 +731,8 @@ const Navbar = () => {
         }
 
         @keyframes dropdownSlide {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         .notification-header {
@@ -845,7 +740,7 @@ const Navbar = () => {
           justify-content: space-between;
           align-items: center;
           padding: 14px 16px;
-          border-bottom: 1px solid #f1f5f9;
+          border-bottom: 1px solid var(--color-border);
           flex-shrink: 0;
           gap: 8px;
         }
@@ -853,7 +748,7 @@ const Navbar = () => {
         .notification-title {
           font-size: 14px;
           font-weight: 700;
-          color: #1e293b;
+          color: var(--color-text);
           margin: 0;
           display: flex;
           align-items: center;
@@ -864,8 +759,8 @@ const Navbar = () => {
         .notification-badge {
           font-size: 11px;
           font-weight: 700;
-          color: #ffffff;
-          background: #f59e0b;
+          color: var(--color-text-inverse);
+          background: var(--color-accent);
           padding: 2px 8px;
           border-radius: 10px;
           flex-shrink: 0;
@@ -874,21 +769,19 @@ const Navbar = () => {
         .mark-all-btn {
           font-size: 12px;
           font-weight: 600;
-          color: #f59e0b;
+          color: var(--color-accent);
           background: none;
           border: none;
           cursor: pointer;
           font-family: inherit;
           padding: 4px 10px;
-          border-radius: 6px;
-          transition: all 0.2s;
+          border-radius: var(--radius-sm);
+          transition: all var(--transition-fast);
           white-space: nowrap;
           flex-shrink: 0;
         }
 
-        .mark-all-btn:hover {
-          background: #fef3c7;
-        }
+        .mark-all-btn:hover { background: var(--color-accent-soft); }
 
         .notification-list {
           flex: 1;
@@ -897,12 +790,9 @@ const Navbar = () => {
           min-height: 0;
         }
 
-        .notification-list::-webkit-scrollbar {
-          width: 3px;
-        }
-
+        .notification-list::-webkit-scrollbar { width: 3px; }
         .notification-list::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
+          background: var(--color-border);
           border-radius: 3px;
         }
 
@@ -914,23 +804,19 @@ const Navbar = () => {
           gap: 8px;
           padding: 40px 20px;
           font-size: 13px;
-          color: #94a3b8;
+          color: var(--color-text-muted);
         }
 
         .loading-spinner-small {
           width: 20px;
           height: 20px;
-          border: 2px solid #e2e8f0;
-          border-top-color: #f59e0b;
+          border: 2px solid var(--color-border);
+          border-top-color: var(--color-accent);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .notification-item {
           display: flex;
@@ -938,8 +824,8 @@ const Navbar = () => {
           gap: 12px;
           padding: 12px 16px;
           cursor: pointer;
-          transition: background 0.15s;
-          border-bottom: 1px solid #f8fafc;
+          transition: background var(--transition-fast);
+          border-bottom: 1px solid var(--color-border);
           background: transparent;
           border-left: 3px solid transparent;
           border-right: none;
@@ -949,24 +835,19 @@ const Navbar = () => {
           font-family: inherit;
         }
 
-        .notification-item:last-child {
-          border-bottom: none;
-        }
-
-        .notification-item:hover {
-          background: #f8fafc;
-        }
+        .notification-item:last-child { border-bottom: none; }
+        .notification-item:hover { background: var(--color-surface-alt); }
 
         .notification-item-unread {
-          background: rgba(245, 158, 11, 0.04);
-          border-left: 3px solid #f59e0b;
+          background: var(--color-accent-tint);
+          border-left: 3px solid var(--color-accent);
         }
 
         .notification-avatar {
           width: 36px;
           height: 36px;
-          border-radius: 10px;
-          background: #f8fafc;
+          border-radius: var(--radius-lg);
+          background: var(--color-surface-alt);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -974,15 +855,12 @@ const Navbar = () => {
           flex-shrink: 0;
         }
 
-        .notification-content {
-          flex: 1;
-          min-width: 0;
-        }
+        .notification-content { flex: 1; min-width: 0; }
 
         .notification-item-title {
           font-size: 13px;
           font-weight: 600;
-          color: #1e293b;
+          color: var(--color-text);
           margin: 0 0 2px;
           display: flex;
           align-items: center;
@@ -995,14 +873,14 @@ const Navbar = () => {
         .notification-unread-dot {
           width: 6px;
           height: 6px;
-          background: #f59e0b;
+          background: var(--color-accent);
           border-radius: 50%;
           flex-shrink: 0;
         }
 
         .notification-item-desc {
           font-size: 12px;
-          color: #64748b;
+          color: var(--color-text-secondary);
           margin: 0 0 4px;
           line-height: 1.4;
           word-break: break-word;
@@ -1018,62 +896,50 @@ const Navbar = () => {
           align-items: center;
           gap: 4px;
           font-size: 11px;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
-        .notification-empty {
-          text-align: center;
-          padding: 32px 20px;
-        }
-
-        .notification-empty-icon {
-          font-size: 40px;
-          margin-bottom: 8px;
-        }
-
+        .notification-empty { text-align: center; padding: 32px 20px; }
+        .notification-empty-icon { font-size: 40px; margin-bottom: 8px; }
         .notification-empty-title {
           font-size: 15px;
           font-weight: 700;
-          color: #1e293b;
+          color: var(--color-text);
           margin: 0 0 4px;
         }
-
         .notification-empty-desc {
           font-size: 13px;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
         .notification-footer {
           padding: 10px 16px;
-          border-top: 1px solid #f1f5f9;
+          border-top: 1px solid var(--color-border);
           flex-shrink: 0;
         }
 
         .view-all-btn {
           width: 100%;
           padding: 10px;
-          background: #f8fafc;
+          background: var(--color-surface-alt);
           border: none;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           font-size: 13px;
           font-weight: 600;
-          color: #1e293b;
+          color: var(--color-text);
           cursor: pointer;
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
         }
 
-        .view-all-btn:hover {
-          background: #f1f5f9;
-        }
+        .view-all-btn:hover { background: var(--color-border); }
 
-        /* ===== SIDE DRAWER ===== */
         .drawer-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.5);
+          background: rgba(10, 36, 114, 0.5);
           backdrop-filter: blur(4px);
           z-index: 999;
           display: flex;
@@ -1081,34 +947,23 @@ const Navbar = () => {
           animation: fadeIn 0.2s ease;
         }
 
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .drawer {
           width: 240px;
           max-width: 72vw;
           height: 100%;
-          background: #ffffff;
+          background: var(--color-surface);
           display: flex;
           flex-direction: column;
-          box-shadow: -8px 0 40px rgba(0, 0, 0, 0.15);
+          box-shadow: -8px 0 40px rgba(10, 36, 114, 0.15);
           animation: slideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           overflow: hidden;
         }
 
         @keyframes slideIn {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
         }
 
         .drawer-header {
@@ -1116,53 +971,30 @@ const Navbar = () => {
           justify-content: space-between;
           align-items: center;
           padding: 14px 14px;
-          border-bottom: 1px solid #f1f5f9;
+          border-bottom: 1px solid var(--color-border);
           flex-shrink: 0;
         }
 
         .drawer-logo {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-size: 16px;
-          font-weight: 700;
-          color: #1e293b;
-          font-family: 'Georgia', serif;
-        }
-
-        .drawer-logo-icon {
-          width: 28px;
-          height: 28px;
-          background: #1e293b;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #f59e0b;
-          font-size: 13px;
-          font-weight: 700;
-        }
-
-        .drawer-logo-accent {
-          color: #f59e0b;
+          flex-shrink: 0;
         }
 
         .drawer-close {
           width: 32px;
           height: 32px;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           border: none;
-          background: #f8fafc;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: background var(--transition-fast);
         }
 
-        .drawer-close:hover {
-          background: #f1f5f9;
-        }
+        .drawer-close:hover { background: var(--color-border); }
 
         .drawer-user {
           display: flex;
@@ -1170,13 +1002,9 @@ const Navbar = () => {
           gap: 10px;
           padding: 10px 12px;
           margin: 10px 10px 4px;
-          background: linear-gradient(
-            135deg,
-            rgba(245, 158, 11, 0.06),
-            rgba(245, 158, 11, 0.02)
-          );
-          border-radius: 10px;
-          border: 1px solid rgba(245, 158, 11, 0.15);
+          background: var(--color-accent-tint);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-accent-soft);
           flex-shrink: 0;
         }
 
@@ -1184,8 +1012,8 @@ const Navbar = () => {
           width: 34px;
           height: 34px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          color: #ffffff;
+          background: var(--color-primary);
+          color: var(--color-text-inverse);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1205,7 +1033,7 @@ const Navbar = () => {
         .drawer-user-name {
           font-size: 13px;
           font-weight: 700;
-          color: #1e293b;
+          color: var(--color-text);
           display: block;
           line-height: 1.25;
           word-break: break-word;
@@ -1214,7 +1042,7 @@ const Navbar = () => {
 
         .drawer-user-email {
           font-size: 10px;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           display: block;
           line-height: 1.3;
           word-break: break-all;
@@ -1227,15 +1055,13 @@ const Navbar = () => {
           padding: 6px 10px 10px;
         }
 
-        .drawer-section {
-          margin-bottom: 12px;
-        }
+        .drawer-section { margin-bottom: 12px; }
 
         .drawer-section-label {
           display: block;
           font-size: 9px;
           font-weight: 700;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 6px 6px 4px;
@@ -1246,30 +1072,28 @@ const Navbar = () => {
           align-items: center;
           gap: 10px;
           padding: 9px 10px;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           font-size: 13px;
           font-weight: 500;
-          color: #64748b;
+          color: var(--color-text-secondary);
           text-decoration: none;
-          transition: all 0.15s;
+          transition: all var(--transition-fast);
           margin-bottom: 2px;
           min-height: 38px;
         }
 
         .drawer-item:hover {
-          background: #f8fafc;
-          color: #1e293b;
+          background: var(--color-surface-alt);
+          color: var(--color-text);
         }
 
         .drawer-item-active {
-          color: #f59e0b;
-          background: rgba(245, 158, 11, 0.08);
+          color: var(--color-accent);
+          background: var(--color-accent-tint);
           font-weight: 600;
         }
 
-        .drawer-item-primary {
-          color: #f59e0b;
-        }
+        .drawer-item-primary { color: var(--color-accent); }
 
         .drawer-badge {
           margin-left: auto;
@@ -1277,8 +1101,8 @@ const Navbar = () => {
           height: 18px;
           padding: 0 5px;
           border-radius: 9px;
-          background: #f59e0b;
-          color: #ffffff;
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
           font-size: 9px;
           font-weight: 700;
           display: flex;
@@ -1288,7 +1112,7 @@ const Navbar = () => {
 
         .drawer-footer {
           padding: 12px 12px;
-          border-top: 1px solid #f1f5f9;
+          border-top: 1px solid var(--color-border);
           flex-shrink: 0;
         }
 
@@ -1296,9 +1120,9 @@ const Navbar = () => {
           display: block;
           text-align: center;
           font-size: 9px;
-          color: #cbd5e1;
+          color: var(--color-text-muted);
           margin-bottom: 8px;
-          font-family: 'SF Mono', monospace;
+          font-family: var(--font-mono);
         }
 
         .drawer-signout {
@@ -1308,41 +1132,23 @@ const Navbar = () => {
           justify-content: center;
           gap: 6px;
           padding: 9px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           font-size: 12px;
           font-weight: 600;
-          color: #ef4444;
-          background: #fef2f2;
-          border: 1px solid #fecaca;
+          color: var(--color-error);
+          background: var(--color-error-bg);
+          border: 1px solid var(--color-error);
           cursor: pointer;
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           min-height: 36px;
         }
 
-        .drawer-signout:hover:not(:disabled) {
-          background: #fee2e2;
-        }
+        .drawer-signout:hover:not(:disabled) { background: #FECACA; }
+        .drawer-signout:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .drawer-signout:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
         @media (max-width: 480px) {
-          .navbar-inner {
-            padding: 0 14px;
-          }
-          .logo-text {
-            font-size: 16px;
-          }
-          .logo-icon {
-            width: 32px;
-            height: 32px;
-          }
+          .navbar-inner { padding: 0 14px; }
           .icon-btn,
           .avatar-btn,
           .hamburger-btn {
@@ -1355,7 +1161,6 @@ const Navbar = () => {
             font-size: 12px;
           }
 
-          /* ✅ Make notification dropdown full-width-ish on phones */
           .notification-dropdown {
             position: fixed;
             top: 68px;
@@ -1363,7 +1168,7 @@ const Navbar = () => {
             left: 12px;
             width: auto;
             max-height: calc(100vh - 92px);
-            border-radius: 14px;
+            border-radius: var(--radius-xl);
           }
 
           .notification-item {
@@ -1373,12 +1178,7 @@ const Navbar = () => {
         }
 
         @media (max-width: 360px) {
-          .navbar-inner {
-            padding: 0 10px;
-          }
-          .logo-text {
-            font-size: 15px;
-          }
+          .navbar-inner { padding: 0 10px; }
           .auth-link,
           .auth-link-primary {
             padding: 5px 9px;
@@ -1387,14 +1187,10 @@ const Navbar = () => {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .bell-dot {
-            animation: none;
-          }
+          .bell-dot { animation: none; }
           .notification-dropdown,
           .drawer-overlay,
-          .drawer {
-            animation: none;
-          }
+          .drawer { animation: none; }
           .icon-btn,
           .avatar,
           .auth-link,
@@ -1404,9 +1200,7 @@ const Navbar = () => {
           .drawer-signout,
           .view-all-btn,
           .mark-all-btn,
-          .notification-item {
-            transition: none;
-          }
+          .notification-item { transition: none; }
         }
       `}</style>
     </>

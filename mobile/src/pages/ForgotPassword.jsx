@@ -3,10 +3,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastContainer';
+import Logo from '../components/Logo';
 
-// ============================================================
-// ICONS
-// ============================================================
 const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) => {
   const icons = {
     mail: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6',
@@ -34,9 +32,6 @@ const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) =
   );
 };
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -58,9 +53,6 @@ const ForgotPassword = () => {
 
     setLoading(true);
     try {
-      // The redirect URL tells Supabase where to send the user after they
-      // click the email link. This URL MUST be whitelisted in
-      // Supabase Dashboard → Authentication → URL Configuration → Redirect URLs.
       const redirectTo = `${window.location.origin}/update-password`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
@@ -68,15 +60,9 @@ const ForgotPassword = () => {
       });
 
       if (error) throw error;
-
-      // IMPORTANT: We always show the "check your inbox" screen, whether
-      // or not the email exists. This prevents account enumeration — an
-      // attacker cannot use this endpoint to discover registered emails.
       setSent(true);
     } catch (err) {
       console.error('Password reset error:', err);
-      // Even on error, we do NOT leak whether the email exists.
-      // Only surface real infrastructure errors (rate limit, network).
       const msg = err?.message || '';
       if (msg.toLowerCase().includes('rate limit')) {
         setErrorMsg('Too many attempts. Please wait a few minutes and try again.');
@@ -91,18 +77,12 @@ const ForgotPassword = () => {
     }
   };
 
-  // ============================================================
-  // RENDER — success state
-  // ============================================================
   if (sent) {
     return (
       <div className="auth-page">
         <div className="auth-container">
           <div className="auth-brand">
-            <div className="brand-mark success-mark">
-              <Icon name="check" size={26} color="#10B981" strokeWidth={2.5} />
-            </div>
-            <h1 className="brand-name">Check your inbox</h1>
+            <Logo variant="full" size={120} clickable={false} />
             <p className="brand-tagline">
               If an account exists for <strong>{email.trim()}</strong>, we've
               sent a link to reset your password.
@@ -111,7 +91,7 @@ const ForgotPassword = () => {
 
           <div className="auth-card">
             <div className="info-block">
-              <Icon name="info" size={16} color="#1E40AF" strokeWidth={1.75} />
+              <Icon name="info" size={16} color="var(--color-primary)" strokeWidth={1.75} />
               <div>
                 <p className="info-title">Don't see it?</p>
                 <p className="info-body">
@@ -147,17 +127,11 @@ const ForgotPassword = () => {
     );
   }
 
-  // ============================================================
-  // RENDER — request form
-  // ============================================================
   return (
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-brand">
-          <div className="brand-mark">K</div>
-          <h1 className="brand-name">
-            Ku<span className="brand-name-accent">msika</span>
-          </h1>
+          <Logo variant="full" size={120} clickable={false} />
           <p className="brand-tagline">
             Enter your email address and we'll send you a link to reset your
             password.
@@ -187,7 +161,7 @@ const ForgotPassword = () => {
               </label>
               <div className="input-wrap">
                 <span className="input-icon">
-                  <Icon name="mail" size={16} color="#94a3b8" />
+                  <Icon name="mail" size={16} color="var(--color-text-muted)" />
                 </span>
                 <input
                   id="email"
@@ -222,7 +196,7 @@ const ForgotPassword = () => {
         </div>
 
         <Link to="/login" className="back-link">
-          <Icon name="arrowLeft" size={14} color="#94a3b8" strokeWidth={2} />
+          <Icon name="arrowLeft" size={14} color="var(--color-text-muted)" strokeWidth={2} />
           Back to sign in
         </Link>
       </div>
@@ -232,21 +206,20 @@ const ForgotPassword = () => {
   );
 };
 
-// ============================================================
-// SHARED STYLES — matches Login.jsx visual language
-// ============================================================
 const styles = `
   .auth-page {
     min-height: 100vh;
     min-height: 100dvh;
     width: 100%;
-    background: #f8fafc;
+    background: var(--color-bg);
+    background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+    background-size: 22px 22px;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 24px 16px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #0f172a;
+    font-family: var(--font-sans);
+    color: var(--color-text);
     box-sizing: border-box;
   }
 
@@ -263,73 +236,48 @@ const styles = `
     margin-bottom: 24px;
   }
 
-  .brand-mark {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    background: #1e293b;
-    color: #f59e0b;
-    font-family: Georgia, serif;
-    font-weight: 700;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .auth-brand :global(.kumsika-logo) {
     margin: 0 auto 14px;
-    box-shadow: 0 4px 16px rgba(30, 41, 59, 0.18);
-  }
-
-  .success-mark {
-    background: rgba(16, 185, 129, 0.1);
-    box-shadow: none;
-  }
-
-  .brand-name {
-    font-family: Georgia, serif;
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin: 0 0 6px;
-    color: #1e293b;
-  }
-
-  .brand-name-accent {
-    color: #f59e0b;
   }
 
   .brand-tagline {
     font-size: 13px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     margin: 0;
     line-height: 1.5;
   }
 
+  .brand-tagline strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
   .auth-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
     padding: 24px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    box-shadow: var(--shadow-sm);
   }
 
   .error {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 10px;
+    background: var(--color-error-bg);
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-lg);
     padding: 10px 12px;
     margin-bottom: 16px;
     font-size: 13px;
-    color: #991b1b;
+    color: var(--color-error);
   }
 
   .error-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #ef4444;
+    background: var(--color-error);
     flex-shrink: 0;
   }
 
@@ -338,7 +286,7 @@ const styles = `
   .error-x {
     background: none;
     border: none;
-    color: #991b1b;
+    color: var(--color-error);
     font-size: 18px;
     line-height: 1;
     cursor: pointer;
@@ -352,7 +300,7 @@ const styles = `
   .label {
     font-size: 13px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
   }
 
   .input-wrap {
@@ -373,26 +321,26 @@ const styles = `
     width: 100%;
     height: 44px;
     padding: 0 12px 0 38px;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-lg);
     font-size: 14px;
-    color: #0f172a;
-    background: #ffffff;
+    color: var(--color-text);
+    background: var(--color-surface);
     font-family: inherit;
     outline: none;
     box-sizing: border-box;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   }
 
-  .input::placeholder { color: #94a3b8; }
+  .input::placeholder { color: var(--color-text-muted); }
 
   .input:focus {
-    border-color: #1e293b;
-    box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.08);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-tint);
   }
 
   .input:disabled {
-    background: #f8fafc;
+    background: var(--color-surface-alt);
     cursor: not-allowed;
     opacity: 0.7;
   }
@@ -401,22 +349,29 @@ const styles = `
     width: 100%;
     height: 46px;
     margin-top: 4px;
-    background: #1e293b;
+    background: var(--color-accent);
     border: none;
-    border-radius: 10px;
-    color: #ffffff;
+    border-radius: var(--radius-lg);
+    color: var(--color-text-inverse);
     font-family: inherit;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: background 0.15s, transform 0.1s;
+    transition: background var(--transition-fast), transform 0.1s, box-shadow var(--transition-fast);
+    text-decoration: none;
+    box-shadow: var(--shadow-accent);
   }
 
-  .submit:hover:not(:disabled) { background: #0f172a; }
+  .submit:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(255, 92, 35, 0.32);
+  }
+
   .submit:active:not(:disabled) { transform: scale(0.99); }
   .submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -424,7 +379,7 @@ const styles = `
     width: 18px;
     height: 18px;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: #ffffff;
+    border-top-color: var(--color-text-inverse);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -437,14 +392,14 @@ const styles = `
     margin-top: 8px;
     background: none;
     border: none;
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
   }
 
-  .resend-btn:hover { color: #1e293b; }
+  .resend-btn:hover { color: var(--color-text); }
 
   .back-link {
     margin-top: 20px;
@@ -453,36 +408,37 @@ const styles = `
     align-items: center;
     gap: 5px;
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--color-text-muted);
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.15s;
+    transition: color var(--transition-fast);
   }
 
-  .back-link:hover { color: #475569; }
+  .back-link:hover { color: var(--color-text-secondary); }
 
   .info-block {
     display: flex;
     gap: 10px;
     padding: 12px 14px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 10px;
+    background: var(--color-info-bg);
+    border: 1px solid var(--color-primary-tint);
+    border-radius: var(--radius-lg);
     margin-bottom: 20px;
   }
 
   .info-title {
     font-size: 13px;
-    font-weight: 600;
-    color: #1e40af;
+    font-weight: 700;
+    color: var(--color-primary);
     margin: 0 0 2px;
   }
 
   .info-body {
     font-size: 12px;
-    color: #1e40af;
+    color: var(--color-primary);
     line-height: 1.45;
     margin: 0;
+    opacity: 0.85;
   }
 `;
 

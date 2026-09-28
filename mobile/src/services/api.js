@@ -655,15 +655,9 @@ export const paymentAPI = {
     }),
 
   getBoostPricing: () =>
-    Promise.resolve({
-      data: {
-        plans: [
-          { days: 7, amount: 2000, currency: 'MWK', label: '7 days' },
-          { days: 14, amount: 3500, currency: 'MWK', label: '14 days' },
-          { days: 30, amount: 6000, currency: 'MWK', label: '30 days' },
-        ],
-      },
-    }),
+    
+    api.get('/payment/boost-pricing', { cacheTTL: 60 * 60 * 1000 }),
+    
 };
 
 // ============================================

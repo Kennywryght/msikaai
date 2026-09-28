@@ -8,11 +8,7 @@ import AnalyticsWidget from '../components/AnalyticsWidget';
 import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
-import PaymentModal from '../components/PaymentModal';
 
-// ============================================================
-// LUCIDE-STYLE ICONS
-// ============================================================
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
     store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
@@ -60,9 +56,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-// ============================================================
-// HELPERS
-// ============================================================
 const getGreeting = () => {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -70,7 +63,6 @@ const getGreeting = () => {
   return 'Good evening';
 };
 
-/** Get the best possible display name for the user. */
 const getUserDisplayName = (user) => {
   if (!user) return 'there';
   const full =
@@ -81,13 +73,10 @@ const getUserDisplayName = (user) => {
     user.displayName ||
     '';
   if (full && String(full).trim()) {
-    // Capitalize each word lightly (but keep whatever casing the user set)
     return String(full).trim();
   }
-  // Fall back to email prefix, but only if there's no full name
   if (user.email) {
     const prefix = user.email.split('@')[0];
-    // Convert "john.doe" / "john_doe" to "john" for a cleaner display
     const cleaned = prefix.split(/[._-]/)[0];
     return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
@@ -102,9 +91,6 @@ const getInitials = (name) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
@@ -122,23 +108,15 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+
   const [stats, setStats] = useState({
     totalListings: 0,
     totalViews: 0,
     totalContacts: 0,
     activeListings: 0,
   });
-
-  const [subscription, setSubscription] = useState({
-    plan: 'free',
-    listings_allowed: 3,
-    listings_used: 0,
-    remaining_listings: 3,
-    status: 'active'
-  });
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [plans, setPlans] = useState(null);
-  const [loadingSubscription, setLoadingSubscription] = useState(false);
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -156,7 +134,6 @@ const Dashboard = () => {
       fetchBusiness();
       fetchNotifications();
       fetchSubscription();
-      fetchPlans();
     } else {
       setLoading(false);
     }
@@ -170,34 +147,23 @@ const Dashboard = () => {
 
   const fetchSubscription = async () => {
     if (!user?.id) return;
-    setLoadingSubscription(true);
+    setSubscriptionLoading(true);
     try {
       const response = await paymentAPI.getSubscription(user.id);
-      if (response.data.success) {
+      if (response?.data?.success && response.data.subscription) {
         setSubscription(response.data.subscription);
       }
     } catch (err) {
-      console.error('Error fetching subscription:', err);
+      console.warn('Subscription fetch failed:', err?.message);
       setSubscription({
         plan: 'free',
         listings_allowed: 3,
         listings_used: 0,
         remaining_listings: 3,
-        status: 'active'
+        status: 'active',
       });
     } finally {
-      setLoadingSubscription(false);
-    }
-  };
-
-  const fetchPlans = async () => {
-    try {
-      const response = await paymentAPI.getPlans();
-      if (response.data.success) {
-        setPlans(response.data.plans);
-      }
-    } catch (err) {
-      console.error('Error fetching plans:', err);
+      setSubscriptionLoading(false);
     }
   };
 
@@ -377,33 +343,8 @@ const Dashboard = () => {
     }
   };
 
-  const handlePaymentSuccess = async (paymentData) => {
-    try {
-      const response = await paymentAPI.upgradeSubscription({
-        userId: user.id,
-        plan: paymentData.plan,
-        paymentId: paymentData.paymentId
-      });
-
-      if (response.data.success) {
-        setSubscription(response.data.subscription);
-        success('🎉 Subscription upgraded successfully!');
-        if (business?.id) {
-          fetchListings(business.id);
-        }
-      }
-    } catch (err) {
-      console.error('Payment upgrade error:', err);
-      showToast('Failed to upgrade subscription', 'error');
-    }
-  };
-
   const handleAddListingClick = () => {
-    if (subscription.remaining_listings <= 0) {
-      setShowPaymentModal(true);
-    } else {
-      navigate('/create-listing');
-    }
+    navigate('/create-listing');
   };
 
   const handleBottomNav = (id) => {
@@ -428,8 +369,8 @@ const Dashboard = () => {
         <style jsx>{`
           .loading-skeleton {
             min-height: 100vh;
-            background: #F7F1E3;
-            background-image: radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+            background: var(--color-bg);
+            background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
             background-size: 22px 22px;
             padding: 20px 16px 80px;
             max-width: 1200px;
@@ -437,8 +378,8 @@ const Dashboard = () => {
           }
           .skeleton-header {
             height: 60px;
-            background: #EFE6CE;
-            border-radius: 14px;
+            background: var(--color-border);
+            border-radius: var(--radius-2xl);
             margin-bottom: 20px;
             animation: pulse 1.5s ease-in-out infinite;
           }
@@ -450,14 +391,14 @@ const Dashboard = () => {
           }
           .skeleton-stat {
             height: 78px;
-            background: #EFE6CE;
-            border-radius: 14px;
+            background: var(--color-border);
+            border-radius: var(--radius-2xl);
             animation: pulse 1.5s ease-in-out infinite;
           }
           .skeleton-card {
             height: 88px;
-            background: #EFE6CE;
-            border-radius: 14px;
+            background: var(--color-border);
+            border-radius: var(--radius-2xl);
             margin-bottom: 16px;
             animation: pulse 1.5s ease-in-out infinite;
           }
@@ -468,8 +409,8 @@ const Dashboard = () => {
           }
           .skeleton-action {
             height: 96px;
-            background: #EFE6CE;
-            border-radius: 14px;
+            background: var(--color-border);
+            border-radius: var(--radius-2xl);
             animation: pulse 1.5s ease-in-out infinite;
           }
           @keyframes pulse {
@@ -490,6 +431,19 @@ const Dashboard = () => {
   const initials = getInitials(displayName);
   const greeting = getGreeting();
 
+  const currentPlanId = subscription?.plan || 'free';
+  const currentPlanName =
+    currentPlanId === 'free' ? 'Free' :
+    currentPlanId === 'basic' ? 'Basic' :
+    currentPlanId === 'pro' ? 'Professional' :
+    currentPlanId === 'business' ? 'Business' :
+    currentPlanId;
+
+  const planAllowed = subscription?.listings_allowed ?? 3;
+  const planUsed = subscription?.listings_used ?? 0;
+  const planRemaining = Math.max(0, planAllowed - planUsed);
+  const isPaidPlan = currentPlanId !== 'free';
+
   return (
     <div className="dashboard">
       <div className="dashboard-main">
@@ -505,11 +459,45 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Your Plan Card */}
+        {!subscriptionLoading && subscription && (
+          <Link to="/settings#subscription" className="plan-card">
+            <div className={`plan-card-icon ${isPaidPlan ? 'paid' : ''}`}>
+              <Icon
+                name={isPaidPlan ? 'crown' : 'box'}
+                size={22}
+                color={isPaidPlan ? 'var(--color-accent-soft)' : 'rgba(255,255,255,0.6)'}
+                strokeWidth={2}
+              />
+            </div>
+            <div className="plan-card-text">
+              <div className="plan-card-name">
+                {currentPlanName} plan
+                {isPaidPlan && <span className="plan-card-badge">Active</span>}
+              </div>
+              <div className="plan-card-usage">
+                {planUsed} of {planAllowed} listings used
+                {planRemaining === 0 && isPaidPlan && ' · limit reached'}
+              </div>
+              <div className="plan-card-bar">
+                <div
+                  className={`plan-card-bar-fill ${planRemaining === 0 ? 'full' : ''}`}
+                  style={{ width: `${Math.min(100, (planUsed / Math.max(1, planAllowed)) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="plan-card-cta">
+              {isPaidPlan ? 'Manage' : 'Upgrade'}
+              <Icon name="arrowRight" size={14} color="currentColor" strokeWidth={2.4} />
+            </div>
+          </Link>
+        )}
+
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(217, 154, 59, 0.12)' }}>
-              <Icon name="box" size={18} color="#D99A3B" strokeWidth={1.85} />
+            <div className="stat-icon" style={{ background: 'var(--color-accent-tint)' }}>
+              <Icon name="box" size={18} color="var(--color-accent)" strokeWidth={1.85} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.totalListings}</div>
@@ -517,8 +505,8 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(91, 123, 94, 0.12)' }}>
-              <Icon name="check" size={18} color="#5B7B5E" strokeWidth={1.85} />
+            <div className="stat-icon" style={{ background: 'var(--color-success-bg)' }}>
+              <Icon name="check" size={18} color="var(--color-success)" strokeWidth={1.85} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.activeListings}</div>
@@ -526,8 +514,8 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(62, 108, 118, 0.12)' }}>
-              <Icon name="eye" size={18} color="#3E6C76" strokeWidth={1.85} />
+            <div className="stat-icon" style={{ background: 'var(--color-primary-tint)' }}>
+              <Icon name="eye" size={18} color="var(--color-primary)" strokeWidth={1.85} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.totalViews}</div>
@@ -535,8 +523,8 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
-              <Icon name="phone" size={18} color="#8B5A83" strokeWidth={1.85} />
+            <div className="stat-icon" style={{ background: 'var(--color-secondary-tint)' }}>
+              <Icon name="phone" size={18} color="var(--color-secondary-hover)" strokeWidth={1.85} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.totalContacts}</div>
@@ -555,10 +543,10 @@ const Dashboard = () => {
               <div className="business-details">
                 <div className="business-name">{business.business_name}</div>
                 <div className="business-meta">
-                  <Icon name="tag" size={12} color="#9C9482" strokeWidth={1.85} />
+                  <Icon name="tag" size={12} color="var(--color-text-muted)" strokeWidth={1.85} />
                   {business.category}
                   <span className="business-meta-divider">·</span>
-                  <Icon name="mapPin" size={12} color="#9C9482" strokeWidth={1.85} />
+                  <Icon name="mapPin" size={12} color="var(--color-text-muted)" strokeWidth={1.85} />
                   {business.address || 'Location not set'}
                 </div>
               </div>
@@ -568,14 +556,14 @@ const Dashboard = () => {
           <div className="empty-business">
             <div className="empty-content">
               <div className="empty-icon">
-                <Icon name="store" size={36} color="#D99A3B" strokeWidth={1.5} />
+                <Icon name="store" size={36} color="var(--color-accent)" strokeWidth={1.5} />
               </div>
               <h3 className="empty-title">No Business Registered</h3>
               <p className="empty-text">
                 Register your business to start listing products and reaching customers.
               </p>
               <button className="btn-primary" onClick={() => navigate('/edit-profile')}>
-                <Icon name="plus" size={16} color="#F7F1E3" strokeWidth={2} />
+                <Icon name="plus" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                 Register Business
               </button>
             </div>
@@ -586,35 +574,37 @@ const Dashboard = () => {
         <div className="section-card">
           <div className="section-header">
             <h3 className="section-title">
-              <Icon name="sparkles" size={18} color="#D99A3B" strokeWidth={1.85} />
+              <Icon name="sparkles" size={18} color="var(--color-accent)" strokeWidth={1.85} />
               Quick Actions
             </h3>
           </div>
           <div className="actions-grid">
-            <div className="action-item" onClick={() => navigate('/create-listing')}>
-              <div className="action-icon" style={{ background: 'rgba(217, 154, 59, 0.12)' }}>
-                <Icon name="plus" size={22} color="#D99A3B" strokeWidth={2} />
+            <div className="action-item" onClick={handleAddListingClick}>
+              <div className="action-icon" style={{ background: 'var(--color-accent-tint)' }}>
+                <Icon name="plus" size={22} color="var(--color-accent)" strokeWidth={2} />
               </div>
               <div className="action-name">Add Listing</div>
-              <div className="action-desc">Create new product</div>
+              <div className="action-desc">
+                {planRemaining === 0 ? 'Upgrade needed' : 'Create new product'}
+              </div>
             </div>
             <div className="action-item" onClick={() => navigate('/search')}>
-              <div className="action-icon" style={{ background: 'rgba(62, 108, 118, 0.12)' }}>
-                <Icon name="search" size={22} color="#3E6C76" strokeWidth={1.9} />
+              <div className="action-icon" style={{ background: 'var(--color-primary-tint)' }}>
+                <Icon name="search" size={22} color="var(--color-primary)" strokeWidth={1.9} />
               </div>
               <div className="action-name">Browse</div>
               <div className="action-desc">Discover products</div>
             </div>
             <div className="action-item" onClick={() => navigate('/ai-search')}>
-              <div className="action-icon" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
-                <Icon name="robot" size={22} color="#8B5A83" strokeWidth={1.9} />
+              <div className="action-icon" style={{ background: 'var(--color-secondary-tint)' }}>
+                <Icon name="robot" size={22} color="var(--color-secondary-hover)" strokeWidth={1.9} />
               </div>
               <div className="action-name">AI Search</div>
               <div className="action-desc">Smart search & insights</div>
             </div>
             <div className="action-item" onClick={() => navigate('/voice-listing')}>
-              <div className="action-icon" style={{ background: 'rgba(91, 123, 94, 0.12)' }}>
-                <Icon name="mic" size={22} color="#5B7B5E" strokeWidth={1.9} />
+              <div className="action-icon" style={{ background: 'var(--color-accent-tint)' }}>
+                <Icon name="mic" size={22} color="var(--color-accent)" strokeWidth={1.9} />
               </div>
               <div className="action-name">Voice Listing</div>
               <div className="action-desc">List with your voice</div>
@@ -627,11 +617,11 @@ const Dashboard = () => {
           <div className="section-card">
             <div className="section-header">
               <h3 className="section-title">
-                <Icon name="store" size={18} color="#D99A3B" strokeWidth={1.85} />
+                <Icon name="store" size={18} color="var(--color-accent)" strokeWidth={1.85} />
                 Recent Listings
               </h3>
               <button className="link-btn" onClick={() => navigate('/search')}>
-                View All <Icon name="arrowRight" size={14} color="#BC5B34" strokeWidth={2} />
+                View All <Icon name="arrowRight" size={14} color="currentColor" strokeWidth={2} />
               </button>
             </div>
             <div className="listings-list">
@@ -646,16 +636,16 @@ const Dashboard = () => {
                       <img src={listing.images[0]} alt={listing.title} className="listing-image" />
                     ) : (
                       <div className="listing-image-placeholder">
-                        <Icon name="store" size={16} color="#C9BB98" strokeWidth={1.5} />
+                        <Icon name="store" size={16} color="var(--color-text-muted)" strokeWidth={1.5} />
                       </div>
                     )}
                     <div className="listing-details">
                       <div className="listing-title">{listing.title}</div>
                       <div className="listing-meta">
-                        <Icon name="tag" size={10} color="#9C9482" strokeWidth={1.85} />
+                        <Icon name="tag" size={10} color="var(--color-text-muted)" strokeWidth={1.85} />
                         {listing.category}
                         <span className="listing-meta-dot">·</span>
-                        <Icon name="mapPin" size={10} color="#9C9482" strokeWidth={1.85} />
+                        <Icon name="mapPin" size={10} color="var(--color-text-muted)" strokeWidth={1.85} />
                         {listing.location_area || 'Location not set'}
                       </div>
                     </div>
@@ -663,7 +653,7 @@ const Dashboard = () => {
                   <div className="listing-right">
                     <div className="listing-price">{formatPrice(listing.price)}</div>
                     <div className="listing-views">
-                      <Icon name="eye" size={10} color="#9C9482" strokeWidth={1.85} />
+                      <Icon name="eye" size={10} color="var(--color-text-muted)" strokeWidth={1.85} />
                       {listing.view_count || 0}
                     </div>
                   </div>
@@ -688,7 +678,7 @@ const Dashboard = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#F7F1E3' : '#9C9482'} strokeWidth={1.85} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.85} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -703,17 +693,17 @@ const Dashboard = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
-                <Icon name="store" size={20} color="#D99A3B" strokeWidth={1.85} />
+                <Icon name="store" size={20} color="var(--color-accent)" strokeWidth={1.85} />
                 Register Business
               </h3>
               <button onClick={() => setShowCreateForm(false)} className="modal-close">
-                <Icon name="close" size={18} color="#9C9482" strokeWidth={2} />
+                <Icon name="close" size={18} color="var(--color-text-muted)" strokeWidth={2} />
               </button>
             </div>
 
             {errorMsg && (
               <div className="error-banner">
-                <Icon name="close" size={16} color="#DC2626" strokeWidth={2} />
+                <Icon name="close" size={16} color="var(--color-error)" strokeWidth={2} />
                 {errorMsg}
               </div>
             )}
@@ -811,27 +801,14 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Payment Modal */}
-      {showPaymentModal && plans && (
-        <PaymentModal
-          plans={plans}
-          currentPlan={subscription.plan}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={handlePaymentSuccess}
-        />
-      )}
-
       <style jsx>{`
-        /* ============================================================
-           DASHBOARD — warm, editorial, cohesive with the marketplace
-           ============================================================ */
         .dashboard {
           min-height: 100vh;
-          background: #F7F1E3;
-          background-image: radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
           background-size: 22px 22px;
-          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #201F1B;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 80px;
         }
 
@@ -839,14 +816,12 @@ const Dashboard = () => {
           .dashboard { padding-bottom: 0; }
         }
 
-        /* ===== MAIN ===== */
         .dashboard-main {
           max-width: 1200px;
           margin: 0 auto;
           padding: 24px 16px 40px;
         }
 
-        /* ===== WELCOME ===== */
         .welcome-section {
           display: flex;
           align-items: center;
@@ -858,38 +833,36 @@ const Dashboard = () => {
           width: 56px;
           height: 56px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          color: #F7F1E3;
+          background: var(--color-primary);
+          color: var(--color-text-inverse);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 20px;
           font-weight: 700;
           flex-shrink: 0;
-          box-shadow: 0 8px 20px rgba(36, 69, 59, 0.25);
+          box-shadow: var(--shadow-primary);
           letter-spacing: 0.02em;
         }
 
-        .welcome-text {
-          min-width: 0;
-        }
+        .welcome-text { min-width: 0; }
 
         .welcome-greeting {
           font-size: 12.5px;
           font-weight: 600;
-          color: #BC5B34;
+          color: var(--color-accent);
           margin: 0 0 2px;
           letter-spacing: 0.06em;
           text-transform: uppercase;
         }
 
         .welcome-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: clamp(22px, 3vw, 30px);
           font-weight: 600;
           margin: 0 0 2px;
           letter-spacing: -0.02em;
-          color: #201F1B;
+          color: var(--color-text);
           line-height: 1.15;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -898,9 +871,118 @@ const Dashboard = () => {
 
         .welcome-subtitle {
           font-size: 13px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 0;
           line-height: 1.45;
+        }
+
+        /* ===== YOUR PLAN CARD ===== */
+        .plan-card {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 14px 16px;
+          margin-bottom: 20px;
+          background: var(--color-primary);
+          border-radius: var(--radius-2xl);
+          text-decoration: none;
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-primary);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .plan-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(10, 36, 114, 0.35);
+        }
+
+        .plan-card-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: var(--radius-xl);
+          background: rgba(255, 255, 255, 0.12);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .plan-card-icon.paid {
+          background: var(--color-accent);
+          box-shadow: 0 4px 12px rgba(255, 92, 35, 0.32);
+        }
+
+        .plan-card-text {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .plan-card-name {
+          font-family: var(--font-serif);
+          font-size: 15px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          letter-spacing: -0.01em;
+        }
+
+        .plan-card-badge {
+          padding: 2px 7px;
+          border-radius: 5px;
+          background: rgba(255, 255, 255, 0.18);
+          color: var(--color-text-inverse);
+          font-family: var(--font-sans);
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .plan-card-usage {
+          font-size: 11.5px;
+          color: rgba(255, 255, 255, 0.75);
+          margin-top: 2px;
+        }
+
+        .plan-card-bar {
+          margin-top: 8px;
+          height: 4px;
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 2px;
+          overflow: hidden;
+        }
+
+        .plan-card-bar-fill {
+          height: 100%;
+          background: var(--color-accent);
+          border-radius: 2px;
+          transition: width 0.35s ease;
+        }
+
+        .plan-card-bar-fill.full {
+          background: #FF9F76;
+        }
+
+        .plan-card-cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 8px 12px;
+          border-radius: var(--radius-lg);
+          background: rgba(255, 255, 255, 0.14);
+          color: var(--color-text-inverse);
+          font-size: 12px;
+          font-weight: 700;
+          flex-shrink: 0;
+          transition: background var(--transition-fast);
+        }
+
+        .plan-card:hover .plan-card-cta {
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
         }
 
         /* ===== STATS ===== */
@@ -916,64 +998,60 @@ const Dashboard = () => {
         }
 
         .stat-card {
-          background: #FFFDF8;
-          border-radius: 14px;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           padding: 14px 16px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          border: 1px solid var(--color-border);
           display: flex;
           align-items: center;
           gap: 12px;
           transition: all 0.22s ease;
-          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
+          box-shadow: var(--shadow-xs);
         }
 
         .stat-card:hover {
-          border-color: rgba(217, 154, 59, 0.4);
+          border-color: var(--color-accent);
           transform: translateY(-2px);
-          box-shadow: 0 10px 24px rgba(22, 38, 31, 0.07);
+          box-shadow: var(--shadow-md);
         }
 
         .stat-icon {
           width: 38px;
           height: 38px;
-          border-radius: 11px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .stat-info {
-          flex: 1;
-          min-width: 0;
-        }
+        .stat-info { flex: 1; min-width: 0; }
 
         .stat-value {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: clamp(18px, 1.9vw, 22px);
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           line-height: 1.15;
           letter-spacing: -0.01em;
         }
 
         .stat-label {
           font-size: 10.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           text-transform: uppercase;
           letter-spacing: 0.06em;
           font-weight: 600;
           margin-top: 1px;
         }
 
-        /* ===== BUSINESS CARD ===== */
         .business-card {
-          background: #FFFDF8;
-          border-radius: 14px;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           padding: 16px 18px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          border: 1px solid var(--color-border);
           margin-bottom: 16px;
-          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
+          box-shadow: var(--shadow-xs);
         }
 
         .business-info {
@@ -986,34 +1064,31 @@ const Dashboard = () => {
           width: 46px;
           height: 46px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #D99A3B 0%, #BC5B34 100%);
+          background: var(--color-primary);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 19px;
           font-weight: 600;
-          color: #F7F1E3;
+          color: var(--color-text-inverse);
           flex-shrink: 0;
-          box-shadow: 0 4px 12px rgba(188, 91, 52, 0.22);
+          box-shadow: var(--shadow-primary);
         }
 
-        .business-details {
-          flex: 1;
-          min-width: 0;
-        }
+        .business-details { flex: 1; min-width: 0; }
 
         .business-name {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 17px;
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           letter-spacing: -0.01em;
         }
 
         .business-meta {
           font-size: 12.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           display: flex;
           align-items: center;
           gap: 4px;
@@ -1021,62 +1096,55 @@ const Dashboard = () => {
           margin-top: 2px;
         }
 
-        .business-meta-divider {
-          color: #D9C79E;
-        }
+        .business-meta-divider { color: var(--color-border-strong); }
 
-        /* ===== EMPTY BUSINESS ===== */
         .empty-business {
-          background: #FFFDF8;
-          border-radius: 14px;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           padding: 32px 20px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          border: 1px solid var(--color-border);
           text-align: center;
           margin-bottom: 16px;
-          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
+          box-shadow: var(--shadow-xs);
         }
 
-        .empty-content {
-          max-width: 340px;
-          margin: 0 auto;
-        }
+        .empty-content { max-width: 340px; margin: 0 auto; }
 
         .empty-icon {
           width: 72px;
           height: 72px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #FFF3E0, #FDEBCB);
+          background: var(--color-accent-soft);
           display: flex;
           align-items: center;
           justify-content: center;
           margin: 0 auto 14px;
-          box-shadow: 0 10px 26px rgba(217, 154, 59, 0.18);
+          box-shadow: 0 10px 26px rgba(255, 92, 35, 0.15);
         }
 
         .empty-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 18px;
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           margin: 0 0 6px;
           letter-spacing: -0.01em;
         }
 
         .empty-text {
           font-size: 13.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 0 0 18px;
           line-height: 1.55;
         }
 
-        /* ===== SECTION CARD ===== */
         .section-card {
-          background: #FFFDF8;
-          border-radius: 14px;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           padding: 16px 18px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          border: 1px solid var(--color-border);
           margin-bottom: 16px;
-          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
+          box-shadow: var(--shadow-xs);
         }
 
         .section-header {
@@ -1087,10 +1155,10 @@ const Dashboard = () => {
         }
 
         .section-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 16px;
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           margin: 0;
           display: flex;
           align-items: center;
@@ -1101,7 +1169,7 @@ const Dashboard = () => {
         .link-btn {
           background: none;
           border: none;
-          color: #BC5B34;
+          color: var(--color-accent);
           font-weight: 700;
           font-size: 12.5px;
           cursor: pointer;
@@ -1109,17 +1177,16 @@ const Dashboard = () => {
           display: flex;
           align-items: center;
           gap: 4px;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
 
         .link-btn:hover {
-          color: #A04724;
+          color: var(--color-accent-hover);
           transform: translateX(2px);
         }
 
-        /* ===== ACTIONS GRID ===== */
         .actions-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
@@ -1132,25 +1199,25 @@ const Dashboard = () => {
 
         .action-item {
           padding: 16px 12px;
-          border-radius: 13px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          background: #F7F1E3;
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface-alt);
           text-align: center;
           cursor: pointer;
           transition: all 0.22s ease;
         }
 
         .action-item:hover {
-          border-color: rgba(217, 154, 59, 0.45);
-          background: #FFFDF8;
+          border-color: var(--color-accent);
+          background: var(--color-surface);
           transform: translateY(-3px);
-          box-shadow: 0 10px 22px rgba(22, 38, 31, 0.08);
+          box-shadow: var(--shadow-md);
         }
 
         .action-icon {
           width: 44px;
           height: 44px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -1160,17 +1227,16 @@ const Dashboard = () => {
         .action-name {
           font-size: 13px;
           font-weight: 700;
-          color: #201F1B;
+          color: var(--color-text);
           letter-spacing: -0.005em;
         }
 
         .action-desc {
           font-size: 10.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin-top: 2px;
         }
 
-        /* ===== LISTINGS ===== */
         .listings-list {
           display: flex;
           flex-direction: column;
@@ -1181,17 +1247,17 @@ const Dashboard = () => {
           justify-content: space-between;
           align-items: center;
           padding: 12px 0;
-          border-bottom: 1px solid rgba(239, 230, 206, 0.6);
+          border-bottom: 1px solid var(--color-border);
           cursor: pointer;
           gap: 10px;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
         }
 
         .listing-item:hover {
-          background: #F7F1E3;
+          background: var(--color-surface-alt);
           margin: 0 -8px;
           padding: 12px 8px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border-bottom-color: transparent;
         }
 
@@ -1210,34 +1276,31 @@ const Dashboard = () => {
         .listing-image {
           width: 44px;
           height: 44px;
-          border-radius: 11px;
+          border-radius: var(--radius-lg);
           object-fit: cover;
-          background: #F7F1E3;
+          background: var(--color-surface-alt);
           flex-shrink: 0;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          border: 1px solid var(--color-border);
         }
 
         .listing-image-placeholder {
           width: 44px;
           height: 44px;
-          border-radius: 11px;
-          background: #F7F1E3;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          border-radius: var(--radius-lg);
+          background: var(--color-surface-alt);
+          border: 1px solid var(--color-border);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .listing-details {
-          flex: 1;
-          min-width: 0;
-        }
+        .listing-details { flex: 1; min-width: 0; }
 
         .listing-title {
           font-size: 14px;
           font-weight: 700;
-          color: #201F1B;
+          color: var(--color-text);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -1246,16 +1309,14 @@ const Dashboard = () => {
 
         .listing-meta {
           font-size: 11.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           display: flex;
           align-items: center;
           gap: 4px;
           margin-top: 2px;
         }
 
-        .listing-meta-dot {
-          color: #D9C79E;
-        }
+        .listing-meta-dot { color: var(--color-border-strong); }
 
         .listing-right {
           text-align: right;
@@ -1263,16 +1324,16 @@ const Dashboard = () => {
         }
 
         .listing-price {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 14px;
           font-weight: 600;
-          color: #24453B;
+          color: var(--color-primary);
           letter-spacing: -0.01em;
         }
 
         .listing-views {
           font-size: 10.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           display: flex;
           align-items: center;
           gap: 4px;
@@ -1280,28 +1341,28 @@ const Dashboard = () => {
           margin-top: 2px;
         }
 
-        /* ===== BUTTONS ===== */
         .btn-primary {
           padding: 12px 26px;
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          background: var(--color-accent);
           border: none;
-          border-radius: 12px;
-          color: #F7F1E3;
+          border-radius: var(--radius-xl);
+          color: var(--color-text-inverse);
           font-weight: 700;
           font-size: 13.5px;
           cursor: pointer;
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.25);
+          box-shadow: var(--shadow-accent);
           letter-spacing: 0.01em;
         }
 
         .btn-primary:hover:not(:disabled) {
+          background: var(--color-accent-hover);
           transform: translateY(-2px);
-          box-shadow: 0 10px 22px rgba(36, 69, 59, 0.35);
+          box-shadow: 0 8px 20px rgba(255, 92, 35, 0.32);
         }
 
         .btn-primary:disabled {
@@ -1312,26 +1373,25 @@ const Dashboard = () => {
         .btn-outline {
           padding: 12px 26px;
           background: transparent;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
-          border-radius: 12px;
-          color: #6B6259;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-xl);
+          color: var(--color-text-secondary);
           font-weight: 600;
           font-size: 13.5px;
           cursor: pointer;
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
         }
 
         .btn-outline:hover {
-          background: #F7F1E3;
-          border-color: rgba(217, 154, 59, 0.4);
+          background: var(--color-surface-alt);
+          border-color: var(--color-accent);
         }
 
-        /* ===== MODAL ===== */
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(22, 38, 31, 0.5);
+          background: rgba(10, 36, 114, 0.5);
           backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
@@ -1347,16 +1407,16 @@ const Dashboard = () => {
         }
 
         .modal-content {
-          background: #FFFDF8;
-          border-radius: 20px;
+          background: var(--color-surface);
+          border-radius: var(--radius-3xl);
           max-width: 480px;
           width: 100%;
           padding: 22px;
           max-height: 90vh;
           overflow-y: auto;
-          box-shadow: 0 24px 60px rgba(22, 38, 31, 0.25);
+          box-shadow: var(--shadow-2xl);
           animation: slideUp 0.25s ease;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          border: 1px solid var(--color-border);
         }
 
         @keyframes slideUp {
@@ -1372,10 +1432,10 @@ const Dashboard = () => {
         }
 
         .modal-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 18px;
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           margin: 0;
           display: flex;
           align-items: center;
@@ -1387,68 +1447,61 @@ const Dashboard = () => {
           background: none;
           border: none;
           cursor: pointer;
-          color: #9C9482;
+          color: var(--color-text-muted);
           padding: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 8px;
-          transition: all 0.15s;
+          border-radius: var(--radius-md);
+          transition: all var(--transition-fast);
         }
 
         .modal-close:hover {
-          color: #201F1B;
-          background: #F7F1E3;
+          color: var(--color-text);
+          background: var(--color-surface-alt);
         }
 
-        .field-group {
-          margin-bottom: 14px;
-        }
+        .field-group { margin-bottom: 14px; }
 
         .field-label {
           display: block;
           font-size: 12.5px;
           font-weight: 700;
-          color: #3A362E;
+          color: var(--color-text-secondary);
           margin-bottom: 6px;
         }
 
-        .required {
-          color: #DC2626;
-        }
+        .required { color: var(--color-error); }
 
         .field-input,
         .field-select,
         .field-textarea {
           width: 100%;
           padding: 11px 14px;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
-          border-radius: 11px;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-xl);
           font-size: 14px;
-          color: #201F1B;
+          color: var(--color-text);
           outline: none;
-          background: #F7F1E3;
+          background: var(--color-surface-alt);
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           box-sizing: border-box;
         }
 
         .field-input:focus,
         .field-select:focus,
         .field-textarea:focus {
-          border-color: #D99A3B;
-          background: #FFFDF8;
-          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.12);
+          border-color: var(--color-accent);
+          background: var(--color-surface);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
-        .field-textarea {
-          resize: vertical;
-          min-height: 70px;
-        }
+        .field-textarea { resize: vertical; min-height: 70px; }
 
         .field-select {
           appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B6259' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
           background-position: right 14px center;
           padding-right: 36px;
@@ -1462,13 +1515,13 @@ const Dashboard = () => {
         }
 
         .error-banner {
-          color: #991B1B;
+          color: var(--color-error);
           font-size: 13px;
           margin-bottom: 16px;
           padding: 11px 14px;
-          background: #FEF2F2;
-          border-radius: 11px;
-          border: 1px solid #FECACA;
+          background: var(--color-error-bg);
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--color-error);
           display: flex;
           align-items: center;
           gap: 8px;
@@ -1476,16 +1529,15 @@ const Dashboard = () => {
           font-weight: 500;
         }
 
-        /* ===== BOTTOM NAV ===== */
         .bottom-nav {
           position: fixed;
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(255, 253, 248, 0.96);
+          background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
-          border-top: 1px solid rgba(239, 230, 206, 0.9);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 10px;
@@ -1508,34 +1560,33 @@ const Dashboard = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 9px;
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: background 0.2s, transform 0.15s;
+          transition: background var(--transition-fast);
         }
 
         .nav-icon-wrap.active {
-          background: #24453B;
-          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-btn:hover .nav-icon-wrap:not(.active) {
-          background: rgba(239, 230, 206, 0.6);
+          background: var(--color-surface-alt);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #9C9482;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #201F1B;
+          color: var(--color-text);
           font-weight: 600;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 380px) {
           .stats-grid { gap: 8px; }
           .stat-card { padding: 12px 12px; }
@@ -1548,13 +1599,14 @@ const Dashboard = () => {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .stat-card, .action-item, .btn-primary, .link-btn, .nav-icon-wrap {
+          .stat-card, .action-item, .btn-primary, .link-btn, .nav-icon-wrap, .plan-card, .plan-card-cta {
             transition: none;
           }
           .stat-card:hover,
           .action-item:hover,
           .btn-primary:hover,
-          .link-btn:hover { transform: none; }
+          .link-btn:hover,
+          .plan-card:hover { transform: none; }
         }
       `}</style>
     </div>

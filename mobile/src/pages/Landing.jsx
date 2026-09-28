@@ -125,12 +125,12 @@ const BurningFire = ({ size = 16 }) => (
 );
 
 const CATEGORIES = [
-  { label: 'All', icon: 'layers', color: '#BC5B34' },
-  { label: 'Food', icon: 'coffee', color: '#BC5B34' },
-  { label: 'Clothing', icon: 'shirt', color: '#8B5A83' },
-  { label: 'Services', icon: 'wrench', color: '#3E6C76' },
-  { label: 'Farm Inputs', icon: 'wheat', color: '#5B7B5E' },
-  { label: 'Hardware', icon: 'hammer', color: '#6B6259' },
+  { label: 'All', icon: 'layers', color: 'var(--color-accent)' },
+  { label: 'Food', icon: 'coffee', color: 'var(--color-accent)' },
+  { label: 'Clothing', icon: 'shirt', color: 'var(--color-secondary-hover)' },
+  { label: 'Services', icon: 'wrench', color: 'var(--color-primary)' },
+  { label: 'Farm Inputs', icon: 'wheat', color: 'var(--color-success)' },
+  { label: 'Hardware', icon: 'hammer', color: 'var(--color-text-secondary)' },
 ];
 
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
@@ -140,14 +140,14 @@ const SPOTLIGHT_IMAGE_MS = 2000;
 const SPOTLIGHT_HOLD_MS = 1600;
 
 const getCategoryColor = (category) => {
-  if (!category) return '#6B6259';
+  if (!category) return 'var(--color-text-secondary)';
   const c = category.toLowerCase();
-  if (c.includes('food') || c.includes('coffee') || c.includes('drink')) return '#BC5B34';
-  if (c.includes('cloth') || c.includes('shirt') || c.includes('fashion')) return '#8B5A83';
-  if (c.includes('service') || c.includes('plumber') || c.includes('electric') || c.includes('mechanic') || c.includes('tailor') || c.includes('hair')) return '#3E6C76';
-  if (c.includes('farm') || c.includes('wheat') || c.includes('seed') || c.includes('fert')) return '#5B7B5E';
-  if (c.includes('hardware') || c.includes('tool') || c.includes('hammer')) return '#6B6259';
-  return '#BC5B34';
+  if (c.includes('food') || c.includes('coffee') || c.includes('drink')) return 'var(--color-accent)';
+  if (c.includes('cloth') || c.includes('shirt') || c.includes('fashion')) return 'var(--color-secondary-hover)';
+  if (c.includes('service') || c.includes('plumber') || c.includes('electric') || c.includes('mechanic') || c.includes('tailor') || c.includes('hair')) return 'var(--color-primary)';
+  if (c.includes('farm') || c.includes('wheat') || c.includes('seed') || c.includes('fert')) return 'var(--color-success)';
+  if (c.includes('hardware') || c.includes('tool') || c.includes('hammer')) return 'var(--color-text-secondary)';
+  return 'var(--color-accent)';
 };
 
 const isPremium = (item) => {
@@ -200,7 +200,7 @@ const PhotoSlider = ({
     return (
       <div className={`pslider ${className}`}>
         <div className="pslider-empty">
-          <Icon name="store" size={26} color="#C9BB98" strokeWidth={1.3} />
+          <Icon name="store" size={26} color="var(--color-text-muted)" strokeWidth={1.3} />
         </div>
       </div>
     );
@@ -234,7 +234,7 @@ const PhotoSlider = ({
             onClick={prev}
             aria-label="Previous photo"
           >
-            <Icon name="chevronLeft" size={14} color="#F7F1E3" strokeWidth={2.4} />
+            <Icon name="chevronLeft" size={14} color="var(--color-text-inverse)" strokeWidth={2.4} />
           </button>
           <button
             type="button"
@@ -242,7 +242,7 @@ const PhotoSlider = ({
             onClick={next}
             aria-label="Next photo"
           >
-            <Icon name="chevronRight" size={14} color="#F7F1E3" strokeWidth={2.4} />
+            <Icon name="chevronRight" size={14} color="var(--color-text-inverse)" strokeWidth={2.4} />
           </button>
         </>
       )}
@@ -293,7 +293,7 @@ const ProductCard = ({
         {item.category && (
           <span
             className="pcard-cat"
-            style={{ background: `${catColor}E6` }}
+            style={{ background: catColor }}
             title={item.category}
           >
             {item.category}
@@ -308,15 +308,15 @@ const ProductCard = ({
           <Icon
             name="heart"
             size={14}
-            color={liked ? '#FFFFFF' : '#F7F1E3'}
+            color="var(--color-text-inverse)"
             strokeWidth={liked ? 2.4 : 1.9}
-            fill={liked ? '#FFFFFF' : 'none'}
+            fill={liked ? 'var(--color-text-inverse)' : 'none'}
           />
         </button>
 
         {item.delivery_available && (
           <span className="pcard-delivery" title="Delivery available">
-            <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
+            <Icon name="truck" size={10} color="var(--color-text-inverse)" strokeWidth={2} />
           </span>
         )}
       </div>
@@ -333,7 +333,7 @@ const ProductCard = ({
         <h3 className="pcard-title" onClick={() => onOpen(item)}>{item.title}</h3>
 
         <div className="pcard-meta">
-          <span className="pcard-avatar" style={{ background: `${catColor}22`, color: catColor }}>
+          <span className="pcard-avatar" style={{ background: 'var(--color-surface-alt)', color: 'var(--color-primary)' }}>
             {(item.businesses?.business_name || 'L').trim().charAt(0).toUpperCase()}
           </span>
           <span className="pcard-seller">{item.businesses?.business_name || 'Local seller'}</span>
@@ -354,9 +354,9 @@ const ProductCard = ({
             <Icon
               name="heart"
               size={14}
-              color={liked ? '#BC5B34' : '#8A8578'}
+              color={liked ? 'var(--color-accent)' : 'var(--color-text-secondary)'}
               strokeWidth={liked ? 2.4 : 1.9}
-              fill={liked ? '#BC5B34' : 'none'}
+              fill={liked ? 'var(--color-accent)' : 'none'}
             />
             {likeCount > 0 && <span>{likeCount}</span>}
           </button>
@@ -366,7 +366,7 @@ const ProductCard = ({
             onClick={(e) => { e.stopPropagation(); onOpenComments(item); }}
             aria-label="Comments"
           >
-            <Icon name="comment" size={13} color="#8A8578" strokeWidth={1.9} />
+            <Icon name="comment" size={13} color="var(--color-text-secondary)" strokeWidth={1.9} />
             {commentCount > 0 && <span>{commentCount}</span>}
           </button>
 
@@ -377,7 +377,7 @@ const ProductCard = ({
               disabled={openingChatId === item.id}
               aria-label="Message seller"
             >
-              <Icon name="message" size={12} color="#F7F1E3" strokeWidth={2} />
+              <Icon name="message" size={12} color="var(--color-text-inverse)" strokeWidth={2} />
               <span>{openingChatId === item.id ? '…' : 'Message'}</span>
             </button>
           )}
@@ -409,11 +409,11 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
 
         <div className="fcard-top">
           <span className={`fchip fchip-spotlight ${premium ? 'is-premium' : ''}`}>
-            <Icon name={premium ? 'crown' : 'sparkle'} size={11} color="#F0D9A8" strokeWidth={2} />
+            <Icon name={premium ? 'crown' : 'sparkle'} size={11} color="var(--color-premium-light)" strokeWidth={2} />
             {premium ? 'Premium' : 'Spotlight'}
           </span>
           {item.category && (
-            <span className="fchip fchip-cat" style={{ background: `${catColor}E0` }}>
+            <span className="fchip fchip-cat" style={{ background: catColor }}>
               {item.category}
             </span>
           )}
@@ -427,9 +427,9 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
           <Icon
             name="heart"
             size={15}
-            color="#F7F1E3"
+            color="var(--color-text-inverse)"
             strokeWidth={liked ? 2.5 : 1.9}
-            fill={liked ? '#F7F1E3' : 'none'}
+            fill={liked ? 'var(--color-text-inverse)' : 'none'}
           />
           {likeCount > 0 && <span>{likeCount}</span>}
         </button>
@@ -447,14 +447,14 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
               <>
                 <span className="fcard-dot" />
                 <span className="fcard-loc">
-                  <Icon name="mapPin" size={10} color="#EFE6CE" strokeWidth={1.9} />
+                  <Icon name="mapPin" size={10} color="var(--color-premium-light)" strokeWidth={1.9} />
                   {item.location_area}
                 </span>
               </>
             )}
             {item.delivery_available && (
               <span className="fcard-delivery">
-                <Icon name="truck" size={10} color="#F7F1E3" strokeWidth={2} />
+                <Icon name="truck" size={10} color="var(--color-text-inverse)" strokeWidth={2} />
                 Delivery
               </span>
             )}
@@ -464,7 +464,7 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
               className="fcard-action"
               onClick={(e) => { e.stopPropagation(); onOpenComments(item); }}
             >
-              <Icon name="comment" size={13} color="#F7F1E3" strokeWidth={1.9} />
+              <Icon name="comment" size={13} color="var(--color-text-inverse)" strokeWidth={1.9} />
               <span>{commentCount > 0 ? `${commentCount} comments` : 'Comment'}</span>
             </button>
             {canMessage && (
@@ -473,7 +473,7 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
                 onClick={(e) => onMessage(e, item)}
                 disabled={openingChatId === item.id}
               >
-                <Icon name="message" size={12} color="#201F1B" strokeWidth={2} />
+                <Icon name="message" size={12} color="var(--color-text)" strokeWidth={2} />
                 <span>{openingChatId === item.id ? '…' : 'Message'}</span>
               </button>
             )}
@@ -530,18 +530,18 @@ const SpotlightTile = ({ item, onOpen }) => {
           </div>
         ) : (
           <div className="spot-media-empty">
-            <Icon name="store" size={22} color="#C9BB98" strokeWidth={1.3} />
+            <Icon name="store" size={22} color="var(--color-text-muted)" strokeWidth={1.3} />
           </div>
         )}
 
         {item.category && (
-          <span className="spot-cat" style={{ background: `${catColor}E6` }}>
+          <span className="spot-cat" style={{ background: catColor }}>
             {item.category}
           </span>
         )}
         {premium && (
           <span className="spot-premium" title="Premium listing">
-            <Icon name="crown" size={10} color="#201F1B" strokeWidth={2.2} />
+            <Icon name="crown" size={10} color="var(--color-text)" strokeWidth={2.2} />
           </span>
         )}
       </div>
@@ -582,12 +582,6 @@ const Landing = () => {
   useEffect(() => {
     commentsListingIdRef.current = commentsListing?.id ?? null;
   }, [commentsListing?.id]);
-
-  // ★ NOTE: We removed the old "if (!isAuthenticated) navigate('/login')" effect.
-  //   Anonymous sessions count as authenticated, and the role choice block
-  //   handles the flow for users who haven't picked yet. If Supabase is
-  //   unconfigured (no session at all), the landing page still renders so
-  //   users can see what's there.
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -912,11 +906,11 @@ const Landing = () => {
           {[1,2,3,4,5,6].map((i) => <div key={i} className="skeleton-card" />)}
         </div>
         <style jsx>{`
-          .loading-skeleton { min-height: 100vh; background: #F7F1E3; padding-bottom: 80px; }
-          .skeleton-hero { height: 200px; background: linear-gradient(160deg, #24453B, #16261F); }
-          .skeleton-search { height: 52px; margin: -26px 20px 20px; border-radius: 12px; background: #FFFDF8; box-shadow: 0 12px 24px rgba(22,38,31,0.12); }
+          .loading-skeleton { min-height: 100vh; background: var(--color-bg); padding-bottom: 80px; }
+          .skeleton-hero { height: 200px; background: linear-gradient(160deg, var(--color-primary), var(--color-primary-hover)); }
+          .skeleton-search { height: 52px; margin: -26px 20px 20px; border-radius: var(--radius-xl); background: var(--color-surface); box-shadow: var(--shadow-md); }
           .skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 0 20px; }
-          .skeleton-card { aspect-ratio: 4 / 5; background: #ECE3CC; border-radius: 14px; animation: pulse 1.6s ease-in-out infinite; }
+          .skeleton-card { aspect-ratio: 4 / 5; background: var(--color-border); border-radius: var(--radius-2xl); animation: pulse 1.6s ease-in-out infinite; }
           @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
         `}</style>
       </div>
@@ -948,7 +942,7 @@ const Landing = () => {
         <div className="search-sticky-inner">
           <form onSubmit={handleSearch} className="search-form">
             <div className="search-wrapper">
-              <Icon name="search" size={17} color="#7C9083" strokeWidth={1.75} />
+              <Icon name="search" size={17} color="var(--color-text-muted)" strokeWidth={1.75} />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -958,7 +952,7 @@ const Landing = () => {
                 className="search-input"
               />
               <button type="submit" className="search-btn" aria-label="Search">
-                <Icon name="arrowRight" size={16} color="#F7F1E3" strokeWidth={2} />
+                <Icon name="arrowRight" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
               </button>
             </div>
           </form>
@@ -973,7 +967,7 @@ const Landing = () => {
               Spotlight
               {spotlightHasPremium && (
                 <span className="spotlight-premium-badge">
-                  <Icon name="crown" size={10} color="#F0D9A8" strokeWidth={2.2} />
+                  <Icon name="crown" size={10} color="var(--color-premium-light)" strokeWidth={2.2} />
                   Premium
                 </span>
               )}
@@ -1006,9 +1000,9 @@ const Landing = () => {
                 key={cat.label}
                 className={`cat-pill ${active ? 'active' : ''}`}
                 onClick={() => setSelectedCategory(cat.label)}
-                style={active ? { background: cat.color, borderColor: cat.color } : {}}
+                style={active ? { background: cat.color, borderColor: cat.color, color: 'var(--color-text-inverse)' } : {}}
               >
-                <Icon name={cat.icon} size={12} color={active ? '#F7F1E3' : cat.color} strokeWidth={2} />
+                <Icon name={cat.icon} size={12} color={active ? 'var(--color-text-inverse)' : cat.color} strokeWidth={2} />
                 <span>{cat.label}</span>
               </button>
             );
@@ -1093,7 +1087,7 @@ const Landing = () => {
                   <span className="section-title-count">{otherListings.length}</span>
                 </h2>
                 <button className="filter-btn" onClick={() => {}} aria-label="Filter">
-                  <Icon name="filter" size={14} color="#3A362E" strokeWidth={1.9} />
+                  <Icon name="filter" size={14} color="var(--color-text)" strokeWidth={1.9} />
                 </button>
               </header>
               <div className="grid">
@@ -1119,7 +1113,7 @@ const Landing = () => {
       ) : (
         <section className="section">
           <div className="empty-state">
-            <Icon name="store" size={44} color="#BFA97B" strokeWidth={1.4} />
+            <Icon name="store" size={44} color="var(--color-text-muted)" strokeWidth={1.4} />
             <h3 className="empty-title">No listings found</h3>
             <p className="empty-desc">
               {searchQuery || selectedCategory !== 'All' ? 'Try adjusting your filters' : 'Be the first to post something!'}
@@ -1138,7 +1132,7 @@ const Landing = () => {
             {featuredBusinesses.map((biz) => (
               <button key={biz.id} className="biz-card" onClick={() => handleBusinessClick(biz)}>
                 <div className="biz-logo">
-                  {biz.logo_url ? <img src={biz.logo_url} alt={biz.business_name} /> : <Icon name="store" size={16} color="#BFA97B" strokeWidth={1.5} />}
+                  {biz.logo_url ? <img src={biz.logo_url} alt={biz.business_name} /> : <Icon name="store" size={16} color="var(--color-text-muted)" strokeWidth={1.5} />}
                 </div>
                 <div className="biz-text">
                   <div className="biz-name">{biz.business_name}</div>
@@ -1161,7 +1155,7 @@ const Landing = () => {
                   <img src={commentsListing.images[0]} alt={commentsListing.title} />
                 ) : (
                   <div className="pop-thumb-fallback">
-                    <Icon name="store" size={18} color="#BFA97B" strokeWidth={1.5} />
+                    <Icon name="store" size={18} color="var(--color-text-muted)" strokeWidth={1.5} />
                   </div>
                 )}
               </div>
@@ -1173,7 +1167,7 @@ const Landing = () => {
                 </div>
               </div>
               <button className="pop-close" onClick={() => setCommentsListing(null)} aria-label="Close">
-                <Icon name="close" size={16} color="#201F1B" strokeWidth={2.2} />
+                <Icon name="close" size={16} color="var(--color-text)" strokeWidth={2.2} />
               </button>
             </div>
             <div className="pop-body">
@@ -1201,7 +1195,7 @@ const Landing = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={19} color={active ? '#F7F1E3' : '#9C9482'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={19} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -1211,13 +1205,11 @@ const Landing = () => {
       )}
 
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600;700&display=swap');
-
         .app {
           min-height: 100vh;
-          background: #F7F1E3;
-          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-          color: #201F1B;
+          background: var(--color-bg);
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 84px;
         }
         @media (min-width: 769px) { .app { padding-bottom: 0; } }
@@ -1225,13 +1217,13 @@ const Landing = () => {
         /* HERO */
         .hero-block {
           position: relative;
-          background: linear-gradient(155deg, #24453B 0%, #16261F 100%);
+          background: linear-gradient(155deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
           padding: 30px 20px 60px;
           overflow: hidden;
         }
         .hero-texture {
           position: absolute; inset: 0;
-          background-image: radial-gradient(rgba(217, 154, 59, 0.15) 1px, transparent 1px);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
           background-size: 18px 18px;
           opacity: 0.55;
           mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
@@ -1241,26 +1233,26 @@ const Landing = () => {
         .hero-eyebrow {
           display: inline-flex; align-items: center; gap: 7px;
           font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em;
-          text-transform: uppercase; color: #D99A3B;
+          text-transform: uppercase; color: var(--color-accent);
           margin-bottom: 12px;
         }
         .hero-dot {
           width: 5px; height: 5px; border-radius: 50%;
-          background: #D99A3B; box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.18);
+          background: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
         .hero-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-weight: 500;
           font-size: clamp(26px, 4.2vw, 40px);
           letter-spacing: -0.02em;
           margin: 0 0 6px; line-height: 1.1;
-          color: #F7F1E3;
+          color: var(--color-text-inverse);
           max-width: 620px;
         }
-        .hero-title em { font-style: italic; font-weight: 500; color: #D99A3B; }
+        .hero-title em { font-style: italic; font-weight: 500; color: var(--color-accent); }
         .hero-desc {
           font-size: 13.5px; line-height: 1.5;
-          color: rgba(247, 241, 227, 0.6);
+          color: rgba(255, 255, 255, 0.6);
           margin: 0; max-width: 440px;
         }
 
@@ -1272,7 +1264,7 @@ const Landing = () => {
           padding: 0 20px;
           margin-top: -26px;
           padding-bottom: 10px;
-          background: linear-gradient(to bottom, #F7F1E3 78%, rgba(247, 241, 227, 0.85));
+          background: linear-gradient(to bottom, var(--color-bg) 78%, rgba(248, 250, 252, 0.85));
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
         }
@@ -1280,38 +1272,39 @@ const Landing = () => {
         .search-form { max-width: 620px; }
         .search-wrapper {
           display: flex; align-items: center; gap: 10px;
-          background: #FFFDF8; border-radius: 13px;
+          background: var(--color-surface); border-radius: var(--radius-xl);
           padding: 5px 5px 5px 16px;
           box-shadow:
-            0 2px 4px rgba(22, 38, 31, 0.04),
-            0 16px 34px rgba(22, 38, 31, 0.14),
-            0 0 0 1px rgba(239, 230, 206, 0.9);
+            0 2px 4px rgba(10, 36, 114, 0.04),
+            0 16px 34px rgba(10, 36, 114, 0.14),
+            0 0 0 1px var(--color-border);
           transition: box-shadow 0.25s ease;
         }
         .search-wrapper:focus-within {
           box-shadow:
-            0 2px 4px rgba(22, 38, 31, 0.05),
-            0 20px 44px rgba(22, 38, 31, 0.18),
-            0 0 0 1px rgba(188, 91, 52, 0.5);
+            0 2px 4px rgba(10, 36, 114, 0.05),
+            0 20px 44px rgba(10, 36, 114, 0.18),
+            0 0 0 1px var(--color-accent);
         }
         .search-input {
           flex: 1; border: none; outline: none; background: transparent;
-          padding: 12px 0; font-size: 14px; font-family: inherit; color: #201F1B;
+          padding: 12px 0; font-size: 14px; font-family: inherit; color: var(--color-text);
         }
-        .search-input::placeholder { color: #9C9482; }
+        .search-input::placeholder { color: var(--color-text-muted); }
         .search-btn {
-          padding: 10px 14px; background: #24453B; border: none;
-          border-radius: 9px; cursor: pointer;
+          padding: 10px 14px; background: var(--color-accent); border: none;
+          border-radius: var(--radius-md); cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           transition: background 0.2s, transform 0.15s;
+          box-shadow: var(--shadow-accent);
         }
-        .search-btn:hover { background: #BC5B34; transform: translateY(-1px); }
+        .search-btn:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
 
         /* PHOTO SLIDER */
         .pslider {
           position: absolute; inset: 0;
           overflow: hidden;
-          background: #F0E9D6;
+          background: var(--color-surface-alt);
           touch-action: pan-y;
           user-select: none;
         }
@@ -1330,7 +1323,7 @@ const Landing = () => {
           object-position: center;
           display: block;
           -webkit-user-drag: none;
-          background: #F0E9D6;
+          background: var(--color-surface-alt);
           image-rendering: -webkit-optimize-contrast;
         }
         .pslider-empty {
@@ -1343,7 +1336,7 @@ const Landing = () => {
           width: 26px; height: 26px;
           border: none; cursor: pointer;
           border-radius: 999px;
-          background: rgba(22, 38, 31, 0.55);
+          background: rgba(10, 36, 114, 0.55);
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
           display: flex; align-items: center; justify-content: center;
@@ -1352,7 +1345,7 @@ const Landing = () => {
           z-index: 3;
         }
         .pslider:hover .pslider-arrow { opacity: 1; }
-        .pslider-arrow:hover { background: rgba(22, 38, 31, 0.78); }
+        .pslider-arrow:hover { background: rgba(10, 36, 114, 0.78); }
         .pslider-arrow.left { left: 6px; }
         .pslider-arrow.right { right: 6px; }
         @media (hover: none) {
@@ -1368,21 +1361,21 @@ const Landing = () => {
         .pslider-dot {
           width: 5px; height: 5px;
           border-radius: 999px;
-          background: rgba(247, 241, 227, 0.55);
+          background: rgba(255, 255, 255, 0.55);
           border: none; padding: 0; cursor: pointer;
           transition: all 0.2s ease;
         }
         .pslider-dot.active {
           width: 14px;
-          background: #F7F1E3;
+          background: var(--color-text-inverse);
         }
         .pslider-count {
           position: absolute;
           right: 8px; top: 8px;
           padding: 3px 7px;
-          border-radius: 6px;
-          background: rgba(22, 38, 31, 0.6);
-          color: #F7F1E3;
+          border-radius: var(--radius-sm);
+          background: rgba(10, 36, 114, 0.6);
+          color: var(--color-text-inverse);
           font-size: 10px;
           font-weight: 600;
           letter-spacing: 0.02em;
@@ -1459,16 +1452,16 @@ const Landing = () => {
           gap: 5px;
           padding: 4px 10px 4px 8px;
           border-radius: 999px;
-          background: linear-gradient(135deg, #FFF3E0 0%, #FFE4C4 100%);
-          border: 1px solid rgba(234, 88, 12, 0.25);
-          box-shadow: 0 1px 3px rgba(234, 88, 12, 0.1);
+          background: var(--color-accent-soft);
+          border: 1px solid var(--color-accent);
+          box-shadow: 0 1px 3px rgba(255, 92, 35, 0.1);
         }
         .fresh-live-text {
-          font-family: 'Work Sans', sans-serif;
+          font-family: var(--font-sans);
           font-size: 10px;
           font-weight: 800;
           letter-spacing: 0.14em;
-          color: #C2410C;
+          color: var(--color-fire);
           text-transform: uppercase;
           line-height: 1;
         }
@@ -1485,24 +1478,24 @@ const Landing = () => {
           margin-bottom: 10px;
         }
         .spotlight-heading {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-weight: 600; font-size: 16px;
-          margin: 0; color: #201F1B;
+          margin: 0; color: var(--color-text);
           letter-spacing: -0.01em;
           display: inline-flex; align-items: center; gap: 8px;
         }
         .spotlight-premium-badge {
           display: inline-flex; align-items: center; gap: 4px;
-          padding: 3px 7px; border-radius: 6px;
-          background: #24453B;
-          color: #F0D9A8;
-          font-family: 'Work Sans', sans-serif;
+          padding: 3px 7px; border-radius: var(--radius-sm);
+          background: var(--color-primary);
+          color: var(--color-premium-light);
+          font-family: var(--font-sans);
           font-size: 9.5px; font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
         }
         .spotlight-sub {
-          font-size: 11px; color: #9C9482;
+          font-size: 11px; color: var(--color-text-muted);
           font-weight: 500;
           letter-spacing: 0.02em;
           margin-left: auto;
@@ -1533,20 +1526,20 @@ const Landing = () => {
         .spot-tile:hover { transform: translateY(-2px); }
         .spot-tile.is-premium .spot-media {
           box-shadow:
-            0 1px 2px rgba(22, 38, 31, 0.05),
-            0 14px 30px rgba(36, 69, 59, 0.18),
-            0 0 0 1.5px rgba(217, 154, 59, 0.55);
+            0 1px 2px rgba(10, 36, 114, 0.05),
+            0 14px 30px rgba(10, 36, 114, 0.18),
+            0 0 0 1.5px var(--color-accent);
         }
         .spot-media {
           position: relative;
           width: 100%;
           aspect-ratio: 4 / 5.6;
-          border-radius: 14px;
+          border-radius: var(--radius-2xl);
           overflow: hidden;
-          background: #F0E9D6;
+          background: var(--color-surface-alt);
           box-shadow:
-            0 1px 2px rgba(22, 38, 31, 0.05),
-            0 12px 26px rgba(22, 38, 31, 0.12);
+            0 1px 2px rgba(10, 36, 114, 0.05),
+            0 12px 26px rgba(10, 36, 114, 0.12);
         }
         .spot-media-empty {
           position: absolute; inset: 0;
@@ -1555,7 +1548,7 @@ const Landing = () => {
         .spot-slider {
           position: absolute; inset: 0;
           overflow: hidden;
-          background: #F0E9D6;
+          background: var(--color-surface-alt);
         }
         .spot-slider-track {
           display: flex;
@@ -1584,18 +1577,18 @@ const Landing = () => {
         .spot-slider-dot {
           width: 5px; height: 5px;
           border-radius: 999px;
-          background: rgba(247, 241, 227, 0.55);
+          background: rgba(255, 255, 255, 0.55);
           transition: all 0.25s ease;
         }
         .spot-slider-dot.active {
           width: 14px;
-          background: #F7F1E3;
+          background: var(--color-text-inverse);
         }
         .spot-cat {
           position: absolute; top: 8px; left: 8px;
           font-size: 9px; font-weight: 700;
-          color: #F7F1E3;
-          padding: 3px 7px; border-radius: 6px;
+          color: var(--color-text-inverse);
+          padding: 3px 7px; border-radius: var(--radius-sm);
           letter-spacing: 0.04em;
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
@@ -1605,9 +1598,9 @@ const Landing = () => {
           position: absolute; top: 8px; right: 8px;
           width: 20px; height: 20px;
           display: flex; align-items: center; justify-content: center;
-          border-radius: 6px;
-          background: #F0D9A8;
-          box-shadow: 0 2px 6px rgba(22, 38, 31, 0.25);
+          border-radius: var(--radius-sm);
+          background: var(--color-premium-light);
+          box-shadow: 0 2px 6px rgba(10, 36, 114, 0.25);
           z-index: 5;
         }
         .spot-info {
@@ -1616,7 +1609,7 @@ const Landing = () => {
         }
         .spot-title {
           font-size: 12.5px; font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           line-height: 1.3;
           overflow: hidden; text-overflow: ellipsis;
           display: -webkit-box;
@@ -1624,9 +1617,9 @@ const Landing = () => {
           -webkit-box-orient: vertical;
         }
         .spot-price {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 13px; font-weight: 600;
-          color: #24453B;
+          color: var(--color-primary);
           letter-spacing: -0.01em;
         }
 
@@ -1645,40 +1638,39 @@ const Landing = () => {
         .cat-pill {
           display: inline-flex; align-items: center; gap: 5px;
           padding: 7px 13px; border-radius: 999px;
-          border: 1.5px solid #EFE6CE;
-          background: #FFFDF8;
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
           font-family: inherit; font-size: 11.5px; font-weight: 600;
-          color: #3A362E;
+          color: var(--color-text-secondary);
           cursor: pointer; flex-shrink: 0;
           transition: all 0.2s ease;
           white-space: nowrap;
         }
         .cat-pill:not(.active):hover {
-          border-color: #D9C79E;
-          background: #FFFDF8;
+          border-color: var(--color-accent);
+          background: var(--color-accent-tint);
         }
-        .cat-pill.active { color: #F7F1E3; }
 
         /* TABS */
         .tabs-section {
           display: flex; gap: 22px;
           padding: 14px 20px 0;
-          border-bottom: 1px solid #EFE6CE;
+          border-bottom: 1px solid var(--color-border);
           margin: 12px auto 0;
           max-width: 1200px;
         }
         .tab-btn {
           position: relative; padding: 4px 2px 11px;
           border: none; background: transparent;
-          font-size: 13px; font-weight: 600; color: #9C9482;
+          font-size: 13px; font-weight: 600; color: var(--color-text-muted);
           cursor: pointer; font-family: inherit;
           transition: color 0.15s;
         }
-        .tab-btn:hover { color: #3A362E; }
-        .tab-btn.active { color: #201F1B; }
+        .tab-btn:hover { color: var(--color-text); }
+        .tab-btn.active { color: var(--color-text); }
         .tab-btn.active::after {
           content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
-          height: 2px; background: #BC5B34; border-radius: 2px;
+          height: 2px; background: var(--color-accent); border-radius: 2px;
         }
 
         /* FEATURED */
@@ -1692,12 +1684,12 @@ const Landing = () => {
           position: relative;
           width: 100%;
           aspect-ratio: 4 / 3;
-          border-radius: 18px;
+          border-radius: var(--radius-3xl);
           overflow: hidden;
-          background: #F0E9D6;
+          background: var(--color-surface-alt);
           box-shadow:
-            0 2px 6px rgba(22, 38, 31, 0.06),
-            0 22px 44px rgba(22, 38, 31, 0.14);
+            0 2px 6px rgba(10, 36, 114, 0.06),
+            0 22px 44px rgba(10, 36, 114, 0.14);
           transition: transform 0.4s ease, box-shadow 0.4s ease;
         }
         @media (min-width: 640px) {
@@ -1706,10 +1698,10 @@ const Landing = () => {
         .fcard:hover .fcard-media {
           transform: translateY(-3px);
           box-shadow:
-            0 4px 8px rgba(22, 38, 31, 0.08),
-            0 28px 56px rgba(22, 38, 31, 0.2);
+            0 4px 8px rgba(10, 36, 114, 0.08),
+            0 28px 56px rgba(10, 36, 114, 0.2);
         }
-        .fcard-slider { border-radius: 18px; }
+        .fcard-slider { border-radius: var(--radius-3xl); }
         .fcard-top {
           position: absolute; top: 12px; left: 12px; right: 12px;
           display: flex; gap: 6px; align-items: flex-start;
@@ -1718,24 +1710,24 @@ const Landing = () => {
         }
         .fchip {
           display: inline-flex; align-items: center; gap: 5px;
-          padding: 5px 10px; border-radius: 8px;
+          padding: 5px 10px; border-radius: var(--radius-md);
           font-size: 10px; font-weight: 700;
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
           letter-spacing: 0.05em;
         }
         .fchip-spotlight {
-          background: rgba(36, 69, 59, 0.9);
-          color: #F0D9A8;
+          background: rgba(10, 36, 114, 0.9);
+          color: var(--color-premium-light);
           text-transform: uppercase;
           letter-spacing: 0.1em;
         }
         .fchip-spotlight.is-premium {
-          background: rgba(217, 154, 59, 0.95);
-          color: #201F1B;
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
         }
         .fchip-cat {
-          color: #F7F1E3;
+          color: var(--color-text-inverse);
           text-transform: none;
           letter-spacing: 0.02em;
           font-weight: 600;
@@ -1749,30 +1741,30 @@ const Landing = () => {
           padding: 7px 11px;
           border: none; cursor: pointer;
           border-radius: 999px;
-          background: rgba(22, 38, 31, 0.55);
+          background: rgba(10, 36, 114, 0.55);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
-          color: #F7F1E3;
+          color: var(--color-text-inverse);
           font-size: 11.5px; font-weight: 600;
           font-family: inherit;
           transition: background 0.2s, transform 0.15s;
         }
-        .fcard-heart:hover { background: rgba(22, 38, 31, 0.78); transform: scale(1.04); }
+        .fcard-heart:hover { background: rgba(10, 36, 114, 0.78); transform: scale(1.04); }
         .fcard-heart.liked {
-          background: linear-gradient(135deg, #BC5B34 0%, #A04724 100%);
-          box-shadow: 0 4px 14px rgba(188, 91, 52, 0.35);
+          background: var(--color-accent);
+          box-shadow: var(--shadow-accent);
         }
         .fcard-glass {
           position: absolute;
           left: 12px; right: 12px; bottom: 12px;
           z-index: 2;
           padding: 13px 15px 12px;
-          border-radius: 14px;
-          background: rgba(22, 38, 31, 0.55);
+          border-radius: var(--radius-2xl);
+          background: rgba(10, 36, 114, 0.55);
           backdrop-filter: blur(16px) saturate(150%);
           -webkit-backdrop-filter: blur(16px) saturate(150%);
-          border: 1px solid rgba(247, 241, 227, 0.16);
-          color: #F7F1E3;
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          color: var(--color-text-inverse);
           display: flex; flex-direction: column; gap: 8px;
         }
         .fcard-glass-row {
@@ -1780,20 +1772,20 @@ const Landing = () => {
         }
         .fcard-title {
           flex: 1;
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 17px; font-weight: 600;
           line-height: 1.2;
-          color: #FFFDF8; margin: 0;
+          color: var(--color-text-inverse); margin: 0;
           cursor: pointer;
           display: -webkit-box; -webkit-line-clamp: 2;
           -webkit-box-orient: vertical; overflow: hidden;
           letter-spacing: -0.01em;
         }
-        .fcard-title:hover { color: #F0D9A8; }
+        .fcard-title:hover { color: var(--color-premium-light); }
         .fcard-price {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 16px; font-weight: 600;
-          color: #F0D9A8;
+          color: var(--color-premium-light);
           white-space: nowrap;
           letter-spacing: -0.01em;
           font-variant-numeric: tabular-nums;
@@ -1801,7 +1793,7 @@ const Landing = () => {
         .fcard-meta {
           display: flex; align-items: center; gap: 6px;
           font-size: 11px;
-          color: rgba(247, 241, 227, 0.8);
+          color: rgba(255, 255, 255, 0.8);
           overflow: hidden;
         }
         .fcard-seller {
@@ -1810,7 +1802,7 @@ const Landing = () => {
         }
         .fcard-dot {
           width: 3px; height: 3px; border-radius: 50%;
-          background: rgba(247, 241, 227, 0.5); flex-shrink: 0;
+          background: rgba(255, 255, 255, 0.5); flex-shrink: 0;
         }
         .fcard-loc {
           display: inline-flex; align-items: center; gap: 3px;
@@ -1819,32 +1811,32 @@ const Landing = () => {
         .fcard-delivery {
           margin-left: auto;
           display: inline-flex; align-items: center; gap: 4px;
-          padding: 3px 7px; border-radius: 6px;
-          background: rgba(247, 241, 227, 0.16);
+          padding: 3px 7px; border-radius: var(--radius-sm);
+          background: rgba(255, 255, 255, 0.16);
           font-size: 10px; font-weight: 600;
         }
         .fcard-actions {
           display: flex; align-items: center; gap: 8px;
           padding-top: 8px;
-          border-top: 1px solid rgba(247, 241, 227, 0.16);
+          border-top: 1px solid rgba(255, 255, 255, 0.16);
         }
         .fcard-action {
           display: inline-flex; align-items: center; gap: 5px;
           padding: 6px 10px;
-          background: rgba(247, 241, 227, 0.14);
+          background: rgba(255, 255, 255, 0.14);
           border: none; cursor: pointer;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           font-family: inherit;
           font-size: 11.5px; font-weight: 600;
-          color: #F7F1E3;
+          color: var(--color-text-inverse);
           transition: background 0.18s, transform 0.15s;
         }
-        .fcard-action:hover { background: rgba(247, 241, 227, 0.24); }
+        .fcard-action:hover { background: rgba(255, 255, 255, 0.24); }
         .fcard-msg {
           margin-left: auto;
-          background: #F7F1E3; color: #201F1B;
+          background: var(--color-surface); color: var(--color-text);
         }
-        .fcard-msg:hover { background: #F0D9A8; }
+        .fcard-msg:hover { background: var(--color-premium-light); }
         .fcard-msg:disabled { opacity: 0.6; cursor: not-allowed; }
 
         /* FEED */
@@ -1859,26 +1851,26 @@ const Landing = () => {
           gap: 10px;
         }
         .section-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-weight: 600; font-size: 17px;
-          margin: 0; color: #201F1B;
+          margin: 0; color: var(--color-text);
           letter-spacing: -0.01em;
           display: inline-flex; align-items: center; gap: 8px;
         }
         .section-title-count {
-          font-family: 'Work Sans', sans-serif;
+          font-family: var(--font-sans);
           font-size: 12px; font-weight: 500;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin-left: 2px;
         }
         .filter-btn {
-          width: 32px; height: 32px; border-radius: 9px;
-          border: 1px solid #EFE6CE; background: #FFFDF8;
+          width: 32px; height: 32px; border-radius: var(--radius-md);
+          border: 1px solid var(--color-border); background: var(--color-surface);
           cursor: pointer; display: flex;
           align-items: center; justify-content: center;
           transition: border-color 0.2s, transform 0.15s;
         }
-        .filter-btn:hover { border-color: #BC5B34; transform: translateY(-1px); }
+        .filter-btn:hover { border-color: var(--color-accent); transform: translateY(-1px); }
 
         .grid {
           display: grid;
@@ -1891,34 +1883,34 @@ const Landing = () => {
         /* PRODUCT CARD */
         .pcard {
           display: flex; flex-direction: column;
-          background: #FFFDF8;
-          border-radius: 14px;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           overflow: hidden;
           box-shadow:
-            0 1px 2px rgba(22, 38, 31, 0.04),
-            0 0 0 1px rgba(239, 230, 206, 0.85);
+            0 1px 2px rgba(10, 36, 114, 0.04),
+            0 0 0 1px var(--color-border);
           transition: transform 0.28s ease, box-shadow 0.28s ease;
         }
         .pcard:hover {
           transform: translateY(-3px);
           box-shadow:
-            0 2px 4px rgba(22, 38, 31, 0.05),
-            0 18px 36px rgba(22, 38, 31, 0.1),
-            0 0 0 1px rgba(217, 199, 158, 0.9);
+            0 2px 4px rgba(10, 36, 114, 0.05),
+            0 18px 36px rgba(10, 36, 114, 0.1),
+            0 0 0 1px var(--color-border-strong);
         }
         .pcard-media {
           position: relative;
           width: 100%;
-          background: #F0E9D6;
+          background: var(--color-surface-alt);
           overflow: hidden;
         }
         .pcard-cat {
           position: absolute;
           top: 8px; left: 8px;
           display: inline-flex; align-items: center;
-          padding: 3px 7px; border-radius: 6px;
+          padding: 3px 7px; border-radius: var(--radius-sm);
           font-size: 9px; font-weight: 700;
-          color: #F7F1E3;
+          color: var(--color-text-inverse);
           letter-spacing: 0.04em;
           text-transform: none;
           backdrop-filter: blur(8px);
@@ -1935,17 +1927,17 @@ const Landing = () => {
           width: 30px; height: 30px;
           border: none; cursor: pointer;
           border-radius: 999px;
-          background: rgba(22, 38, 31, 0.5);
+          background: rgba(10, 36, 114, 0.5);
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
           display: flex; align-items: center; justify-content: center;
           transition: background 0.2s, transform 0.15s;
           z-index: 5;
         }
-        .pcard-heart:hover { background: rgba(22, 38, 31, 0.72); transform: scale(1.06); }
+        .pcard-heart:hover { background: rgba(10, 36, 114, 0.72); transform: scale(1.06); }
         .pcard-heart.liked {
-          background: linear-gradient(135deg, #BC5B34 0%, #A04724 100%);
-          box-shadow: 0 4px 12px rgba(188, 91, 52, 0.4);
+          background: var(--color-accent);
+          box-shadow: var(--shadow-accent);
           animation: heartPop 0.35s ease;
         }
         @keyframes heartPop {
@@ -1958,8 +1950,8 @@ const Landing = () => {
           bottom: 8px; left: 8px;
           display: inline-flex; align-items: center; justify-content: center;
           width: 22px; height: 22px;
-          border-radius: 6px;
-          background: rgba(22, 38, 31, 0.75);
+          border-radius: var(--radius-sm);
+          background: rgba(10, 36, 114, 0.75);
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
           z-index: 4;
@@ -1970,29 +1962,29 @@ const Landing = () => {
         }
         .pcard-price { display: flex; align-items: baseline; }
         .pcard-price-value {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 15.5px; font-weight: 600;
-          color: #24453B;
+          color: var(--color-primary);
           letter-spacing: -0.015em;
           font-variant-numeric: tabular-nums;
         }
         .pcard-price-muted {
           font-size: 11.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           font-style: italic;
           font-weight: 500;
         }
         .pcard-title {
           font-size: 13px; font-weight: 600; line-height: 1.32;
-          color: #201F1B; margin: 0; cursor: pointer;
+          color: var(--color-text); margin: 0; cursor: pointer;
           display: -webkit-box; -webkit-line-clamp: 2;
           -webkit-box-orient: vertical; overflow: hidden;
           letter-spacing: -0.005em;
         }
-        .pcard-title:hover { color: #24453B; }
+        .pcard-title:hover { color: var(--color-primary); }
         .pcard-meta {
           display: flex; align-items: center; gap: 5px;
-          font-size: 10.5px; color: #9C9482;
+          font-size: 10.5px; color: var(--color-text-muted);
           overflow: hidden;
           margin-top: 1px;
         }
@@ -2009,7 +2001,7 @@ const Landing = () => {
         }
         .pcard-dot {
           width: 3px; height: 3px; border-radius: 50%;
-          background: #D9C79E; flex-shrink: 0;
+          background: var(--color-border-strong); flex-shrink: 0;
         }
         .pcard-loc {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -2017,32 +2009,32 @@ const Landing = () => {
         .pcard-actions {
           display: flex; align-items: center; gap: 4px;
           margin-top: 3px; padding-top: 8px;
-          border-top: 1px solid #F2EBD9;
+          border-top: 1px solid var(--color-border);
         }
         .pcard-icon-btn {
           display: inline-flex; align-items: center; gap: 4px;
           background: none; border: none;
-          padding: 5px 7px; border-radius: 8px;
+          padding: 5px 7px; border-radius: var(--radius-md);
           font-size: 11px; font-weight: 500;
-          color: #8A8578; cursor: pointer;
+          color: var(--color-text-secondary); cursor: pointer;
           font-family: inherit;
           transition: background 0.15s, color 0.15s, transform 0.1s;
         }
-        .pcard-icon-btn:hover { background: rgba(188, 91, 52, 0.08); color: #201F1B; }
+        .pcard-icon-btn:hover { background: var(--color-accent-tint); color: var(--color-text); }
         .pcard-icon-btn:active { transform: scale(0.96); }
-        .pcard-icon-btn.liked { color: #BC5B34; font-weight: 700; }
+        .pcard-icon-btn.liked { color: var(--color-accent); font-weight: 700; }
 
         .pcard-msg {
           margin-left: auto;
           display: inline-flex; align-items: center; gap: 5px;
-          background: #24453B; color: #F7F1E3;
-          padding: 5px 10px; border-radius: 8px;
+          background: var(--color-primary); color: var(--color-text-inverse);
+          padding: 5px 10px; border-radius: var(--radius-md);
           border: none; cursor: pointer;
           font-family: inherit;
           font-size: 10.5px; font-weight: 600;
           transition: background 0.2s, transform 0.15s;
         }
-        .pcard-msg:hover { background: #BC5B34; }
+        .pcard-msg:hover { background: var(--color-accent); }
         .pcard-msg:disabled { opacity: 0.55; cursor: not-allowed; }
 
         /* BUSINESSES */
@@ -2056,26 +2048,26 @@ const Landing = () => {
         .biz-card {
           flex: 0 0 auto;
           display: flex; align-items: center; gap: 10px;
-          width: 170px; background: #FFFDF8;
-          border: 1px solid #EFE6CE; border-radius: 12px;
+          width: 170px; background: var(--color-surface);
+          border: 1px solid var(--color-border); border-radius: var(--radius-xl);
           padding: 9px 11px; text-align: left;
           cursor: pointer; font-family: inherit;
           transition: border-color 0.2s, transform 0.15s;
         }
-        .biz-card:hover { border-color: #D9C79E; transform: translateY(-1px); }
+        .biz-card:hover { border-color: var(--color-accent); transform: translateY(-1px); }
         .biz-logo {
-          width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
-          background: #F7F1E3; border: 1px solid #EFE6CE;
+          width: 34px; height: 34px; border-radius: var(--radius-md); flex-shrink: 0;
+          background: var(--color-surface-alt); border: 1px solid var(--color-border);
           display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
         .biz-logo img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .biz-text { min-width: 0; }
         .biz-name {
-          font-size: 12px; font-weight: 600; color: #201F1B;
+          font-size: 12px; font-weight: 600; color: var(--color-text);
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .biz-cat {
-          font-size: 10px; color: #9C9482; margin-top: 1px;
+          font-size: 10px; color: var(--color-text-muted); margin-top: 1px;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
@@ -2083,7 +2075,7 @@ const Landing = () => {
         .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
-          background: rgba(22, 38, 31, 0.5);
+          background: rgba(10, 36, 114, 0.5);
           backdrop-filter: blur(4px);
           -webkit-backdrop-filter: blur(4px);
           display: flex; align-items: flex-end; justify-content: center;
@@ -2095,10 +2087,10 @@ const Landing = () => {
           max-width: 560px;
           height: 88vh;
           max-height: 88vh;
-          background: #FFFDF8;
-          border-top-left-radius: 20px;
-          border-top-right-radius: 20px;
-          box-shadow: 0 -20px 60px rgba(22, 38, 31, 0.3);
+          background: var(--color-surface);
+          border-top-left-radius: var(--radius-3xl);
+          border-top-right-radius: var(--radius-3xl);
+          box-shadow: 0 -20px 60px rgba(10, 36, 114, 0.3);
           display: flex; flex-direction: column;
           animation: popUp 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
           overflow: hidden;
@@ -2113,24 +2105,24 @@ const Landing = () => {
             max-height: 86vh;
             min-height: 70vh;
             margin-bottom: 24px;
-            border-radius: 20px;
+            border-radius: var(--radius-3xl);
           }
         }
         .pop-handle {
           width: 42px; height: 4px;
-          background: #E4D9BD; border-radius: 4px;
+          background: var(--color-border-strong); border-radius: 4px;
           margin: 8px auto 0; flex-shrink: 0;
         }
         .pop-preview {
           display: flex; align-items: center; gap: 10px;
           padding: 10px 14px 10px;
-          border-bottom: 1px solid #EFE6CE;
+          border-bottom: 1px solid var(--color-border);
           flex-shrink: 0;
         }
         .pop-thumb {
-          width: 42px; height: 42px; border-radius: 10px;
-          overflow: hidden; background: #F0E9D6;
-          flex-shrink: 0; border: 1px solid #EFE6CE;
+          width: 42px; height: 42px; border-radius: var(--radius-lg);
+          overflow: hidden; background: var(--color-surface-alt);
+          flex-shrink: 0; border: 1px solid var(--color-border);
         }
         .pop-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .pop-thumb-fallback {
@@ -2139,51 +2131,51 @@ const Landing = () => {
         }
         .pop-preview-text { flex: 1; min-width: 0; }
         .pop-preview-title {
-          font-size: 13px; font-weight: 600; color: #201F1B;
+          font-size: 13px; font-weight: 600; color: var(--color-text);
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .pop-preview-sub {
-          font-size: 11px; color: #9C9482; margin-top: 1px;
+          font-size: 11px; color: var(--color-text-muted); margin-top: 1px;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .pop-close {
           width: 30px; height: 30px;
-          border-radius: 8px;
-          border: 1px solid #EFE6CE;
-          background: #FFFDF8;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; flex-shrink: 0;
           transition: background 0.18s, border-color 0.18s;
         }
-        .pop-close:hover { background: #F7F1E3; border-color: #D9C79E; }
+        .pop-close:hover { background: var(--color-surface-alt); border-color: var(--color-border-strong); }
         .pop-body {
           flex: 1;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
           padding: 12px 14px 18px;
-          background: #FFFFFF;
+          background: var(--color-surface);
         }
-        .pop-body :global(.cs-title) { color: #101010; font-weight: 700; }
-        .pop-body :global(.cs-subtitle) { color: #6B6259; }
-        .pop-body :global(.cmt-name) { color: #101010; }
-        .pop-body :global(.cmt-text) { color: #1F1B15; }
-        .pop-body :global(.cmt-time) { color: #6B6259; }
-        .pop-body :global(.cmt-act) { color: #5A554C; font-weight: 600; }
+        .pop-body :global(.cs-title) { color: var(--color-text); font-weight: 700; }
+        .pop-body :global(.cs-subtitle) { color: var(--color-text-secondary); }
+        .pop-body :global(.cmt-name) { color: var(--color-text); }
+        .pop-body :global(.cmt-text) { color: var(--color-text); }
+        .pop-body :global(.cmt-time) { color: var(--color-text-secondary); }
+        .pop-body :global(.cmt-act) { color: var(--color-text-secondary); font-weight: 600; }
 
         /* EMPTY */
         .empty-state { text-align: center; padding: 56px 20px; }
         .empty-title {
-          font-family: 'Fraunces', Georgia, serif;
-          font-size: 17px; font-weight: 600; color: #201F1B; margin: 12px 0 4px;
+          font-family: var(--font-serif);
+          font-size: 17px; font-weight: 600; color: var(--color-text); margin: 12px 0 4px;
         }
-        .empty-desc { font-size: 13px; color: #9C9482; margin: 0; }
+        .empty-desc { font-size: 13px; color: var(--color-text-muted); margin: 0; }
 
         /* BOTTOM NAV */
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
-          background: rgba(255, 253, 248, 0.97);
+          background: rgba(255, 255, 255, 0.97);
           backdrop-filter: blur(14px);
-          border-top: 1px solid #EFE6CE;
+          border-top: 1px solid var(--color-border);
           display: flex; justify-content: space-around;
           padding: 6px 0 10px; z-index: 100;
         }
@@ -2194,14 +2186,14 @@ const Landing = () => {
           font-family: inherit; min-width: 44px;
         }
         .nav-icon-wrap {
-          width: 34px; height: 34px; border-radius: 9px;
+          width: 34px; height: 34px; border-radius: var(--radius-md);
           display: flex; align-items: center; justify-content: center;
           transition: background 0.2s, transform 0.15s;
         }
-        .nav-icon-wrap.active { background: #24453B; }
-        .nav-btn:hover .nav-icon-wrap:not(.active) { background: #F0E9D6; }
-        .nav-label { font-size: 9px; font-weight: 500; color: #9C9482; }
-        .nav-label.active { color: #201F1B; font-weight: 600; }
+        .nav-icon-wrap.active { background: var(--color-primary); box-shadow: var(--shadow-primary); }
+        .nav-btn:hover .nav-icon-wrap:not(.active) { background: var(--color-surface-alt); }
+        .nav-label { font-size: 9px; font-weight: 500; color: var(--color-text-muted); }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
 
         @media (max-width: 480px) {
           .hero-block { padding: 22px 16px 48px; }

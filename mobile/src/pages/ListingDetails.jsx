@@ -7,12 +7,12 @@ import {
   reviewsAPI,
   analyticsAPI,
   messagesAPI,
-  paymentAPI,
   interactionsAPI,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
+import BoostModal from '../components/BoostModal';
 
 // ============================================================
 // ICONS
@@ -49,7 +49,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     refresh: 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
     externalLink: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3',
     heart: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
-    /* ★ FIRE — used for listing likes ("flame on") */
     fire: 'M12 2c1.5 3.5 4 5.5 4 9a4 4 0 11-8 0c0-1.4.5-2.5 1.2-3.4.3-.4.6-.9.8-1.4.2-.5.2-1 0-1.4-.2-.4-.3-.6-.3-.8 0-.3.2-.6.5-.7.3-.2.6-.1.8.2.6.7.8 1.4.5 2.5.7-.5 1.2-1.1 1.5-1.9.1-.4.1-.7 0-1 0-.2 0-.4.2-.5.2-.1.4-.1.5 0 .3.3.4.6.3.9z',
     comment: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
     shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
@@ -66,9 +65,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-/* ---------- Live Burning Fire Icon ----------
- * Clean gradient flame — no glow circle. Used for the "Fresh" badge.
- */
 const BurningFire = ({ size = 16 }) => (
   <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
     <svg viewBox="0 0 24 24" width={size} height={size} className="burning-fire-svg">
@@ -103,9 +99,8 @@ const BurningFire = ({ size = 16 }) => (
 );
 
 // ============================================================
-// HELPERS
+// HELPERS (unchanged — same business logic)
 // ============================================================
-
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 const isFreshListing = (item) => {
@@ -223,286 +218,6 @@ const daysUntil = (date) => {
 };
 
 // ============================================================
-// BOOST MODAL
-// ============================================================
-const BOOST_PLANS = [
-  { days: 7, label: '7 days', price: 'MK 2,000', amount: 2000, popular: true },
-  { days: 14, label: '14 days', price: 'MK 3,500', amount: 3500 },
-  { days: 30, label: '30 days', price: 'MK 6,000', amount: 6000, best: true },
-];
-
-const BoostModal = ({ listing, onClose, onActivated }) => {
-  const navigate = useNavigate();
-  const { showToast, success } = useToast();
-  const [stage, setStage] = useState('pick');
-  const [days, setDays] = useState(7);
-  const [message, setMessage] = useState('');
-  const [paymentRef, setPaymentRef] = useState(null);
-  const pollTimerRef = useRef(null);
-
-  useEffect(() => () => {
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-  }, []);
-
-  const selectedPlan = BOOST_PLANS.find((p) => p.days === days) || BOOST_PLANS[0];
-
-  const startPayment = async () => {
-    setStage('processing');
-    setMessage('');
-    try {
-      const res = await paymentAPI.initiatePayment({
-        purpose: 'listing_boost',
-        listingId: listing?.id,
-        durationDays: days,
-        amount: selectedPlan.amount,
-        currency: 'MWK',
-      });
-      const data = res?.data || {};
-
-      if (data.checkoutUrl) {
-        setPaymentRef(data.reference || data.txRef);
-        window.open(data.checkoutUrl, '_blank', 'noopener');
-        setStage('pending');
-        startPolling(data.reference || data.txRef);
-        return;
-      }
-      if (data.instructions) {
-        setPaymentRef(data.reference || data.txRef);
-        setMessage(data.instructions);
-        setStage('pending');
-        startPolling(data.reference || data.txRef);
-        return;
-      }
-      if (data.pending) {
-        setMessage(data.message || 'Your request has been received.');
-        setStage('manual');
-        return;
-      }
-      if (data.listing) {
-        success('Your listing is now in the Spotlight ✨');
-        setStage('success');
-        onActivated?.(data.listing);
-        return;
-      }
-      setMessage('Your request is being finalised.');
-      setStage('manual');
-    } catch (err) {
-      const status = err?.response?.status;
-      const serverMsg = err?.response?.data?.error;
-      if (status === 404 || status === 501 || /not configured|not implemented/i.test(serverMsg || '')) {
-        setMessage('Boost payments are being set up. Our team will activate your listing shortly.');
-        setStage('manual');
-        return;
-      }
-      setMessage(serverMsg || 'Could not start the payment. Please try again.');
-      setStage('failed');
-    }
-  };
-
-  const startPolling = (reference) => {
-    if (!reference) return;
-    let attempts = 0;
-    const MAX_ATTEMPTS = 60;
-    pollTimerRef.current = setInterval(async () => {
-      attempts += 1;
-      try {
-        const res = await paymentAPI.verifyPayment(reference);
-        const data = res?.data || {};
-        if (data.status === 'paid' || data.status === 'success') {
-          clearInterval(pollTimerRef.current);
-          success('Payment confirmed — your listing is now in the Spotlight ✨');
-          setStage('success');
-          onActivated?.(data.listing);
-          return;
-        }
-        if (data.status === 'failed' || data.status === 'cancelled') {
-          clearInterval(pollTimerRef.current);
-          setMessage(data.message || 'Payment was not completed.');
-          setStage('failed');
-          return;
-        }
-      } catch {}
-      if (attempts >= MAX_ATTEMPTS) {
-        clearInterval(pollTimerRef.current);
-        setMessage("We couldn't confirm your payment in time.");
-        setStage('manual');
-      }
-    }, 3000);
-  };
-
-  return (
-    <div className="boost-overlay" onClick={onClose}>
-      <div className="boost-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="boost-head">
-          <div className="boost-head-icon">
-            <Icon name="crown" size={22} color="#F0D9A8" strokeWidth={2} />
-          </div>
-          <div className="boost-head-text">
-            <h3 className="boost-title">Boost to Spotlight</h3>
-            <p className="boost-sub">
-              {stage === 'success' ? 'Your listing is featured' : 'Get more eyes on your listing'}
-            </p>
-          </div>
-          <button className="boost-close" onClick={onClose} aria-label="Close">
-            <Icon name="close" size={16} color="#201F1B" strokeWidth={2.2} />
-          </button>
-        </div>
-
-        <div className="boost-body">
-          {stage === 'pick' && (
-            <>
-              <p className="boost-preview-title">{listing?.title}</p>
-              <div className="boost-benefits">
-                <div className="boost-benefit">
-                  <span className="boost-benefit-icon">
-                    <Icon name="sparkles" size={14} color="#BC5B34" strokeWidth={2.2} />
-                  </span>
-                  <div>
-                    <div className="boost-benefit-title">Top of the homepage</div>
-                    <div className="boost-benefit-desc">Appear in the Spotlight strip</div>
-                  </div>
-                </div>
-                <div className="boost-benefit">
-                  <span className="boost-benefit-icon">
-                    <Icon name="crown" size={14} color="#BC5B34" strokeWidth={2.2} />
-                  </span>
-                  <div>
-                    <div className="boost-benefit-title">Premium crown badge</div>
-                    <div className="boost-benefit-desc">Stand out with a gold highlight</div>
-                  </div>
-                </div>
-                <div className="boost-benefit">
-                  <span className="boost-benefit-icon">
-                    <Icon name="zap" size={14} color="#BC5B34" strokeWidth={2.2} />
-                  </span>
-                  <div>
-                    <div className="boost-benefit-title">More views & messages</div>
-                    <div className="boost-benefit-desc">Premium listings get more attention</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="boost-section-label">Choose duration</div>
-              <div className="boost-options">
-                {BOOST_PLANS.map((opt) => {
-                  const active = days === opt.days;
-                  return (
-                    <button
-                      key={opt.days}
-                      type="button"
-                      className={`boost-option ${active ? 'active' : ''}`}
-                      onClick={() => setDays(opt.days)}
-                    >
-                      {opt.popular && <span className="boost-option-tag popular">Popular</span>}
-                      {opt.best && <span className="boost-option-tag best">Best value</span>}
-                      <span className="boost-option-days">{opt.label}</span>
-                      <span className="boost-option-price">{opt.price}</span>
-                      <span className="boost-option-check">
-                        {active && <Icon name="check" size={12} color="#F7F1E3" strokeWidth={2.6} />}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-          {stage === 'processing' && (
-            <div className="boost-status">
-              <span className="boost-status-spinner" />
-              <p className="boost-status-text">Starting your secure payment…</p>
-            </div>
-          )}
-          {stage === 'pending' && (
-            <div className="boost-status">
-              <span className="boost-status-spinner" />
-              <p className="boost-status-text">Waiting for payment confirmation…</p>
-              {message && <p className="boost-status-sub">{message}</p>}
-            </div>
-          )}
-          {stage === 'manual' && (
-            <div className="boost-status">
-              <div className="boost-status-badge amber">
-                <Icon name="clock" size={20} color="#92400E" strokeWidth={2} />
-              </div>
-              <p className="boost-status-text">Request received</p>
-              <p className="boost-status-sub">{message}</p>
-            </div>
-          )}
-          {stage === 'success' && (
-            <div className="boost-status">
-              <div className="boost-status-badge green">
-                <Icon name="check" size={22} color="#065F46" strokeWidth={2.6} />
-              </div>
-              <p className="boost-status-text">You're in the Spotlight ✨</p>
-            </div>
-          )}
-          {stage === 'failed' && (
-            <div className="boost-status">
-              <div className="boost-status-badge red">
-                <Icon name="alertCircle" size={20} color="#7F1D1D" strokeWidth={2} />
-              </div>
-              <p className="boost-status-text">Something went wrong</p>
-              <p className="boost-status-sub">{message}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="boost-foot">
-          {stage === 'pick' && (
-            <>
-              <button className="boost-cancel" onClick={onClose}>Cancel</button>
-              <button className="boost-confirm" onClick={startPayment}>
-                <Icon name="crown" size={14} color="#F7F1E3" strokeWidth={2.2} />
-                Boost now · {selectedPlan.price}
-              </button>
-            </>
-          )}
-          {stage === 'processing' && (
-            <button className="boost-cancel wide" disabled>Please wait…</button>
-          )}
-          {stage === 'pending' && (
-            <>
-              <button className="boost-cancel" onClick={onClose}>Keep in background</button>
-              <button
-                className="boost-confirm"
-                onClick={() => {
-                  if (paymentRef) startPolling(paymentRef);
-                  showToast('Checking payment status…', 'info');
-                }}
-              >
-                <Icon name="refresh" size={14} color="#F7F1E3" strokeWidth={2.2} />
-                Check now
-              </button>
-            </>
-          )}
-          {stage === 'manual' && (
-            <button className="boost-confirm wide" onClick={onClose}>Got it</button>
-          )}
-          {stage === 'success' && (
-            <button
-              className="boost-confirm wide"
-              onClick={() => { onClose(); navigate('/landing'); }}
-            >
-              <Icon name="externalLink" size={14} color="#F7F1E3" strokeWidth={2.2} />
-              See it on the homepage
-            </button>
-          )}
-          {stage === 'failed' && (
-            <>
-              <button className="boost-cancel" onClick={onClose}>Close</button>
-              <button className="boost-confirm" onClick={() => setStage('pick')}>
-                <Icon name="refresh" size={14} color="#F7F1E3" strokeWidth={2.2} />
-                Try again
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ============================================================
 // MAIN COMPONENT
 // ============================================================
 const ListingDetails = () => {
@@ -529,11 +244,8 @@ const ListingDetails = () => {
   const [showComments, setShowComments] = useState(false);
   const [liking, setLiking] = useState(false);
 
-  // ★ Real interaction state
   const [likeState, setLikeState] = useState({ liked: false, count: 0 });
   const [commentCount, setCommentCount] = useState(0);
-
-  // ★ Seller fallback
   const [resolvedBusiness, setResolvedBusiness] = useState(null);
 
   const isMobile = windowWidth <= 768;
@@ -698,7 +410,6 @@ const ListingDetails = () => {
     [user, navigate, location.pathname]
   );
 
-  // ---- FLAME (real, persisted) ----
   const handleLike = async () => {
     if (!requireAuth('flame this listing')) return;
     if (liking) return;
@@ -970,14 +681,14 @@ const ListingDetails = () => {
           <div className="skeleton-button" />
         </div>
         <style jsx>{`
-          .loading-skeleton { min-height: 100vh; background: #f8fafc; padding: 16px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
-          .skeleton-header { height: 50px; background: #e2e8f0; border-radius: 12px; margin-bottom: 16px; animation: pulse 1.5s ease-in-out infinite; }
-          .skeleton-image { height: 200px; background: #e2e8f0; border-radius: 12px; margin-bottom: 16px; animation: pulse 1.5s ease-in-out infinite; }
+          .loading-skeleton { min-height: 100vh; background: var(--color-bg); padding: 16px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; }
+          .skeleton-header { height: 50px; background: var(--color-border); border-radius: var(--radius-xl); margin-bottom: 16px; animation: pulse 1.5s ease-in-out infinite; }
+          .skeleton-image { height: 200px; background: var(--color-border); border-radius: var(--radius-xl); margin-bottom: 16px; animation: pulse 1.5s ease-in-out infinite; }
           .skeleton-content { display: flex; flex-direction: column; gap: 10px; }
-          .skeleton-title { height: 30px; width: 70%; background: #e2e8f0; border-radius: 8px; animation: pulse 1.5s ease-in-out infinite; }
-          .skeleton-line { height: 16px; background: #e2e8f0; border-radius: 8px; animation: pulse 1.5s ease-in-out infinite; }
+          .skeleton-title { height: 30px; width: 70%; background: var(--color-border); border-radius: var(--radius-md); animation: pulse 1.5s ease-in-out infinite; }
+          .skeleton-line { height: 16px; background: var(--color-border); border-radius: var(--radius-md); animation: pulse 1.5s ease-in-out infinite; }
           .skeleton-line.short { width: 60%; }
-          .skeleton-button { height: 48px; background: #e2e8f0; border-radius: 10px; margin-top: 8px; animation: pulse 1.5s ease-in-out infinite; }
+          .skeleton-button { height: 48px; background: var(--color-border); border-radius: var(--radius-lg); margin-top: 8px; animation: pulse 1.5s ease-in-out infinite; }
           @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         `}</style>
       </div>
@@ -993,16 +704,16 @@ const ListingDetails = () => {
           The listing you're looking for doesn't exist or has been removed.
         </p>
         <button className="btn-primary" onClick={() => navigate('/landing')}>
-          <Icon name="arrowLeft" size={16} color="#FFFFFF" strokeWidth={1.75} />
+          <Icon name="arrowLeft" size={16} color="var(--color-text-inverse)" strokeWidth={1.75} />
           Back to marketplace
         </button>
         <style jsx>{`
-          .error-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: #f8fafc; padding: 20px; text-align: center; }
+          .error-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: var(--color-bg); padding: 20px; text-align: center; }
           .error-icon { font-size: 48px; }
-          .error-title { color: #1e293b; font-size: clamp(18px, 2vw, 20px); font-weight: 700; margin: 0; }
-          .error-text { color: #94a3b8; margin: 0 0 8px; font-size: clamp(14px, 1.2vw, 15px); }
-          .btn-primary { padding: 10px 24px; background: #1e293b; border: none; border-radius: 10px; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
-          .btn-primary:hover { background: #f59e0b; transform: scale(0.98); }
+          .error-title { color: var(--color-text); font-size: clamp(18px, 2vw, 20px); font-weight: 700; margin: 0; }
+          .error-text { color: var(--color-text-muted); margin: 0 0 8px; font-size: clamp(14px, 1.2vw, 15px); }
+          .btn-primary { padding: 10px 24px; background: var(--color-accent); border: none; border-radius: var(--radius-lg); color: var(--color-text-inverse); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; box-shadow: var(--shadow-accent); }
+          .btn-primary:hover { background: var(--color-accent-hover); transform: scale(0.98); }
         `}</style>
       </div>
     );
@@ -1029,14 +740,14 @@ const ListingDetails = () => {
     <div className={`listing-details ${isMobile && !isOwnListing ? 'has-sticky-bar' : ''}`}>
       <div className="main-content">
         <button className="back-btn" onClick={() => navigate(-1)}>
-          <Icon name="arrowLeft" size={18} color="#1E293B" strokeWidth={1.75} />
+          <Icon name="arrowLeft" size={18} color="var(--color-text)" strokeWidth={1.75} />
           <span>Back</span>
         </button>
 
         {isOwnListing && !premium && (
           <div className="boost-card">
             <div className="boost-card-icon">
-              <Icon name="crown" size={20} color="#201F1B" strokeWidth={2.2} />
+              <Icon name="crown" size={20} color="var(--color-primary)" strokeWidth={2.2} />
             </div>
             <div className="boost-card-text">
               <div className="boost-card-title">Boost to Spotlight</div>
@@ -1052,7 +763,7 @@ const ListingDetails = () => {
         {isOwnListing && premium && (
           <div className={`boost-card boost-card-active ${daysLeft <= 2 ? 'expiring' : ''}`}>
             <div className="boost-card-icon active">
-              <Icon name="crown" size={20} color="#F0D9A8" strokeWidth={2.2} />
+              <Icon name="crown" size={20} color="var(--color-text-inverse)" strokeWidth={2.2} />
             </div>
             <div className="boost-card-text">
               <div className="boost-card-title">
@@ -1070,19 +781,18 @@ const ListingDetails = () => {
               </div>
             </div>
             <button className="boost-card-btn renew" onClick={() => setShowBoostModal(true)}>
-              <Icon name="refresh" size={13} color="#201F1B" strokeWidth={2.4} />
+              <Icon name="refresh" size={13} color="var(--color-text)" strokeWidth={2.4} />
               Renew
             </button>
           </div>
         )}
         {isDev && isOwnListing && (
           <button className="dev-toggle" onClick={devTogglePremium}>
-            <Icon name="zap" size={12} color="#7A5A16" strokeWidth={2.4} />
+            <Icon name="zap" size={12} color="var(--color-accent-hover)" strokeWidth={2.4} />
             DEV: {premium ? 'Remove premium' : 'Make premium'} (local only)
           </button>
         )}
 
-        {/* LISTING CARD */}
         <div className="listing-card">
           {images.length > 0 ? (
             <div className="gallery">
@@ -1110,7 +820,7 @@ const ListingDetails = () => {
                       onClick={() => setImageIdx((imageIdx - 1 + images.length) % images.length)}
                       aria-label="Previous photo"
                     >
-                      <Icon name="chevronLeft" size={16} color="#FFFFFF" strokeWidth={2.4} />
+                      <Icon name="chevronLeft" size={16} color="var(--color-text-inverse)" strokeWidth={2.4} />
                     </button>
                     <button
                       type="button"
@@ -1118,7 +828,7 @@ const ListingDetails = () => {
                       onClick={() => setImageIdx((imageIdx + 1) % images.length)}
                       aria-label="Next photo"
                     >
-                      <Icon name="chevronRight" size={16} color="#FFFFFF" strokeWidth={2.4} />
+                      <Icon name="chevronRight" size={16} color="var(--color-text-inverse)" strokeWidth={2.4} />
                     </button>
                     <span className="gallery-count">{imageIdx + 1}/{images.length}</span>
                   </>
@@ -1142,7 +852,7 @@ const ListingDetails = () => {
             </div>
           ) : (
             <div className="no-image">
-              <Icon name="image" size={48} color="#CBD5E1" strokeWidth={1.5} />
+              <Icon name="image" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
               <p>No image available</p>
             </div>
           )}
@@ -1165,7 +875,7 @@ const ListingDetails = () => {
             )}
             {listing.delivery_available && (
               <span className="badge badge-delivery">
-                <Icon name="delivery" size={12} color="#1E40AF" strokeWidth={1.75} />
+                <Icon name="delivery" size={12} color="var(--color-secondary-hover)" strokeWidth={1.75} />
                 Delivery
               </span>
             )}
@@ -1177,14 +887,13 @@ const ListingDetails = () => {
             )}
             {premium && (
               <span className="badge badge-premium">
-                <Icon name="crown" size={12} color="#7A5A16" strokeWidth={2} />
+                <Icon name="crown" size={12} color="var(--color-accent-hover)" strokeWidth={2} />
                 Premium
               </span>
             )}
           </div>
 
           <div className="engage-row">
-            {/* ★ FIRE — the "flame this listing" button */}
             <button
               className={`engage-btn like ${isLiked ? 'active' : ''}`}
               onClick={handleLike}
@@ -1194,15 +903,14 @@ const ListingDetails = () => {
               <Icon
                 name="fire"
                 size={18}
-                color={isLiked ? '#EA580C' : '#6B6259'}
+                color={isLiked ? 'var(--color-fire)' : 'var(--color-text-secondary)'}
                 strokeWidth={isLiked ? 2.3 : 1.8}
               />
               <span>{likeCount > 0 ? likeCount : 'Flame'}</span>
             </button>
 
-            {/* Comment button stays as a message bubble */}
             <button className="engage-btn comment" onClick={handleOpenComments}>
-              <Icon name="comment" size={16} color="#6B6259" strokeWidth={1.8} />
+              <Icon name="comment" size={16} color="var(--color-text-secondary)" strokeWidth={1.8} />
               <span>
                 {commentCount > 0
                   ? `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`
@@ -1218,36 +926,35 @@ const ListingDetails = () => {
           <div className="meta-row">
             {listing.location_area && (
               <span className="meta-item">
-                <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="mapPin" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 {listing.location_area}
               </span>
             )}
             {listing.quantity && (
               <span className="meta-item">
-                <Icon name="tag" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="tag" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 {listing.quantity} {listing.unit || 'units'}
               </span>
             )}
             {listing.delivery_fee && (
               <span className="meta-item">
-                <Icon name="delivery" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="delivery" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 Delivery: MK {listing.delivery_fee}
               </span>
             )}
             {listing.created_at && (
               <span className="meta-item">
-                <Icon name="clock" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="clock" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 {new Date(listing.created_at).toLocaleDateString()}
               </span>
             )}
           </div>
         </div>
 
-        {/* CONTACT THE SELLER */}
         {!isOwnListing && (
           <div className="contact-card">
             <h3 className="section-title">
-              <Icon name="store" size={20} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="store" size={20} color="var(--color-accent)" strokeWidth={1.75} />
               Contact the seller
             </h3>
 
@@ -1265,7 +972,7 @@ const ListingDetails = () => {
                   className="contact-btn primary wide"
                   onClick={() => navigate('/login', { state: { from: location.pathname } })}
                 >
-                  <Icon name="user" size={16} color="#FFFFFF" strokeWidth={2} />
+                  <Icon name="user" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                   Sign in to contact the seller
                 </button>
               ) : (
@@ -1282,7 +989,7 @@ const ListingDetails = () => {
                       </>
                     ) : (
                       <>
-                        <Icon name="message" size={16} color="#FFFFFF" strokeWidth={2} />
+                        <Icon name="message" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                         Message on Kumsika
                       </>
                     )}
@@ -1314,36 +1021,35 @@ const ListingDetails = () => {
 
             {sellerPhone && (
               <p className="contact-phone-row">
-                <Icon name="phone" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="phone" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 <span>{sellerPhone}</span>
               </p>
             )}
             {sellerBiz?.address && (
               <p className="contact-phone-row">
-                <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="mapPin" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 <span>{sellerBiz.address}</span>
               </p>
             )}
           </div>
         )}
 
-        {/* OWNER */}
         {isOwnListing && (
           <div className="contact-card">
             <h3 className="section-title">
-              <Icon name="store" size={20} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="store" size={20} color="var(--color-accent)" strokeWidth={1.75} />
               Your business
             </h3>
             <p className="business-name">{sellerName}</p>
             {sellerPhone && (
               <p className="contact-phone-row">
-                <Icon name="phone" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="phone" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 <span>{sellerPhone}</span>
               </p>
             )}
             {sellerBiz?.address && (
               <p className="contact-phone-row">
-                <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="mapPin" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 <span>{sellerBiz.address}</span>
               </p>
             )}
@@ -1352,18 +1058,17 @@ const ListingDetails = () => {
                 className="contact-btn primary"
                 onClick={() => navigate(`/create-listing?edit=${listing.id}`)}
               >
-                <Icon name="pencil" size={16} color="#FFFFFF" strokeWidth={2} />
+                <Icon name="pencil" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                 Edit listing
               </button>
             </div>
           </div>
         )}
 
-        {/* REVIEWS */}
         <div className="reviews-card">
           <div className="reviews-header">
             <h3 className="section-title">
-              <Icon name="star" size={20} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="star" size={20} color="var(--color-accent)" strokeWidth={1.75} />
               Reviews ({reviews.length})
             </h3>
             {isAuthenticated && (
@@ -1371,7 +1076,7 @@ const ListingDetails = () => {
                 className="btn-write-review"
                 onClick={() => setShowReviewForm(!showReviewForm)}
               >
-                <Icon name="pencil" size={14} color="#FFFFFF" strokeWidth={1.75} />
+                <Icon name="pencil" size={14} color="var(--color-text-inverse)" strokeWidth={1.75} />
                 Write review
               </button>
             )}
@@ -1431,10 +1136,9 @@ const ListingDetails = () => {
           )}
         </div>
 
-        {/* SHARE */}
         <div className="share-card">
           <h3 className="section-title">
-            <Icon name="share" size={18} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="share" size={18} color="var(--color-accent)" strokeWidth={1.75} />
             {isOwnListing ? 'Promote this listing' : 'Share this listing'}
           </h3>
           <p className="share-sub">
@@ -1463,7 +1167,6 @@ const ListingDetails = () => {
         </div>
       </div>
 
-      {/* STICKY CONTACT BAR */}
       {isMobile && !isOwnListing && (
         <div className="sticky-contact">
           {isAnonymous ? (
@@ -1471,7 +1174,7 @@ const ListingDetails = () => {
               className="sticky-btn primary wide"
               onClick={() => navigate('/login', { state: { from: location.pathname } })}
             >
-              <Icon name="user" size={16} color="#FFFFFF" strokeWidth={2} />
+              <Icon name="user" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
               Sign in to contact seller
             </button>
           ) : (
@@ -1485,7 +1188,7 @@ const ListingDetails = () => {
                   <span className="btn-spinner" />
                 ) : (
                   <>
-                    <Icon name="message" size={16} color="#FFFFFF" strokeWidth={2} />
+                    <Icon name="message" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                     Message
                   </>
                 )}
@@ -1522,7 +1225,6 @@ const ListingDetails = () => {
         </div>
       )}
 
-      {/* COMMENTS POP-UP */}
       {showComments && (
         <div className="pop-overlay" onClick={() => setShowComments(false)} role="dialog" aria-modal="true">
           <div className="pop" onClick={(e) => e.stopPropagation()}>
@@ -1533,7 +1235,7 @@ const ListingDetails = () => {
                   <img src={listing.images[0]} alt={listing.title} />
                 ) : (
                   <div className="pop-thumb-fallback">
-                    <Icon name="store" size={18} color="#BFA97B" strokeWidth={1.5} />
+                    <Icon name="store" size={18} color="var(--color-text-muted)" strokeWidth={1.5} />
                   </div>
                 )}
               </div>
@@ -1545,7 +1247,7 @@ const ListingDetails = () => {
                 </div>
               </div>
               <button className="pop-close" onClick={() => setShowComments(false)} aria-label="Close">
-                <Icon name="close" size={16} color="#201F1B" strokeWidth={2.2} />
+                <Icon name="close" size={16} color="var(--color-text)" strokeWidth={2.2} />
               </button>
             </div>
             <div className="pop-body">
@@ -1558,7 +1260,6 @@ const ListingDetails = () => {
         </div>
       )}
 
-      {/* BOOST MODAL */}
       {showBoostModal && (
         <BoostModal
           listing={listing}
@@ -1580,7 +1281,6 @@ const ListingDetails = () => {
         />
       )}
 
-      {/* BOTTOM NAV */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -1594,7 +1294,7 @@ const ListingDetails = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -1606,9 +1306,9 @@ const ListingDetails = () => {
       <style jsx>{`
         .listing-details {
           min-height: 100vh;
-          background: #f8fafc;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1e293b;
+          background: var(--color-bg);
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 80px;
         }
         @media (min-width: 769px) { .listing-details { padding-bottom: 0; } }
@@ -1622,82 +1322,80 @@ const ListingDetails = () => {
 
         .back-btn {
           display: inline-flex; align-items: center; gap: 6px;
-          padding: 8px 12px; background: #ffffff;
-          border: 1px solid #f1f5f9; border-radius: 10px;
-          font-size: 13px; font-weight: 500; color: #64748b;
+          padding: 8px 12px; background: var(--color-surface);
+          border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+          font-size: 13px; font-weight: 500; color: var(--color-text-secondary);
           cursor: pointer; font-family: inherit;
           transition: all 0.2s; margin-bottom: 16px;
         }
-        .back-btn:hover { background: #f1f5f9; border-color: #e2e8f0; }
+        .back-btn:hover { background: var(--color-surface-alt); border-color: var(--color-border-strong); }
 
         .boost-card {
           display: flex; align-items: center; gap: 12px;
           padding: 12px 14px;
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          border-radius: 12px; margin-bottom: 16px;
-          box-shadow: 0 8px 24px rgba(22, 38, 31, 0.18);
+          background: var(--color-primary);
+          border-radius: var(--radius-xl); margin-bottom: 16px;
+          box-shadow: var(--shadow-primary);
         }
         .boost-card-active {
-          background: linear-gradient(135deg, #D99A3B 0%, #B8802A 100%);
-          box-shadow: 0 8px 24px rgba(217, 154, 59, 0.28);
+          background: var(--color-accent);
+          box-shadow: var(--shadow-accent);
         }
         .boost-card-active.expiring {
-          background: linear-gradient(135deg, #BC5B34 0%, #8B3A1E 100%);
+          background: #BF3D11;
         }
         .boost-card-icon {
-          width: 40px; height: 40px; border-radius: 11px;
-          background: #F0D9A8;
+          width: 40px; height: 40px; border-radius: var(--radius-lg);
+          background: var(--color-accent-soft);
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
         .boost-card-icon.active { background: rgba(255, 255, 255, 0.22); }
         .boost-card-text { flex: 1; min-width: 0; }
         .boost-card-title {
-          font-size: 14px; font-weight: 700; color: #F7F1E3;
+          font-size: 14px; font-weight: 700; color: var(--color-text-inverse);
           display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
         }
-        .boost-card-active .boost-card-title { color: #FFFFFF; }
         .boost-days {
           padding: 2px 7px; border-radius: 5px;
           background: rgba(255, 255, 255, 0.22);
           font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
         }
         .boost-card-sub {
-          font-size: 12px; color: rgba(247, 241, 227, 0.7); margin-top: 2px;
+          font-size: 12px; color: rgba(255, 255, 255, 0.75); margin-top: 2px;
         }
-        .boost-card-active .boost-card-sub { color: rgba(255,255,255,0.85); }
         .boost-card-btn {
           display: inline-flex; align-items: center; gap: 5px;
-          padding: 8px 16px; background: #F0D9A8;
-          color: #201F1B; border: none; border-radius: 9px;
+          padding: 8px 16px; background: var(--color-surface);
+          color: var(--color-text); border: none; border-radius: var(--radius-md);
           font-size: 13px; font-weight: 700;
           font-family: inherit; cursor: pointer;
           transition: all 0.18s; flex-shrink: 0;
         }
-        .boost-card-btn:hover { background: #F7F1E3; transform: translateY(-1px); }
-        .boost-card-btn.renew { background: rgba(255, 255, 255, 0.9); }
+        .boost-card-btn:hover { background: var(--color-accent-soft); transform: translateY(-1px); }
+        .boost-card-btn.renew { background: var(--color-surface); }
 
         .dev-toggle {
           display: inline-flex; align-items: center; gap: 6px;
           padding: 6px 12px; margin-bottom: 12px;
-          background: #FEF3C7; border: 1px dashed #D99A3B;
-          border-radius: 8px; color: #7A5A16;
+          background: var(--color-accent-soft); border: 1px dashed var(--color-accent);
+          border-radius: var(--radius-md); color: var(--color-accent-hover);
           font-size: 11px; font-weight: 700;
           letter-spacing: 0.04em;
           cursor: pointer; font-family: inherit;
         }
 
         .listing-card {
-          background: #ffffff; border-radius: 12px;
+          background: var(--color-surface); border-radius: var(--radius-xl);
           padding: 16px 18px;
-          border: 1px solid #f1f5f9; margin-bottom: 16px;
+          border: 1px solid var(--color-border); margin-bottom: 16px;
         }
         .gallery { margin-bottom: 16px; }
         .gallery-viewport {
           position: relative; width: 100%;
           aspect-ratio: 4 / 3;
-          border-radius: 12px; overflow: hidden;
-          background: #f1f5f9;
+          border-radius: var(--radius-xl); overflow: hidden;
+          background: var(--color-surface-alt);
         }
         .gallery-track {
           display: flex; height: 100%; width: 100%;
@@ -1706,14 +1404,14 @@ const ListingDetails = () => {
         .gallery-image {
           flex: 0 0 100%; width: 100%; height: 100%;
           object-fit: cover; object-position: center;
-          display: block; background: #f1f5f9;
+          display: block; background: var(--color-surface-alt);
         }
         .gallery-arrow {
           position: absolute; top: 50%;
           transform: translateY(-50%);
           width: 34px; height: 34px;
           border: none; cursor: pointer; border-radius: 50%;
-          background: rgba(15, 23, 42, 0.55);
+          background: rgba(10, 36, 114, 0.55);
           backdrop-filter: blur(6px);
           display: flex; align-items: center; justify-content: center;
         }
@@ -1721,9 +1419,9 @@ const ListingDetails = () => {
         .gallery-arrow.right { right: 10px; }
         .gallery-count {
           position: absolute; right: 10px; top: 10px;
-          padding: 4px 9px; border-radius: 6px;
-          background: rgba(15, 23, 42, 0.6);
-          color: #fff; font-size: 11px; font-weight: 600;
+          padding: 4px 9px; border-radius: var(--radius-sm);
+          background: rgba(10, 36, 114, 0.6);
+          color: var(--color-text-inverse); font-size: 11px; font-weight: 600;
         }
         .gallery-thumbs {
           display: flex; gap: 8px;
@@ -1735,25 +1433,25 @@ const ListingDetails = () => {
           flex: 0 0 auto;
           width: 60px; height: 60px; padding: 0;
           border: 2px solid transparent;
-          border-radius: 8px; overflow: hidden;
-          cursor: pointer; background: #f1f5f9;
+          border-radius: var(--radius-md); overflow: hidden;
+          cursor: pointer; background: var(--color-surface-alt);
         }
         .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .gallery-thumb.active {
-          border-color: #f59e0b;
-          box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 2px var(--color-accent-tint);
         }
         .no-image {
           display: flex; flex-direction: column;
           align-items: center; justify-content: center;
-          background: #f8fafc; border-radius: 10px;
+          background: var(--color-surface-alt); border-radius: var(--radius-lg);
           padding: 24px; margin-bottom: 14px;
-          min-height: 120px; color: #94a3b8;
+          min-height: 120px; color: var(--color-text-muted);
         }
         .no-image p { margin: 8px 0 0; font-size: 14px; }
         .listing-title {
           font-size: clamp(20px, 2.5vw, 24px);
-          font-weight: 700; color: #1e293b;
+          font-weight: 700; color: var(--color-text);
           margin: 0 0 10px; line-height: 1.2;
         }
         .price-block {
@@ -1761,16 +1459,16 @@ const ListingDetails = () => {
           margin-bottom: 10px;
         }
         .price-value {
-          font-family: Georgia, serif;
+          font-family: var(--font-serif);
           font-size: clamp(24px, 3.4vw, 32px);
           font-weight: 700;
-          color: #1e293b;
+          color: var(--color-primary);
           letter-spacing: -0.02em;
         }
         .price-note {
-          font-size: 12px; color: #92400e;
-          background: #fef3c7; padding: 3px 8px;
-          border-radius: 6px; font-weight: 600;
+          font-size: 12px; color: var(--color-accent-hover);
+          background: var(--color-accent-soft); padding: 3px 8px;
+          border-radius: var(--radius-sm); font-weight: 600;
         }
         .badge-group {
           display: flex; gap: 6px; flex-wrap: wrap;
@@ -1781,13 +1479,12 @@ const ListingDetails = () => {
           font-size: 11px; font-weight: 600;
           display: inline-flex; align-items: center; gap: 3px;
         }
-        .badge-category { background: #ede9f5; color: #1e293b; }
-        .badge-sub { background: #f1f5f9; color: #64748b; }
-        .badge-delivery { background: #dbeafe; color: #1e40af; }
-        .badge-premium { background: #F0D9A8; color: #7A5A16; }
-        .badge-fresh { background: #FFEDD5; color: #C2410C; }
+        .badge-category { background: var(--color-primary-tint); color: var(--color-primary); }
+        .badge-sub { background: var(--color-surface-alt); color: var(--color-text-secondary); }
+        .badge-delivery { background: var(--color-info-bg); color: var(--color-secondary-hover); }
+        .badge-premium { background: var(--color-accent-soft); color: var(--color-accent-hover); }
+        .badge-fresh { background: var(--color-fire-bg); color: var(--color-fire); }
 
-        /* Burning fire — shared with Landing */
         .burning-fire {
           position: relative;
           display: inline-flex;
@@ -1833,61 +1530,60 @@ const ListingDetails = () => {
         .engage-row {
           display: flex; align-items: center; gap: 8px;
           padding: 10px 0 14px;
-          border-top: 1px solid #f1f5f9;
-          border-bottom: 1px solid #f1f5f9;
+          border-top: 1px solid var(--color-border);
+          border-bottom: 1px solid var(--color-border);
           margin-bottom: 14px;
         }
         .engage-btn {
           display: inline-flex; align-items: center; gap: 6px;
-          padding: 7px 12px; border-radius: 9px;
-          background: #f8fafc;
-          border: 1px solid #f1f5f9;
+          padding: 7px 12px; border-radius: var(--radius-md);
+          background: var(--color-surface-alt);
+          border: 1px solid var(--color-border);
           font-family: inherit;
           font-size: 13px; font-weight: 600;
-          color: #475569; cursor: pointer;
+          color: var(--color-text-secondary); cursor: pointer;
           transition: background 0.15s, border-color 0.15s, color 0.15s;
         }
-        /* ★ Flamed state — orange background + darker orange text */
         .engage-btn.like.active {
-          background: #FFF3E0;
-          border-color: #FDBA74;
-          color: #EA580C;
+          background: var(--color-fire-bg);
+          border-color: var(--color-fire);
+          color: var(--color-fire);
         }
         .engage-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .listing-description {
-          font-size: 14px; color: #64748b;
+          font-size: 14px; color: var(--color-text-secondary);
           line-height: 1.6; margin: 0 0 12px;
           white-space: pre-wrap;
         }
         .meta-row {
           display: flex; flex-wrap: wrap; gap: 14px;
-          padding-top: 12px; border-top: 1px solid #f1f5f9;
+          padding-top: 12px; border-top: 1px solid var(--color-border);
         }
         .meta-item {
           display: flex; align-items: center; gap: 4px;
-          font-size: 13px; color: #94a3b8;
+          font-size: 13px; color: var(--color-text-muted);
         }
 
         .contact-card, .reviews-card, .share-card {
-          background: #ffffff; border-radius: 12px;
+          background: var(--color-surface); border-radius: var(--radius-xl);
           padding: 16px 18px;
-          border: 1px solid #f1f5f9;
+          border: 1px solid var(--color-border);
           margin-bottom: 16px;
         }
         .section-title {
           font-size: 16px; font-weight: 700;
-          color: #1e293b; margin: 0 0 8px;
+          color: var(--color-text); margin: 0 0 8px;
           display: flex; align-items: center; gap: 8px;
         }
         .business-name {
           font-size: 15px; font-weight: 600;
-          color: #1e293b; margin: 0 0 4px;
+          color: var(--color-text); margin: 0 0 4px;
         }
-        .business-rating { color: #f59e0b; font-size: 14px; margin: 4px 0 0; }
+        .business-rating { color: var(--color-accent); font-size: 14px; margin: 4px 0 0; }
         .contact-phone-row {
           display: flex; align-items: center; gap: 6px;
-          font-size: 13px; color: #94a3b8; margin: 6px 0 0;
+          font-size: 13px; color: var(--color-text-muted); margin: 6px 0 0;
         }
 
         .contact-actions {
@@ -1899,8 +1595,8 @@ const ListingDetails = () => {
           gap: 8px;
           width: 100%;
           padding: 12px 16px;
-          border: none; border-radius: 10px;
-          color: #ffffff;
+          border: none; border-radius: var(--radius-lg);
+          color: var(--color-text-inverse);
           font-family: inherit;
           font-size: 14px; font-weight: 700;
           cursor: pointer;
@@ -1908,97 +1604,102 @@ const ListingDetails = () => {
         }
         .contact-btn:active:not(:disabled) { transform: scale(0.98); }
         .contact-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .contact-btn.primary { background: #f59e0b; }
-        .contact-btn.primary:hover:not(:disabled) { background: #d97706; }
+        .contact-btn.primary { background: var(--color-accent); box-shadow: var(--shadow-accent); }
+        .contact-btn.primary:hover:not(:disabled) { background: var(--color-accent-hover); }
         .contact-btn.whatsapp { background: #25d366; }
         .contact-btn.whatsapp:hover:not(:disabled) { background: #1da851; }
         .contact-btn.facebook { background: #1877f2; }
         .contact-btn.facebook:hover:not(:disabled) { background: #1462cf; }
-        .contact-btn.call { background: #1e293b; }
-        .contact-btn.call:hover:not(:disabled) { background: #0f172a; }
+        .contact-btn.call { background: var(--color-primary); }
+        .contact-btn.call:hover:not(:disabled) { background: var(--color-primary-hover); }
         .contact-btn.wide { width: 100%; }
 
         .btn-spinner {
           width: 14px; height: 14px;
           border: 2px solid rgba(255, 255, 255, 0.35);
-          border-top-color: #ffffff;
+          border-top-color: var(--color-text-inverse);
           border-radius: 50%;
           animation: spin 0.7s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
         .share-sub {
-          font-size: 12.5px; color: #94a3b8;
+          font-size: 12.5px; color: var(--color-text-muted);
           margin: 0 0 10px; line-height: 1.5;
         }
         .share-buttons {
           display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;
         }
         .share-btn {
-          padding: 8px 16px; border: none; border-radius: 9px;
-          font-size: 12px; font-weight: 600; color: #ffffff;
+          padding: 8px 16px; border: none; border-radius: var(--radius-md);
+          font-size: 12px; font-weight: 600; color: #FFFFFF;
           cursor: pointer; font-family: inherit;
           display: inline-flex; align-items: center; gap: 6px;
         }
         .share-btn.whatsapp { background: #25d366; }
         .share-btn.facebook { background: #1877f2; }
         .share-btn.twitter { background: #1da1f2; }
-        .share-btn.copy { background: #64748b; }
+        .share-btn.copy { background: var(--color-text-secondary); }
 
         .reviews-header {
           display: flex; justify-content: space-between;
           align-items: center; flex-wrap: wrap; gap: 8px;
         }
         .btn-write-review {
-          padding: 6px 16px; background: #1e293b;
-          border: none; border-radius: 10px;
-          color: #ffffff; font-weight: 600; font-size: 13px;
+          padding: 6px 16px; background: var(--color-primary);
+          border: none; border-radius: var(--radius-lg);
+          color: var(--color-text-inverse); font-weight: 600; font-size: 13px;
           cursor: pointer; font-family: inherit;
           display: inline-flex; align-items: center; gap: 6px;
+          box-shadow: var(--shadow-primary);
         }
         .review-form {
           margin-top: 12px; padding-top: 12px;
-          border-top: 1px solid #f1f5f9;
+          border-top: 1px solid var(--color-border);
         }
         .form-group { margin-bottom: 10px; }
         .form-label {
           display: block; font-size: 12px;
-          font-weight: 600; color: #475569; margin-bottom: 4px;
+          font-weight: 600; color: var(--color-text-secondary); margin-bottom: 4px;
         }
         .form-select, .form-textarea {
           width: 100%; padding: 6px 12px;
-          border: 1px solid #e2e8f0; border-radius: 8px;
-          font-size: 14px; color: #1e293b; outline: none;
-          font-family: inherit; background: #ffffff;
+          border: 1px solid var(--color-border); border-radius: var(--radius-md);
+          font-size: 14px; color: var(--color-text); outline: none;
+          font-family: inherit; background: var(--color-surface);
+        }
+        .form-select:focus, .form-textarea:focus {
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
         .form-textarea { resize: vertical; min-height: 60px; }
         .form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn-submit-review {
-          padding: 6px 20px; background: #10b981;
-          border: none; border-radius: 8px;
-          color: #ffffff; font-weight: 600; font-size: 13px;
+          padding: 6px 20px; background: var(--color-success);
+          border: none; border-radius: var(--radius-md);
+          color: var(--color-text-inverse); font-weight: 600; font-size: 13px;
           cursor: pointer; font-family: inherit;
         }
         .btn-submit-review:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-cancel-review {
-          padding: 6px 20px; background: #f1f5f9;
-          border: 1px solid #e2e8f0; border-radius: 8px;
-          color: #64748b; font-weight: 600; font-size: 13px;
+          padding: 6px 20px; background: var(--color-surface-alt);
+          border: 1px solid var(--color-border); border-radius: var(--radius-md);
+          color: var(--color-text-secondary); font-weight: 600; font-size: 13px;
           cursor: pointer; font-family: inherit;
         }
         .review-item {
           padding-top: 12px; margin-top: 12px;
-          border-top: 1px solid #f1f5f9;
+          border-top: 1px solid var(--color-border);
         }
         .review-item:first-of-type { border-top: none; margin-top: 12px; }
         .review-header-row {
           display: flex; justify-content: space-between;
           flex-wrap: wrap; gap: 8px;
         }
-        .review-stars { font-weight: 600; font-size: 14px; color: #1e293b; }
-        .review-date { font-size: 12px; color: #94a3b8; }
-        .review-comment { font-size: 14px; color: #64748b; margin: 4px 0 0; }
-        .no-reviews { color: #94a3b8; font-size: 14px; margin: 12px 0 0; }
+        .review-stars { font-weight: 600; font-size: 14px; color: var(--color-text); }
+        .review-date { font-size: 12px; color: var(--color-text-muted); }
+        .review-comment { font-size: 14px; color: var(--color-text-secondary); margin: 4px 0 0; }
+        .no-reviews { color: var(--color-text-muted); font-size: 14px; margin: 12px 0 0; }
 
         .sticky-contact {
           position: fixed;
@@ -2008,7 +1709,7 @@ const ListingDetails = () => {
           padding: 10px 14px;
           background: rgba(255, 255, 255, 0.98);
           backdrop-filter: blur(14px);
-          border-top: 1px solid #f1f5f9;
+          border-top: 1px solid var(--color-border);
           z-index: 90;
           align-items: center;
         }
@@ -2017,8 +1718,8 @@ const ListingDetails = () => {
           gap: 6px;
           height: 44px;
           padding: 0 18px;
-          border: none; border-radius: 10px;
-          color: #ffffff;
+          border: none; border-radius: var(--radius-lg);
+          color: var(--color-text-inverse);
           font-family: inherit;
           font-size: 14px; font-weight: 700;
           cursor: pointer;
@@ -2026,17 +1727,17 @@ const ListingDetails = () => {
         }
         .sticky-btn:active:not(:disabled) { transform: scale(0.97); }
         .sticky-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .sticky-btn.primary { flex: 1; background: #f59e0b; }
-        .sticky-btn.primary:hover:not(:disabled) { background: #d97706; }
+        .sticky-btn.primary { flex: 1; background: var(--color-accent); box-shadow: var(--shadow-accent); }
+        .sticky-btn.primary:hover:not(:disabled) { background: var(--color-accent-hover); }
         .sticky-btn.primary.wide { flex: 1; }
         .sticky-btn.whatsapp { background: #25d366; width: 46px; padding: 0; }
         .sticky-btn.facebook { background: #1877f2; width: 46px; padding: 0; }
-        .sticky-btn.call { background: #1e293b; width: 46px; padding: 0; }
+        .sticky-btn.call { background: var(--color-primary); width: 46px; padding: 0; }
 
         .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
-          background: rgba(22, 38, 31, 0.5);
+          background: rgba(10, 36, 114, 0.5);
           backdrop-filter: blur(4px);
           display: flex; align-items: flex-end; justify-content: center;
           animation: popFade 0.2s ease;
@@ -2047,9 +1748,9 @@ const ListingDetails = () => {
           max-width: 560px;
           height: 88vh;
           max-height: 88vh;
-          background: #FFFDF8;
-          border-top-left-radius: 20px;
-          border-top-right-radius: 20px;
+          background: var(--color-surface);
+          border-top-left-radius: var(--radius-3xl);
+          border-top-right-radius: var(--radius-3xl);
           display: flex; flex-direction: column;
           animation: popUp 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
           overflow: hidden;
@@ -2060,19 +1761,19 @@ const ListingDetails = () => {
         }
         .pop-handle {
           width: 42px; height: 4px;
-          background: #E4D9BD; border-radius: 4px;
+          background: var(--color-border-strong); border-radius: 4px;
           margin: 8px auto 0; flex-shrink: 0;
         }
         .pop-preview {
           display: flex; align-items: center; gap: 10px;
           padding: 10px 14px;
-          border-bottom: 1px solid #EFE6CE;
+          border-bottom: 1px solid var(--color-border);
           flex-shrink: 0;
         }
         .pop-thumb {
-          width: 42px; height: 42px; border-radius: 10px;
-          overflow: hidden; background: #F0E9D6;
-          flex-shrink: 0; border: 1px solid #EFE6CE;
+          width: 42px; height: 42px; border-radius: var(--radius-lg);
+          overflow: hidden; background: var(--color-surface-alt);
+          flex-shrink: 0; border: 1px solid var(--color-border);
         }
         .pop-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
         .pop-thumb-fallback {
@@ -2081,176 +1782,31 @@ const ListingDetails = () => {
         }
         .pop-preview-text { flex: 1; min-width: 0; }
         .pop-preview-title {
-          font-size: 13px; font-weight: 600; color: #201F1B;
+          font-size: 13px; font-weight: 600; color: var(--color-text);
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .pop-preview-sub {
-          font-size: 11px; color: #9C9482; margin-top: 1px;
+          font-size: 11px; color: var(--color-text-muted); margin-top: 1px;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .pop-close {
           width: 30px; height: 30px;
-          border-radius: 8px; border: 1px solid #EFE6CE;
-          background: #FFFDF8;
+          border-radius: var(--radius-md); border: 1px solid var(--color-border);
+          background: var(--color-surface);
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; flex-shrink: 0;
         }
         .pop-body {
           flex: 1; overflow-y: auto;
           padding: 12px 14px 18px;
-          background: #FFFDF8;
+          background: var(--color-surface);
         }
-
-        .boost-overlay {
-          position: fixed; inset: 0;
-          background: rgba(22, 38, 31, 0.55);
-          backdrop-filter: blur(6px);
-          display: flex; align-items: center; justify-content: center;
-          padding: 16px; z-index: 500;
-        }
-        .boost-modal {
-          width: 100%; max-width: 440px; max-height: 92vh;
-          overflow-y: auto; background: #FFFDF8;
-          border-radius: 18px;
-          display: flex; flex-direction: column;
-        }
-        .boost-head {
-          display: flex; align-items: center; gap: 12px;
-          padding: 16px 16px 12px;
-          border-bottom: 1px solid #EFE6CE;
-        }
-        .boost-head-icon {
-          width: 44px; height: 44px; border-radius: 12px;
-          background: #24453B;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .boost-head-text { flex: 1; min-width: 0; }
-        .boost-title {
-          font-family: Georgia, serif;
-          font-size: 17px; font-weight: 600;
-          color: #201F1B; margin: 0;
-        }
-        .boost-sub { font-size: 12px; color: #9C9482; margin: 2px 0 0; }
-        .boost-close {
-          width: 32px; height: 32px; border-radius: 9px;
-          border: 1px solid #EFE6CE; background: #FFFDF8;
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer; flex-shrink: 0;
-        }
-        .boost-body { padding: 14px 16px 8px; }
-        .boost-preview-title {
-          font-size: 13px; color: #6B6259; font-style: italic;
-          margin: 0 0 12px; padding: 8px 10px;
-          background: #F7F1E3; border-radius: 8px;
-          border-left: 3px solid #D99A3B;
-        }
-        .boost-benefits { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
-        .boost-benefit { display: flex; align-items: flex-start; gap: 10px; }
-        .boost-benefit-icon {
-          width: 28px; height: 28px; border-radius: 8px;
-          background: #F7F1E3;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .boost-benefit-title { font-size: 13px; font-weight: 600; color: #201F1B; }
-        .boost-benefit-desc { font-size: 11.5px; color: #9C9482; margin-top: 1px; }
-        .boost-section-label {
-          font-size: 11px; font-weight: 700; color: #6B6259;
-          text-transform: uppercase; letter-spacing: 0.08em;
-          margin-bottom: 8px;
-        }
-        .boost-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-        .boost-option {
-          position: relative; display: flex; align-items: center; gap: 10px;
-          padding: 12px 14px; background: #FFFDF8;
-          border: 1.5px solid #EFE6CE; border-radius: 12px;
-          cursor: pointer; font-family: inherit;
-          text-align: left;
-        }
-        .boost-option.active {
-          border-color: #24453B; background: #FDF9EF;
-          box-shadow: 0 0 0 3px rgba(36, 69, 59, 0.08);
-        }
-        .boost-option-days { font-size: 14px; font-weight: 700; color: #201F1B; flex: 1; }
-        .boost-option-price {
-          font-family: Georgia, serif; font-size: 15px; font-weight: 600;
-          color: #24453B;
-        }
-        .boost-option-tag {
-          position: absolute; top: -8px; left: 12px;
-          padding: 2px 7px; border-radius: 5px;
-          font-size: 9px; font-weight: 700;
-          letter-spacing: 0.06em; text-transform: uppercase;
-        }
-        .boost-option-tag.popular { background: #BC5B34; color: #FFFDF8; }
-        .boost-option-tag.best { background: #D99A3B; color: #201F1B; }
-        .boost-option-check {
-          width: 20px; height: 20px; border-radius: 50%;
-          background: #24453B;
-          display: flex; align-items: center; justify-content: center;
-          opacity: 0;
-        }
-        .boost-option.active .boost-option-check { opacity: 1; }
-
-        .boost-status {
-          display: flex; flex-direction: column; align-items: center; gap: 10px;
-          text-align: center; padding: 20px 8px 12px;
-        }
-        .boost-status-badge {
-          width: 52px; height: 52px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .boost-status-badge.amber { background: #FEF3C7; }
-        .boost-status-badge.green { background: #D1FAE5; }
-        .boost-status-badge.red { background: #FEE2E2; }
-        .boost-status-spinner {
-          width: 32px; height: 32px;
-          border: 3px solid #EFE6CE;
-          border-top-color: #24453B;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-        .boost-status-text {
-          font-family: Georgia, serif;
-          font-size: 15px; font-weight: 600;
-          color: #201F1B; margin: 0;
-        }
-        .boost-status-sub {
-          font-size: 12.5px; color: #6B6259;
-          margin: 0; max-width: 320px; line-height: 1.5;
-        }
-        .boost-foot {
-          display: flex; gap: 10px;
-          padding: 12px 16px 16px;
-          border-top: 1px solid #EFE6CE;
-        }
-        .boost-cancel {
-          flex: 1; padding: 12px; background: #F7F1E3;
-          border: 1px solid #EFE6CE; border-radius: 10px;
-          font-family: inherit; font-size: 13px; font-weight: 600;
-          color: #6B6259; cursor: pointer;
-        }
-        .boost-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
-        .boost-cancel.wide { flex: 1; }
-        .boost-confirm {
-          flex: 1.6;
-          display: inline-flex; align-items: center; justify-content: center;
-          gap: 6px;
-          padding: 12px;
-          background: #24453B; color: #F7F1E3;
-          border: none; border-radius: 10px;
-          font-family: inherit; font-size: 13px; font-weight: 700;
-          cursor: pointer;
-        }
-        .boost-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
-        .boost-confirm.wide { flex: 1; }
 
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex; justify-content: space-around;
           padding: 4px 0 8px; z-index: 100;
         }
@@ -2261,12 +1817,12 @@ const ListingDetails = () => {
           font-family: inherit; min-width: 44px;
         }
         .nav-icon-wrap {
-          width: 34px; height: 34px; border-radius: 10px;
+          width: 34px; height: 34px; border-radius: var(--radius-lg);
           display: flex; align-items: center; justify-content: center;
         }
-        .nav-icon-wrap.active { background: #1e293b; }
-        .nav-label { font-size: 9px; font-weight: 500; color: #94a3b8; }
-        .nav-label.active { color: #1e293b; font-weight: 600; }
+        .nav-icon-wrap.active { background: var(--color-primary); box-shadow: var(--shadow-primary); }
+        .nav-label { font-size: 9px; font-weight: 500; color: var(--color-text-muted); }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
 
         @media (max-width: 480px) {
           .main-content { padding: 12px 12px 32px; }
@@ -2282,11 +1838,10 @@ const ListingDetails = () => {
 
         @media (prefers-reduced-motion: reduce) {
           .contact-btn, .sticky-btn, .engage-btn, .share-btn,
-          .boost-option, .boost-confirm, .boost-cancel, .boost-close,
           .gallery-track, .gallery-arrow, .gallery-thumb {
             transition: none; animation: none;
           }
-          .btn-spinner, .boost-status-spinner { animation: none; }
+          .btn-spinner { animation: none; }
           .flame-outer, .flame-mid, .flame-core { animation: none; }
         }
       `}</style>

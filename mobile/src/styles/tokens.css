@@ -1,0 +1,213 @@
+/* mobile/src/styles/tokens.css
+ * ============================================================
+ * KUMSIKA DESIGN TOKENS — v2 (Kumsika brand applied)
+ * ============================================================
+ *
+ * Palette anchors:
+ *   Deep Navy  #0A2472  — from the K in the logo
+ *   Atomic Orange #FF5C23 — accent, CTAs
+ *   Ice Cream Blue #C8F3FF — light accent
+ *
+ * Structure:
+ *   1. Brand anchors
+ *   2. Orange ramp
+ *   3. Navy ramp
+ *   4. Blue ramp
+ *   5. Neutral ramp (cool, matching slate)
+ *   6. Semantic tokens (what the app uses)
+ *   7. Typography / spacing / radius / shadow / transitions
+ * ============================================================ */
+
+:root {
+  /* ============================================================
+     1. BRAND ANCHORS
+     ============================================================ */
+  --brand-orange:  #FF5C23;
+  --brand-navy:    #0A2472;
+  --brand-blue:    #C8F3FF;
+
+  /* ============================================================
+     2. ORANGE RAMP (from Atomic Orange #FF5C23)
+     ============================================================ */
+  --orange-50:  #FFF1EB;
+  --orange-100: #FFDFD1;
+  --orange-200: #FFBFA3;
+  --orange-300: #FF9F76;
+  --orange-400: #FF7F49;
+  --orange-500: #FF5C23;
+  --orange-600: #E64A15;
+  --orange-700: #BF3D11;
+  --orange-800: #99300D;
+  --orange-900: #73240A;
+
+  /* ============================================================
+     3. NAVY RAMP (from Deep Navy #0A2472)
+     ============================================================ */
+  --navy-50:  #EEF1FA;
+  --navy-100: #D6DEEE;
+  --navy-200: #A8B6D9;
+  --navy-300: #6F84BE;
+  --navy-400: #3D519B;
+  --navy-500: #1B2F82;
+  --navy-600: #0A2472;
+  --navy-700: #081C5C;
+  --navy-800: #061445;
+  --navy-900: #040D2E;
+
+  /* ============================================================
+     4. BLUE RAMP (from Ice Cream Blue #C8F3FF)
+     ============================================================ */
+  --blue-50:  #F2FBFF;
+  --blue-100: #E4F8FF;
+  --blue-200: #C8F3FF;
+  --blue-300: #9BE8FF;
+  --blue-400: #66DAFF;
+  --blue-500: #33CCFF;
+  --blue-600: #00B8E6;
+  --blue-700: #0092B8;
+  --blue-800: #006B8A;
+  --blue-900: #00455C;
+
+  /* ============================================================
+     5. NEUTRAL RAMP — cool, matching slate
+     ============================================================ */
+  --neutral-50:  #F8FAFC;
+  --neutral-100: #F1F5F9;
+  --neutral-200: #E2E8F0;
+  --neutral-300: #CBD5E1;
+  --neutral-400: #94A3B8;
+  --neutral-500: #64748B;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1E293B;
+  --neutral-900: #0F172A;
+
+  /* ============================================================
+     6. SEMANTIC TOKENS — v2 Kumsika brand
+     ============================================================ */
+
+  /* ---- PRIMARY: Deep Navy ---- */
+  --color-primary:        #0A2472;
+  --color-primary-hover:  #081C5C;
+  --color-primary-tint:   rgba(10, 36, 114, 0.08);
+  --color-primary-light:  #1B2F82;
+
+  /* ---- ACCENT: Atomic Orange ---- */
+  --color-accent:         #FF5C23;
+  --color-accent-hover:   #E64A15;
+  --color-accent-tint:    rgba(255, 92, 35, 0.10);
+  --color-accent-soft:    #FFE8DE;
+
+  /* ---- SECONDARY: Ice Cream Blue ---- */
+  --color-secondary:      #00B8E6;
+  --color-secondary-hover:#0092B8;
+  --color-secondary-tint: rgba(200, 243, 255, 0.5);
+
+  /* ---- BACKGROUNDS ---- */
+  --color-bg:             #F8FAFC;
+  --color-bg-soft:        #EEF1FA;      /* very subtle navy tint */
+  --color-surface:        #FFFFFF;
+  --color-surface-alt:    #F1F5F9;
+  --color-overlay:        rgba(10, 36, 114, 0.55);
+
+  /* ---- TEXT ---- */
+  --color-text:           #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted:     #94A3B8;
+  --color-text-inverse:   #FFFFFF;
+
+  /* ---- BORDERS ---- */
+  --color-border:         #E2E8F0;
+  --color-border-strong:  #CBD5E1;
+  --color-divider:        rgba(226, 232, 240, 0.7);
+
+  /* ---- SEMANTIC STATUS ---- */
+  --color-success:        #10B981;
+  --color-success-bg:     #D1FAE5;
+  --color-warning:        #F59E0B;
+  --color-warning-bg:     #FEF3C7;
+  --color-error:          #DC2626;
+  --color-error-bg:       #FEE2E2;
+  --color-info:           #0A2472;
+  --color-info-bg:        #EEF1FA;
+
+  /* ---- SPECIALTY: premium / boost / fire ---- */
+  --color-premium:        #FF5C23;
+  --color-premium-dark:   #E64A15;
+  --color-premium-light:  #FFE8DE;
+  --color-fire:           #EA580C;
+  --color-fire-bg:        #FFF3E0;
+
+  /* ============================================================
+     7. TYPOGRAPHY
+     ============================================================ */
+  --font-sans:  'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-mono:  ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+
+  --font-size-xs:   0.6875rem;
+  --font-size-sm:   0.8125rem;
+  --font-size-base: 0.875rem;
+  --font-size-md:   1rem;
+  --font-size-lg:   1.125rem;
+  --font-size-xl:   1.25rem;
+  --font-size-2xl:  1.5rem;
+  --font-size-3xl:  1.875rem;
+  --font-size-4xl:  2.25rem;
+  --font-size-5xl:  3rem;
+
+  --font-weight-normal:   400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+  --font-weight-black:    800;
+
+  --line-height-tight:   1.15;
+  --line-height-snug:    1.3;
+  --line-height-normal:  1.5;
+  --line-height-relaxed: 1.6;
+
+  --letter-spacing-tight:   -0.02em;
+  --letter-spacing-normal:   0;
+  --letter-spacing-wide:     0.04em;
+  --letter-spacing-wider:    0.08em;
+
+  /* ============================================================
+     SPACING / RADIUS / SHADOWS / TRANSITIONS
+     ============================================================ */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   10px;
+  --radius-xl:   12px;
+  --radius-2xl:  16px;
+  --radius-3xl:  20px;
+  --radius-full: 9999px;
+
+  --shadow-xs: 0 1px 2px rgba(10, 36, 114, 0.04);
+  --shadow-sm: 0 1px 3px rgba(10, 36, 114, 0.06), 0 1px 2px rgba(10, 36, 114, 0.04);
+  --shadow-md: 0 4px 12px rgba(10, 36, 114, 0.08);
+  --shadow-lg: 0 8px 24px rgba(10, 36, 114, 0.10);
+  --shadow-xl: 0 12px 32px rgba(10, 36, 114, 0.14);
+  --shadow-2xl: 0 24px 60px rgba(10, 36, 114, 0.20);
+
+  --shadow-primary: 0 6px 16px rgba(10, 36, 114, 0.25);
+  --shadow-accent:  0 6px 16px rgba(255, 92, 35, 0.25);
+  --shadow-error:   0 6px 16px rgba(220, 38, 38, 0.25);
+
+  --transition-fast:   150ms ease;
+  --transition-base:   250ms ease;
+  --transition-slow:   350ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
