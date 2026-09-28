@@ -23,16 +23,28 @@ export const useAuth = () => {
 const TOKEN_REFRESH_BUFFER = 5 * 60 * 1000; // 5 minutes before expiry
 const AUTH_TIMEOUT_MS = 5000;
 
+// ============================================================
+// Helpers
+// ============================================================
+
+// Supabase sets `is_anonymous: true` on the JWT for anonymous sessions.
+const isAnonymousUser = (supabaseUser) =>
+  supabaseUser?.is_anonymous === true ||
+  supabaseUser?.user_metadata?.is_anonymous === true;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [userRole, setUserRole] = useState('guest');
   const [authInitialized, setAuthInitialized] = useState(false);
 
   const refreshTimer = useRef(null);
   const initialized = useRef(false);
+  // Prevent the "Welcome back!" toast on the silent anon sign-in
+  const suppressNextWelcomeToast = useRef(false);
 
   const { showToast, success, error } = useToast();
 
@@ -48,6 +60,7 @@ export const AuthProvider = ({ children }) => {
         console.warn('⚠️ Supabase is not configured — skipping session check.');
         setUser(null);
         setIsAuthenticated(false);
+        setIsAnonymous(false);
         setUserRole('guest');
         setLoading(false);
         setAuthInitialized(true);
@@ -55,6 +68,16 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
+        // ============================================================
+        // IMPORTANT: If we arrived on /update-password, Supabase is
+        // already consuming the recovery token from the URL. We must
+        // NOT call signInAnonymously() in that case, or we'll clobber
+        // the recovery session before it settles.
+        // ============================================================
+        const isRecoveryRoute =
+          typeof window !== 'undefined' &&
+          window.location.pathname === '/update-password';
+
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((resolve) =>
           setTimeout(
@@ -71,8 +94,30 @@ export const AuthProvider = ({ children }) => {
           );
         }
 
-        const sessionUser = result.data?.session?.user ?? null;
-        const sessionData = result.data?.session ?? null;
+        let sessionUser = result.data?.session?.user ?? null;
+        let sessionData = result.data?.session ?? null;
+
+        // ============================================================
+        // STEP 1C: if there's no session at all AND we're not on the
+        // recovery route, create an anonymous one.
+        // ============================================================
+        if (!sessionUser && !isRecoveryRoute) {
+          try {
+            suppressNextWelcomeToast.current = true;
+            const { data: anonData, error: anonError } =
+              await supabase.auth.signInAnonymously();
+
+            if (anonError) {
+              console.warn('⚠️ Anonymous sign-in unavailable:', anonError.message);
+            } else if (anonData?.session) {
+              sessionUser = anonData.session.user;
+              sessionData = anonData.session;
+              console.log('👤 Anonymous session created:', sessionUser.id);
+            }
+          } catch (anonErr) {
+            console.warn('⚠️ Anonymous sign-in failed:', anonErr.message);
+          }
+        }
 
         if (sessionData?.access_token) {
           localStorage.setItem('access_token', sessionData.access_token);
@@ -83,11 +128,13 @@ export const AuthProvider = ({ children }) => {
           await fetchUserProfile(sessionUser);
           setSession(sessionData);
           setIsAuthenticated(true);
+          setIsAnonymous(isAnonymousUser(sessionUser));
           scheduleTokenRefresh(sessionData);
         } else {
           setUser(null);
           setSession(null);
           setIsAuthenticated(false);
+          setIsAnonymous(false);
           setUserRole('guest');
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
@@ -96,6 +143,7 @@ export const AuthProvider = ({ children }) => {
         console.error('Auth initialization error:', err);
         setUser(null);
         setIsAuthenticated(false);
+        setIsAnonymous(false);
         setUserRole('guest');
       } finally {
         setLoading(false);
@@ -121,14 +169,36 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      // ★ PASSWORD_RECOVERY fires when the user lands on /update-password
+      //   via the email link. We set the session so UpdatePassword.jsx
+      //   sees it, but do NOT show a "welcome back" toast.
+      if (event === 'PASSWORD_RECOVERY') {
+        setSession(session);
+        setIsAuthenticated(!!session);
+        if (session?.user) {
+          await fetchUserProfile(session.user);
+        }
+        if (session?.access_token) {
+          localStorage.setItem('access_token', session.access_token);
+          localStorage.setItem('refresh_token', session.refresh_token);
+        }
+        return;
+      }
+
       if (event === 'SIGNED_IN') {
         setSession(session);
         setIsAuthenticated(true);
+        setIsAnonymous(isAnonymousUser(session?.user));
         if (session?.user) {
           await fetchUserProfile(session.user);
           scheduleTokenRefresh(session);
         }
-        success('Welcome back! 👋');
+
+        // Only show the welcome toast for real sign-ins
+        if (!suppressNextWelcomeToast.current && !isAnonymousUser(session?.user)) {
+          success('Welcome back! 👋');
+        }
+        suppressNextWelcomeToast.current = false;
       }
 
       if (event === 'SIGNED_OUT') {
@@ -138,6 +208,7 @@ export const AuthProvider = ({ children }) => {
 
       if (event === 'USER_UPDATED') {
         if (session?.user) {
+          setIsAnonymous(isAnonymousUser(session.user));
           await fetchUserProfile(session.user);
         }
       }
@@ -232,6 +303,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setSession(null);
     setIsAuthenticated(false);
+    setIsAnonymous(false);
     setUserRole('guest');
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -246,6 +318,47 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password, rememberMe = false) => {
     try {
       setLoading(true);
+
+      // If this device has an anonymous session, upgrade instead of
+      // creating a fresh identity — preserves their likes/comments/messages.
+      const { data: current } = await supabase.auth.getUser();
+      const hasAnonSession = isAnonymousUser(current?.user);
+
+      if (hasAnonSession) {
+        // Link identity: attach email + password to the existing anon user.
+        // Then sign in with the password to get a fresh verified session.
+        const { error: updateError } = await supabase.auth.updateUser({
+          email: email.trim().toLowerCase(),
+          password,
+          data: { is_anonymous: false },
+        });
+
+        if (updateError) throw updateError;
+
+        // Some Supabase versions don't flip is_anonymous in the JWT until
+        // re-auth. Sign in explicitly to guarantee a fresh verified token.
+        const { data, error: signInError } =
+          await supabase.auth.signInWithPassword({
+            email: email.trim().toLowerCase(),
+            password,
+          });
+        if (signInError) throw signInError;
+
+        if (data.session?.access_token) {
+          localStorage.setItem('access_token', data.session.access_token);
+          localStorage.setItem('refresh_token', data.session.refresh_token);
+        }
+
+        await fetchUserProfile(data.user);
+        setSession(data.session);
+        setIsAuthenticated(true);
+        setIsAnonymous(false);
+        scheduleTokenRefresh(data.session);
+
+        return { success: true, user: data.user, upgraded: true };
+      }
+
+      // Normal login path (no anon session present)
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
@@ -269,6 +382,7 @@ export const AuthProvider = ({ children }) => {
       await fetchUserProfile(data.user);
       setSession(data.session);
       setIsAuthenticated(true);
+      setIsAnonymous(isAnonymousUser(data.user));
       scheduleTokenRefresh(data.session);
 
       return { success: true, user: data.user };
@@ -289,37 +403,72 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
 
+      // If an anonymous session exists, upgrade in place instead of signUp.
+      // This keeps the same user id, so likes/comments/messages survive.
+      const { data: current } = await supabase.auth.getUser();
+      const hasAnonSession = isAnonymousUser(current?.user);
+
+      if (hasAnonSession) {
+        const { error: updateError } = await supabase.auth.updateUser({
+          email: email.trim().toLowerCase(),
+          password,
+          data: {
+            full_name: fullName,
+            phone: phone || null,
+            role,
+            is_anonymous: false,
+          },
+        });
+
+        if (updateError) throw updateError;
+
+        // Force a fresh verified session
+        const { data, error: signInError } =
+          await supabase.auth.signInWithPassword({
+            email: email.trim().toLowerCase(),
+            password,
+          });
+        if (signInError) throw signInError;
+
+        if (data.session?.access_token) {
+          localStorage.setItem('access_token', data.session.access_token);
+          localStorage.setItem('refresh_token', data.session.refresh_token);
+        }
+
+        await fetchUserProfile(data.user);
+        setSession(data.session);
+        setIsAuthenticated(true);
+        setIsAnonymous(false);
+        scheduleTokenRefresh(data.session);
+
+        return { success: true, user: data.user, upgraded: true };
+      }
+
+      // Normal signup path — the handle_new_user trigger creates profiles row.
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: {
           data: {
             full_name: fullName,
-            phone: phone,
-            role: role,
+            phone,
+            role,
           },
         },
       });
 
       if (error) throw error;
 
-      // ✅ The `handle_new_user` trigger on auth.users automatically
-      //    creates the row in public.profiles. Do NOT insert manually
-      //    here — it would conflict with the trigger's insert and
-      //    fail with a unique constraint or RLS error.
-
       if (data.session?.access_token) {
-        // Email confirmation is disabled — user is signed in immediately
         localStorage.setItem('access_token', data.session.access_token);
         localStorage.setItem('refresh_token', data.session.refresh_token);
 
         await fetchUserProfile(data.user);
         setSession(data.session);
         setIsAuthenticated(true);
+        setIsAnonymous(false);
         scheduleTokenRefresh(data.session);
       } else {
-        // Email confirmation is required — the SIGNED_IN event will
-        // fire once the user confirms via the email link.
         console.log(
           '📧 Awaiting email confirmation — session will arrive via SIGNED_IN event'
         );
@@ -345,6 +494,17 @@ export const AuthProvider = ({ children }) => {
 
       clearAuth();
       sessionStorage.clear();
+
+      // Immediately start a new anonymous session so the user can keep browsing
+      try {
+        suppressNextWelcomeToast.current = true;
+        await supabase.auth.signInAnonymously();
+      } catch (anonErr) {
+        console.warn(
+          '⚠️ Could not start anonymous session after logout:',
+          anonErr.message
+        );
+      }
 
       return { success: true };
     } catch (err) {
@@ -393,6 +553,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ============================================================
+  // SEND PASSWORD RESET
+  // Thin wrapper around Supabase so pages can use the context API
+  // instead of importing the raw client. Used by ForgotPassword.jsx.
+  // ============================================================
+  const sendPasswordReset = async (email) => {
+    try {
+      const redirectTo = `${window.location.origin}/update-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        { redirectTo }
+      );
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      console.error('❌ Password reset request error:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  // ============================================================
   // ROLE HELPERS
   // ============================================================
   const hasRole = useCallback(
@@ -426,6 +606,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     userRole,
     isAuthenticated,
+    isAnonymous,                                  // ← STEP 1C
+    isVerified: isAuthenticated && !isAnonymous,  // ← STEP 1C
     authInitialized,
     login,
     register,
@@ -433,6 +615,7 @@ export const AuthProvider = ({ children }) => {
     refreshToken,
     updateProfile,
     fetchUserProfile,
+    sendPasswordReset,                            // ← STEP 1D
     hasRole,
     isSeller,
     isBuyer,

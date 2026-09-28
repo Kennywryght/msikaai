@@ -14,6 +14,8 @@ import About from './pages/About';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import UpdatePassword from './pages/UpdatePassword';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import RoleSelection from './pages/RoleSelection';
@@ -48,11 +50,12 @@ function PresencePublisher() {
 }
 
 // ============================================================
-// PROTECTED ROUTE
-// Passes `state.from` so login can send the user back.
+// ROUTE GUARDS
 // ============================================================
+
 const ONBOARDING_EXEMPT_PATHS = ['/role-selection', '/profile-setup'];
 
+// ProtectedRoute — requires ANY session (anonymous OR verified)
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, authInitialized, user } = useAuth();
   const location = useLocation();
@@ -60,7 +63,6 @@ const ProtectedRoute = ({ children }) => {
   if (!authInitialized) return children;
 
   if (!isAuthenticated) {
-    // ← carry where they were trying to go
     return (
       <Navigate
         to="/login"
@@ -80,16 +82,52 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// ============================================================
-// PUBLIC ROUTE — respects state.from on redirect
-// ============================================================
-const PublicRoute = ({ children }) => {
-  const { isAuthenticated, authInitialized } = useAuth();
+// VerifiedRoute — requires a REAL (non-anonymous) session.
+// Anonymous users hitting these routes get bounced to /login with reason='verify'.
+const VerifiedRoute = ({ children }) => {
+  const { isAuthenticated, isVerified, authInitialized } = useAuth();
   const location = useLocation();
 
   if (!authInitialized) return children;
 
-  if (isAuthenticated) {
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to="/login"
+        state={{
+          from: location.pathname + location.search,
+          reason: 'verify',
+        }}
+        replace
+      />
+    );
+  }
+
+  if (!isVerified) {
+    return (
+      <Navigate
+        to="/login"
+        state={{
+          from: location.pathname + location.search,
+          reason: 'verify',
+        }}
+        replace
+      />
+    );
+  }
+
+  return children;
+};
+
+// PublicRoute — redirect VERIFIED users away from login/register.
+// Anonymous users ARE allowed here — this is where they upgrade.
+const PublicRoute = ({ children }) => {
+  const { isVerified, authInitialized } = useAuth();
+  const location = useLocation();
+
+  if (!authInitialized) return children;
+
+  if (isVerified) {
     const from = location.state?.from;
     return <Navigate to={from || '/landing'} replace />;
   }
@@ -97,9 +135,7 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
-// ============================================================
-// ADMIN ROUTE
-// ============================================================
+// AdminRoute
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, authInitialized, isAdmin } = useAuth();
   const location = useLocation();
@@ -126,7 +162,13 @@ const AdminRoute = ({ children }) => {
 // ============================================================
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideNavbar = ['/', '/login', '/register'].includes(location.pathname);
+  const hideNavbar = [
+    '/',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/update-password',
+  ].includes(location.pathname);
   if (hideNavbar) return children;
   return (
     <>
@@ -159,27 +201,31 @@ function AppRoutes() {
       {/* ---------- Auth pages (public) ---------- */}
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+      <Route
+        path="/forgot-password"
+        element={<PublicRoute><ForgotPassword /></PublicRoute>}
+      />
+      {/*
+        /update-password is intentionally NOT wrapped in PublicRoute.
+        The user arrives here holding a Supabase recovery session that
+        makes them isVerified === true. PublicRoute would bounce them
+        straight off. The page manages its own session detection.
+      */}
+      <Route path="/update-password" element={<UpdatePassword />} />
 
       {/* ---------- PUBLIC BROWSE ROUTES (no auth required) ---------- */}
-      {/* Buyers can see everything. They only sign in to act. */}
       <Route path="/landing" element={<Layout><Landing /></Layout>} />
       <Route path="/search" element={<Layout><Search /></Layout>} />
       <Route path="/search-results" element={<Layout><SearchResults /></Layout>} />
       <Route path="/category/:category" element={<Layout><CategoryBrowse /></Layout>} />
       <Route path="/listing/:id" element={<Layout><ListingDetails /></Layout>} />
 
-      {/* ---------- ROOT: send to landing (public) ---------- */}
+      {/* ---------- ROOT ---------- */}
       <Route path="/" element={<Navigate to="/landing" replace />} />
 
-      {/* ---------- PROTECTED (must be signed in) ---------- */}
+      {/* ---------- PROTECTED (any session — anon included) ---------- */}
       <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
       <Route path="/admin/*" element={<AdminRoute><Layout><AdminDashboard /></Layout></AdminRoute>} />
-      <Route path="/role-selection" element={<ProtectedRoute><Layout><RoleSelection /></Layout></ProtectedRoute>} />
-      <Route path="/profile-setup" element={<ProtectedRoute><Layout><ProfileSetup /></Layout></ProtectedRoute>} />
-      <Route path="/create-listing" element={<ProtectedRoute><Layout><CreateListing /></Layout></ProtectedRoute>} />
-      <Route path="/ai-search" element={<ProtectedRoute><Layout><AISearch /></Layout></ProtectedRoute>} />
-      <Route path="/voice-listing" element={<ProtectedRoute><Layout><VoiceListing /></Layout></ProtectedRoute>} />
-      <Route path="/ad-generator" element={<ProtectedRoute><Layout><AdGenerator /></Layout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Layout><EditProfile /></Layout></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
       <Route path="/chat/:id" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
@@ -187,10 +233,18 @@ function AppRoutes() {
       <Route path="/incoming-requests" element={<ProtectedRoute><Layout><IncomingRequests /></Layout></ProtectedRoute>} />
       <Route path="/rating-review/:transactionId" element={<ProtectedRoute><Layout><RatingReview /></Layout></ProtectedRoute>} />
       <Route path="/price-board" element={<ProtectedRoute><Layout><PriceBoard /></Layout></ProtectedRoute>} />
-      <Route path="/post-stock" element={<ProtectedRoute><Layout><PostStock /></Layout></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
       <Route path="/about" element={<ProtectedRoute><Layout><About /></Layout></ProtectedRoute>} />
+
+      {/* ---------- VERIFIED ONLY (real user, not anon) ---------- */}
+      <Route path="/role-selection" element={<VerifiedRoute><Layout><RoleSelection /></Layout></VerifiedRoute>} />
+      <Route path="/profile-setup" element={<VerifiedRoute><Layout><ProfileSetup /></Layout></VerifiedRoute>} />
+      <Route path="/create-listing" element={<VerifiedRoute><Layout><CreateListing /></Layout></VerifiedRoute>} />
+      <Route path="/ai-search" element={<VerifiedRoute><Layout><AISearch /></Layout></VerifiedRoute>} />
+      <Route path="/voice-listing" element={<VerifiedRoute><Layout><VoiceListing /></Layout></VerifiedRoute>} />
+      <Route path="/ad-generator" element={<VerifiedRoute><Layout><AdGenerator /></Layout></VerifiedRoute>} />
+      <Route path="/post-stock" element={<VerifiedRoute><Layout><PostStock /></Layout></VerifiedRoute>} />
 
       {/* 404 */}
       <Route path="*" element={<Layout><NotFound /></Layout>} />

@@ -52,12 +52,22 @@ const FacebookF = ({ size = 18 }) => (
 // MAIN COMPONENT
 // ============================================================
 const Login = () => {
-  const { login, register, loading: authLoading, isAuthenticated } = useAuth();
+  const {
+    login,
+    register,
+    loading: authLoading,
+    isAuthenticated,
+    isVerified,
+    isAnonymous,
+  } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast, success } = useToast();
 
-  const [isLogin, setIsLogin] = useState(true);
+  // ★ If arriving with reason='verify', default to the Sign-up tab
+  const isVerifyFlow = location.state?.reason === 'verify';
+
+  const [isLogin, setIsLogin] = useState(!isVerifyFlow);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -70,13 +80,25 @@ const Login = () => {
     fullName: '',
   });
 
-  // ★ Where to return after auth (from ProtectedRoute's state.from)
+  // ★ Where to return after auth (from ProtectedRoute/VerifiedRoute state.from)
   const returnTo = location.state?.from || '/landing';
 
-  // ★ If already signed in, bounce to where the user wanted to go
+  // ★ If the user is now a VERIFIED user, send them on their way.
+  //   Anonymous sessions are allowed to stay on this page — it's the
+  //   upgrade path.
   useEffect(() => {
-    if (isAuthenticated) navigate(returnTo, { replace: true });
-  }, [isAuthenticated, navigate, returnTo]);
+    if (isVerified) navigate(returnTo, { replace: true });
+  }, [isVerified, navigate, returnTo]);
+
+  // ★ If arriving with an anonymous session, default to Sign-up tab
+  //   (that's the upgrade path). Also react to late-arriving session.
+  useEffect(() => {
+    if (isAnonymous && !isVerifyFlow) {
+      // Only auto-switch if the user hasn't manually toggled
+      // (we can't easily detect that; keep it simple and switch on mount)
+      setIsLogin(false);
+    }
+  }, [isAnonymous, isVerifyFlow]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('remembered_email');
@@ -207,21 +229,36 @@ const Login = () => {
             Ku<span className="brand-name-accent">msika</span>
           </h1>
           <p className="brand-tagline">
-            {isLogin
-              ? 'Sign in to continue to your marketplace'
-              : 'Create your account to get started'}
+            {isVerifyFlow
+              ? 'Create your account to start posting'
+              : isLogin
+                ? 'Sign in to continue to your marketplace'
+                : isAnonymous
+                  ? 'Create your account to start posting'
+                  : 'Create your account to get started'}
           </p>
         </div>
 
         {/* ===== CARD ===== */}
         <div className="auth-card">
-          {/* Return-to context hint (only when it's not the default) */}
-          {returnTo && returnTo !== '/landing' && returnTo !== '/' && (
-            <div className="return-banner">
+          {/* Verify-flow context banner — shown when redirected by VerifiedRoute */}
+          {isVerifyFlow && (
+            <div className="return-banner verify-banner">
               <Icon name="shield" size={13} color="#92400e" />
-              <span>Sign in to continue where you left off</span>
+              <span>Verify your account to continue</span>
             </div>
           )}
+
+          {/* Return-to context hint (only when it's not verify and not default) */}
+          {!isVerifyFlow &&
+            returnTo &&
+            returnTo !== '/landing' &&
+            returnTo !== '/' && (
+              <div className="return-banner">
+                <Icon name="shield" size={13} color="#92400e" />
+                <span>Sign in to continue where you left off</span>
+              </div>
+            )}
 
           {/* Error */}
           {errorMsg && (
@@ -350,7 +387,13 @@ const Login = () => {
                 <span className="spinner" />
               ) : (
                 <>
-                  <span>{isLogin ? 'Sign in' : 'Create account'}</span>
+                  <span>
+                    {isLogin
+                      ? 'Sign in'
+                      : isAnonymous
+                        ? 'Verify & continue'
+                        : 'Create account'}
+                  </span>
                   <Icon
                     name="arrowRight"
                     size={16}
@@ -508,6 +551,12 @@ const Login = () => {
           font-size: 12px;
           color: #92400e;
           font-weight: 500;
+        }
+
+        .verify-banner {
+          background: #eff6ff;
+          border-color: #bfdbfe;
+          color: #1e40af;
         }
 
         /* ============================================
