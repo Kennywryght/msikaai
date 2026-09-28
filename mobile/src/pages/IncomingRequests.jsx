@@ -18,10 +18,12 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     phone: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z",
     message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
     user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
+    star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
     inbox: "M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z",
     checkCircle: "M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3",
     xCircle: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM15 9l-6 6M9 9l6 6",
     alertCircle: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 8v4M12 16h.01",
+    info: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
     home: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-2 0h2",
     search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
     plus: "M12 4v16m8-8H4",
@@ -31,7 +33,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.inbox;
-  
+
   return (
     <svg
       width={size}
@@ -50,27 +52,15 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-// ============================================================
-// MOCK DATA
-// ============================================================
+// NOTE: buyer.color values are per-buyer identity markers used inline.
+// Intentionally NOT tokenized (same treatment as vendor colors).
 const MOCK_REQUESTS = [
   {
     id: 'req-1',
     status: 'pending',
     type: 'reservation',
-    listing: {
-      title: 'Fresh Tomatoes, basket',
-      price: 650,
-      emoji: '🍅',
-    },
-    buyer: {
-      name: 'Mary T.',
-      initials: 'MT',
-      color: '#3B82F6',
-      phone: '+265 991 234 567',
-      rating: 4.7,
-      memberSince: '2024',
-    },
+    listing: { title: 'Fresh Tomatoes, basket', price: 650, emoji: '🍅' },
+    buyer: { name: 'Mary T.', initials: 'MT', color: '#3B82F6', phone: '+265 991 234 567', rating: 4.7, memberSince: '2024' },
     requestedAt: '15 minutes ago',
     pickupTime: 'Today, 4:00 PM',
     pickupLocation: 'Mitundu Trading Centre',
@@ -80,19 +70,8 @@ const MOCK_REQUESTS = [
     id: 'req-2',
     status: 'pending',
     type: 'booking',
-    listing: {
-      title: 'Electrician, home wiring',
-      price: 5000,
-      emoji: '⚡',
-    },
-    buyer: {
-      name: 'James N.',
-      initials: 'JN',
-      color: '#8B5CF6',
-      phone: '+265 999 456 789',
-      rating: 4.9,
-      memberSince: '2023',
-    },
+    listing: { title: 'Electrician, home wiring', price: 5000, emoji: '⚡' },
+    buyer: { name: 'James N.', initials: 'JN', color: '#8B5CF6', phone: '+265 999 456 789', rating: 4.9, memberSince: '2023' },
     requestedAt: '1 hour ago',
     pickupTime: 'Tomorrow, 10:00 AM',
     pickupLocation: 'Mitundu Chimbiri',
@@ -102,19 +81,8 @@ const MOCK_REQUESTS = [
     id: 'req-3',
     status: 'pending',
     type: 'reservation',
-    listing: {
-      title: 'Maize, 50kg bag',
-      price: 350,
-      emoji: '🌽',
-    },
-    buyer: {
-      name: 'Grace K.',
-      initials: 'GK',
-      color: '#EC4899',
-      phone: '+265 888 111 222',
-      rating: 4.5,
-      memberSince: '2024',
-    },
+    listing: { title: 'Maize, 50kg bag', price: 350, emoji: '🌽' },
+    buyer: { name: 'Grace K.', initials: 'GK', color: '#EC4899', phone: '+265 888 111 222', rating: 4.5, memberSince: '2024' },
     requestedAt: '3 hours ago',
     pickupTime: 'Today, 6:00 PM',
     pickupLocation: 'Bunda Market',
@@ -123,34 +91,11 @@ const MOCK_REQUESTS = [
 ];
 
 const MOCK_PAST = [
-  {
-    id: 'past-1',
-    status: 'accepted',
-    listing: { title: 'Cement, 50kg bag', price: 18000, emoji: '🏗️' },
-    buyer: { name: 'Peter M.', initials: 'PM', color: '#10B981' },
-    resolvedAt: 'Yesterday',
-  },
-  {
-    id: 'past-2',
-    status: 'declined',
-    listing: { title: 'Secondhand shirts', price: 1500, emoji: '👕' },
-    buyer: { name: 'Sarah M.', initials: 'SM', color: '#F59E0B' },
-    resolvedAt: '2 days ago',
-    reason: 'Item already reserved',
-  },
-  {
-    id: 'past-3',
-    status: 'expired',
-    listing: { title: 'Fresh Cabbage, head', price: 400, emoji: '🥬' },
-    buyer: { name: 'John D.', initials: 'JD', color: '#EF4444' },
-    resolvedAt: '3 days ago',
-    reason: 'No response in time',
-  },
+  { id: 'past-1', status: 'accepted', listing: { title: 'Cement, 50kg bag', price: 18000, emoji: '🏗️' }, buyer: { name: 'Peter M.', initials: 'PM', color: '#10B981' }, resolvedAt: 'Yesterday' },
+  { id: 'past-2', status: 'declined', listing: { title: 'Secondhand shirts', price: 1500, emoji: '👕' }, buyer: { name: 'Sarah M.', initials: 'SM', color: '#F59E0B' }, resolvedAt: '2 days ago', reason: 'Item already reserved' },
+  { id: 'past-3', status: 'expired', listing: { title: 'Fresh Cabbage, head', price: 400, emoji: '🥬' }, buyer: { name: 'John D.', initials: 'JD', color: '#EF4444' }, resolvedAt: '3 days ago', reason: 'No response in time' },
 ];
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const IncomingRequests = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -172,7 +117,7 @@ const IncomingRequests = () => {
   const handleAccept = async (reqId) => {
     setProcessing(reqId);
     await new Promise(resolve => setTimeout(resolve, 800));
-    
+
     const req = requests.find(r => r.id === reqId);
     if (req) {
       setRequests(prev => prev.filter(r => r.id !== reqId));
@@ -190,10 +135,10 @@ const IncomingRequests = () => {
 
   const handleDecline = async (reqId) => {
     if (!window.confirm('Decline this request?')) return;
-    
+
     setProcessing(reqId);
     await new Promise(resolve => setTimeout(resolve, 600));
-    
+
     const req = requests.find(r => r.id === reqId);
     if (req) {
       setRequests(prev => prev.filter(r => r.id !== reqId));
@@ -233,13 +178,13 @@ const IncomingRequests = () => {
   const getPastStatusConfig = (status) => {
     switch (status) {
       case 'accepted':
-        return { label: 'Accepted', color: '#10B981', bg: 'rgba(16, 185, 129, 0.08)', icon: 'checkCircle' };
+        return { label: 'Accepted', color: 'var(--color-success)', bg: 'var(--color-success-bg)', icon: 'checkCircle' };
       case 'declined':
-        return { label: 'Declined', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)', icon: 'xCircle' };
+        return { label: 'Declined', color: 'var(--color-error)', bg: 'var(--color-error-bg)', icon: 'xCircle' };
       case 'expired':
-        return { label: 'Expired', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)', icon: 'alertCircle' };
+        return { label: 'Expired', color: 'var(--color-warning)', bg: 'var(--color-warning-bg)', icon: 'alertCircle' };
       default:
-        return { label: status, color: '#64748B', bg: '#F1F5F9', icon: 'clock' };
+        return { label: status, color: 'var(--color-text-muted)', bg: 'var(--color-surface-alt)', icon: 'clock' };
     }
   };
 
@@ -249,23 +194,22 @@ const IncomingRequests = () => {
       <div className="page-header">
         <div className="header-top">
           <button className="header-btn" onClick={() => navigate(-1)}>
-            <Icon name="arrowLeft" size={20} color="#1E293B" strokeWidth={1.75} />
+            <Icon name="arrowLeft" size={20} color="var(--color-text)" strokeWidth={1.75} />
           </button>
           <button className="header-btn" onClick={() => window.location.reload()}>
-            <Icon name="refresh" size={18} color="#64748B" strokeWidth={1.75} />
+            <Icon name="refresh" size={18} color="var(--color-text-secondary)" strokeWidth={1.75} />
           </button>
         </div>
 
         <div className="header-content">
           <div className="header-badge">
-            <Icon name="inbox" size={14} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="inbox" size={14} color="var(--color-warning)" strokeWidth={1.75} />
             <span>Seller Inbox</span>
           </div>
           <h1 className="page-title">Incoming Requests</h1>
           <p className="page-subtitle">Review reservations and booking requests from buyers</p>
         </div>
 
-        {/* Tabs */}
         <div className="tabs">
           <button
             className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
@@ -291,19 +235,16 @@ const IncomingRequests = () => {
               <div className="requests-list">
                 {requests.map((req) => (
                   <div key={req.id} className="request-card">
-                    {/* Status Bar */}
                     <div className="status-bar" />
 
-                    {/* Top */}
                     <div className="request-top">
                       <span className="status-chip">
-                        <Icon name="clock" size={10} color="#F59E0B" strokeWidth={2.5} />
+                        <Icon name="clock" size={10} color="var(--color-warning)" strokeWidth={2.5} />
                         Pending Review
                       </span>
                       <span className="request-time">{req.requestedAt}</span>
                     </div>
 
-                    {/* Listing */}
                     <div className="request-listing">
                       <div className="listing-image">
                         <span className="listing-emoji">{req.listing.emoji}</span>
@@ -317,9 +258,8 @@ const IncomingRequests = () => {
                       </div>
                     </div>
 
-                    {/* Buyer */}
                     <div className="buyer-section">
-                      <div 
+                      <div
                         className="buyer-avatar"
                         style={{ background: `${req.buyer.color}15`, color: req.buyer.color }}
                       >
@@ -329,55 +269,44 @@ const IncomingRequests = () => {
                         <div className="buyer-header">
                           <span className="buyer-name">{req.buyer.name}</span>
                           <span className="buyer-rating">
-                            <Icon name="star" size={10} color="#F59E0B" strokeWidth={2} fill="#F59E0B" />
+                            <Icon name="star" size={10} color="var(--color-accent)" strokeWidth={2} fill="var(--color-accent)" />
                             {req.buyer.rating}
                           </span>
                         </div>
                         <span className="buyer-meta">Member since {req.buyer.memberSince}</span>
                       </div>
                       <div className="buyer-actions">
-                        <button 
-                          className="buyer-action-btn"
-                          onClick={() => handleContactBuyer(req.buyer)}
-                          title="Call"
-                        >
-                          <Icon name="phone" size={14} color="#64748B" strokeWidth={1.75} />
+                        <button className="buyer-action-btn" onClick={() => handleContactBuyer(req.buyer)} title="Call">
+                          <Icon name="phone" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
                         </button>
-                        <button 
-                          className="buyer-action-btn"
-                          onClick={() => handleMessageBuyer(req.buyer)}
-                          title="Message"
-                        >
-                          <Icon name="message" size={14} color="#64748B" strokeWidth={1.75} />
+                        <button className="buyer-action-btn" onClick={() => handleMessageBuyer(req.buyer)} title="Message">
+                          <Icon name="message" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
                         </button>
                       </div>
                     </div>
 
-                    {/* Pickup Details */}
                     <div className="pickup-details">
                       <div className="detail-row">
-                        <Icon name="calendar" size={12} color="#94A3B8" strokeWidth={1.75} />
+                        <Icon name="calendar" size={12} color="var(--color-text-muted)" strokeWidth={1.75} />
                         <span className="detail-label">Pickup</span>
                         <span className="detail-value">{req.pickupTime}</span>
                       </div>
                       <div className="detail-row">
-                        <Icon name="mapPin" size={12} color="#94A3B8" strokeWidth={1.75} />
+                        <Icon name="mapPin" size={12} color="var(--color-text-muted)" strokeWidth={1.75} />
                         <span className="detail-label">Location</span>
                         <span className="detail-value">{req.pickupLocation}</span>
                       </div>
                     </div>
 
-                    {/* Note */}
                     {req.note && (
                       <div className="buyer-note">
-                        <Icon name="message" size={12} color="#94A3B8" strokeWidth={1.75} />
+                        <Icon name="message" size={12} color="var(--color-warning)" strokeWidth={1.75} />
                         <span>"{req.note}"</span>
                       </div>
                     )}
 
-                    {/* Actions */}
                     <div className="request-actions">
-                      <button 
+                      <button
                         className="action-btn decline"
                         onClick={() => handleDecline(req.id)}
                         disabled={processing === req.id}
@@ -386,12 +315,12 @@ const IncomingRequests = () => {
                           <span className="btn-spinner-small" />
                         ) : (
                           <>
-                            <Icon name="x" size={14} color="#EF4444" strokeWidth={2.5} />
+                            <Icon name="x" size={14} color="var(--color-error)" strokeWidth={2.5} />
                             Decline
                           </>
                         )}
                       </button>
-                      <button 
+                      <button
                         className="action-btn accept"
                         onClick={() => handleAccept(req.id)}
                         disabled={processing === req.id}
@@ -400,7 +329,7 @@ const IncomingRequests = () => {
                           <span className="btn-spinner-small" />
                         ) : (
                           <>
-                            <Icon name="check" size={14} color="#FFFFFF" strokeWidth={2.5} />
+                            <Icon name="check" size={14} color="var(--color-text-inverse)" strokeWidth={2.5} />
                             Accept
                           </>
                         )}
@@ -412,7 +341,7 @@ const IncomingRequests = () => {
             ) : (
               <div className="empty-state">
                 <div className="empty-icon-wrap">
-                  <Icon name="inbox" size={48} color="#CBD5E1" strokeWidth={1.5} />
+                  <Icon name="inbox" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
                 </div>
                 <h3 className="empty-title">All caught up!</h3>
                 <p className="empty-text">
@@ -438,7 +367,7 @@ const IncomingRequests = () => {
                         <div className="history-info">
                           <div className="history-header">
                             <h3 className="listing-title">{req.listing.title}</h3>
-                            <span 
+                            <span
                               className="status-chip small"
                               style={{ background: status.bg, color: status.color }}
                             >
@@ -452,7 +381,7 @@ const IncomingRequests = () => {
                             <span className="history-date">{req.resolvedAt}</span>
                           </div>
                           <div className="history-buyer">
-                            <div 
+                            <div
                               className="buyer-avatar small"
                               style={{ background: `${req.buyer.color}15`, color: req.buyer.color }}
                             >
@@ -462,7 +391,7 @@ const IncomingRequests = () => {
                           </div>
                           {req.reason && (
                             <div className="history-reason">
-                              <Icon name="info" size={10} color="#94A3B8" strokeWidth={1.75} />
+                              <Icon name="info" size={10} color="var(--color-text-muted)" strokeWidth={1.75} />
                               <span>{req.reason}</span>
                             </div>
                           )}
@@ -475,7 +404,7 @@ const IncomingRequests = () => {
             ) : (
               <div className="empty-state">
                 <div className="empty-icon-wrap">
-                  <Icon name="clock" size={48} color="#CBD5E1" strokeWidth={1.5} />
+                  <Icon name="clock" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
                 </div>
                 <h3 className="empty-title">No history yet</h3>
                 <p className="empty-text">
@@ -501,7 +430,7 @@ const IncomingRequests = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -513,23 +442,21 @@ const IncomingRequests = () => {
       <style jsx>{`
         .incoming-requests {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 100px;
         }
 
-        @media (min-width: 769px) {
-          .incoming-requests {
-            padding-bottom: 40px;
-          }
-        }
+        @media (min-width: 769px) { .incoming-requests { padding-bottom: 40px; } }
 
         /* ===== HEADER ===== */
         .page-header {
-          background: #FFFFFF;
+          background: var(--color-surface);
           padding: 14px 16px 0;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
           position: sticky;
           top: 0;
           z-index: 10;
@@ -548,9 +475,9 @@ const IncomingRequests = () => {
         .header-btn {
           width: 38px;
           height: 38px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border: none;
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -558,49 +485,40 @@ const IncomingRequests = () => {
           transition: all 0.2s;
         }
 
-        .header-btn:hover {
-          background: #F1F5F9;
-        }
+        .header-btn:hover { background: var(--color-border); }
 
-        .header-content {
-          max-width: 700px;
-          margin: 0 auto 16px;
-        }
+        .header-content { max-width: 700px; margin: 0 auto 16px; }
 
         .header-badge {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(245, 158, 11, 0.08);
+          background: var(--color-warning-bg);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: var(--radius-full);
           font-size: 12px;
-          color: #F59E0B;
+          color: var(--color-warning);
           font-weight: 600;
           margin-bottom: 8px;
         }
 
         .page-title {
+          font-family: var(--font-serif);
           font-size: clamp(22px, 3vw, 28px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 4px;
           letter-spacing: -0.5px;
         }
 
         .page-subtitle {
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
         /* ===== TABS ===== */
-        .tabs {
-          display: flex;
-          gap: 4px;
-          max-width: 700px;
-          margin: 0 auto;
-        }
+        .tabs { display: flex; gap: 4px; max-width: 700px; margin: 0 auto; }
 
         .tab-btn {
           flex: 1;
@@ -613,7 +531,7 @@ const IncomingRequests = () => {
           background: transparent;
           font-size: 14px;
           font-weight: 600;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           cursor: pointer;
           font-family: inherit;
           position: relative;
@@ -621,13 +539,11 @@ const IncomingRequests = () => {
           border-bottom: 2px solid transparent;
         }
 
-        .tab-btn:hover {
-          color: #64748B;
-        }
+        .tab-btn:hover { color: var(--color-text-secondary); }
 
         .tab-btn.active {
-          color: #1E293B;
-          border-bottom-color: #F59E0B;
+          color: var(--color-text);
+          border-bottom-color: var(--color-accent);
         }
 
         .tab-badge {
@@ -638,21 +554,16 @@ const IncomingRequests = () => {
           height: 20px;
           padding: 0 6px;
           border-radius: 10px;
-          background: #F59E0B;
-          color: #FFFFFF;
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
           font-size: 11px;
           font-weight: 700;
         }
 
         /* ===== MAIN ===== */
-        .main-content {
-          max-width: 700px;
-          margin: 0 auto;
-          padding: 16px;
-        }
+        .main-content { max-width: 700px; margin: 0 auto; padding: 16px; }
 
-        .requests-list,
-        .history-list {
+        .requests-list, .history-list {
           display: flex;
           flex-direction: column;
           gap: 12px;
@@ -660,12 +571,12 @@ const IncomingRequests = () => {
 
         /* ===== REQUEST CARD ===== */
         .request-card {
-          background: #FFFFFF;
-          border-radius: 14px;
-          border: 1px solid #F1F5F9;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
           overflow: hidden;
           position: relative;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .status-bar {
@@ -674,7 +585,7 @@ const IncomingRequests = () => {
           top: 0;
           bottom: 0;
           width: 3px;
-          background: #F59E0B;
+          background: var(--color-warning);
         }
 
         .request-top {
@@ -682,7 +593,7 @@ const IncomingRequests = () => {
           justify-content: space-between;
           align-items: center;
           padding: 12px 14px 10px 18px;
-          border-bottom: 1px solid #F8FAFC;
+          border-bottom: 1px solid var(--color-surface-alt);
           gap: 8px;
           flex-wrap: wrap;
         }
@@ -692,13 +603,13 @@ const IncomingRequests = () => {
           align-items: center;
           gap: 4px;
           padding: 4px 10px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.03em;
-          background: rgba(245, 158, 11, 0.08);
-          color: #F59E0B;
+          background: var(--color-warning-bg);
+          color: var(--color-warning);
         }
 
         .status-chip.small {
@@ -708,41 +619,32 @@ const IncomingRequests = () => {
 
         .request-time {
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-weight: 500;
         }
 
-        /* Listing */
         .request-listing {
           display: flex;
           gap: 12px;
           padding: 14px 14px 12px 18px;
-          border-bottom: 1px solid #F8FAFC;
+          border-bottom: 1px solid var(--color-surface-alt);
         }
 
         .listing-image {
           width: 60px;
           height: 60px;
-          border-radius: 10px;
-          background: #F8FAFC;
+          border-radius: var(--radius-lg);
+          background: var(--color-surface-alt);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .listing-image.small {
-          width: 48px;
-          height: 48px;
-        }
+        .listing-image.small { width: 48px; height: 48px; }
 
-        .listing-emoji {
-          font-size: 28px;
-        }
-
-        .listing-image.small .listing-emoji {
-          font-size: 22px;
-        }
+        .listing-emoji { font-size: 28px; }
+        .listing-image.small .listing-emoji { font-size: 22px; }
 
         .listing-info {
           flex: 1;
@@ -755,7 +657,7 @@ const IncomingRequests = () => {
         .listing-title {
           font-size: 14px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -763,25 +665,25 @@ const IncomingRequests = () => {
         }
 
         .listing-price {
+          font-family: var(--font-serif);
           font-size: 14px;
-          font-weight: 700;
-          color: #10B981;
+          font-weight: 600;
+          color: var(--color-primary);
         }
 
         .request-type {
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-weight: 500;
           margin-top: 2px;
         }
 
-        /* Buyer Section */
         .buyer-section {
           display: flex;
           align-items: center;
           gap: 10px;
           padding: 12px 14px 12px 18px;
-          border-bottom: 1px solid #F8FAFC;
+          border-bottom: 1px solid var(--color-surface-alt);
         }
 
         .buyer-avatar {
@@ -796,16 +698,9 @@ const IncomingRequests = () => {
           flex-shrink: 0;
         }
 
-        .buyer-avatar.small {
-          width: 22px;
-          height: 22px;
-          font-size: 9px;
-        }
+        .buyer-avatar.small { width: 22px; height: 22px; font-size: 9px; }
 
-        .buyer-info {
-          flex: 1;
-          min-width: 0;
-        }
+        .buyer-info { flex: 1; min-width: 0; }
 
         .buyer-header {
           display: flex;
@@ -818,12 +713,12 @@ const IncomingRequests = () => {
         .buyer-name {
           font-size: 13px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
         }
 
         .buyer-name-small {
           font-size: 12px;
-          color: #64748B;
+          color: var(--color-text-secondary);
           font-weight: 500;
         }
 
@@ -833,29 +728,22 @@ const IncomingRequests = () => {
           gap: 3px;
           font-size: 11px;
           font-weight: 600;
-          color: #1E293B;
-          background: #F8FAFC;
+          color: var(--color-text);
+          background: var(--color-surface-alt);
           padding: 2px 6px;
-          border-radius: 6px;
+          border-radius: var(--radius-sm);
         }
 
-        .buyer-meta {
-          font-size: 11px;
-          color: #94A3B8;
-        }
+        .buyer-meta { font-size: 11px; color: var(--color-text-muted); }
 
-        .buyer-actions {
-          display: flex;
-          gap: 4px;
-          flex-shrink: 0;
-        }
+        .buyer-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
         .buyer-action-btn {
           width: 32px;
           height: 32px;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           border: none;
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -863,18 +751,15 @@ const IncomingRequests = () => {
           transition: all 0.2s;
         }
 
-        .buyer-action-btn:hover {
-          background: #F1F5F9;
-        }
+        .buyer-action-btn:hover { background: var(--color-border); }
 
-        /* Pickup Details */
         .pickup-details {
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           padding: 12px 14px 12px 18px;
           display: flex;
           flex-direction: column;
           gap: 6px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .detail-row {
@@ -885,32 +770,30 @@ const IncomingRequests = () => {
         }
 
         .detail-label {
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-weight: 500;
           min-width: 60px;
         }
 
         .detail-value {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
           flex: 1;
         }
 
-        /* Buyer Note */
         .buyer-note {
           display: flex;
           align-items: flex-start;
           gap: 8px;
           padding: 12px 14px 12px 18px;
-          background: #FEFCF5;
-          border-bottom: 1px solid #FDE68A;
+          background: var(--color-warning-bg);
+          border-bottom: 1px solid var(--color-warning);
           font-size: 12px;
-          color: #92400E;
+          color: var(--color-warning);
           line-height: 1.5;
           font-style: italic;
         }
 
-        /* Actions */
         .request-actions {
           display: flex;
           gap: 8px;
@@ -924,7 +807,7 @@ const IncomingRequests = () => {
           justify-content: center;
           gap: 6px;
           padding: 10px 12px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           font-size: 13px;
           font-weight: 700;
           cursor: pointer;
@@ -934,24 +817,24 @@ const IncomingRequests = () => {
         }
 
         .action-btn.decline {
-          background: #FFFFFF;
-          border: 1px solid #FECACA;
-          color: #EF4444;
+          background: var(--color-surface);
+          border: 1px solid var(--color-error);
+          color: var(--color-error);
         }
 
         .action-btn.decline:hover:not(:disabled) {
-          background: #FEF2F2;
+          background: var(--color-error-bg);
           transform: scale(0.98);
         }
 
         .action-btn.accept {
-          background: #1E293B;
+          background: var(--color-primary);
           border: none;
-          color: #FFFFFF;
+          color: var(--color-text-inverse);
         }
 
         .action-btn.accept:hover:not(:disabled) {
-          background: #10B981;
+          background: var(--color-success);
           transform: scale(0.98);
         }
 
@@ -964,26 +847,24 @@ const IncomingRequests = () => {
           width: 16px;
           height: 16px;
           border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #FFFFFF;
+          border-top-color: var(--color-text-inverse);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
         .action-btn.decline .btn-spinner-small {
-          border-color: rgba(239, 68, 68, 0.3);
-          border-top-color: #EF4444;
+          border-color: rgba(220, 38, 38, 0.3);
+          border-top-color: var(--color-error);
         }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ===== HISTORY CARD ===== */
+        /* ===== HISTORY ===== */
         .history-card {
-          background: #FFFFFF;
-          border-radius: 12px;
-          border: 1px solid #F1F5F9;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-xs);
         }
 
         .history-main {
@@ -992,10 +873,7 @@ const IncomingRequests = () => {
           padding: 14px;
         }
 
-        .history-info {
-          flex: 1;
-          min-width: 0;
-        }
+        .history-info { flex: 1; min-width: 0; }
 
         .history-header {
           display: flex;
@@ -1015,17 +893,13 @@ const IncomingRequests = () => {
         }
 
         .history-price {
-          color: #10B981;
-          font-weight: 700;
+          font-family: var(--font-serif);
+          color: var(--color-primary);
+          font-weight: 600;
         }
 
-        .history-divider {
-          color: #E2E8F0;
-        }
-
-        .history-date {
-          color: #94A3B8;
-        }
+        .history-divider { color: var(--color-border); }
+        .history-date { color: var(--color-text-muted); }
 
         .history-buyer {
           display: flex;
@@ -1039,7 +913,7 @@ const IncomingRequests = () => {
           gap: 4px;
           margin-top: 6px;
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-style: italic;
         }
 
@@ -1047,9 +921,9 @@ const IncomingRequests = () => {
         .empty-state {
           text-align: center;
           padding: 60px 20px;
-          background: #FFFFFF;
-          border-radius: 14px;
-          border: 1px solid #F1F5F9;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
         }
 
         .empty-icon-wrap {
@@ -1060,15 +934,16 @@ const IncomingRequests = () => {
         }
 
         .empty-title {
+          font-family: var(--font-serif);
           font-size: 17px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 4px;
         }
 
         .empty-text {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
           line-height: 1.5;
           max-width: 280px;
@@ -1084,7 +959,7 @@ const IncomingRequests = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -1107,7 +982,7 @@ const IncomingRequests = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1115,79 +990,36 @@ const IncomingRequests = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
-        .nav-label {
-          font-size: 9px;
-          font-weight: 500;
-          color: #94A3B8;
-        }
+        .nav-label { font-size: 9px; font-weight: 500; color: var(--color-text-muted); }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
 
-        .nav-label.active {
-          color: #1E293B;
-          font-weight: 600;
-        }
-
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .page-header {
-            padding: 12px 12px 0;
-          }
-          .main-content {
-            padding: 12px;
-          }
-          .page-title {
-            font-size: 20px;
-          }
-          .request-listing {
-            padding: 12px 12px 10px 16px;
-          }
-          .listing-image {
-            width: 52px;
-            height: 52px;
-          }
-          .listing-emoji {
-            font-size: 24px;
-          }
-          .buyer-section {
-            padding: 10px 12px 10px 16px;
-          }
-          .pickup-details {
-            padding: 10px 12px 10px 16px;
-          }
-          .buyer-note {
-            padding: 10px 12px 10px 16px;
-          }
-          .request-actions {
-            padding: 10px 12px 12px 16px;
-          }
+          .page-header { padding: 12px 12px 0; }
+          .main-content { padding: 12px; }
+          .page-title { font-size: 20px; }
+          .request-listing { padding: 12px 12px 10px 16px; }
+          .listing-image { width: 52px; height: 52px; }
+          .listing-emoji { font-size: 24px; }
+          .buyer-section { padding: 10px 12px 10px 16px; }
+          .pickup-details { padding: 10px 12px 10px 16px; }
+          .buyer-note { padding: 10px 12px 10px 16px; }
+          .request-actions { padding: 10px 12px 12px 16px; }
         }
 
         @media (max-width: 380px) {
-          .listing-title {
-            font-size: 13px;
-          }
-          .listing-price {
-            font-size: 13px;
-          }
-          .action-btn {
-            font-size: 12px;
-            padding: 8px 10px;
-            min-height: 38px;
-          }
+          .listing-title { font-size: 13px; }
+          .listing-price { font-size: 13px; }
+          .action-btn { font-size: 12px; padding: 8px 10px; min-height: 38px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .action-btn,
-          .buyer-action-btn,
-          .header-btn {
-            transition: none;
-          }
+          .action-btn, .buyer-action-btn, .header-btn { transition: none; }
           .action-btn.decline:hover:not(:disabled),
-          .action-btn.accept:hover:not(:disabled) {
-            transform: none;
-          }
+          .action-btn.accept:hover:not(:disabled) { transform: none; }
         }
       `}</style>
     </div>

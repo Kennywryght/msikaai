@@ -27,7 +27,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -73,7 +73,7 @@ const About = () => {
       <section className="hero">
         <div className="hero-content">
           <div className="hero-badge">
-            <Icon name="sparkles" size={28} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="sparkles" size={28} color="var(--color-accent)" strokeWidth={1.75} />
           </div>
           <h1 className="hero-title">
             About <span className="hero-highlight">Kumsika</span>
@@ -89,7 +89,7 @@ const About = () => {
         {/* Mission */}
         <section className="section">
           <div className="section-header">
-            <Icon name="heart" size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="heart" size={22} color="var(--color-accent)" strokeWidth={1.75} />
             <h2 className="section-title">Our Mission</h2>
           </div>
           <div className="card">
@@ -105,7 +105,7 @@ const About = () => {
         {/* Developer & Contact */}
         <section className="section">
           <div className="section-header">
-            <Icon name="mail" size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="mail" size={22} color="var(--color-accent)" strokeWidth={1.75} />
             <h2 className="section-title">Developer and Contact</h2>
           </div>
           <div className="contact-card">
@@ -113,7 +113,7 @@ const About = () => {
               Have questions, feedback or custom development inquiries? Get in touch directly:
             </p>
             <div className="contact-item">
-              <Icon name="mail" size={18} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="mail" size={18} color="var(--color-accent)" strokeWidth={1.75} />
               <span>
                 <strong>Email:</strong>{' '}
                 <a href="mailto:kennedybanda940@gmail.com" className="contact-link">
@@ -122,13 +122,13 @@ const About = () => {
               </span>
             </div>
             <div className="contact-item">
-              <Icon name="phone" size={18} color="#10B981" strokeWidth={1.75} />
+              <Icon name="phone" size={18} color="#25D366" strokeWidth={1.75} />
               <span>
                 <strong>WhatsApp:</strong>{' '}
-                <a 
-                  href="https://wa.me/265888921110" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href="https://wa.me/265888921110"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="contact-link whatsapp"
                 >
                   +265 888 921 110
@@ -141,7 +141,7 @@ const About = () => {
         {/* Impact Stats */}
         <section className="section">
           <div className="section-header">
-            <Icon name="trendingUp" size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="trendingUp" size={22} color="var(--color-accent)" strokeWidth={1.75} />
             <h2 className="section-title">Our Impact</h2>
           </div>
           <div className="stats-grid">
@@ -167,27 +167,27 @@ const About = () => {
         {/* Values */}
         <section className="section">
           <div className="section-header">
-            <Icon name="check" size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="check" size={22} color="var(--color-accent)" strokeWidth={1.75} />
             <h2 className="section-title">Our Values</h2>
           </div>
           <div className="values-grid">
             <div className="value-card">
-              <div className="value-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-                <Icon name="users" size={22} color="#F59E0B" strokeWidth={1.75} />
+              <div className="value-icon" style={{ background: 'var(--color-accent-tint)' }}>
+                <Icon name="users" size={22} color="var(--color-accent)" strokeWidth={1.75} />
               </div>
               <h4 className="value-title">Community First</h4>
               <p className="value-desc">Built for and with the people of Malawi</p>
             </div>
             <div className="value-card">
-              <div className="value-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
-                <Icon name="bot" size={22} color="#3B82F6" strokeWidth={1.75} />
+              <div className="value-icon" style={{ background: 'var(--color-primary-tint)' }}>
+                <Icon name="bot" size={22} color="var(--color-primary)" strokeWidth={1.75} />
               </div>
               <h4 className="value-title">AI for Everyone</h4>
               <p className="value-desc">Voice and text AI that works in Chichewa</p>
             </div>
             <div className="value-card">
-              <div className="value-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-                <Icon name="store" size={22} color="#10B981" strokeWidth={1.75} />
+              <div className="value-icon" style={{ background: 'var(--color-success-bg)' }}>
+                <Icon name="store" size={22} color="var(--color-success)" strokeWidth={1.75} />
               </div>
               <h4 className="value-title">Local Commerce</h4>
               <p className="value-desc">Supporting local businesses and traders</p>
@@ -198,7 +198,7 @@ const About = () => {
         {/* Team */}
         <section className="section">
           <div className="section-header">
-            <Icon name="users" size={22} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="users" size={22} color="var(--color-accent)" strokeWidth={1.75} />
             <h2 className="section-title">Built with Love</h2>
           </div>
           <div className="team-grid">
@@ -235,7 +235,7 @@ const About = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -254,21 +254,21 @@ const About = () => {
       <style jsx>{`
         .about-page {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 80px;
         }
 
         @media (min-width: 769px) {
-          .about-page {
-            padding-bottom: 0;
-          }
+          .about-page { padding-bottom: 0; }
         }
 
         /* ===== HERO ===== */
         .hero {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #334155 100%);
+          background: var(--color-primary);
           padding: 64px 20px 72px;
           text-align: center;
           position: relative;
@@ -313,8 +313,8 @@ const About = () => {
           justify-content: center;
           width: 60px;
           height: 60px;
-          background: rgba(245, 158, 11, 0.1);
-          border-radius: 18px;
+          background: var(--color-accent-tint);
+          border-radius: var(--radius-2xl);
           margin-bottom: 16px;
           animation: float 3s ease-in-out infinite;
         }
@@ -325,26 +325,27 @@ const About = () => {
         }
 
         .hero-title {
+          font-family: var(--font-serif);
           font-size: clamp(32px, 4.5vw, 42px);
-          font-weight: 800;
-          color: #FFFFFF;
+          font-weight: 600;
+          color: var(--color-text-inverse);
           margin: 0 0 8px;
           letter-spacing: -0.5px;
         }
 
         .hero-highlight {
-          background: linear-gradient(135deg, #F59E0B, #D97706);
+          background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         .hero-subtitle {
           font-size: clamp(16px, 1.4vw, 18px);
           color: rgba(255, 255, 255, 0.7);
-          margin: 0;
+          margin: 0 auto;
           line-height: 1.7;
           max-width: 600px;
-          margin: 0 auto;
         }
 
         /* ===== MAIN CONTENT ===== */
@@ -355,13 +356,9 @@ const About = () => {
         }
 
         /* ===== SECTION ===== */
-        .section {
-          margin-bottom: 40px;
-        }
+        .section { margin-bottom: 40px; }
 
-        .section:last-child {
-          margin-bottom: 0;
-        }
+        .section:last-child { margin-bottom: 0; }
 
         .section-header {
           display: flex;
@@ -371,40 +368,41 @@ const About = () => {
         }
 
         .section-title {
+          font-family: var(--font-serif);
           font-size: clamp(20px, 2.2vw, 24px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0;
         }
 
         /* ===== CARDS ===== */
         .card {
-          background: #FFFFFF;
-          border-radius: 14px;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           padding: 22px 26px;
-          border: 1px solid #F1F5F9;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-xs);
         }
 
         .card-text {
           font-size: clamp(15px, 1.2vw, 16px);
-          color: #64748B;
+          color: var(--color-text-secondary);
           line-height: 1.8;
           margin: 0;
         }
 
         /* ===== CONTACT ===== */
         .contact-card {
-          background: #FFFFFF;
-          border-radius: 14px;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           padding: 22px 26px;
-          border: 1px solid #F1F5F9;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-xs);
         }
 
         .contact-text {
           font-size: 15px;
-          color: #64748B;
+          color: var(--color-text-secondary);
           margin: 0 0 14px;
           line-height: 1.6;
         }
@@ -415,27 +413,21 @@ const About = () => {
           gap: 12px;
           padding: 8px 0;
           font-size: 15px;
-          color: #64748B;
+          color: var(--color-text-secondary);
         }
 
         .contact-link {
-          color: #F59E0B;
+          color: var(--color-accent);
           text-decoration: none;
           font-weight: 600;
           transition: color 0.2s;
         }
 
-        .contact-link:hover {
-          color: #D97706;
-        }
+        .contact-link:hover { color: var(--color-accent-hover); }
 
-        .contact-link.whatsapp {
-          color: #10B981;
-        }
+        .contact-link.whatsapp { color: #25D366; }
 
-        .contact-link.whatsapp:hover {
-          color: #059669;
-        }
+        .contact-link.whatsapp:hover { color: #1DA851; }
 
         /* ===== STATS ===== */
         .stats-grid {
@@ -445,37 +437,36 @@ const About = () => {
         }
 
         @media (min-width: 480px) {
-          .stats-grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
+          .stats-grid { grid-template-columns: repeat(4, 1fr); }
         }
 
         .stat-item {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
           padding: 20px 14px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid var(--color-border);
           text-align: center;
           transition: all 0.2s;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .stat-item:hover {
-          border-color: #E2E8F0;
+          border-color: var(--color-border-strong);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+          box-shadow: var(--shadow-md);
         }
 
         .stat-number {
+          font-family: var(--font-serif);
           font-size: clamp(24px, 2.5vw, 30px);
-          font-weight: 800;
-          color: #F59E0B;
+          font-weight: 600;
+          color: var(--color-accent);
           line-height: 1.2;
         }
 
         .stat-label {
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin-top: 4px;
         }
 
@@ -487,25 +478,25 @@ const About = () => {
         }
 
         .value-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
           padding: 22px 18px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid var(--color-border);
           text-align: center;
           transition: all 0.2s;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .value-card:hover {
-          border-color: #E2E8F0;
+          border-color: var(--color-border-strong);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+          box-shadow: var(--shadow-md);
         }
 
         .value-icon {
           width: 48px;
           height: 48px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -515,13 +506,13 @@ const About = () => {
         .value-title {
           font-size: 15px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0 0 4px;
         }
 
         .value-desc {
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
           line-height: 1.5;
         }
@@ -534,44 +525,44 @@ const About = () => {
         }
 
         .team-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
           padding: 22px 16px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid var(--color-border);
           text-align: center;
           transition: all 0.2s;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .team-card:hover {
-          border-color: #E2E8F0;
+          border-color: var(--color-border-strong);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+          box-shadow: var(--shadow-md);
         }
 
         .team-avatar {
           width: clamp(64px, 7vw, 76px);
           height: clamp(64px, 7vw, 76px);
-          background: linear-gradient(135deg, #F59E0B, #D97706);
+          background: var(--color-accent);
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           margin: 0 auto 12px;
           font-size: clamp(28px, 3vw, 32px);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);
+          box-shadow: var(--shadow-accent);
         }
 
         .team-name {
           font-size: 15px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0 0 2px;
         }
 
         .team-role {
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
@@ -583,7 +574,7 @@ const About = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -606,7 +597,7 @@ const About = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -614,26 +605,27 @@ const About = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
         }
 
         /* ===== FOOTER ===== */
         .footer {
-          background: #1E293B;
+          background: var(--color-primary);
           padding: 24px 16px;
           text-align: center;
-          border-top: 1px solid rgba(255, 255, 255, 0.04);
+          border-top: 1px solid var(--color-border);
         }
 
         .footer-inner {
@@ -643,55 +635,29 @@ const About = () => {
 
         .footer-text {
           font-size: 14px;
-          color: rgba(255, 255, 255, 0.3);
+          color: rgba(255, 255, 255, 0.4);
           margin: 0;
           letter-spacing: 0.3px;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 380px) {
-          .hero {
-            padding: 44px 16px 48px;
-          }
-          .hero-title {
-            font-size: 26px;
-          }
-          .stats-grid {
-            gap: 8px;
-          }
-          .stat-item {
-            padding: 14px 8px;
-          }
-          .stat-number {
-            font-size: 20px;
-          }
-          .values-grid {
-            grid-template-columns: 1fr;
-          }
-          .team-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-          .card {
-            padding: 16px 18px;
-          }
-          .contact-card {
-            padding: 16px 18px;
-          }
+          .hero { padding: 44px 16px 48px; }
+          .hero-title { font-size: 26px; }
+          .stats-grid { gap: 8px; }
+          .stat-item { padding: 14px 8px; }
+          .stat-number { font-size: 20px; }
+          .values-grid { grid-template-columns: 1fr; }
+          .team-grid { grid-template-columns: 1fr 1fr; }
+          .card { padding: 16px 18px; }
+          .contact-card { padding: 16px 18px; }
         }
 
         @media (max-width: 480px) {
-          .card {
-            padding: 18px 20px;
-          }
-          .contact-card {
-            padding: 18px 20px;
-          }
-          .value-card {
-            padding: 18px 16px;
-          }
-          .team-card {
-            padding: 18px 14px;
-          }
+          .card { padding: 18px 20px; }
+          .contact-card { padding: 18px 20px; }
+          .value-card { padding: 18px 16px; }
+          .team-card { padding: 18px 14px; }
           .hero-badge {
             width: 48px;
             height: 48px;
@@ -703,37 +669,14 @@ const About = () => {
         }
 
         @media (min-width: 481px) and (max-width: 768px) {
-          .values-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
-          .team-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
+          .values-grid { grid-template-columns: repeat(3, 1fr); }
+          .team-grid { grid-template-columns: repeat(3, 1fr); }
         }
 
-        /* Reduced motion preference */
         @media (prefers-reduced-motion: reduce) {
-          .hero-badge {
-            animation: none;
-          }
-          .stat-item {
-            transition: none;
-          }
-          .stat-item:hover {
-            transform: none;
-          }
-          .value-card {
-            transition: none;
-          }
-          .value-card:hover {
-            transform: none;
-          }
-          .team-card {
-            transition: none;
-          }
-          .team-card:hover {
-            transform: none;
-          }
+          .hero-badge { animation: none; }
+          .stat-item, .value-card, .team-card { transition: none; }
+          .stat-item:hover, .value-card:hover, .team-card:hover { transform: none; }
         }
       `}</style>
     </div>

@@ -28,7 +28,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
   const checkAdminAndLoadData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         navigate('/login');
         return;
@@ -195,15 +195,15 @@ const AdminDashboard = () => {
         <style jsx>{`
           .loading-skeleton {
             min-height: 100vh;
-            background: #F8FAFC;
+            background: var(--color-bg);
             padding: 20px 16px 80px;
             max-width: 1200px;
             margin: 0 auto;
           }
           .skeleton-header {
             height: 80px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            background: var(--color-border);
+            border-radius: var(--radius-xl);
             margin-bottom: 20px;
             animation: pulse 1.5s ease-in-out infinite;
           }
@@ -215,8 +215,8 @@ const AdminDashboard = () => {
           }
           .skeleton-stat {
             height: 70px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            background: var(--color-border);
+            border-radius: var(--radius-xl);
             animation: pulse 1.5s ease-in-out infinite;
           }
           .skeleton-activities {
@@ -226,8 +226,8 @@ const AdminDashboard = () => {
           }
           .skeleton-activity {
             height: 200px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            background: var(--color-border);
+            border-radius: var(--radius-xl);
             animation: pulse 1.5s ease-in-out infinite;
           }
           @keyframes pulse {
@@ -235,12 +235,8 @@ const AdminDashboard = () => {
             50% { opacity: 0.5; }
           }
           @media (max-width: 480px) {
-            .skeleton-stats {
-              grid-template-columns: repeat(2, 1fr);
-            }
-            .skeleton-activities {
-              grid-template-columns: 1fr;
-            }
+            .skeleton-stats { grid-template-columns: repeat(2, 1fr); }
+            .skeleton-activities { grid-template-columns: 1fr; }
           }
         `}</style>
       </div>
@@ -253,7 +249,7 @@ const AdminDashboard = () => {
         {/* Welcome Section */}
         <div className="welcome-section">
           <div className="welcome-badge">
-            <Icon name="dashboard" size={16} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="dashboard" size={16} color="var(--color-warning)" strokeWidth={1.75} />
             <span>Admin</span>
           </div>
           <h1 className="welcome-title">Admin Dashboard</h1>
@@ -263,8 +259,8 @@ const AdminDashboard = () => {
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
-              <Icon name="users" size={18} color="#3B82F6" strokeWidth={1.75} />
+            <div className="stat-icon" style={{ background: 'var(--color-info-bg)' }}>
+              <Icon name="users" size={18} color="var(--color-primary)" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.users.toLocaleString()}</div>
@@ -272,8 +268,8 @@ const AdminDashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-              <Icon name="store" size={18} color="#F59E0B" strokeWidth={1.75} />
+            <div className="stat-icon" style={{ background: 'var(--color-accent-tint)' }}>
+              <Icon name="store" size={18} color="var(--color-accent)" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.projects.toLocaleString()}</div>
@@ -281,8 +277,8 @@ const AdminDashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-              <Icon name="shopping" size={18} color="#8B5CF6" strokeWidth={1.75} />
+            <div className="stat-icon" style={{ background: 'var(--color-primary-tint)' }}>
+              <Icon name="shopping" size={18} color="var(--color-primary)" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.orders.toLocaleString()}</div>
@@ -290,8 +286,8 @@ const AdminDashboard = () => {
             </div>
           </div>
           <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-              <Icon name="dollar" size={18} color="#10B981" strokeWidth={1.75} />
+            <div className="stat-icon" style={{ background: 'var(--color-success-bg)' }}>
+              <Icon name="dollar" size={18} color="var(--color-success)" strokeWidth={1.75} />
             </div>
             <div className="stat-info">
               <div className="stat-value stat-revenue">{formatCurrency(stats.revenue)}</div>
@@ -305,7 +301,7 @@ const AdminDashboard = () => {
           <div className="activity-card">
             <div className="card-header">
               <h3 className="card-title">
-                <Icon name="clock" size={18} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="clock" size={18} color="var(--color-accent)" strokeWidth={1.75} />
                 Recent Orders
               </h3>
               <span className="card-count">{stats.recentOrders.length}</span>
@@ -317,7 +313,7 @@ const AdminDashboard = () => {
                 {stats.recentOrders.map((order, index) => {
                   const isCompleted = order.status === 'completed';
                   const isCancelled = order.status === 'cancelled';
-                  
+
                   return (
                     <div key={order.id} className={`activity-item ${index === stats.recentOrders.length - 1 ? 'last' : ''}`}>
                       <div className="activity-info">
@@ -340,7 +336,7 @@ const AdminDashboard = () => {
           <div className="activity-card">
             <div className="card-header">
               <h3 className="card-title">
-                <Icon name="users" size={18} color="#3B82F6" strokeWidth={1.75} />
+                <Icon name="users" size={18} color="var(--color-primary)" strokeWidth={1.75} />
                 Recent Users
               </h3>
               <span className="card-count">{stats.recentUsers.length}</span>
@@ -383,7 +379,7 @@ const AdminDashboard = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -395,16 +391,16 @@ const AdminDashboard = () => {
       <style jsx>{`
         .admin-dashboard {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 80px;
         }
 
         @media (min-width: 769px) {
-          .admin-dashboard {
-            padding-bottom: 0;
-          }
+          .admin-dashboard { padding-bottom: 0; }
         }
 
         /* ===== MAIN CONTENT ===== */
@@ -415,34 +411,33 @@ const AdminDashboard = () => {
         }
 
         /* ===== WELCOME ===== */
-        .welcome-section {
-          margin-bottom: 24px;
-        }
+        .welcome-section { margin-bottom: 24px; }
 
         .welcome-badge {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(245, 158, 11, 0.08);
+          background: var(--color-warning-bg);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: var(--radius-full);
           font-size: 12px;
-          color: #F59E0B;
+          color: var(--color-warning);
           font-weight: 500;
           margin-bottom: 8px;
         }
 
         .welcome-title {
+          font-family: var(--font-serif);
           font-size: clamp(24px, 2.8vw, 28px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 4px;
           letter-spacing: -0.5px;
         }
 
         .welcome-subtitle {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
@@ -455,58 +450,52 @@ const AdminDashboard = () => {
         }
 
         @media (min-width: 480px) {
-          .stats-grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
+          .stats-grid { grid-template-columns: repeat(4, 1fr); }
         }
 
         .stat-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
           padding: 14px 16px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid var(--color-border);
           display: flex;
           align-items: center;
           gap: 12px;
           transition: all 0.2s;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .stat-card:hover {
-          border-color: #E2E8F0;
+          border-color: var(--color-border-strong);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+          box-shadow: var(--shadow-md);
         }
 
         .stat-icon {
           width: 38px;
           height: 38px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .stat-info {
-          flex: 1;
-          min-width: 0;
-        }
+        .stat-info { flex: 1; min-width: 0; }
 
         .stat-value {
+          font-family: var(--font-serif);
           font-size: clamp(18px, 1.8vw, 22px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           line-height: 1.2;
         }
 
-        .stat-revenue {
-          color: #10B981;
-        }
+        .stat-revenue { color: var(--color-primary); }
 
         .stat-label {
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           text-transform: uppercase;
           letter-spacing: 0.03em;
         }
@@ -519,17 +508,15 @@ const AdminDashboard = () => {
         }
 
         @media (min-width: 768px) {
-          .activity-grid {
-            grid-template-columns: 1fr 1fr;
-          }
+          .activity-grid { grid-template-columns: 1fr 1fr; }
         }
 
         .activity-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
           padding: 16px 18px;
-          border: 1px solid #F1F5F9;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-xs);
         }
 
         .card-header {
@@ -540,9 +527,10 @@ const AdminDashboard = () => {
         }
 
         .card-title {
+          font-family: var(--font-serif);
           font-size: 15px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0;
           display: flex;
           align-items: center;
@@ -552,10 +540,10 @@ const AdminDashboard = () => {
         .card-count {
           font-size: 12px;
           font-weight: 600;
-          color: #94A3B8;
-          background: #F1F5F9;
+          color: var(--color-text-muted);
+          background: var(--color-surface-alt);
           padding: 2px 10px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
         }
 
         .activity-list {
@@ -568,23 +556,18 @@ const AdminDashboard = () => {
           justify-content: space-between;
           align-items: center;
           padding: 10px 0;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
           gap: 10px;
         }
 
-        .activity-item.last {
-          border-bottom: none;
-        }
+        .activity-item.last { border-bottom: none; }
 
-        .activity-info {
-          flex: 1;
-          min-width: 0;
-        }
+        .activity-info { flex: 1; min-width: 0; }
 
         .activity-name {
           font-size: 14px;
           font-weight: 600;
-          color: #1E293B;
+          color: var(--color-text);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -592,12 +575,12 @@ const AdminDashboard = () => {
 
         .activity-meta {
           font-size: 12px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .empty-state {
           text-align: center;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-size: 14px;
           padding: 20px 0;
         }
@@ -605,7 +588,7 @@ const AdminDashboard = () => {
         /* ===== STATUS BADGES ===== */
         .status-badge {
           padding: 3px 12px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-size: 11px;
           font-weight: 600;
           text-transform: capitalize;
@@ -613,23 +596,23 @@ const AdminDashboard = () => {
         }
 
         .status-badge.completed {
-          background: #D1FAE5;
-          color: #065F46;
+          background: var(--color-success-bg);
+          color: var(--color-success);
         }
 
         .status-badge.cancelled {
-          background: #FEE2E2;
-          color: #991B1B;
+          background: var(--color-error-bg);
+          color: var(--color-error);
         }
 
         .status-badge.pending {
-          background: #FEF3C7;
-          color: #92400E;
+          background: var(--color-warning-bg);
+          color: var(--color-warning);
         }
 
         .role-badge {
           padding: 3px 12px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-size: 11px;
           font-weight: 600;
           text-transform: capitalize;
@@ -637,13 +620,13 @@ const AdminDashboard = () => {
         }
 
         .role-badge.admin {
-          background: #E0E7FF;
-          color: #3730A3;
+          background: var(--color-primary-tint);
+          color: var(--color-primary);
         }
 
         .role-badge.user {
-          background: #F1F5F9;
-          color: #64748B;
+          background: var(--color-surface-alt);
+          color: var(--color-text-secondary);
         }
 
         /* ===== BOTTOM NAV ===== */
@@ -654,7 +637,7 @@ const AdminDashboard = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -677,7 +660,7 @@ const AdminDashboard = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -685,50 +668,34 @@ const AdminDashboard = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 380px) {
-          .stats-grid {
-            gap: 8px;
-          }
-          .stat-card {
-            padding: 10px 12px;
-          }
-          .stat-icon {
-            width: 32px;
-            height: 32px;
-          }
-          .stat-value {
-            font-size: 16px;
-          }
-          .activity-card {
-            padding: 12px 14px;
-          }
-          .activity-item {
-            padding: 8px 0;
-          }
-          .welcome-title {
-            font-size: 20px;
-          }
+          .stats-grid { gap: 8px; }
+          .stat-card { padding: 10px 12px; }
+          .stat-icon { width: 32px; height: 32px; }
+          .stat-value { font-size: 16px; }
+          .activity-card { padding: 12px 14px; }
+          .activity-item { padding: 8px 0; }
+          .welcome-title { font-size: 20px; }
         }
 
         @media (min-width: 481px) and (max-width: 768px) {
-          .stats-grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
+          .stats-grid { grid-template-columns: repeat(4, 1fr); }
         }
       `}</style>
     </div>

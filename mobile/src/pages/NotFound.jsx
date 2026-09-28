@@ -21,7 +21,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -85,12 +85,12 @@ const NotFound = () => {
 
           <div className="error-actions">
             <Link to={user ? '/dashboard' : '/'} className="btn-primary">
-              <Icon name={user ? 'dashboard' : 'home'} size={16} color="#FFFFFF" strokeWidth={1.75} />
+              <Icon name={user ? 'dashboard' : 'home'} size={16} color="var(--color-text-inverse)" strokeWidth={1.75} />
               {user ? 'Go to Dashboard' : 'Go Home'}
             </Link>
 
             <Link to="/search" className="btn-secondary">
-              <Icon name="search" size={16} color="#1E293B" strokeWidth={1.75} />
+              <Icon name="search" size={16} color="var(--color-text)" strokeWidth={1.75} />
               Browse Listings
             </Link>
           </div>
@@ -109,15 +109,15 @@ const NotFound = () => {
             <p className="suggestions-title">You might be looking for:</p>
             <div className="suggestions-grid">
               <Link to="/search" className="suggestion-item">
-                <Icon name="search" size={14} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="search" size={14} color="var(--color-accent)" strokeWidth={1.75} />
                 <span>Browse products</span>
               </Link>
               <Link to="/landing" className="suggestion-item">
-                <Icon name="home" size={14} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="home" size={14} color="var(--color-accent)" strokeWidth={1.75} />
                 <span>Home page</span>
               </Link>
               <Link to={user ? '/dashboard' : '/login'} className="suggestion-item">
-                <Icon name="store" size={14} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="store" size={14} color="var(--color-accent)" strokeWidth={1.75} />
                 <span>{user ? 'Dashboard' : 'Sign in'}</span>
               </Link>
             </div>
@@ -139,7 +139,7 @@ const NotFound = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -151,16 +151,16 @@ const NotFound = () => {
       <style jsx>{`
         .not-found {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 80px;
         }
 
         @media (min-width: 769px) {
-          .not-found {
-            padding-bottom: 0;
-          }
+          .not-found { padding-bottom: 0; }
         }
 
         /* ===== MAIN CONTENT ===== */
@@ -192,19 +192,19 @@ const NotFound = () => {
           justify-content: center;
           gap: 4px;
           margin-bottom: 8px;
-          font-family: 'Georgia', serif;
+          font-family: var(--font-serif);
         }
 
         .digit {
           font-size: clamp(72px, 14vw, 110px);
-          font-weight: 900;
-          color: #E2E8F0;
+          font-weight: 700;
+          color: var(--color-border-strong);
           line-height: 1;
           letter-spacing: -0.05em;
         }
 
         .digit.zero {
-          color: #F59E0B;
+          color: var(--color-accent);
           animation: pulse 2s ease-in-out infinite;
         }
 
@@ -222,16 +222,16 @@ const NotFound = () => {
 
         /* ===== ERROR TITLE ===== */
         .error-title {
+          font-family: var(--font-serif);
           font-size: clamp(24px, 4vw, 28px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 8px;
-          font-family: 'Georgia', serif;
         }
 
         .error-description {
           font-size: clamp(14px, 1.3vw, 16px);
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0 0 32px;
           line-height: 1.6;
         }
@@ -247,10 +247,10 @@ const NotFound = () => {
 
         .btn-primary {
           padding: 12px 24px;
-          background: #1E293B;
+          background: var(--color-primary);
           border: none;
-          border-radius: 12px;
-          color: #FFFFFF;
+          border-radius: var(--radius-xl);
+          color: var(--color-text-inverse);
           font-weight: 600;
           font-size: 15px;
           cursor: pointer;
@@ -262,20 +262,21 @@ const NotFound = () => {
           text-decoration: none;
           transition: all 0.2s;
           width: 100%;
+          box-shadow: var(--shadow-primary);
         }
 
         .btn-primary:hover {
-          background: #F59E0B;
+          background: var(--color-accent);
           transform: scale(0.98);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+          box-shadow: var(--shadow-accent);
         }
 
         .btn-secondary {
           padding: 12px 24px;
-          background: #FFFFFF;
-          border: 2px solid #E2E8F0;
-          border-radius: 12px;
-          color: #1E293B;
+          background: var(--color-surface);
+          border: 2px solid var(--color-border);
+          border-radius: var(--radius-xl);
+          color: var(--color-text);
           font-weight: 600;
           font-size: 15px;
           cursor: pointer;
@@ -290,44 +291,42 @@ const NotFound = () => {
         }
 
         .btn-secondary:hover {
-          background: #F8FAFC;
-          border-color: #CBD5E1;
+          background: var(--color-surface-alt);
+          border-color: var(--color-border-strong);
           transform: scale(0.98);
         }
 
         /* ===== SUPPORT ===== */
-        .error-support {
-          margin-bottom: 32px;
-        }
+        .error-support { margin-bottom: 32px; }
 
         .error-support p {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
         .support-link {
-          color: #F59E0B;
+          color: var(--color-accent);
           text-decoration: none;
           font-weight: 600;
           transition: color 0.2s;
         }
 
         .support-link:hover {
-          color: #D97706;
+          color: var(--color-accent-hover);
           text-decoration: underline;
         }
 
         /* ===== SUGGESTIONS ===== */
         .suggestions {
           padding-top: 24px;
-          border-top: 1px solid #F1F5F9;
+          border-top: 1px solid var(--color-border);
         }
 
         .suggestions-title {
           font-size: 13px;
           font-weight: 600;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0 0 12px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -345,25 +344,23 @@ const NotFound = () => {
           align-items: center;
           gap: 4px;
           padding: 12px 8px;
-          background: #FFFFFF;
-          border: 1px solid #F1F5F9;
-          border-radius: 10px;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
           text-decoration: none;
-          color: #1E293B;
+          color: var(--color-text);
           font-size: 12px;
           font-weight: 500;
           transition: all 0.2s;
         }
 
         .suggestion-item:hover {
-          border-color: #F59E0B;
+          border-color: var(--color-accent);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+          box-shadow: var(--shadow-md);
         }
 
-        .suggestion-item span {
-          font-size: 11px;
-        }
+        .suggestion-item span { font-size: 11px; }
 
         /* ===== BOTTOM NAV ===== */
         .bottom-nav {
@@ -373,7 +370,7 @@ const NotFound = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -396,7 +393,7 @@ const NotFound = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -404,86 +401,58 @@ const NotFound = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .main-content {
-            padding: 24px 16px;
-          }
-          .suggestions-grid {
-            grid-template-columns: 1fr;
-          }
+          .main-content { padding: 24px 16px; }
+          .suggestions-grid { grid-template-columns: 1fr; }
           .suggestion-item {
             flex-direction: row;
             justify-content: center;
             padding: 10px 12px;
           }
-          .suggestion-item span {
-            font-size: 13px;
-          }
-          .digit {
-            font-size: 60px;
-          }
-          .error-title {
-            font-size: 22px;
-          }
+          .suggestion-item span { font-size: 13px; }
+          .digit { font-size: 60px; }
+          .error-title { font-size: 22px; }
         }
 
         @media (max-width: 380px) {
-          .digit {
-            font-size: 48px;
-          }
-          .error-actions {
-            gap: 8px;
-          }
+          .digit { font-size: 48px; }
+          .error-actions { gap: 8px; }
           .btn-primary,
           .btn-secondary {
             padding: 10px 20px;
             font-size: 14px;
           }
-          .error-title {
-            font-size: 20px;
-          }
+          .error-title { font-size: 20px; }
         }
 
         @media (min-width: 481px) and (max-width: 768px) {
-          .suggestions-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
+          .suggestions-grid { grid-template-columns: repeat(3, 1fr); }
         }
 
-        /* Reduced motion preference */
         @media (prefers-reduced-motion: reduce) {
-          .digit.zero {
-            animation: none;
-          }
-          .suggestion-item {
-            transition: none;
-          }
-          .suggestion-item:hover {
-            transform: none;
-          }
+          .digit.zero { animation: none; }
+          .suggestion-item { transition: none; }
+          .suggestion-item:hover { transform: none; }
           .btn-primary,
-          .btn-secondary {
-            transition: none;
-          }
+          .btn-secondary { transition: none; }
           .btn-primary:hover,
-          .btn-secondary:hover {
-            transform: none;
-          }
+          .btn-secondary:hover { transform: none; }
         }
       `}</style>
     </div>

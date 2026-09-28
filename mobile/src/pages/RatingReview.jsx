@@ -28,7 +28,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.star;
-  
+
   return (
     <svg
       width={size}
@@ -47,9 +47,9 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-// ============================================================
-// RATING LABELS
-// ============================================================
+// NOTE: RATING_LABELS colors express an emotional gradient (red→orange→amber→green)
+// that maps a user's subjective rating to a sentiment. These are intentionally
+// NOT tokenized — they are semantic sentiment, not brand chrome.
 const RATING_LABELS = {
   1: { label: 'Poor', emoji: '😞', color: '#EF4444' },
   2: { label: 'Fair', emoji: '🙁', color: '#F97316' },
@@ -58,9 +58,6 @@ const RATING_LABELS = {
   5: { label: 'Excellent', emoji: '🤩', color: '#10B981' },
 };
 
-// ============================================================
-// QUICK TAGS
-// ============================================================
 const QUICK_TAGS = [
   { id: 'friendly', label: '😊 Friendly seller', type: 'positive' },
   { id: 'fast', label: '⚡ Fast response', type: 'positive' },
@@ -73,40 +70,22 @@ const QUICK_TAGS = [
   { id: 'late', label: '⏳ Late pickup', type: 'negative' },
 ];
 
-// ============================================================
-// MOCK TRANSACTION
-// ============================================================
 const MOCK_TRANSACTION = {
   id: 'txn-1',
   type: 'purchase',
-  listing: {
-    title: 'Fresh Tomatoes, basket',
-    price: 650,
-    emoji: '🍅',
-    image: null,
-  },
-  vendor: {
-    name: 'Grace M.',
-    initials: 'GM',
-    color: '#F59E0B',
-    rating: 4.8,
-    totalReviews: 47,
-    memberSince: '2024',
-  },
+  listing: { title: 'Fresh Tomatoes, basket', price: 650, emoji: '🍅', image: null },
+  vendor: { name: 'Grace M.', initials: 'GM', color: '#F59E0B', rating: 4.8, totalReviews: 47, memberSince: '2024' },
   completedAt: 'Today, 5:30 PM',
   pickupLocation: 'Mitundu Trading Centre',
 };
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const RatingReview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const { showToast, success } = useToast();
-  
+
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -126,8 +105,8 @@ const RatingReview = () => {
   }, []);
 
   const handleTagToggle = (tagId) => {
-    setSelectedTags(prev => 
-      prev.includes(tagId) 
+    setSelectedTags(prev =>
+      prev.includes(tagId)
         ? prev.filter(t => t !== tagId)
         : [...prev, tagId]
     );
@@ -161,7 +140,7 @@ const RatingReview = () => {
   const formatPrice = (price) => `MK ${price.toLocaleString()}`;
 
   const currentRating = hoverRating || rating;
-  const ratingInfo = RATING_LABELS[currentRating] || { label: 'Tap a star to rate', emoji: '⭐', color: '#94A3B8' };
+  const ratingInfo = RATING_LABELS[currentRating] || { label: 'Tap a star to rate', emoji: '⭐', color: 'var(--color-text-muted)' };
 
   // Submitted state
   if (submitted) {
@@ -169,7 +148,7 @@ const RatingReview = () => {
       <div className="rating-review">
         <div className="success-screen">
           <div className="success-icon-wrap">
-            <Icon name="check" size={40} color="#FFFFFF" strokeWidth={3} />
+            <Icon name="check" size={40} color="var(--color-text-inverse)" strokeWidth={3} />
           </div>
           <h1 className="success-title">Thank you!</h1>
           <p className="success-desc">
@@ -177,12 +156,12 @@ const RatingReview = () => {
           </p>
           <div className="success-rating">
             {[...Array(5)].map((_, i) => (
-              <Icon 
-                key={i} 
-                name="star" 
-                size={20} 
-                color={i < rating ? '#F59E0B' : '#E2E8F0'} 
-                fill={i < rating ? '#F59E0B' : 'none'}
+              <Icon
+                key={i}
+                name="star"
+                size={20}
+                color={i < rating ? 'var(--color-accent)' : 'var(--color-border-strong)'}
+                fill={i < rating ? 'var(--color-accent)' : 'none'}
                 strokeWidth={1.75}
               />
             ))}
@@ -195,23 +174,25 @@ const RatingReview = () => {
         <style jsx>{`
           .rating-review {
             min-height: 100vh;
-            background: #F8FAFC;
+            background: var(--color-bg);
+            background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+            background-size: 22px 22px;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 24px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--font-sans);
           }
 
           .success-screen {
             max-width: 400px;
             width: 100%;
-            background: #FFFFFF;
-            border-radius: 20px;
+            background: var(--color-surface);
+            border-radius: var(--radius-3xl);
             padding: 40px 28px;
             text-align: center;
-            border: 1px solid #F1F5F9;
-            box-shadow: 0 4px 24px rgba(30, 41, 59, 0.04);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-md);
             animation: scaleIn 0.4s ease-out;
           }
 
@@ -224,7 +205,7 @@ const RatingReview = () => {
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #10B981, #059669);
+            background: var(--color-success);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -240,16 +221,16 @@ const RatingReview = () => {
           }
 
           .success-title {
+            font-family: var(--font-serif);
             font-size: 26px;
-            font-weight: 700;
-            color: #1E293B;
+            font-weight: 600;
+            color: var(--color-text);
             margin: 0 0 8px;
-            font-family: 'Georgia', serif;
           }
 
           .success-desc {
             font-size: 14px;
-            color: #94A3B8;
+            color: var(--color-text-muted);
             margin: 0 0 20px;
             line-height: 1.6;
           }
@@ -264,10 +245,10 @@ const RatingReview = () => {
           .success-btn {
             width: 100%;
             padding: 14px;
-            background: #1E293B;
+            background: var(--color-primary);
             border: none;
-            border-radius: 12px;
-            color: #FFFFFF;
+            border-radius: var(--radius-xl);
+            color: var(--color-text-inverse);
             font-size: 15px;
             font-weight: 700;
             cursor: pointer;
@@ -276,7 +257,7 @@ const RatingReview = () => {
           }
 
           .success-btn:hover {
-            background: #F59E0B;
+            background: var(--color-accent);
             transform: scale(0.98);
           }
         `}</style>
@@ -290,7 +271,7 @@ const RatingReview = () => {
       <div className="page-header">
         <div className="header-top">
           <button className="header-btn" onClick={() => navigate(-1)}>
-            <Icon name="arrowLeft" size={20} color="#1E293B" strokeWidth={1.75} />
+            <Icon name="arrowLeft" size={20} color="var(--color-text)" strokeWidth={1.75} />
           </button>
           <button className="skip-text-btn" onClick={handleSkip}>
             Skip
@@ -299,7 +280,7 @@ const RatingReview = () => {
 
         <div className="header-content">
           <div className="header-badge">
-            <Icon name="sparkles" size={14} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="sparkles" size={14} color="var(--color-accent)" strokeWidth={1.75} />
             <span>Rate your experience</span>
           </div>
           <h1 className="page-title">How was your experience?</h1>
@@ -321,15 +302,14 @@ const RatingReview = () => {
               <h3 className="transaction-title">{transaction.listing.title}</h3>
               <span className="transaction-price">{formatPrice(transaction.listing.price)}</span>
               <span className="transaction-time">
-                <Icon name="clock" size={10} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="clock" size={10} color="var(--color-text-muted)" strokeWidth={1.75} />
                 {transaction.completedAt}
               </span>
             </div>
           </div>
 
-          {/* Vendor */}
           <div className="vendor-row">
-            <div 
+            <div
               className="vendor-avatar"
               style={{ background: `${transaction.vendor.color}15`, color: transaction.vendor.color }}
             >
@@ -338,7 +318,7 @@ const RatingReview = () => {
             <div className="vendor-info">
               <span className="vendor-name">{transaction.vendor.name}</span>
               <span className="vendor-meta">
-                <Icon name="star" size={10} color="#F59E0B" strokeWidth={2} fill="#F59E0B" />
+                <Icon name="star" size={10} color="var(--color-accent)" strokeWidth={2} fill="var(--color-accent)" />
                 {transaction.vendor.rating} ({transaction.vendor.totalReviews} reviews)
               </span>
             </div>
@@ -348,7 +328,7 @@ const RatingReview = () => {
         {/* Star Rating */}
         <div className="rating-section">
           <h2 className="section-label">
-            <Icon name="star" size={16} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="star" size={16} color="var(--color-accent)" strokeWidth={1.75} />
             Your Rating <span className="required">*</span>
           </h2>
 
@@ -362,11 +342,11 @@ const RatingReview = () => {
                 onMouseLeave={() => setHoverRating(0)}
                 type="button"
               >
-                <Icon 
-                  name="star" 
-                  size={40} 
-                  color={star <= currentRating ? '#F59E0B' : '#E2E8F0'}
-                  fill={star <= currentRating ? '#F59E0B' : 'none'}
+                <Icon
+                  name="star"
+                  size={40}
+                  color={star <= currentRating ? 'var(--color-accent)' : 'var(--color-border-strong)'}
+                  fill={star <= currentRating ? 'var(--color-accent)' : 'none'}
                   strokeWidth={1.75}
                 />
               </button>
@@ -379,11 +359,11 @@ const RatingReview = () => {
           </div>
         </div>
 
-        {/* Quick Tags (shown once rating is set) */}
+        {/* Quick Tags */}
         {rating > 0 && (
           <div className="tags-section">
             <h2 className="section-label">
-              <Icon name="thumbsUp" size={16} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="thumbsUp" size={16} color="var(--color-accent)" strokeWidth={1.75} />
               What stood out?
             </h2>
 
@@ -398,7 +378,7 @@ const RatingReview = () => {
                     type="button"
                   >
                     {isSelected && (
-                      <Icon name="check" size={12} color="#FFFFFF" strokeWidth={3} />
+                      <Icon name="check" size={12} color="var(--color-text-inverse)" strokeWidth={3} />
                     )}
                     {tag.label}
                   </button>
@@ -411,7 +391,7 @@ const RatingReview = () => {
         {/* Comment */}
         <div className="comment-section">
           <h2 className="section-label">
-            <Icon name="message" size={16} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="message" size={16} color="var(--color-accent)" strokeWidth={1.75} />
             Add a Comment <span className="optional">(optional)</span>
           </h2>
 
@@ -431,7 +411,7 @@ const RatingReview = () => {
         {/* Recommend */}
         <div className="recommend-section">
           <h2 className="section-label">
-            <Icon name="thumbsUp" size={16} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="thumbsUp" size={16} color="var(--color-accent)" strokeWidth={1.75} />
             Would you recommend?
           </h2>
 
@@ -457,12 +437,12 @@ const RatingReview = () => {
 
         {/* Trust Note */}
         <div className="trust-note">
-          <Icon name="shield" size={14} color="#3B82F6" strokeWidth={1.75} />
+          <Icon name="shield" size={14} color="var(--color-primary)" strokeWidth={1.75} />
           <span>Your review will be shown publicly on {transaction.vendor.name}'s profile</span>
         </div>
 
         {/* Submit */}
-        <button 
+        <button
           className={`submit-btn ${rating > 0 ? 'active' : ''}`}
           onClick={handleSubmit}
           disabled={rating === 0 || submitting}
@@ -474,7 +454,7 @@ const RatingReview = () => {
             </>
           ) : (
             <>
-              <Icon name="check" size={18} color="#FFFFFF" strokeWidth={2.5} />
+              <Icon name="check" size={18} color="var(--color-text-inverse)" strokeWidth={2.5} />
               Submit Review
             </>
           )}
@@ -495,7 +475,7 @@ const RatingReview = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -507,23 +487,21 @@ const RatingReview = () => {
       <style jsx>{`
         .rating-review {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 100px;
         }
 
-        @media (min-width: 769px) {
-          .rating-review {
-            padding-bottom: 40px;
-          }
-        }
+        @media (min-width: 769px) { .rating-review { padding-bottom: 40px; } }
 
         /* ===== HEADER ===== */
         .page-header {
-          background: #FFFFFF;
+          background: var(--color-surface);
           padding: 14px 16px 20px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .header-top {
@@ -539,9 +517,9 @@ const RatingReview = () => {
         .header-btn {
           width: 38px;
           height: 38px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border: none;
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -549,16 +527,14 @@ const RatingReview = () => {
           transition: all 0.2s;
         }
 
-        .header-btn:hover {
-          background: #F1F5F9;
-        }
+        .header-btn:hover { background: var(--color-border); }
 
         .skip-text-btn {
           padding: 6px 12px;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           border: none;
           background: transparent;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
@@ -567,8 +543,8 @@ const RatingReview = () => {
         }
 
         .skip-text-btn:hover {
-          color: #1E293B;
-          background: #F8FAFC;
+          color: var(--color-text);
+          background: var(--color-surface-alt);
         }
 
         .header-content {
@@ -581,28 +557,28 @@ const RatingReview = () => {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(245, 158, 11, 0.08);
+          background: var(--color-accent-tint);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: var(--radius-full);
           font-size: 12px;
-          color: #F59E0B;
+          color: var(--color-accent);
           font-weight: 600;
           margin-bottom: 10px;
         }
 
         .page-title {
+          font-family: var(--font-serif);
           font-size: clamp(22px, 3vw, 26px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 4px;
-          font-family: 'Georgia', serif;
           letter-spacing: -0.02em;
           line-height: 1.2;
         }
 
         .page-subtitle {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
           line-height: 1.5;
         }
@@ -616,36 +592,34 @@ const RatingReview = () => {
 
         /* ===== TRANSACTION CARD ===== */
         .transaction-card {
-          background: #FFFFFF;
-          border-radius: 14px;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           padding: 16px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid var(--color-border);
           margin-bottom: 24px;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .transaction-main {
           display: flex;
           gap: 12px;
           padding-bottom: 12px;
-          border-bottom: 1px solid #F8FAFC;
+          border-bottom: 1px solid var(--color-surface-alt);
           margin-bottom: 12px;
         }
 
         .transaction-image {
           width: 60px;
           height: 60px;
-          border-radius: 10px;
-          background: #F8FAFC;
+          border-radius: var(--radius-lg);
+          background: var(--color-surface-alt);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .transaction-emoji {
-          font-size: 28px;
-        }
+        .transaction-emoji { font-size: 28px; }
 
         .transaction-info {
           flex: 1;
@@ -658,7 +632,7 @@ const RatingReview = () => {
         .transaction-title {
           font-size: 14px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -666,9 +640,10 @@ const RatingReview = () => {
         }
 
         .transaction-price {
+          font-family: var(--font-serif);
           font-size: 14px;
-          font-weight: 700;
-          color: #10B981;
+          font-weight: 600;
+          color: var(--color-primary);
         }
 
         .transaction-time {
@@ -676,7 +651,7 @@ const RatingReview = () => {
           align-items: center;
           gap: 4px;
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .vendor-row {
@@ -708,7 +683,7 @@ const RatingReview = () => {
         .vendor-name {
           font-size: 13px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
         }
 
         .vendor-meta {
@@ -716,7 +691,7 @@ const RatingReview = () => {
           align-items: center;
           gap: 4px;
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         /* ===== SECTIONS ===== */
@@ -739,17 +714,17 @@ const RatingReview = () => {
           gap: 6px;
           font-size: 14px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0 0 12px;
         }
 
         .required {
-          color: #EF4444;
+          color: var(--color-error);
           font-weight: 600;
         }
 
         .optional {
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-weight: 500;
           font-size: 12px;
         }
@@ -773,13 +748,8 @@ const RatingReview = () => {
           justify-content: center;
         }
 
-        .star-btn:hover {
-          transform: scale(1.15);
-        }
-
-        .star-btn:active {
-          transform: scale(0.95);
-        }
+        .star-btn:hover { transform: scale(1.15); }
+        .star-btn:active { transform: scale(0.95); }
 
         .rating-label-wrap {
           text-align: center;
@@ -791,9 +761,7 @@ const RatingReview = () => {
           transition: color 0.2s ease;
         }
 
-        .rating-emoji {
-          font-size: 20px;
-        }
+        .rating-emoji { font-size: 20px; }
 
         .rating-label {
           font-size: 15px;
@@ -812,44 +780,44 @@ const RatingReview = () => {
           align-items: center;
           gap: 5px;
           padding: 8px 14px;
-          border-radius: 20px;
-          border: 1.5px solid #E2E8F0;
-          background: #FFFFFF;
+          border-radius: var(--radius-full);
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
           font-size: 13px;
           font-weight: 500;
-          color: #475569;
+          color: var(--color-text-secondary);
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
         }
 
         .tag-chip:hover {
-          border-color: #94A3B8;
-          background: #F8FAFC;
+          border-color: var(--color-border-strong);
+          background: var(--color-surface-alt);
         }
 
         .tag-chip.selected {
-          background: #10B981;
-          border-color: #10B981;
-          color: #FFFFFF;
+          background: var(--color-success);
+          border-color: var(--color-success);
+          color: var(--color-text-inverse);
           font-weight: 600;
         }
 
         .tag-chip.selected.negative {
-          background: #EF4444;
-          border-color: #EF4444;
+          background: var(--color-error);
+          border-color: var(--color-error);
         }
 
         /* ===== COMMENT ===== */
         .comment-textarea {
           width: 100%;
           padding: 14px;
-          border: 1.5px solid #E2E8F0;
-          border-radius: 12px;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-xl);
           font-size: 14px;
-          color: #1E293B;
+          color: var(--color-text);
           outline: none;
-          background: #FFFFFF;
+          background: var(--color-surface);
           font-family: inherit;
           resize: vertical;
           min-height: 100px;
@@ -859,18 +827,16 @@ const RatingReview = () => {
         }
 
         .comment-textarea:focus {
-          border-color: #F59E0B;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
-        .comment-textarea::placeholder {
-          color: #94A3B8;
-        }
+        .comment-textarea::placeholder { color: var(--color-text-muted); }
 
         .char-count {
           text-align: right;
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin-top: 6px;
         }
 
@@ -887,12 +853,12 @@ const RatingReview = () => {
           justify-content: center;
           gap: 8px;
           padding: 14px;
-          border-radius: 12px;
-          border: 1.5px solid #E2E8F0;
-          background: #FFFFFF;
+          border-radius: var(--radius-xl);
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
           font-size: 14px;
           font-weight: 600;
-          color: #475569;
+          color: var(--color-text-secondary);
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
@@ -900,27 +866,25 @@ const RatingReview = () => {
         }
 
         .recommend-btn:hover {
-          border-color: #94A3B8;
-          background: #F8FAFC;
+          border-color: var(--color-border-strong);
+          background: var(--color-surface-alt);
         }
 
         .recommend-btn.active.yes {
-          background: #10B981;
-          border-color: #10B981;
-          color: #FFFFFF;
-          box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);
+          background: var(--color-success);
+          border-color: var(--color-success);
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-md);
         }
 
         .recommend-btn.active.no {
-          background: #EF4444;
-          border-color: #EF4444;
-          color: #FFFFFF;
-          box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+          background: var(--color-error);
+          border-color: var(--color-error);
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-md);
         }
 
-        .recommend-emoji {
-          font-size: 18px;
-        }
+        .recommend-emoji { font-size: 18px; }
 
         /* ===== TRUST NOTE ===== */
         .trust-note {
@@ -928,11 +892,11 @@ const RatingReview = () => {
           align-items: flex-start;
           gap: 8px;
           padding: 12px 14px;
-          background: rgba(59, 130, 246, 0.06);
-          border-radius: 10px;
-          border: 1px solid rgba(59, 130, 246, 0.12);
+          background: var(--color-info-bg);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
           font-size: 12px;
-          color: #1E40AF;
+          color: var(--color-primary);
           line-height: 1.5;
           margin-bottom: 20px;
         }
@@ -941,12 +905,12 @@ const RatingReview = () => {
         .submit-btn {
           width: 100%;
           padding: 14px;
-          background: #E2E8F0;
+          background: var(--color-border);
           border: none;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-size: 15px;
           font-weight: 700;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           cursor: not-allowed;
           transition: all 0.25s ease;
           font-family: inherit;
@@ -958,33 +922,30 @@ const RatingReview = () => {
         }
 
         .submit-btn.active {
-          background: #1E293B;
-          color: #FFFFFF;
+          background: var(--color-primary);
+          color: var(--color-text-inverse);
           cursor: pointer;
+          box-shadow: var(--shadow-primary);
         }
 
         .submit-btn.active:hover:not(:disabled) {
-          background: #F59E0B;
+          background: var(--color-accent);
           transform: scale(0.98);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+          box-shadow: var(--shadow-accent);
         }
 
-        .submit-btn:disabled {
-          cursor: not-allowed;
-        }
+        .submit-btn:disabled { cursor: not-allowed; }
 
         .btn-spinner {
           width: 18px;
           height: 18px;
           border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #FFFFFF;
+          border-top-color: var(--color-text-inverse);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ===== BOTTOM NAV ===== */
         .bottom-nav {
@@ -994,7 +955,7 @@ const RatingReview = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -1017,7 +978,7 @@ const RatingReview = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1025,75 +986,33 @@ const RatingReview = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
-        .nav-label {
-          font-size: 9px;
-          font-weight: 500;
-          color: #94A3B8;
-        }
-
-        .nav-label.active {
-          color: #1E293B;
-          font-weight: 600;
-        }
+        .nav-label { font-size: 9px; font-weight: 500; color: var(--color-text-muted); }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .page-header {
-            padding: 12px 12px 16px;
-          }
-          .main-content {
-            padding: 16px 12px 40px;
-          }
-          .page-title {
-            font-size: 20px;
-          }
-          .star-btn svg {
-            width: 34px;
-            height: 34px;
-          }
-          .transaction-title {
-            font-size: 13px;
-          }
-          .transaction-price {
-            font-size: 13px;
-          }
+          .page-header { padding: 12px 12px 16px; }
+          .main-content { padding: 16px 12px 40px; }
+          .page-title { font-size: 20px; }
+          .star-btn svg { width: 34px; height: 34px; }
+          .transaction-title { font-size: 13px; }
+          .transaction-price { font-size: 13px; }
         }
 
         @media (max-width: 380px) {
-          .star-btn svg {
-            width: 30px;
-            height: 30px;
-          }
-          .tag-chip {
-            font-size: 12px;
-            padding: 6px 12px;
-          }
-          .recommend-btn {
-            font-size: 13px;
-            min-height: 48px;
-          }
+          .star-btn svg { width: 30px; height: 30px; }
+          .tag-chip { font-size: 12px; padding: 6px 12px; }
+          .recommend-btn { font-size: 13px; min-height: 48px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .star-btn,
-          .tag-chip,
-          .recommend-btn,
-          .submit-btn {
-            transition: none;
-          }
-          .star-btn:hover,
-          .submit-btn.active:hover:not(:disabled) {
-            transform: none;
-          }
-          .rating-section,
-          .tags-section,
-          .comment-section,
-          .recommend-section {
-            animation: none;
-          }
+          .star-btn, .tag-chip, .recommend-btn, .submit-btn { transition: none; }
+          .star-btn:hover, .submit-btn.active:hover:not(:disabled) { transform: none; }
+          .rating-section, .tags-section, .comment-section, .recommend-section { animation: none; }
         }
       `}</style>
     </div>

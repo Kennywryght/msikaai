@@ -27,7 +27,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -100,11 +100,11 @@ const AISearch = () => {
     setRelatedSearches([]);
 
     try {
-      const response = await aiAPI.search({ 
+      const response = await aiAPI.search({
         query: searchQuery,
         location: 'Malawi'
       });
-      
+
       if (response.data.success) {
         setResults(response.data.results || []);
         setAiResponse(response.data.ai_response || null);
@@ -171,22 +171,22 @@ const AISearch = () => {
         <style jsx>{`
           .loading-skeleton {
             min-height: 100vh;
-            background: #F8FAFC;
+            background: var(--color-bg);
             padding: 20px 16px 80px;
             max-width: 800px;
             margin: 0 auto;
           }
           .skeleton-header {
             height: 80px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            background: var(--color-border);
+            border-radius: var(--radius-xl);
             margin-bottom: 16px;
             animation: pulse 1.5s ease-in-out infinite;
           }
           .skeleton-search {
             height: 50px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            background: var(--color-border);
+            border-radius: var(--radius-xl);
             margin-bottom: 16px;
             animation: pulse 1.5s ease-in-out infinite;
           }
@@ -197,8 +197,8 @@ const AISearch = () => {
           }
           .skeleton-result {
             height: 100px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            background: var(--color-border);
+            border-radius: var(--radius-xl);
             animation: pulse 1.5s ease-in-out infinite;
           }
           @keyframes pulse {
@@ -216,7 +216,7 @@ const AISearch = () => {
         {/* Page Header */}
         <div className="page-header">
           <div className="header-icon">
-            <Icon name="bot" size={28} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="bot" size={28} color="var(--color-accent)" strokeWidth={1.75} />
           </div>
           <h1 className="page-title">AI Assistant</h1>
           <p className="page-subtitle">Ask in English or Chichewa. Example: "Ndikufuna plumber pafupi"</p>
@@ -226,7 +226,7 @@ const AISearch = () => {
         <div className="search-card" ref={searchRef}>
           <form onSubmit={handleSearch} className="search-form">
             <div className="search-input-wrapper">
-              <Icon name="search" size={18} color="#94A3B8" strokeWidth={1.75} />
+              <Icon name="search" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               <input
                 type="text"
                 placeholder="Ask anything..."
@@ -237,7 +237,7 @@ const AISearch = () => {
                 autoComplete="off"
               />
               <button type="submit" className="search-btn" disabled={loading}>
-                <Icon name="search" size={16} color="#FFFFFF" strokeWidth={2} />
+                <Icon name="search" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                 {loading ? '...' : 'Search'}
               </button>
             </div>
@@ -250,7 +250,7 @@ const AISearch = () => {
                     className="suggestion-item"
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
-                    <Icon name="search" size={14} color="#94A3B8" strokeWidth={1.75} />
+                    <Icon name="search" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                     {suggestion}
                   </div>
                 ))}
@@ -262,7 +262,7 @@ const AISearch = () => {
         {/* Error */}
         {errorMsg && (
           <div className="error-banner">
-            <Icon name="search" size={16} color="#EF4444" strokeWidth={1.75} />
+            <Icon name="search" size={16} color="var(--color-error)" strokeWidth={1.75} />
             {errorMsg}
           </div>
         )}
@@ -271,11 +271,11 @@ const AISearch = () => {
         {aiResponse && (
           <div className="ai-response">
             <div className="ai-response-header">
-              <Icon name="sparkles" size={16} color="#166534" strokeWidth={1.75} />
+              <Icon name="sparkles" size={16} color="var(--color-success)" strokeWidth={1.75} />
               <span>AI Suggestion</span>
             </div>
             <p className="ai-response-text">{aiResponse}</p>
-            
+
             {relatedSearches.length > 0 && (
               <div className="related-searches">
                 {relatedSearches.map((term, idx) => (
@@ -292,7 +292,7 @@ const AISearch = () => {
                 ))}
               </div>
             )}
-            
+
             {suggestedCategory && (
               <div className="category-tag">
                 📂 {suggestedCategory}
@@ -329,7 +329,7 @@ const AISearch = () => {
                       )}
                       {item.location_area && (
                         <span className="badge badge-location">
-                          <Icon name="mapPin" size={10} color="#92400E" strokeWidth={1.75} />
+                          <Icon name="mapPin" size={10} color="var(--color-warning)" strokeWidth={1.75} />
                           {item.location_area}
                         </span>
                       )}
@@ -350,7 +350,7 @@ const AISearch = () => {
         {/* Empty State - No Results */}
         {!loading && results.length === 0 && query && !errorMsg && (
           <div className="empty-state">
-            <Icon name="search" size={40} color="#CBD5E1" strokeWidth={1.5} />
+            <Icon name="search" size={40} color="var(--color-border-strong)" strokeWidth={1.5} />
             <h3 className="empty-title">No results found for "{query}"</h3>
             <p className="empty-text">Try using different keywords or check your spelling</p>
           </div>
@@ -392,7 +392,7 @@ const AISearch = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -404,9 +404,11 @@ const AISearch = () => {
       <style jsx>{`
         .ai-search {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 80px;
         }
 
@@ -434,34 +436,35 @@ const AISearch = () => {
           justify-content: center;
           width: 48px;
           height: 48px;
-          background: rgba(245, 158, 11, 0.1);
-          border-radius: 14px;
+          background: var(--color-accent-tint);
+          border-radius: var(--radius-2xl);
           margin-bottom: 8px;
         }
 
         .page-title {
+          font-family: var(--font-serif);
           font-size: clamp(24px, 2.8vw, 28px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 4px;
           letter-spacing: -0.5px;
         }
 
         .page-subtitle {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
         /* ===== SEARCH CARD ===== */
         .search-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
           padding: 18px 20px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid var(--color-border);
           margin-bottom: 16px;
           position: relative;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .search-form {
@@ -472,17 +475,17 @@ const AISearch = () => {
           display: flex;
           align-items: center;
           gap: 10px;
-          background: #F8FAFC;
-          border: 2px solid #E2E8F0;
-          border-radius: 12px;
+          background: var(--color-surface-alt);
+          border: 2px solid var(--color-border);
+          border-radius: var(--radius-xl);
           padding: 4px 4px 4px 14px;
           transition: all 0.2s;
         }
 
         .search-input-wrapper:focus-within {
-          border-color: #F59E0B;
-          background: #FFFFFF;
-          box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.08);
+          border-color: var(--color-accent);
+          background: var(--color-surface);
+          box-shadow: 0 0 0 4px var(--color-accent-tint);
         }
 
         .search-input {
@@ -493,19 +496,19 @@ const AISearch = () => {
           padding: 10px 0;
           font-size: 15px;
           font-family: inherit;
-          color: #1E293B;
+          color: var(--color-text);
         }
 
         .search-input::placeholder {
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .search-btn {
           padding: 8px 18px;
-          background: #1E293B;
+          background: var(--color-primary);
           border: none;
-          border-radius: 10px;
-          color: #FFFFFF;
+          border-radius: var(--radius-lg);
+          color: var(--color-text-inverse);
           font-weight: 600;
           font-size: 14px;
           cursor: pointer;
@@ -517,7 +520,7 @@ const AISearch = () => {
         }
 
         .search-btn:hover:not(:disabled) {
-          background: #F59E0B;
+          background: var(--color-accent);
           transform: scale(0.98);
         }
 
@@ -532,13 +535,13 @@ const AISearch = () => {
           top: calc(100% + 6px);
           left: 0;
           right: 0;
-          background: #FFFFFF;
-          border-radius: 10px;
-          box-shadow: 0 8px 24px rgba(30, 41, 59, 0.12);
+          background: var(--color-surface);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-lg);
           z-index: 100;
           max-height: 220px;
           overflow-y: auto;
-          border: 1px solid #F1F5F9;
+          border: 1px solid var(--color-border);
         }
 
         .suggestion-item {
@@ -548,9 +551,9 @@ const AISearch = () => {
           align-items: center;
           gap: 8px;
           font-size: 14px;
-          color: #64748B;
+          color: var(--color-text-secondary);
           transition: all 0.15s;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .suggestion-item:last-child {
@@ -558,17 +561,17 @@ const AISearch = () => {
         }
 
         .suggestion-item:hover {
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
         }
 
         /* ===== ERROR ===== */
         .error-banner {
-          color: #EF4444;
+          color: var(--color-error);
           font-size: 13px;
           padding: 10px 14px;
-          background: #FEF2F2;
-          border-radius: 10px;
-          border: 1px solid #FECACA;
+          background: var(--color-error-bg);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-error);
           display: flex;
           align-items: center;
           gap: 8px;
@@ -577,17 +580,17 @@ const AISearch = () => {
 
         /* ===== AI RESPONSE ===== */
         .ai-response {
-          background: #F0FDF4;
+          background: var(--color-success-bg);
           padding: 16px 18px;
-          border-radius: 12px;
-          border: 1px solid #BBF7D0;
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--color-border);
           margin-bottom: 16px;
         }
 
         .ai-response-header {
           font-size: 12px;
           font-weight: 600;
-          color: #166534;
+          color: var(--color-success);
           display: flex;
           align-items: center;
           gap: 6px;
@@ -596,7 +599,7 @@ const AISearch = () => {
 
         .ai-response-text {
           font-size: 15px;
-          color: #1E293B;
+          color: var(--color-text);
           line-height: 1.6;
           margin: 0;
         }
@@ -610,9 +613,9 @@ const AISearch = () => {
 
         .related-tag {
           padding: 4px 14px;
-          background: #D1FAE5;
-          color: #065F46;
-          border-radius: 14px;
+          background: var(--color-success-bg);
+          color: var(--color-success);
+          border-radius: var(--radius-full);
           font-size: 12px;
           font-weight: 500;
           cursor: pointer;
@@ -622,16 +625,16 @@ const AISearch = () => {
         }
 
         .related-tag:hover {
-          background: #A7F3D0;
+          background: var(--color-accent-tint);
           transform: scale(0.98);
         }
 
         .category-tag {
           display: inline-block;
           padding: 4px 14px;
-          background: #FEF3C7;
-          color: #92400E;
-          border-radius: 14px;
+          background: var(--color-warning-bg);
+          color: var(--color-warning);
+          border-radius: var(--radius-full);
           font-size: 13px;
           font-weight: 600;
           margin-top: 8px;
@@ -644,26 +647,26 @@ const AISearch = () => {
 
         .results-count {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0 0 12px;
           font-weight: 500;
         }
 
         .result-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
           padding: 14px 16px;
           margin-bottom: 10px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid var(--color-border);
           cursor: pointer;
           transition: all 0.2s;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .result-card:hover {
-          border-color: #E2E8F0;
+          border-color: var(--color-border-strong);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+          box-shadow: var(--shadow-md);
         }
 
         .result-content {
@@ -679,13 +682,13 @@ const AISearch = () => {
         .result-title {
           font-size: 15px;
           font-weight: 600;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0 0 2px;
         }
 
         .result-summary {
           font-size: 14px;
-          color: #64748B;
+          color: var(--color-text-secondary);
           margin: 0 0 4px;
           line-height: 1.4;
           display: -webkit-box;
@@ -696,7 +699,7 @@ const AISearch = () => {
 
         .result-business {
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0 0 6px;
           font-weight: 500;
         }
@@ -709,7 +712,7 @@ const AISearch = () => {
 
         .badge {
           padding: 2px 10px;
-          border-radius: 12px;
+          border-radius: var(--radius-full);
           font-size: 11px;
           font-weight: 500;
           display: inline-flex;
@@ -718,70 +721,72 @@ const AISearch = () => {
         }
 
         .badge-category {
-          background: #EDE9F5;
-          color: #1E293B;
+          background: var(--color-primary-tint);
+          color: var(--color-primary);
         }
 
         .badge-price {
-          background: #D1FAE5;
-          color: #065F46;
+          background: var(--color-success-bg);
+          color: var(--color-success);
         }
 
         .badge-location {
-          background: #FEF3C7;
-          color: #92400E;
+          background: var(--color-warning-bg);
+          color: var(--color-warning);
         }
 
         .badge-match {
-          background: #E0E7FF;
-          color: #3730A3;
+          background: var(--color-primary-tint);
+          color: var(--color-primary);
         }
 
         .result-image {
           width: 64px;
           height: 64px;
           object-fit: cover;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           flex-shrink: 0;
-          background: #F1F5F9;
+          background: var(--color-surface-alt);
         }
 
         /* ===== EMPTY STATE ===== */
         .empty-state {
           text-align: center;
           padding: 40px 20px;
-          background: #FFFFFF;
-          border-radius: 12px;
-          border: 1px solid #F1F5F9;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--color-border);
         }
 
         .empty-title {
+          font-family: var(--font-serif);
           font-size: 17px;
           font-weight: 600;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 12px 0 4px;
         }
 
         .empty-text {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
         /* ===== EXAMPLES ===== */
         .examples-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
           padding: 16px 18px;
-          border: 1px solid #F1F5F9;
+          border: 1px solid var(--color-border);
           margin-top: 16px;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .examples-title {
+          font-family: var(--font-serif);
           font-size: 16px;
           font-weight: 600;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0 0 12px;
         }
 
@@ -793,13 +798,13 @@ const AISearch = () => {
 
         .example-btn {
           padding: 10px 14px;
-          background: #F8FAFC;
-          border: 1px solid #F1F5F9;
-          border-radius: 10px;
+          background: var(--color-surface-alt);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
           text-align: left;
           cursor: pointer;
           font-size: 14px;
-          color: #64748B;
+          color: var(--color-text-secondary);
           font-family: inherit;
           transition: all 0.2s;
           display: flex;
@@ -808,8 +813,8 @@ const AISearch = () => {
         }
 
         .example-btn:hover {
-          background: #F1F5F9;
-          border-color: #E2E8F0;
+          background: var(--color-border);
+          border-color: var(--color-border-strong);
           transform: translateX(4px);
         }
 
@@ -821,7 +826,7 @@ const AISearch = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -844,7 +849,7 @@ const AISearch = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -852,17 +857,18 @@ const AISearch = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
         }
 

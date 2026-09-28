@@ -42,6 +42,10 @@ const Icon = ({ name, size = 24, color = 'currentColor', strokeWidth = 1.75, cla
 
 // ============================================================
 // ROLES DATA
+// NOTE: role.color values are per-role identity colors used only
+// for inline styles (border, icon tint, check circle). They are
+// intentionally NOT tokenized — they are role markers, not brand
+// chrome. Leave them unless the design system grows role tokens.
 // ============================================================
 const ROLES = [
   {
@@ -157,7 +161,7 @@ const RoleSelection = () => {
         {/* Header */}
         <div className="card-header">
           <div className="header-badge">
-            <Icon name="sparkles" size={14} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="sparkles" size={14} color="var(--color-warning)" strokeWidth={1.75} />
             <span>Step 1 of 2</span>
           </div>
           <h1 className="card-title">How will you use Kumsika?</h1>
@@ -190,7 +194,7 @@ const RoleSelection = () => {
                     <Icon
                       name={role.icon}
                       size={22}
-                      color={isSelected ? role.color : '#94A3B8'}
+                      color={isSelected ? role.color : 'var(--color-text-muted)'}
                       strokeWidth={1.75}
                     />
                   </div>
@@ -205,7 +209,7 @@ const RoleSelection = () => {
                         style={isSelected ? { background: role.color, borderColor: role.color } : {}}
                       >
                         {isSelected && (
-                          <Icon name="check" size={14} color="#FFFFFF" strokeWidth={2.5} />
+                          <Icon name="check" size={14} color="var(--color-text-inverse)" strokeWidth={2.5} />
                         )}
                       </div>
                     </div>
@@ -231,7 +235,7 @@ const RoleSelection = () => {
 
         {/* Info Note */}
         <div className="info-note">
-          <Icon name="info" size={14} color="#94A3B8" strokeWidth={1.75} />
+          <Icon name="info" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
           <span>You can always change this later in your settings</span>
         </div>
 
@@ -249,7 +253,7 @@ const RoleSelection = () => {
           ) : (
             <>
               Continue
-              <Icon name="arrowRight" size={16} color="#FFFFFF" strokeWidth={2} />
+              <Icon name="arrowRight" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
             </>
           )}
         </button>
@@ -258,9 +262,11 @@ const RoleSelection = () => {
       <style jsx>{`
         .role-selection {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -271,11 +277,11 @@ const RoleSelection = () => {
         .selection-card {
           max-width: 520px;
           width: 100%;
-          background: #FFFFFF;
-          border-radius: 20px;
+          background: var(--color-surface);
+          border-radius: var(--radius-3xl);
           padding: 32px 28px;
-          border: 1px solid #F1F5F9;
-          box-shadow: 0 4px 24px rgba(30, 41, 59, 0.04);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-md);
           animation: fadeInUp 0.5s ease-out;
         }
 
@@ -294,32 +300,31 @@ const RoleSelection = () => {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(245, 158, 11, 0.08);
+          background: var(--color-warning-bg);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: var(--radius-full);
           font-size: 12px;
-          color: #F59E0B;
+          color: var(--color-warning);
           font-weight: 600;
           margin-bottom: 12px;
         }
 
         .card-title {
           font-size: clamp(22px, 3vw, 26px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 8px;
-          font-family: 'Georgia', serif;
+          font-family: var(--font-serif);
           letter-spacing: -0.02em;
           line-height: 1.2;
         }
 
         .card-subtitle {
           font-size: 14px;
-          color: #94A3B8;
-          margin: 0;
+          color: var(--color-text-muted);
+          margin: 0 auto;
           line-height: 1.5;
           max-width: 380px;
-          margin: 0 auto;
         }
 
         /* ===== ROLES LIST ===== */
@@ -333,34 +338,34 @@ const RoleSelection = () => {
         .role-card {
           position: relative;
           padding: 16px;
-          border-radius: 14px;
-          border: 2px solid #F1F5F9;
+          border-radius: var(--radius-2xl);
+          border: 2px solid var(--color-border);
           cursor: pointer;
           transition: all 0.25s ease;
-          background: #FFFFFF;
+          background: var(--color-surface);
         }
 
         .role-card:hover {
-          border-color: #E2E8F0;
-          background: #FAFBFC;
+          border-color: var(--color-border-strong);
+          background: var(--color-surface-alt);
           transform: translateY(-1px);
         }
 
         .role-card.selected {
-          background: #FAFBFC;
-          box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.06);
+          background: var(--color-surface-alt);
+          box-shadow: 0 0 0 4px var(--color-accent-tint);
         }
 
         .recommended-badge {
           position: absolute;
           top: -8px;
           right: 16px;
-          background: #10B981;
-          color: #FFFFFF;
+          background: var(--color-success);
+          color: var(--color-text-inverse);
           font-size: 10px;
           font-weight: 700;
           padding: 3px 10px;
-          border-radius: 10px;
+          border-radius: var(--radius-md);
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -374,8 +379,8 @@ const RoleSelection = () => {
         .role-icon {
           width: 48px;
           height: 48px;
-          border-radius: 12px;
-          background: #F8FAFC;
+          border-radius: var(--radius-xl);
+          background: var(--color-surface-alt);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -399,7 +404,7 @@ const RoleSelection = () => {
         .role-name {
           font-size: 15px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0;
         }
 
@@ -407,7 +412,7 @@ const RoleSelection = () => {
           width: 22px;
           height: 22px;
           border-radius: 50%;
-          border: 2px solid #E2E8F0;
+          border: 2px solid var(--color-border);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -417,7 +422,7 @@ const RoleSelection = () => {
 
         .role-desc {
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
           line-height: 1.5;
         }
@@ -429,7 +434,7 @@ const RoleSelection = () => {
           gap: 6px;
           margin-top: 10px;
           padding-top: 10px;
-          border-top: 1px solid #F1F5F9;
+          border-top: 1px solid var(--color-border);
           animation: fadeIn 0.3s ease-out;
         }
 
@@ -444,10 +449,10 @@ const RoleSelection = () => {
           gap: 4px;
           font-size: 11px;
           font-weight: 500;
-          color: #64748B;
-          background: #F8FAFC;
+          color: var(--color-text-secondary);
+          background: var(--color-surface-alt);
           padding: 3px 10px;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
         }
 
         /* ===== INFO NOTE ===== */
@@ -456,11 +461,11 @@ const RoleSelection = () => {
           align-items: center;
           gap: 8px;
           padding: 10px 14px;
-          background: #F8FAFC;
-          border-radius: 10px;
-          border: 1px solid #F1F5F9;
+          background: var(--color-surface-alt);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
           font-size: 12px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin-bottom: 16px;
         }
 
@@ -468,12 +473,12 @@ const RoleSelection = () => {
         .continue-btn {
           width: 100%;
           padding: 14px;
-          background: #E2E8F0;
+          background: var(--color-border);
           border: none;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-size: 15px;
           font-weight: 700;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           cursor: not-allowed;
           transition: all 0.25s ease;
           font-family: inherit;
@@ -485,15 +490,16 @@ const RoleSelection = () => {
         }
 
         .continue-btn.active {
-          background: #1E293B;
-          color: #FFFFFF;
+          background: var(--color-primary);
+          color: var(--color-text-inverse);
           cursor: pointer;
+          box-shadow: var(--shadow-primary);
         }
 
         .continue-btn.active:hover:not(:disabled) {
-          background: #F59E0B;
+          background: var(--color-accent);
           transform: scale(0.98);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+          box-shadow: var(--shadow-accent);
         }
 
         .continue-btn:disabled {
@@ -504,7 +510,7 @@ const RoleSelection = () => {
           width: 18px;
           height: 18px;
           border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #FFFFFF;
+          border-top-color: var(--color-text-inverse);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -517,7 +523,7 @@ const RoleSelection = () => {
         @media (max-width: 480px) {
           .selection-card {
             padding: 24px 20px;
-            border-radius: 16px;
+            border-radius: var(--radius-2xl);
           }
           .card-title {
             font-size: 20px;

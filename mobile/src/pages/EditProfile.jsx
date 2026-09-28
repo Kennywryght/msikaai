@@ -29,7 +29,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -234,7 +234,7 @@ const EditProfile = () => {
 
       setSuccessMsg('✅ Profile updated successfully!');
       success('Profile updated successfully! 🎉');
-      
+
       setTimeout(() => {
         fetchData();
       }, 2000);
@@ -269,15 +269,15 @@ const EditProfile = () => {
         <style jsx>{`
           .loading-skeleton {
             min-height: 100vh;
-            background: #F8FAFC;
+            background: var(--color-bg);
             padding: 20px 16px 80px;
             max-width: 700px;
             margin: 0 auto;
           }
           .skeleton-header {
             height: 80px;
-            background: #E2E8F0;
-            border-radius: 12px;
+            background: var(--color-border);
+            border-radius: var(--radius-xl);
             margin-bottom: 20px;
             animation: pulse 1.5s ease-in-out infinite;
           }
@@ -285,7 +285,7 @@ const EditProfile = () => {
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            background: #E2E8F0;
+            background: var(--color-border);
             margin-bottom: 16px;
             animation: pulse 1.5s ease-in-out infinite;
           }
@@ -296,14 +296,14 @@ const EditProfile = () => {
           }
           .skeleton-field {
             height: 44px;
-            background: #E2E8F0;
-            border-radius: 8px;
+            background: var(--color-border);
+            border-radius: var(--radius-md);
             animation: pulse 1.5s ease-in-out infinite;
           }
           .skeleton-button {
             height: 48px;
-            background: #E2E8F0;
-            border-radius: 10px;
+            background: var(--color-border);
+            border-radius: var(--radius-lg);
             margin-top: 12px;
             animation: pulse 1.5s ease-in-out infinite;
           }
@@ -322,12 +322,12 @@ const EditProfile = () => {
         {/* Page Header */}
         <div className="page-header">
           <button className="back-btn" onClick={() => navigate('/dashboard')}>
-            <Icon name="arrowLeft" size={16} color="#64748B" strokeWidth={1.75} />
+            <Icon name="arrowLeft" size={16} color="var(--color-text-secondary)" strokeWidth={1.75} />
             Back
           </button>
           <div className="header-content">
             <div className="header-icon">
-              <Icon name="user" size={28} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="user" size={28} color="var(--color-accent)" strokeWidth={1.75} />
             </div>
             <h1 className="page-title">Edit Profile</h1>
             <p className="page-subtitle">Update your business and personal information</p>
@@ -338,13 +338,13 @@ const EditProfile = () => {
         <div className="form-card">
           {errorMsg && (
             <div className="error-banner">
-              <Icon name="close" size={16} color="#EF4444" strokeWidth={1.75} />
+              <Icon name="close" size={16} color="var(--color-error)" strokeWidth={1.75} />
               {errorMsg}
             </div>
           )}
           {successMsg && (
             <div className="success-banner">
-              <Icon name="check" size={16} color="#10B981" strokeWidth={2.5} />
+              <Icon name="check" size={16} color="var(--color-success)" strokeWidth={2.5} />
               {successMsg}
             </div>
           )}
@@ -353,7 +353,7 @@ const EditProfile = () => {
             {/* Personal Information */}
             <div className="section">
               <h3 className="section-title">
-                <Icon name="user" size={18} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="user" size={18} color="var(--color-accent)" strokeWidth={1.75} />
                 Personal Information
               </h3>
               <p className="section-subtitle">Update your personal details</p>
@@ -381,7 +381,7 @@ const EditProfile = () => {
                     onClick={() => fileInputRef.current?.click()}
                     className="upload-btn"
                   >
-                    <Icon name="camera" size={14} color="#64748B" strokeWidth={1.75} />
+                    <Icon name="camera" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
                     Upload Photo
                   </button>
                   <p className="hint-text">JPG, PNG or GIF. Max 2MB.</p>
@@ -406,7 +406,7 @@ const EditProfile = () => {
 
               <div className="form-group">
                 <label className="form-label">
-                  <Icon name="phone" size={14} color="#94A3B8" strokeWidth={1.75} />
+                  <Icon name="phone" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                   Phone Number
                 </label>
                 <input
@@ -422,7 +422,7 @@ const EditProfile = () => {
 
               <div className="form-group">
                 <label className="form-label">
-                  <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
+                  <Icon name="mapPin" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                   Location
                 </label>
                 <input
@@ -440,7 +440,7 @@ const EditProfile = () => {
             {/* Business Information */}
             <div className="section">
               <h3 className="section-title">
-                <Icon name="store" size={18} color="#F59E0B" strokeWidth={1.75} />
+                <Icon name="store" size={18} color="var(--color-accent)" strokeWidth={1.75} />
                 Business Information
               </h3>
               <p className="section-subtitle">Update your business details</p>
@@ -466,7 +466,7 @@ const EditProfile = () => {
                     onClick={() => logoInputRef.current?.click()}
                     className="upload-btn"
                   >
-                    <Icon name="camera" size={14} color="#64748B" strokeWidth={1.75} />
+                    <Icon name="camera" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
                     Upload Logo
                   </button>
                   <p className="hint-text">JPG, PNG or GIF. Max 2MB.</p>
@@ -491,7 +491,7 @@ const EditProfile = () => {
 
               <div className="form-group">
                 <label className="form-label">
-                  <Icon name="tag" size={14} color="#94A3B8" strokeWidth={1.75} />
+                  <Icon name="tag" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                   Category <span className="required">*</span>
                 </label>
                 <select
@@ -522,7 +522,7 @@ const EditProfile = () => {
               <div className="form-row">
                 <div className="form-group half">
                   <label className="form-label">
-                    <Icon name="phone" size={14} color="#94A3B8" strokeWidth={1.75} />
+                    <Icon name="phone" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                     Business Phone
                   </label>
                   <input
@@ -537,7 +537,7 @@ const EditProfile = () => {
                 </div>
                 <div className="form-group half">
                   <label className="form-label">
-                    <Icon name="mapPin" size={14} color="#94A3B8" strokeWidth={1.75} />
+                    <Icon name="mapPin" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                     Business Address
                   </label>
                   <input
@@ -554,7 +554,7 @@ const EditProfile = () => {
             </div>
 
             <button type="submit" className="submit-btn" disabled={saving}>
-              <Icon name="save" size={18} color="#FFFFFF" strokeWidth={1.75} />
+              <Icon name="save" size={18} color="var(--color-text-inverse)" strokeWidth={1.75} />
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
@@ -575,7 +575,7 @@ const EditProfile = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -587,16 +587,16 @@ const EditProfile = () => {
       <style jsx>{`
         .edit-profile {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 80px;
         }
 
         @media (min-width: 769px) {
-          .edit-profile {
-            padding-bottom: 0;
-          }
+          .edit-profile { padding-bottom: 0; }
         }
 
         /* ===== MAIN CONTENT ===== */
@@ -607,34 +607,30 @@ const EditProfile = () => {
         }
 
         /* ===== PAGE HEADER ===== */
-        .page-header {
-          margin-bottom: 24px;
-        }
+        .page-header { margin-bottom: 24px; }
 
         .back-btn {
           display: inline-flex;
           align-items: center;
           gap: 4px;
           padding: 6px 14px;
-          background: #FFFFFF;
-          border: 1px solid #F1F5F9;
-          border-radius: 10px;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
           font-size: 13px;
           font-weight: 500;
-          color: #64748B;
+          color: var(--color-text-secondary);
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
         }
 
         .back-btn:hover {
-          background: #F1F5F9;
-          border-color: #E2E8F0;
+          background: var(--color-surface-alt);
+          border-color: var(--color-border-strong);
         }
 
-        .header-content {
-          margin-top: 12px;
-        }
+        .header-content { margin-top: 12px; }
 
         .header-icon {
           display: inline-flex;
@@ -642,39 +638,40 @@ const EditProfile = () => {
           justify-content: center;
           width: 48px;
           height: 48px;
-          background: rgba(245, 158, 11, 0.1);
-          border-radius: 14px;
+          background: var(--color-accent-tint);
+          border-radius: var(--radius-2xl);
           margin-bottom: 8px;
         }
 
         .page-title {
+          font-family: var(--font-serif);
           font-size: clamp(24px, 2.8vw, 28px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 4px;
           letter-spacing: -0.5px;
         }
 
         .page-subtitle {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
         /* ===== FORM CARD ===== */
         .form-card {
-          background: #FFFFFF;
-          border-radius: 12px;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
           padding: 20px;
-          border: 1px solid #F1F5F9;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-xs);
         }
 
         /* ===== SECTION ===== */
         .section {
           margin-bottom: 24px;
           padding-bottom: 24px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .section:last-of-type {
@@ -684,9 +681,10 @@ const EditProfile = () => {
         }
 
         .section-title {
+          font-family: var(--font-serif);
           font-size: 16px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 2px;
           display: flex;
           align-items: center;
@@ -695,18 +693,14 @@ const EditProfile = () => {
 
         .section-subtitle {
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0 0 16px;
         }
 
         /* ===== FORM GROUP ===== */
-        .form-group {
-          margin-bottom: 14px;
-        }
+        .form-group { margin-bottom: 14px; }
 
-        .form-group:last-of-type {
-          margin-bottom: 0;
-        }
+        .form-group:last-of-type { margin-bottom: 0; }
 
         .form-label {
           display: flex;
@@ -714,25 +708,23 @@ const EditProfile = () => {
           gap: 4px;
           font-size: 12px;
           font-weight: 600;
-          color: #475569;
+          color: var(--color-text-secondary);
           margin-bottom: 4px;
         }
 
-        .required {
-          color: #EF4444;
-        }
+        .required { color: var(--color-error); }
 
         .form-input,
         .form-textarea,
         .form-select {
           width: 100%;
           padding: 10px 14px;
-          border: 1px solid #E2E8F0;
-          border-radius: 10px;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
           font-size: 14px;
-          color: #1E293B;
+          color: var(--color-text);
           outline: none;
-          background: #FFFFFF;
+          background: var(--color-surface);
           font-family: inherit;
           transition: all 0.2s;
           box-sizing: border-box;
@@ -741,8 +733,8 @@ const EditProfile = () => {
         .form-input:focus,
         .form-textarea:focus,
         .form-select:focus {
-          border-color: #F59E0B;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .form-textarea {
@@ -752,7 +744,7 @@ const EditProfile = () => {
 
         .form-select {
           appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
           background-position: right 12px center;
           padding-right: 32px;
@@ -778,59 +770,57 @@ const EditProfile = () => {
           flex-wrap: wrap;
         }
 
-        .avatar-wrapper {
-          position: relative;
-        }
+        .avatar-wrapper { position: relative; }
 
         .avatar {
           width: 72px;
           height: 72px;
           border-radius: 50%;
           object-fit: cover;
-          background: #F8FAFC;
-          border: 2px solid #F1F5F9;
+          background: var(--color-surface-alt);
+          border: 2px solid var(--color-border);
         }
 
         .avatar-placeholder {
           width: 72px;
           height: 72px;
           border-radius: 50%;
-          background: #EDE9F5;
+          background: var(--color-accent-soft);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 30px;
-          color: #F59E0B;
-          border: 2px solid #F1F5F9;
+          color: var(--color-accent);
+          border: 2px solid var(--color-border);
         }
 
         .logo-avatar {
           width: 72px;
           height: 72px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           object-fit: cover;
-          background: #F8FAFC;
-          border: 2px solid #F1F5F9;
+          background: var(--color-surface-alt);
+          border: 2px solid var(--color-border);
         }
 
         .logo-placeholder {
           width: 72px;
           height: 72px;
-          border-radius: 12px;
-          background: #EDE9F5;
+          border-radius: var(--radius-xl);
+          background: var(--color-accent-soft);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 30px;
-          border: 2px solid #F1F5F9;
+          border: 2px solid var(--color-border);
         }
 
         .upload-btn {
           padding: 6px 16px;
-          background: #F8FAFC;
-          color: #64748B;
-          border: 1px solid #E2E8F0;
-          border-radius: 8px;
+          background: var(--color-surface-alt);
+          color: var(--color-text-secondary);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-md);
           cursor: pointer;
           font-size: 12px;
           font-weight: 500;
@@ -842,24 +832,24 @@ const EditProfile = () => {
         }
 
         .upload-btn:hover {
-          background: #F1F5F9;
-          border-color: #CBD5E1;
+          background: var(--color-border);
+          border-color: var(--color-border-strong);
         }
 
         .hint-text {
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 4px 0 0;
         }
 
         /* ===== BANNERS ===== */
         .error-banner {
-          color: #EF4444;
+          color: var(--color-error);
           font-size: 13px;
           padding: 10px 14px;
-          background: #FEF2F2;
-          border-radius: 10px;
-          border: 1px solid #FECACA;
+          background: var(--color-error-bg);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-error);
           display: flex;
           align-items: center;
           gap: 8px;
@@ -867,12 +857,12 @@ const EditProfile = () => {
         }
 
         .success-banner {
-          color: #10B981;
+          color: var(--color-success);
           font-size: 13px;
           padding: 10px 14px;
-          background: #ECFDF5;
-          border-radius: 10px;
-          border: 1px solid #BBF7D0;
+          background: var(--color-success-bg);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
           display: flex;
           align-items: center;
           gap: 8px;
@@ -883,12 +873,12 @@ const EditProfile = () => {
         .submit-btn {
           width: 100%;
           padding: 12px;
-          background: #1E293B;
+          background: var(--color-primary);
           border: none;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-size: 15px;
           font-weight: 600;
-          color: #FFFFFF;
+          color: var(--color-text-inverse);
           cursor: pointer;
           font-family: inherit;
           display: flex;
@@ -898,12 +888,13 @@ const EditProfile = () => {
           transition: all 0.2s;
           margin-top: 8px;
           min-height: 48px;
+          box-shadow: var(--shadow-primary);
         }
 
         .submit-btn:hover:not(:disabled) {
-          background: #F59E0B;
+          background: var(--color-accent);
           transform: scale(0.98);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+          box-shadow: var(--shadow-accent);
         }
 
         .submit-btn:disabled {
@@ -919,7 +910,7 @@ const EditProfile = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -942,7 +933,7 @@ const EditProfile = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -950,41 +941,32 @@ const EditProfile = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .form-row {
-            flex-direction: column;
-          }
-          .form-row .half {
-            min-width: 100%;
-          }
-          .form-card {
-            padding: 16px;
-          }
-          .avatar-section {
-            gap: 12px;
-          }
+          .form-row { flex-direction: column; }
+          .form-row .half { min-width: 100%; }
+          .form-card { padding: 16px; }
+          .avatar-section { gap: 12px; }
           .avatar, .avatar-placeholder, .logo-avatar, .logo-placeholder {
             width: 60px;
             height: 60px;
           }
-          .page-title {
-            font-size: 22px;
-          }
+          .page-title { font-size: 22px; }
           .header-icon {
             width: 40px;
             height: 40px;
@@ -996,15 +978,9 @@ const EditProfile = () => {
         }
 
         @media (max-width: 380px) {
-          .main-content {
-            padding: 12px 12px 32px;
-          }
-          .form-card {
-            padding: 14px;
-          }
-          .page-title {
-            font-size: 20px;
-          }
+          .main-content { padding: 12px 12px 32px; }
+          .form-card { padding: 14px; }
+          .page-title { font-size: 20px; }
           .submit-btn {
             font-size: 14px;
             padding: 10px;

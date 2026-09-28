@@ -27,13 +27,12 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     inbox: "M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z",
     info: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
     alertCircle: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 8v4M12 16h.01",
-    phone_call: "M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z",
     refresh: "M1 4v6h6M23 20v-6h-6M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15",
     chevronRight: "M9 18l6-6-6-6",
   };
 
   const d = icons[name] || icons.package;
-  
+
   return (
     <svg
       width={size}
@@ -54,23 +53,15 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 
 // ============================================================
 // MOCK RESERVATIONS
+// NOTE: vendor.color values are per-vendor identity markers used
+// inline on avatar circles. Intentionally NOT tokenized.
 // ============================================================
 const MOCK_RESERVATIONS = {
   active: [
     {
       id: 'res-1',
-      listing: {
-        title: 'Fresh Tomatoes, basket',
-        price: 650,
-        emoji: '🍅',
-        image: null,
-      },
-      vendor: {
-        name: 'Grace M.',
-        initials: 'GM',
-        color: '#F59E0B',
-        phone: '+265 888 921 110',
-      },
+      listing: { title: 'Fresh Tomatoes, basket', price: 650, emoji: '🍅', image: null },
+      vendor: { name: 'Grace M.', initials: 'GM', color: '#F59E0B', phone: '+265 888 921 110' },
       status: 'confirmed',
       reservedAt: '2 hours ago',
       pickupTime: 'Today, 4:00 PM',
@@ -79,18 +70,8 @@ const MOCK_RESERVATIONS = {
     },
     {
       id: 'res-2',
-      listing: {
-        title: 'Maize, 50kg bag',
-        price: 350,
-        emoji: '🌽',
-        image: null,
-      },
-      vendor: {
-        name: 'Peter K.',
-        initials: 'PK',
-        color: '#10B981',
-        phone: '+265 999 123 456',
-      },
+      listing: { title: 'Maize, 50kg bag', price: 350, emoji: '🌽', image: null },
+      vendor: { name: 'Peter K.', initials: 'PK', color: '#10B981', phone: '+265 999 123 456' },
       status: 'pending',
       reservedAt: '30 minutes ago',
       pickupTime: 'Tomorrow, 10:00 AM',
@@ -101,16 +82,8 @@ const MOCK_RESERVATIONS = {
   history: [
     {
       id: 'hist-1',
-      listing: {
-        title: 'Onions, per kg',
-        price: 800,
-        emoji: '🧅',
-      },
-      vendor: {
-        name: 'Sarah M.',
-        initials: 'SM',
-        color: '#EC4899',
-      },
+      listing: { title: 'Onions, per kg', price: 800, emoji: '🧅' },
+      vendor: { name: 'Sarah M.', initials: 'SM', color: '#EC4899' },
       status: 'completed',
       completedAt: 'Yesterday, 5:30 PM',
       rating: 5,
@@ -118,16 +91,8 @@ const MOCK_RESERVATIONS = {
     },
     {
       id: 'hist-2',
-      listing: {
-        title: 'Fresh Cabbage, head',
-        price: 400,
-        emoji: '🥬',
-      },
-      vendor: {
-        name: 'Mary T.',
-        initials: 'MT',
-        color: '#8B5CF6',
-      },
+      listing: { title: 'Fresh Cabbage, head', price: 400, emoji: '🥬' },
+      vendor: { name: 'Mary T.', initials: 'MT', color: '#8B5CF6' },
       status: 'completed',
       completedAt: '2 days ago',
       rating: null,
@@ -135,16 +100,8 @@ const MOCK_RESERVATIONS = {
     },
     {
       id: 'hist-3',
-      listing: {
-        title: 'Electrician, home wiring',
-        price: 5000,
-        emoji: '⚡',
-      },
-      vendor: {
-        name: 'Chikondi B.',
-        initials: 'CB',
-        color: '#3B82F6',
-      },
+      listing: { title: 'Electrician, home wiring', price: 5000, emoji: '⚡' },
+      vendor: { name: 'Chikondi B.', initials: 'CB', color: '#3B82F6' },
       status: 'cancelled',
       cancelledAt: '3 days ago',
       reason: 'Seller unavailable',
@@ -241,18 +198,24 @@ const MyReservations = () => {
   const activeCount = reservations.active.length;
   const historyCount = reservations.history.length;
 
+  // Returns token-based colors for the status chip + left accent bar.
+  // Semantic mapping:
+  //   confirmed → success (money/positive)
+  //   pending   → warning (in-progress)
+  //   completed → primary (done/neutral)
+  //   cancelled → error   (negative)
   const getStatusConfig = (status) => {
     switch (status) {
       case 'confirmed':
-        return { label: 'Confirmed', color: '#10B981', bg: 'rgba(16, 185, 129, 0.08)', icon: 'check' };
+        return { label: 'Confirmed', color: 'var(--color-success)', bg: 'var(--color-success-bg)', icon: 'check' };
       case 'pending':
-        return { label: 'Pending', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.08)', icon: 'clock' };
+        return { label: 'Pending', color: 'var(--color-warning)', bg: 'var(--color-warning-bg)', icon: 'clock' };
       case 'completed':
-        return { label: 'Completed', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.08)', icon: 'check' };
+        return { label: 'Completed', color: 'var(--color-primary)', bg: 'var(--color-primary-tint)', icon: 'check' };
       case 'cancelled':
-        return { label: 'Cancelled', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.08)', icon: 'x' };
+        return { label: 'Cancelled', color: 'var(--color-error)', bg: 'var(--color-error-bg)', icon: 'x' };
       default:
-        return { label: status, color: '#64748B', bg: '#F1F5F9', icon: 'info' };
+        return { label: status, color: 'var(--color-text-muted)', bg: 'var(--color-surface-alt)', icon: 'info' };
     }
   };
 
@@ -262,15 +225,15 @@ const MyReservations = () => {
       <div className="page-header">
         <div className="header-top">
           <button className="header-btn" onClick={() => navigate(-1)}>
-            <Icon name="arrowLeft" size={20} color="#1E293B" strokeWidth={1.75} />
+            <Icon name="arrowLeft" size={20} color="var(--color-text)" strokeWidth={1.75} />
           </button>
           <button className="header-btn">
-            <Icon name="refresh" size={18} color="#64748B" strokeWidth={1.75} />
+            <Icon name="refresh" size={18} color="var(--color-text-secondary)" strokeWidth={1.75} />
           </button>
         </div>
         <div className="header-content">
           <div className="header-badge">
-            <Icon name="package" size={14} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="package" size={14} color="var(--color-warning)" strokeWidth={1.75} />
             <span>My Orders</span>
           </div>
           <h1 className="page-title">My Reservations</h1>
@@ -307,30 +270,21 @@ const MyReservations = () => {
                   const status = getStatusConfig(res.status);
                   return (
                     <div key={res.id} className="reservation-card">
-                      {/* Status Bar */}
-                      <div 
-                        className="status-bar" 
-                        style={{ background: status.color }}
-                      />
+                      <div className="status-bar" style={{ background: status.color }} />
 
-                      {/* Top: Status + Timer */}
                       <div className="reservation-top">
-                        <span 
-                          className="status-chip"
-                          style={{ background: status.bg, color: status.color }}
-                        >
+                        <span className="status-chip" style={{ background: status.bg, color: status.color }}>
                           <Icon name={status.icon} size={10} color={status.color} strokeWidth={2.5} />
                           {status.label}
                         </span>
                         {res.expiresIn && (
                           <span className="expires-chip">
-                            <Icon name="clock" size={10} color="#94A3B8" strokeWidth={1.75} />
+                            <Icon name="clock" size={10} color="var(--color-text-muted)" strokeWidth={1.75} />
                             Expires in {res.expiresIn}
                           </span>
                         )}
                       </div>
 
-                      {/* Main Content */}
                       <div className="reservation-main">
                         <div className="listing-image">
                           <span className="listing-emoji">{res.listing.emoji}</span>
@@ -340,49 +294,47 @@ const MyReservations = () => {
                           <span className="listing-price">{formatPrice(res.listing.price)}</span>
 
                           <div className="vendor-info">
-                            <div 
+                            <div
                               className="vendor-avatar"
                               style={{ background: `${res.vendor.color}15`, color: res.vendor.color }}
                             >
                               {res.vendor.initials}
                             </div>
                             <span className="vendor-name">{res.vendor.name}</span>
-                            <button 
+                            <button
                               className="vendor-action"
                               onClick={() => handleContactVendor(res.vendor)}
                             >
-                              <Icon name="phone" size={12} color="#64748B" strokeWidth={1.75} />
+                              <Icon name="phone" size={12} color="var(--color-text-secondary)" strokeWidth={1.75} />
                             </button>
                           </div>
                         </div>
                       </div>
 
-                      {/* Pickup Details */}
                       <div className="pickup-details">
                         <div className="detail-row">
-                          <Icon name="calendar" size={12} color="#94A3B8" strokeWidth={1.75} />
+                          <Icon name="calendar" size={12} color="var(--color-text-muted)" strokeWidth={1.75} />
                           <span className="detail-label">Pickup</span>
                           <span className="detail-value">{res.pickupTime}</span>
                         </div>
                         <div className="detail-row">
-                          <Icon name="mapPin" size={12} color="#94A3B8" strokeWidth={1.75} />
+                          <Icon name="mapPin" size={12} color="var(--color-text-muted)" strokeWidth={1.75} />
                           <span className="detail-label">Location</span>
                           <span className="detail-value">{res.pickupLocation}</span>
                         </div>
                       </div>
 
-                      {/* Actions */}
                       <div className="reservation-actions">
                         {res.status === 'confirmed' && (
                           <>
-                            <button 
+                            <button
                               className="action-btn primary"
                               onClick={() => handleMarkCollected(res.id)}
                             >
-                              <Icon name="check" size={14} color="#FFFFFF" strokeWidth={2.5} />
+                              <Icon name="check" size={14} color="var(--color-text-inverse)" strokeWidth={2.5} />
                               Mark as Collected
                             </button>
-                            <button 
+                            <button
                               className="action-btn secondary"
                               onClick={() => handleCancelReservation(res.id)}
                             >
@@ -392,14 +344,14 @@ const MyReservations = () => {
                         )}
                         {res.status === 'pending' && (
                           <>
-                            <button 
+                            <button
                               className="action-btn outline"
                               onClick={() => showToast('Waiting for seller confirmation...', 'info')}
                             >
-                              <Icon name="clock" size={14} color="#F59E0B" strokeWidth={2} />
+                              <Icon name="clock" size={14} color="var(--color-warning)" strokeWidth={2} />
                               Awaiting Confirmation
                             </button>
-                            <button 
+                            <button
                               className="action-btn secondary"
                               onClick={() => handleCancelReservation(res.id)}
                             >
@@ -415,17 +367,17 @@ const MyReservations = () => {
             ) : (
               <div className="empty-state">
                 <div className="empty-icon-wrap">
-                  <Icon name="package" size={48} color="#CBD5E1" strokeWidth={1.5} />
+                  <Icon name="package" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
                 </div>
                 <h3 className="empty-title">No active reservations</h3>
                 <p className="empty-text">
                   When you reserve items from sellers, they'll appear here
                 </p>
-                <button 
+                <button
                   className="empty-btn"
                   onClick={() => navigate('/landing')}
                 >
-                  <Icon name="search" size={14} color="#FFFFFF" strokeWidth={2} />
+                  <Icon name="search" size={14} color="var(--color-text-inverse)" strokeWidth={2} />
                   Browse Listings
                 </button>
               </div>
@@ -442,7 +394,6 @@ const MyReservations = () => {
                   const status = getStatusConfig(res.status);
                   return (
                     <div key={res.id} className="history-card">
-                      {/* Content */}
                       <div className="history-main">
                         <div className="listing-image small">
                           <span className="listing-emoji">{res.listing.emoji}</span>
@@ -450,7 +401,7 @@ const MyReservations = () => {
                         <div className="history-info">
                           <div className="history-header">
                             <h3 className="listing-title">{res.listing.title}</h3>
-                            <span 
+                            <span
                               className="status-chip small"
                               style={{ background: status.bg, color: status.color }}
                             >
@@ -465,7 +416,7 @@ const MyReservations = () => {
                             </span>
                           </div>
                           <div className="history-vendor">
-                            <div 
+                            <div
                               className="vendor-avatar small"
                               style={{ background: `${res.vendor.color}15`, color: res.vendor.color }}
                             >
@@ -476,17 +427,16 @@ const MyReservations = () => {
                         </div>
                       </div>
 
-                      {/* Actions */}
                       {res.status === 'completed' && !res.hasReviewed && (
                         <div className="history-actions">
-                          <button 
+                          <button
                             className="review-btn"
                             onClick={() => {
                               setShowReviewModal(res.id);
                               setReviewRating(5);
                             }}
                           >
-                            <Icon name="star" size={14} color="#F59E0B" strokeWidth={1.75} />
+                            <Icon name="star" size={14} color="var(--color-accent)" strokeWidth={1.75} />
                             Leave a Review
                           </button>
                         </div>
@@ -495,12 +445,12 @@ const MyReservations = () => {
                       {res.status === 'completed' && res.hasReviewed && res.rating && (
                         <div className="rating-display">
                           {[...Array(5)].map((_, i) => (
-                            <Icon 
+                            <Icon
                               key={i}
-                              name="star" 
-                              size={12} 
-                              color={i < res.rating ? '#F59E0B' : '#E2E8F0'} 
-                              fill={i < res.rating ? '#F59E0B' : 'none'}
+                              name="star"
+                              size={12}
+                              color={i < res.rating ? 'var(--color-accent)' : 'var(--color-border-strong)'}
+                              fill={i < res.rating ? 'var(--color-accent)' : 'none'}
                               strokeWidth={1.75}
                             />
                           ))}
@@ -514,7 +464,7 @@ const MyReservations = () => {
             ) : (
               <div className="empty-state">
                 <div className="empty-icon-wrap">
-                  <Icon name="inbox" size={48} color="#CBD5E1" strokeWidth={1.5} />
+                  <Icon name="inbox" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
                 </div>
                 <h3 className="empty-title">No history yet</h3>
                 <p className="empty-text">
@@ -533,7 +483,7 @@ const MyReservations = () => {
             <div className="modal-header">
               <h3 className="modal-title">Rate your experience</h3>
               <button className="modal-close" onClick={() => setShowReviewModal(null)}>
-                <Icon name="x" size={18} color="#64748B" strokeWidth={1.75} />
+                <Icon name="x" size={18} color="var(--color-text-secondary)" strokeWidth={1.75} />
               </button>
             </div>
 
@@ -544,11 +494,11 @@ const MyReservations = () => {
                   className="star-btn"
                   onClick={() => setReviewRating(star)}
                 >
-                  <Icon 
-                    name="star" 
-                    size={32} 
-                    color={star <= reviewRating ? '#F59E0B' : '#E2E8F0'}
-                    fill={star <= reviewRating ? '#F59E0B' : 'none'}
+                  <Icon
+                    name="star"
+                    size={32}
+                    color={star <= reviewRating ? 'var(--color-accent)' : 'var(--color-border-strong)'}
+                    fill={star <= reviewRating ? 'var(--color-accent)' : 'none'}
                     strokeWidth={1.75}
                   />
                 </button>
@@ -599,7 +549,7 @@ const MyReservations = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -611,23 +561,23 @@ const MyReservations = () => {
       <style jsx>{`
         .my-reservations {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 100px;
         }
 
         @media (min-width: 769px) {
-          .my-reservations {
-            padding-bottom: 40px;
-          }
+          .my-reservations { padding-bottom: 40px; }
         }
 
         /* ===== HEADER ===== */
         .page-header {
-          background: #FFFFFF;
+          background: var(--color-surface);
           padding: 14px 16px 0;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
           position: sticky;
           top: 0;
           z-index: 10;
@@ -646,9 +596,9 @@ const MyReservations = () => {
         .header-btn {
           width: 38px;
           height: 38px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border: none;
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -656,9 +606,7 @@ const MyReservations = () => {
           transition: all 0.2s;
         }
 
-        .header-btn:hover {
-          background: #F1F5F9;
-        }
+        .header-btn:hover { background: var(--color-border); }
 
         .header-content {
           max-width: 700px;
@@ -669,26 +617,27 @@ const MyReservations = () => {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(245, 158, 11, 0.08);
+          background: var(--color-warning-bg);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: var(--radius-full);
           font-size: 12px;
-          color: #F59E0B;
+          color: var(--color-warning);
           font-weight: 600;
           margin-bottom: 8px;
         }
 
         .page-title {
+          font-family: var(--font-serif);
           font-size: clamp(22px, 3vw, 28px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 4px;
           letter-spacing: -0.5px;
         }
 
         .page-subtitle {
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
@@ -711,7 +660,7 @@ const MyReservations = () => {
           background: transparent;
           font-size: 14px;
           font-weight: 600;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           cursor: pointer;
           font-family: inherit;
           position: relative;
@@ -719,13 +668,11 @@ const MyReservations = () => {
           border-bottom: 2px solid transparent;
         }
 
-        .tab-btn:hover {
-          color: #64748B;
-        }
+        .tab-btn:hover { color: var(--color-text-secondary); }
 
         .tab-btn.active {
-          color: #1E293B;
-          border-bottom-color: #F59E0B;
+          color: var(--color-text);
+          border-bottom-color: var(--color-accent);
         }
 
         .tab-badge {
@@ -736,8 +683,8 @@ const MyReservations = () => {
           height: 18px;
           padding: 0 5px;
           border-radius: 9px;
-          background: #F59E0B;
-          color: #FFFFFF;
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
           font-size: 10px;
           font-weight: 700;
         }
@@ -757,12 +704,12 @@ const MyReservations = () => {
 
         /* ===== RESERVATION CARD ===== */
         .reservation-card {
-          background: #FFFFFF;
-          border-radius: 14px;
-          border: 1px solid #F1F5F9;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
           overflow: hidden;
           position: relative;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .status-bar {
@@ -778,7 +725,7 @@ const MyReservations = () => {
           justify-content: space-between;
           align-items: center;
           padding: 12px 14px 10px 18px;
-          border-bottom: 1px solid #F8FAFC;
+          border-bottom: 1px solid var(--color-surface-alt);
           gap: 8px;
           flex-wrap: wrap;
         }
@@ -788,7 +735,7 @@ const MyReservations = () => {
           align-items: center;
           gap: 4px;
           padding: 4px 10px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
@@ -805,11 +752,10 @@ const MyReservations = () => {
           align-items: center;
           gap: 4px;
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-weight: 500;
         }
 
-        /* Main */
         .reservation-main {
           display: flex;
           gap: 12px;
@@ -819,8 +765,8 @@ const MyReservations = () => {
         .listing-image {
           width: 60px;
           height: 60px;
-          border-radius: 10px;
-          background: #F8FAFC;
+          border-radius: var(--radius-lg);
+          background: var(--color-surface-alt);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -832,23 +778,15 @@ const MyReservations = () => {
           height: 48px;
         }
 
-        .listing-emoji {
-          font-size: 28px;
-        }
+        .listing-emoji { font-size: 28px; }
+        .listing-image.small .listing-emoji { font-size: 22px; }
 
-        .listing-image.small .listing-emoji {
-          font-size: 22px;
-        }
-
-        .reservation-info {
-          flex: 1;
-          min-width: 0;
-        }
+        .reservation-info { flex: 1; min-width: 0; }
 
         .listing-title {
           font-size: 14px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0 0 4px;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -856,14 +794,14 @@ const MyReservations = () => {
         }
 
         .listing-price {
+          font-family: var(--font-serif);
           font-size: 14px;
-          font-weight: 700;
-          color: #10B981;
+          font-weight: 600;
+          color: var(--color-primary);
           display: block;
           margin-bottom: 8px;
         }
 
-        /* Vendor */
         .vendor-info {
           display: flex;
           align-items: center;
@@ -890,7 +828,7 @@ const MyReservations = () => {
 
         .vendor-name {
           font-size: 12px;
-          color: #64748B;
+          color: var(--color-text-secondary);
           font-weight: 500;
         }
 
@@ -899,7 +837,7 @@ const MyReservations = () => {
           height: 22px;
           border-radius: 50%;
           border: none;
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -907,18 +845,15 @@ const MyReservations = () => {
           transition: all 0.2s;
         }
 
-        .vendor-action:hover {
-          background: #F1F5F9;
-        }
+        .vendor-action:hover { background: var(--color-border); }
 
-        /* Pickup Details */
         .pickup-details {
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           padding: 12px 14px 12px 18px;
           display: flex;
           flex-direction: column;
           gap: 6px;
-          border-top: 1px solid #F1F5F9;
+          border-top: 1px solid var(--color-border);
         }
 
         .detail-row {
@@ -929,23 +864,22 @@ const MyReservations = () => {
         }
 
         .detail-label {
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-weight: 500;
           min-width: 60px;
         }
 
         .detail-value {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
           flex: 1;
         }
 
-        /* Actions */
         .reservation-actions {
           display: flex;
           gap: 8px;
           padding: 12px 14px 14px 18px;
-          border-top: 1px solid #F1F5F9;
+          border-top: 1px solid var(--color-border);
         }
 
         .action-btn {
@@ -955,7 +889,7 @@ const MyReservations = () => {
           justify-content: center;
           gap: 6px;
           padding: 10px 12px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           font-size: 12px;
           font-weight: 600;
           cursor: pointer;
@@ -965,41 +899,39 @@ const MyReservations = () => {
         }
 
         .action-btn.primary {
-          background: #1E293B;
+          background: var(--color-primary);
           border: none;
-          color: #FFFFFF;
+          color: var(--color-text-inverse);
         }
 
         .action-btn.primary:hover {
-          background: #F59E0B;
+          background: var(--color-accent);
           transform: scale(0.98);
         }
 
         .action-btn.secondary {
-          background: #F8FAFC;
-          border: 1px solid #E2E8F0;
-          color: #64748B;
+          background: var(--color-surface-alt);
+          border: 1px solid var(--color-border);
+          color: var(--color-text-secondary);
           flex: 0 0 auto;
           padding: 10px 16px;
         }
 
-        .action-btn.secondary:hover {
-          background: #F1F5F9;
-        }
+        .action-btn.secondary:hover { background: var(--color-border); }
 
         .action-btn.outline {
-          background: rgba(245, 158, 11, 0.06);
-          border: 1px solid rgba(245, 158, 11, 0.2);
-          color: #F59E0B;
+          background: var(--color-warning-bg);
+          border: 1px solid var(--color-warning);
+          color: var(--color-warning);
         }
 
         /* ===== HISTORY CARD ===== */
         .history-card {
-          background: #FFFFFF;
-          border-radius: 12px;
-          border: 1px solid #F1F5F9;
+          background: var(--color-surface);
+          border-radius: var(--radius-xl);
+          border: 1px solid var(--color-border);
           overflow: hidden;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          box-shadow: var(--shadow-xs);
         }
 
         .history-main {
@@ -1008,10 +940,7 @@ const MyReservations = () => {
           padding: 14px;
         }
 
-        .history-info {
-          flex: 1;
-          min-width: 0;
-        }
+        .history-info { flex: 1; min-width: 0; }
 
         .history-header {
           display: flex;
@@ -1031,17 +960,14 @@ const MyReservations = () => {
         }
 
         .history-price {
-          color: #10B981;
-          font-weight: 700;
+          font-family: var(--font-serif);
+          color: var(--color-primary);
+          font-weight: 600;
         }
 
-        .history-divider {
-          color: #E2E8F0;
-        }
+        .history-divider { color: var(--color-border); }
 
-        .history-date {
-          color: #94A3B8;
-        }
+        .history-date { color: var(--color-text-muted); }
 
         .history-vendor {
           display: flex;
@@ -1051,8 +977,8 @@ const MyReservations = () => {
 
         .history-actions {
           padding: 12px 14px;
-          border-top: 1px solid #F1F5F9;
-          background: #F8FAFC;
+          border-top: 1px solid var(--color-border);
+          background: var(--color-surface-alt);
         }
 
         .review-btn {
@@ -1062,21 +988,21 @@ const MyReservations = () => {
           gap: 6px;
           width: 100%;
           padding: 10px;
-          background: #FFFFFF;
-          border: 1px solid #E2E8F0;
-          border-radius: 10px;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
           font-size: 13px;
           font-weight: 600;
-          color: #1E293B;
+          color: var(--color-text);
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
         }
 
         .review-btn:hover {
-          background: rgba(245, 158, 11, 0.06);
-          border-color: #F59E0B;
-          color: #F59E0B;
+          background: var(--color-accent-tint);
+          border-color: var(--color-accent);
+          color: var(--color-accent);
         }
 
         .rating-display {
@@ -1084,13 +1010,13 @@ const MyReservations = () => {
           align-items: center;
           gap: 3px;
           padding: 10px 14px;
-          border-top: 1px solid #F1F5F9;
-          background: #F8FAFC;
+          border-top: 1px solid var(--color-border);
+          background: var(--color-surface-alt);
         }
 
         .rating-text {
           font-size: 11px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin-left: 6px;
           font-weight: 500;
         }
@@ -1099,9 +1025,9 @@ const MyReservations = () => {
         .empty-state {
           text-align: center;
           padding: 60px 20px;
-          background: #FFFFFF;
-          border-radius: 14px;
-          border: 1px solid #F1F5F9;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
         }
 
         .empty-icon-wrap {
@@ -1112,15 +1038,16 @@ const MyReservations = () => {
         }
 
         .empty-title {
+          font-family: var(--font-serif);
           font-size: 17px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 4px;
         }
 
         .empty-text {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0 0 20px;
           line-height: 1.5;
           max-width: 280px;
@@ -1133,10 +1060,10 @@ const MyReservations = () => {
           align-items: center;
           gap: 6px;
           padding: 10px 20px;
-          background: #1E293B;
+          background: var(--color-primary);
           border: none;
-          border-radius: 10px;
-          color: #FFFFFF;
+          border-radius: var(--radius-lg);
+          color: var(--color-text-inverse);
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
@@ -1145,7 +1072,7 @@ const MyReservations = () => {
         }
 
         .empty-btn:hover {
-          background: #F59E0B;
+          background: var(--color-accent);
           transform: scale(0.98);
         }
 
@@ -1153,7 +1080,7 @@ const MyReservations = () => {
         .modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.5);
+          background: rgba(10, 36, 114, 0.5);
           backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
@@ -1169,12 +1096,12 @@ const MyReservations = () => {
         }
 
         .modal-content {
-          background: #FFFFFF;
-          border-radius: 16px;
+          background: var(--color-surface);
+          border-radius: var(--radius-3xl);
           max-width: 420px;
           width: 100%;
           padding: 24px;
-          box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2);
+          box-shadow: var(--shadow-2xl);
           animation: slideUp 0.25s ease-out;
         }
 
@@ -1191,18 +1118,19 @@ const MyReservations = () => {
         }
 
         .modal-title {
+          font-family: var(--font-serif);
           font-size: 17px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0;
         }
 
         .modal-close {
           width: 32px;
           height: 32px;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           border: none;
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -1210,9 +1138,7 @@ const MyReservations = () => {
           transition: all 0.2s;
         }
 
-        .modal-close:hover {
-          background: #F1F5F9;
-        }
+        .modal-close:hover { background: var(--color-border); }
 
         .star-rating-input {
           display: flex;
@@ -1229,43 +1155,36 @@ const MyReservations = () => {
           transition: transform 0.2s;
         }
 
-        .star-btn:hover {
-          transform: scale(1.15);
-        }
-
-        .star-btn:active {
-          transform: scale(0.95);
-        }
+        .star-btn:hover { transform: scale(1.15); }
+        .star-btn:active { transform: scale(0.95); }
 
         .rating-label {
           text-align: center;
           font-size: 14px;
           font-weight: 600;
-          color: #1E293B;
+          color: var(--color-text);
           margin: 0 0 20px;
         }
 
-        .form-group {
-          margin-bottom: 16px;
-        }
+        .form-group { margin-bottom: 16px; }
 
         .form-label {
           display: block;
           font-size: 13px;
           font-weight: 600;
-          color: #475569;
+          color: var(--color-text-secondary);
           margin-bottom: 6px;
         }
 
         .form-textarea {
           width: 100%;
           padding: 12px 14px;
-          border: 1px solid #E2E8F0;
-          border-radius: 10px;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
           font-size: 14px;
-          color: #1E293B;
+          color: var(--color-text);
           outline: none;
-          background: #FFFFFF;
+          background: var(--color-surface);
           font-family: inherit;
           resize: vertical;
           min-height: 80px;
@@ -1275,8 +1194,8 @@ const MyReservations = () => {
         }
 
         .form-textarea:focus {
-          border-color: #F59E0B;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .modal-actions {
@@ -1287,10 +1206,10 @@ const MyReservations = () => {
         .btn-secondary {
           flex: 1;
           padding: 12px;
-          background: #F8FAFC;
-          border: 1px solid #E2E8F0;
-          border-radius: 10px;
-          color: #64748B;
+          background: var(--color-surface-alt);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          color: var(--color-text-secondary);
           font-size: 14px;
           font-weight: 600;
           cursor: pointer;
@@ -1298,17 +1217,15 @@ const MyReservations = () => {
           transition: all 0.2s;
         }
 
-        .btn-secondary:hover {
-          background: #F1F5F9;
-        }
+        .btn-secondary:hover { background: var(--color-border); }
 
         .btn-primary {
           flex: 1;
           padding: 12px;
-          background: #1E293B;
+          background: var(--color-primary);
           border: none;
-          border-radius: 10px;
-          color: #FFFFFF;
+          border-radius: var(--radius-lg);
+          color: var(--color-text-inverse);
           font-size: 14px;
           font-weight: 700;
           cursor: pointer;
@@ -1317,7 +1234,7 @@ const MyReservations = () => {
         }
 
         .btn-primary:hover {
-          background: #F59E0B;
+          background: var(--color-accent);
           transform: scale(0.98);
         }
 
@@ -1329,7 +1246,7 @@ const MyReservations = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -1352,7 +1269,7 @@ const MyReservations = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1360,82 +1277,43 @@ const MyReservations = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .page-header {
-            padding: 12px 12px 0;
-          }
-          .main-content {
-            padding: 12px;
-          }
-          .page-title {
-            font-size: 20px;
-          }
-          .reservation-main {
-            padding: 12px 12px 10px 16px;
-          }
-          .listing-image {
-            width: 52px;
-            height: 52px;
-          }
-          .listing-emoji {
-            font-size: 24px;
-          }
-          .pickup-details {
-            padding: 10px 12px 10px 16px;
-          }
-          .reservation-actions {
-            padding: 10px 12px 12px 16px;
-          }
+          .page-header { padding: 12px 12px 0; }
+          .main-content { padding: 12px; }
+          .page-title { font-size: 20px; }
+          .reservation-main { padding: 12px 12px 10px 16px; }
+          .listing-image { width: 52px; height: 52px; }
+          .listing-emoji { font-size: 24px; }
+          .pickup-details { padding: 10px 12px 10px 16px; }
+          .reservation-actions { padding: 10px 12px 12px 16px; }
         }
 
         @media (max-width: 380px) {
-          .listing-title {
-            font-size: 13px;
-          }
-          .listing-price {
-            font-size: 13px;
-          }
-          .action-btn {
-            font-size: 11px;
-            padding: 8px 10px;
-            min-height: 36px;
-          }
-          .detail-label {
-            min-width: 50px;
-          }
+          .listing-title { font-size: 13px; }
+          .listing-price { font-size: 13px; }
+          .action-btn { font-size: 11px; padding: 8px 10px; min-height: 36px; }
+          .detail-label { min-width: 50px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .star-btn,
-          .action-btn,
-          .btn-primary,
-          .btn-secondary {
-            transition: none;
-          }
-          .star-btn:hover,
-          .action-btn.primary:hover,
-          .btn-primary:hover {
-            transform: none;
-          }
-          .modal-overlay,
-          .modal-content {
-            animation: none;
-          }
+          .star-btn, .action-btn, .btn-primary, .btn-secondary { transition: none; }
+          .star-btn:hover, .action-btn.primary:hover, .btn-primary:hover { transform: none; }
+          .modal-overlay, .modal-content { animation: none; }
         }
       `}</style>
     </div>

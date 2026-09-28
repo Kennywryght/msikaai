@@ -31,10 +31,11 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
     upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
     calendar: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z",
+    layers: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -53,9 +54,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-// ============================================================
-// CATEGORIES (simplified for quick-post)
-// ============================================================
+// NOTE: category colors are per-category identity markers used inline.
+// Intentionally NOT tokenized (same treatment as RoleSelection/CategoryBrowse).
 const QUICK_CATEGORIES = [
   { id: 'produce', label: 'Produce', emoji: '🥬', color: '#10B981' },
   { id: 'grains', label: 'Grains', emoji: '🌾', color: '#F59E0B' },
@@ -203,7 +203,7 @@ const PostStock = () => {
       <div className="post-stock">
         <div className="success-screen">
           <div className="success-icon-wrap">
-            <Icon name="check" size={40} color="#FFFFFF" strokeWidth={3} />
+            <Icon name="check" size={40} color="var(--color-text-inverse)" strokeWidth={3} />
           </div>
           <h1 className="success-title">Posted!</h1>
           <p className="success-desc">
@@ -231,17 +231,17 @@ const PostStock = () => {
 
           <div className="success-actions">
             <button className="success-btn primary" onClick={() => navigate('/price-board')}>
-              <Icon name="trendingUp" size={16} color="#FFFFFF" strokeWidth={2} />
+              <Icon name="trendingUp" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
               View Board
             </button>
             <button className="success-btn secondary" onClick={handleReset}>
-              <Icon name="plus" size={16} color="#64748B" strokeWidth={2} />
+              <Icon name="plus" size={16} color="var(--color-text-secondary)" strokeWidth={2} />
               Post More
             </button>
           </div>
 
           <p className="success-note">
-            <Icon name="info" size={12} color="#94A3B8" strokeWidth={1.75} />
+            <Icon name="info" size={12} color="var(--color-text-muted)" strokeWidth={1.75} />
             Auto-expires at end of day
           </p>
         </div>
@@ -249,23 +249,25 @@ const PostStock = () => {
         <style jsx>{`
           .post-stock {
             min-height: 100vh;
-            background: #F8FAFC;
+            background: var(--color-bg);
+            background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+            background-size: 22px 22px;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 24px 16px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--font-sans);
           }
 
           .success-screen {
             max-width: 400px;
             width: 100%;
-            background: #FFFFFF;
-            border-radius: 20px;
+            background: var(--color-surface);
+            border-radius: var(--radius-3xl);
             padding: 40px 28px;
             text-align: center;
-            border: 1px solid #F1F5F9;
-            box-shadow: 0 4px 24px rgba(30, 41, 59, 0.04);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-md);
             animation: scaleIn 0.4s ease-out;
           }
 
@@ -278,7 +280,7 @@ const PostStock = () => {
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #10B981, #059669);
+            background: var(--color-success);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -294,27 +296,27 @@ const PostStock = () => {
           }
 
           .success-title {
+            font-family: var(--font-serif);
             font-size: 26px;
-            font-weight: 700;
-            color: #1E293B;
+            font-weight: 600;
+            color: var(--color-text);
             margin: 0 0 8px;
-            font-family: 'Georgia', serif;
           }
 
           .success-desc {
             font-size: 14px;
-            color: #94A3B8;
+            color: var(--color-text-muted);
             margin: 0 0 20px;
             line-height: 1.6;
           }
 
           .success-preview {
-            background: #F8FAFC;
-            border-radius: 12px;
+            background: var(--color-surface-alt);
+            border-radius: var(--radius-xl);
             padding: 16px;
             margin-bottom: 20px;
             text-align: left;
-            border: 1px solid #F1F5F9;
+            border: 1px solid var(--color-border);
           }
 
           .preview-item {
@@ -326,16 +328,16 @@ const PostStock = () => {
           }
 
           .preview-item + .preview-item {
-            border-top: 1px solid #E2E8F0;
+            border-top: 1px solid var(--color-border);
           }
 
           .preview-key {
-            color: #94A3B8;
+            color: var(--color-text-muted);
             font-weight: 500;
           }
 
           .preview-value {
-            color: #1E293B;
+            color: var(--color-text);
             font-weight: 700;
           }
 
@@ -352,7 +354,7 @@ const PostStock = () => {
             justify-content: center;
             gap: 6px;
             padding: 12px;
-            border-radius: 12px;
+            border-radius: var(--radius-xl);
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
@@ -362,24 +364,25 @@ const PostStock = () => {
           }
 
           .success-btn.primary {
-            background: #1E293B;
+            background: var(--color-primary);
             border: none;
-            color: #FFFFFF;
+            color: var(--color-text-inverse);
+            box-shadow: var(--shadow-primary);
           }
 
           .success-btn.primary:hover {
-            background: #F59E0B;
+            background: var(--color-accent);
             transform: scale(0.98);
           }
 
           .success-btn.secondary {
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
-            color: #64748B;
+            background: var(--color-surface-alt);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
           }
 
           .success-btn.secondary:hover {
-            background: #F1F5F9;
+            background: var(--color-border);
           }
 
           .success-note {
@@ -388,7 +391,7 @@ const PostStock = () => {
             justify-content: center;
             gap: 4px;
             font-size: 11px;
-            color: #94A3B8;
+            color: var(--color-text-muted);
             margin: 0;
           }
         `}</style>
@@ -402,7 +405,7 @@ const PostStock = () => {
       <div className="page-header">
         <div className="header-top">
           <button className="header-btn" onClick={() => navigate(-1)}>
-            <Icon name="arrowLeft" size={20} color="#1E293B" strokeWidth={1.75} />
+            <Icon name="arrowLeft" size={20} color="var(--color-text)" strokeWidth={1.75} />
           </button>
           <button className="skip-btn" onClick={() => navigate('/price-board')}>
             Skip
@@ -411,7 +414,7 @@ const PostStock = () => {
 
         <div className="header-content">
           <div className="header-badge">
-            <Icon name="sparkles" size={14} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="sparkles" size={14} color="var(--color-accent)" strokeWidth={1.75} />
             <span>Quick Post</span>
           </div>
           <h1 className="page-title">Post Today's Stock</h1>
@@ -426,10 +429,10 @@ const PostStock = () => {
         {/* Photo Upload */}
         <div className="form-group">
           <label className="form-label">
-            <Icon name="camera" size={14} color="#94A3B8" strokeWidth={1.75} />
+            <Icon name="camera" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
             Photo <span className="optional">(optional)</span>
           </label>
-          <div 
+          <div
             className="upload-area"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -443,17 +446,17 @@ const PostStock = () => {
             {photoPreview ? (
               <div className="photo-preview-wrap">
                 <img src={photoPreview} alt="Preview" className="photo-preview" />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="remove-photo-btn"
                   onClick={handleRemovePhoto}
                 >
-                  <Icon name="x" size={14} color="#FFFFFF" strokeWidth={2.5} />
+                  <Icon name="x" size={14} color="var(--color-text-inverse)" strokeWidth={2.5} />
                 </button>
               </div>
             ) : (
               <div className="upload-placeholder">
-                <Icon name="camera" size={28} color="#94A3B8" strokeWidth={1.5} />
+                <Icon name="camera" size={28} color="var(--color-text-muted)" strokeWidth={1.5} />
                 <span className="upload-text">Add a photo</span>
                 <span className="upload-hint">One clear photo helps buyers</span>
               </div>
@@ -464,7 +467,7 @@ const PostStock = () => {
         {/* Category */}
         <div className="form-group">
           <label className="form-label">
-            <Icon name="tag" size={14} color="#94A3B8" strokeWidth={1.75} />
+            <Icon name="tag" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
             Category <span className="required">*</span>
           </label>
           <div className="category-grid">
@@ -474,9 +477,9 @@ const PostStock = () => {
                 type="button"
                 className={`category-chip ${formData.category === cat.id ? 'active' : ''}`}
                 onClick={() => setFormData(prev => ({ ...prev, category: cat.id }))}
-                style={formData.category === cat.id ? { 
-                  background: `${cat.color}15`, 
-                  borderColor: cat.color 
+                style={formData.category === cat.id ? {
+                  background: `${cat.color}15`,
+                  borderColor: cat.color
                 } : {}}
               >
                 <span className="category-emoji">{cat.emoji}</span>
@@ -493,7 +496,7 @@ const PostStock = () => {
         {/* Item Name */}
         <div className="form-group">
           <label className="form-label">
-            <Icon name="store" size={14} color="#94A3B8" strokeWidth={1.75} />
+            <Icon name="store" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
             Item Name <span className="required">*</span>
           </label>
           <input
@@ -510,7 +513,7 @@ const PostStock = () => {
         {/* Price */}
         <div className="form-group">
           <label className="form-label">
-            <Icon name="dollar" size={14} color="#94A3B8" strokeWidth={1.75} />
+            <Icon name="dollar" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
             Price (MK) <span className="required">*</span>
           </label>
           <div className="price-input-wrap">
@@ -536,7 +539,7 @@ const PostStock = () => {
         <div className="form-row">
           <div className="form-group half">
             <label className="form-label">
-              <Icon name="layers" size={14} color="#94A3B8" strokeWidth={1.75} />
+              <Icon name="layers" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
               Quantity
             </label>
             <input
@@ -572,7 +575,7 @@ const PostStock = () => {
         {/* Note */}
         <div className="form-group">
           <label className="form-label">
-            <Icon name="message" size={14} color="#94A3B8" strokeWidth={1.75} />
+            <Icon name="message" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
             Note <span className="optional">(optional)</span>
           </label>
           <textarea
@@ -589,13 +592,13 @@ const PostStock = () => {
 
         {/* Info Note */}
         <div className="info-note">
-          <Icon name="info" size={14} color="#F59E0B" strokeWidth={1.75} />
+          <Icon name="info" size={14} color="var(--color-warning)" strokeWidth={1.75} />
           <span>This post will appear on <strong>Today's Board</strong> and expire at midnight</span>
         </div>
 
         {/* Submit */}
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="submit-btn"
           disabled={loading}
         >
@@ -606,7 +609,7 @@ const PostStock = () => {
             </>
           ) : (
             <>
-              <Icon name="checkCircle" size={18} color="#FFFFFF" strokeWidth={2} />
+              <Icon name="checkCircle" size={18} color="var(--color-text-inverse)" strokeWidth={2} />
               Post to Board
             </>
           )}
@@ -627,7 +630,7 @@ const PostStock = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -639,23 +642,23 @@ const PostStock = () => {
       <style jsx>{`
         .post-stock {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 100px;
         }
 
         @media (min-width: 769px) {
-          .post-stock {
-            padding-bottom: 40px;
-          }
+          .post-stock { padding-bottom: 40px; }
         }
 
         /* ===== HEADER ===== */
         .page-header {
-          background: #FFFFFF;
+          background: var(--color-surface);
           padding: 14px 16px 20px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .header-top {
@@ -671,9 +674,9 @@ const PostStock = () => {
         .header-btn {
           width: 38px;
           height: 38px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border: none;
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -681,16 +684,14 @@ const PostStock = () => {
           transition: all 0.2s;
         }
 
-        .header-btn:hover {
-          background: #F1F5F9;
-        }
+        .header-btn:hover { background: var(--color-border); }
 
         .skip-btn {
           padding: 6px 14px;
-          border-radius: 8px;
+          border-radius: var(--radius-md);
           border: none;
           background: transparent;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
@@ -699,8 +700,8 @@ const PostStock = () => {
         }
 
         .skip-btn:hover {
-          color: #1E293B;
-          background: #F8FAFC;
+          color: var(--color-text);
+          background: var(--color-surface-alt);
         }
 
         .header-content {
@@ -712,27 +713,27 @@ const PostStock = () => {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(245, 158, 11, 0.08);
+          background: var(--color-accent-tint);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: var(--radius-full);
           font-size: 12px;
-          color: #F59E0B;
+          color: var(--color-accent);
           font-weight: 600;
           margin-bottom: 8px;
         }
 
         .page-title {
+          font-family: var(--font-serif);
           font-size: clamp(22px, 3vw, 26px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 6px;
-          font-family: 'Georgia', serif;
           letter-spacing: -0.02em;
         }
 
         .page-subtitle {
           font-size: 14px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 0;
           line-height: 1.5;
         }
@@ -745,9 +746,7 @@ const PostStock = () => {
         }
 
         /* ===== FORM ===== */
-        .form-group {
-          margin-bottom: 18px;
-        }
+        .form-group { margin-bottom: 18px; }
 
         .form-label {
           display: flex;
@@ -755,16 +754,14 @@ const PostStock = () => {
           gap: 4px;
           font-size: 13px;
           font-weight: 600;
-          color: #475569;
+          color: var(--color-text-secondary);
           margin-bottom: 8px;
         }
 
-        .required {
-          color: #EF4444;
-        }
+        .required { color: var(--color-error); }
 
         .optional {
-          color: #94A3B8;
+          color: var(--color-text-muted);
           font-weight: 500;
           font-size: 11px;
         }
@@ -774,12 +771,12 @@ const PostStock = () => {
         .form-select {
           width: 100%;
           padding: 12px 14px;
-          border: 1.5px solid #E2E8F0;
-          border-radius: 12px;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-xl);
           font-size: 14px;
-          color: #1E293B;
+          color: var(--color-text);
           outline: none;
-          background: #FFFFFF;
+          background: var(--color-surface);
           font-family: inherit;
           transition: all 0.2s;
           box-sizing: border-box;
@@ -788,14 +785,12 @@ const PostStock = () => {
         .form-input:focus,
         .form-textarea:focus,
         .form-select:focus {
-          border-color: #F59E0B;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .form-input::placeholder,
-        .form-textarea::placeholder {
-          color: #94A3B8;
-        }
+        .form-textarea::placeholder { color: var(--color-text-muted); }
 
         .form-textarea {
           resize: vertical;
@@ -805,7 +800,7 @@ const PostStock = () => {
 
         .form-select {
           appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
           background-position: right 14px center;
           padding-right: 36px;
@@ -823,12 +818,12 @@ const PostStock = () => {
 
         .field-hint {
           font-size: 12px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           margin: 6px 0 0;
         }
 
         .field-hint strong {
-          color: #10B981;
+          color: var(--color-primary);
           font-weight: 700;
         }
 
@@ -844,22 +839,20 @@ const PostStock = () => {
           left: 14px;
           font-size: 14px;
           font-weight: 600;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           pointer-events: none;
         }
 
-        .price-input {
-          padding-left: 48px;
-        }
+        .price-input { padding-left: 48px; }
 
         /* ===== PHOTO UPLOAD ===== */
         .upload-area {
-          border: 2px dashed #E2E8F0;
-          border-radius: 14px;
+          border: 2px dashed var(--color-border-strong);
+          border-radius: var(--radius-2xl);
           padding: 24px;
           text-align: center;
           cursor: pointer;
-          background: #FFFFFF;
+          background: var(--color-surface);
           transition: all 0.2s;
           min-height: 140px;
           display: flex;
@@ -868,8 +861,8 @@ const PostStock = () => {
         }
 
         .upload-area:hover {
-          border-color: #F59E0B;
-          background: #FEFCF5;
+          border-color: var(--color-accent);
+          background: var(--color-accent-soft);
         }
 
         .upload-placeholder {
@@ -882,13 +875,13 @@ const PostStock = () => {
         .upload-text {
           font-size: 14px;
           font-weight: 600;
-          color: #64748B;
+          color: var(--color-text-secondary);
           margin-top: 4px;
         }
 
         .upload-hint {
           font-size: 12px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .photo-preview-wrap {
@@ -901,7 +894,7 @@ const PostStock = () => {
           width: 100%;
           max-height: 180px;
           object-fit: cover;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
         }
 
         .remove-photo-btn {
@@ -911,19 +904,17 @@ const PostStock = () => {
           width: 28px;
           height: 28px;
           border-radius: 50%;
-          border: 2px solid #FFFFFF;
-          background: #EF4444;
+          border: 2px solid var(--color-surface);
+          background: var(--color-error);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+          box-shadow: var(--shadow-error);
           transition: all 0.2s;
         }
 
-        .remove-photo-btn:hover {
-          transform: scale(1.1);
-        }
+        .remove-photo-btn:hover { transform: scale(1.1); }
 
         /* ===== CATEGORIES ===== */
         .category-grid {
@@ -937,9 +928,9 @@ const PostStock = () => {
           align-items: center;
           gap: 8px;
           padding: 12px;
-          border: 1.5px solid #E2E8F0;
-          border-radius: 12px;
-          background: #FFFFFF;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-xl);
+          background: var(--color-surface);
           cursor: pointer;
           transition: all 0.2s;
           font-family: inherit;
@@ -948,13 +939,13 @@ const PostStock = () => {
         }
 
         .category-chip:hover {
-          border-color: #CBD5E1;
-          background: #F8FAFC;
+          border-color: var(--color-border-strong);
+          background: var(--color-surface-alt);
         }
 
         .category-chip.active {
           font-weight: 600;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.06);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .category-emoji {
@@ -965,7 +956,7 @@ const PostStock = () => {
         .category-label {
           font-size: 13px;
           font-weight: 500;
-          color: #475569;
+          color: var(--color-text-secondary);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -977,29 +968,27 @@ const PostStock = () => {
           align-items: flex-start;
           gap: 8px;
           padding: 12px 14px;
-          background: rgba(245, 158, 11, 0.06);
-          border-radius: 10px;
-          border: 1px solid rgba(245, 158, 11, 0.12);
+          background: var(--color-warning-bg);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
           font-size: 12px;
-          color: #92400E;
+          color: var(--color-warning);
           line-height: 1.5;
           margin-bottom: 20px;
         }
 
-        .info-note strong {
-          font-weight: 700;
-        }
+        .info-note strong { font-weight: 700; }
 
         /* ===== SUBMIT ===== */
         .submit-btn {
           width: 100%;
           padding: 14px;
-          background: #1E293B;
+          background: var(--color-primary);
           border: none;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-size: 15px;
           font-weight: 700;
-          color: #FFFFFF;
+          color: var(--color-text-inverse);
           cursor: pointer;
           transition: all 0.25s ease;
           font-family: inherit;
@@ -1008,13 +997,13 @@ const PostStock = () => {
           justify-content: center;
           gap: 8px;
           min-height: 50px;
-          box-shadow: 0 4px 16px rgba(30, 41, 59, 0.1);
+          box-shadow: var(--shadow-primary);
         }
 
         .submit-btn:hover:not(:disabled) {
-          background: #F59E0B;
+          background: var(--color-accent);
           transform: scale(0.98);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+          box-shadow: var(--shadow-accent);
         }
 
         .submit-btn:disabled {
@@ -1026,14 +1015,12 @@ const PostStock = () => {
           width: 18px;
           height: 18px;
           border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #FFFFFF;
+          border-top-color: var(--color-text-inverse);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ===== BOTTOM NAV ===== */
         .bottom-nav {
@@ -1043,7 +1030,7 @@ const PostStock = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -1066,7 +1053,7 @@ const PostStock = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1074,65 +1061,39 @@ const PostStock = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .page-header {
-            padding: 12px 12px 16px;
-          }
-          .main-content {
-            padding: 16px 12px 40px;
-          }
-          .page-title {
-            font-size: 20px;
-          }
-          .category-chip {
-            padding: 10px;
-            min-height: 48px;
-          }
-          .category-emoji {
-            font-size: 16px;
-          }
-          .category-label {
-            font-size: 12px;
-          }
+          .page-header { padding: 12px 12px 16px; }
+          .main-content { padding: 16px 12px 40px; }
+          .page-title { font-size: 20px; }
+          .category-chip { padding: 10px; min-height: 48px; }
+          .category-emoji { font-size: 16px; }
+          .category-label { font-size: 12px; }
         }
 
         @media (max-width: 380px) {
-          .form-row {
-            flex-direction: column;
-            gap: 18px;
-          }
-          .form-row .half {
-            width: 100%;
-          }
+          .form-row { flex-direction: column; gap: 18px; }
+          .form-row .half { width: 100%; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .category-chip,
-          .upload-area,
-          .submit-btn,
-          .remove-photo-btn,
-          .header-btn {
-            transition: none;
-          }
-          .submit-btn:hover:not(:disabled),
-          .remove-photo-btn:hover {
-            transform: none;
-          }
+          .category-chip, .upload-area, .submit-btn, .remove-photo-btn, .header-btn { transition: none; }
+          .submit-btn:hover:not(:disabled), .remove-photo-btn:hover { transform: none; }
         }
       `}</style>
     </div>

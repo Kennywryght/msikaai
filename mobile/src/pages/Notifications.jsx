@@ -56,17 +56,26 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 
 // ============================================================
 // TYPE CONFIG
+// Semantic token mapping per notification category. Values are
+// CSS custom-property strings so they work in inline styles.
+//   message    → secondary (info)
+//   reservation/order → success (money-adjacent, confirmed)
+//   request/booking   → warning (in-progress)
+//   like              → error   (matches flame-red treatment)
+//   review            → warning (same as request, per original)
+//   system            → primary (structural info)
+//   alert             → error   (attention)
 // ============================================================
 const TYPE_CONFIG = {
-  message:     { icon: 'message',     color: '#3E6C76', bg: 'rgba(62, 108, 118, 0.12)' },
-  reservation: { icon: 'package',     color: '#5B7B5E', bg: 'rgba(91, 123, 94, 0.12)' },
-  order:       { icon: 'package',     color: '#5B7B5E', bg: 'rgba(91, 123, 94, 0.12)' },
-  request:     { icon: 'clock',       color: '#D99A3B', bg: 'rgba(217, 154, 59, 0.14)' },
-  booking:     { icon: 'clock',       color: '#D99A3B', bg: 'rgba(217, 154, 59, 0.14)' },
-  like:        { icon: 'heart',       color: '#BC5B34', bg: 'rgba(188, 91, 52, 0.12)' },
-  review:      { icon: 'star',        color: '#D99A3B', bg: 'rgba(217, 154, 59, 0.14)' },
-  system:      { icon: 'info',        color: '#8B5A83', bg: 'rgba(139, 90, 131, 0.12)' },
-  alert:       { icon: 'alertCircle', color: '#DC2626', bg: 'rgba(220, 38, 38, 0.1)'  },
+  message:     { icon: 'message',     color: 'var(--color-secondary-hover)', bg: 'var(--color-info-bg)' },
+  reservation: { icon: 'package',     color: 'var(--color-success)',         bg: 'var(--color-success-bg)' },
+  order:       { icon: 'package',     color: 'var(--color-success)',         bg: 'var(--color-success-bg)' },
+  request:     { icon: 'clock',       color: 'var(--color-warning)',         bg: 'var(--color-warning-bg)' },
+  booking:     { icon: 'clock',       color: 'var(--color-warning)',         bg: 'var(--color-warning-bg)' },
+  like:        { icon: 'heart',       color: 'var(--color-error)',           bg: 'var(--color-error-bg)' },
+  review:      { icon: 'star',        color: 'var(--color-warning)',         bg: 'var(--color-warning-bg)' },
+  system:      { icon: 'info',        color: 'var(--color-primary)',         bg: 'var(--color-primary-tint)' },
+  alert:       { icon: 'alertCircle', color: 'var(--color-error)',           bg: 'var(--color-error-bg)' },
 };
 
 // ============================================================
@@ -95,7 +104,6 @@ const formatRelative = (ts) => {
   return new Date(ts).toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
 
-// Normalize whatever shape the backend sends into a stable object.
 const normalizeNotification = (raw) => {
   if (!raw) return null;
   return {
@@ -140,9 +148,6 @@ const Notifications = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ============================================================
-  // FETCH REAL NOTIFICATIONS ONLY
-  // ============================================================
   const fetchNotifications = useCallback(
     async (opts = {}) => {
       if (!user?.id) {
@@ -163,7 +168,6 @@ const Notifications = () => {
           [];
         const list = Array.isArray(raw) ? raw : [];
         const normalized = list.map(normalizeNotification).filter(Boolean);
-        // newest first
         normalized.sort((a, b) => b.timestamp - a.timestamp);
         setNotifications(normalized);
       } catch (err) {
@@ -186,7 +190,6 @@ const Notifications = () => {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Refresh when tab regains focus
   useEffect(() => {
     const onVis = () => {
       if (!document.hidden && user?.id) fetchNotifications({ silent: true });
@@ -206,16 +209,11 @@ const Notifications = () => {
     return n.type === activeFilter;
   });
 
-  // ============================================================
-  // ACTIONS
-  // ============================================================
   const handleNotificationClick = async (notification) => {
-    // Optimistic mark-as-read
     setNotifications((prev) =>
       prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
     );
 
-    // Try to persist on the backend (non-fatal)
     if (user?.id && notificationsAPI.markAsRead) {
       try {
         await notificationsAPI.markAsRead(notification.id, user.id);
@@ -253,7 +251,6 @@ const Notifications = () => {
       success('Notifications cleared');
     } catch (err) {
       console.warn('clearAll failed:', err?.message);
-      // keep it cleared locally either way
     }
   };
 
@@ -265,9 +262,6 @@ const Notifications = () => {
     else if (id === 'profile') navigate('/profile');
   };
 
-  // ============================================================
-  // GROUP BY DATE
-  // ============================================================
   const groupNotificationsByDate = (items) => {
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
@@ -324,7 +318,7 @@ const Notifications = () => {
             <p className="notification-desc">{notification.description}</p>
           )}
           <span className="notification-time">
-            <Icon name="clock" size={10} color="#9C9482" strokeWidth={2} />
+            <Icon name="clock" size={10} color="var(--color-text-muted)" strokeWidth={2} />
             {timeLabel}
           </span>
         </div>
@@ -332,16 +326,13 @@ const Notifications = () => {
     );
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
   return (
     <div className="notifications-page">
       {/* Header */}
       <div className="page-header">
         <div className="header-top">
           <button className="header-btn" onClick={() => navigate(-1)} aria-label="Back">
-            <Icon name="arrowLeft" size={20} color="#201F1B" strokeWidth={2.2} />
+            <Icon name="arrowLeft" size={20} color="var(--color-text)" strokeWidth={2.2} />
           </button>
           <div className="header-actions">
             <button
@@ -353,7 +344,7 @@ const Notifications = () => {
               <Icon
                 name="refresh"
                 size={16}
-                color={refreshing ? '#C9BB98' : '#6B6259'}
+                color={refreshing ? 'var(--color-text-muted)' : 'var(--color-text-secondary)'}
                 strokeWidth={2}
               />
             </button>
@@ -363,7 +354,7 @@ const Notifications = () => {
                 onClick={handleMarkAllAsRead}
                 aria-label="Mark all as read"
               >
-                <Icon name="checkCheck" size={16} color="#6B6259" strokeWidth={2} />
+                <Icon name="checkCheck" size={16} color="var(--color-text-secondary)" strokeWidth={2} />
               </button>
             )}
             {notifications.length > 0 && (
@@ -372,7 +363,7 @@ const Notifications = () => {
                 onClick={handleClearAll}
                 aria-label="Clear all"
               >
-                <Icon name="x" size={16} color="#6B6259" strokeWidth={2} />
+                <Icon name="x" size={16} color="var(--color-text-secondary)" strokeWidth={2} />
               </button>
             )}
           </div>
@@ -380,7 +371,7 @@ const Notifications = () => {
 
         <div className="header-content">
           <div className="header-badge">
-            <Icon name="bell" size={13} color="#BC5B34" strokeWidth={2.1} />
+            <Icon name="bell" size={13} color="var(--color-accent)" strokeWidth={2.1} />
             <span>Inbox</span>
           </div>
           <h1 className="page-title">
@@ -430,27 +421,24 @@ const Notifications = () => {
 
       {/* Main Content */}
       <div className="main-content">
-        {/* Loading */}
         {loading ? (
           <div className="loading-state">
             <div className="loading-spinner" />
             <p className="loading-text">Loading your notifications…</p>
           </div>
         ) : error ? (
-          /* Error */
           <div className="empty-state">
             <div className="empty-icon-wrap empty-icon-error">
-              <Icon name="alertCircle" size={40} color="#DC2626" strokeWidth={1.6} />
+              <Icon name="alertCircle" size={40} color="var(--color-error)" strokeWidth={1.6} />
             </div>
             <h3 className="empty-title">Couldn't load notifications</h3>
             <p className="empty-text">{error}</p>
             <button className="empty-btn" onClick={() => fetchNotifications()}>
-              <Icon name="refresh" size={14} color="#F7F1E3" strokeWidth={2.2} />
+              <Icon name="refresh" size={14} color="var(--color-text-inverse)" strokeWidth={2.2} />
               Try Again
             </button>
           </div>
         ) : filteredNotifications.length > 0 ? (
-          /* Real notifications */
           <>
             {groups.today.length > 0 && (
               <section className="notification-group">
@@ -480,10 +468,9 @@ const Notifications = () => {
             )}
           </>
         ) : activeFilter !== 'all' ? (
-          /* Empty filtered */
           <div className="empty-state">
             <div className="empty-icon-wrap">
-              <Icon name="filter" size={40} color="#C9BB98" strokeWidth={1.5} />
+              <Icon name="filter" size={40} color="var(--color-text-muted)" strokeWidth={1.5} />
             </div>
             <h3 className="empty-title">No {activeFilter} notifications</h3>
             <p className="empty-text">Try switching to a different filter.</p>
@@ -492,17 +479,16 @@ const Notifications = () => {
             </button>
           </div>
         ) : (
-          /* Truly empty */
           <div className="empty-state">
             <div className="empty-icon-wrap">
-              <Icon name="bell" size={40} color="#C9BB98" strokeWidth={1.5} />
+              <Icon name="bell" size={40} color="var(--color-text-muted)" strokeWidth={1.5} />
             </div>
             <h3 className="empty-title">You're all caught up!</h3>
             <p className="empty-text">
               New messages, orders, and updates will appear here.
             </p>
             <button className="empty-btn" onClick={() => navigate('/landing')}>
-              <Icon name="search" size={14} color="#F7F1E3" strokeWidth={2.2} />
+              <Icon name="search" size={14} color="var(--color-text-inverse)" strokeWidth={2.2} />
               Browse Listings
             </button>
           </div>
@@ -530,7 +516,7 @@ const Notifications = () => {
                   <Icon
                     name={item.icon}
                     size={20}
-                    color={active ? '#F7F1E3' : '#9C9482'}
+                    color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'}
                     strokeWidth={1.85}
                   />
                 </div>
@@ -544,11 +530,11 @@ const Notifications = () => {
       <style jsx>{`
         .notifications-page {
           min-height: 100vh;
-          background: #F7F1E3;
-          background-image: radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
           background-size: 22px 22px;
-          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #201F1B;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 100px;
         }
 
@@ -558,11 +544,11 @@ const Notifications = () => {
 
         /* ===== HEADER ===== */
         .page-header {
-          background: rgba(255, 253, 248, 0.94);
+          background: var(--color-surface);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
           padding: 14px 16px 16px;
-          border-bottom: 1px solid rgba(239, 230, 206, 0.9);
+          border-bottom: 1px solid var(--color-border);
           position: sticky;
           top: 0;
           z-index: 10;
@@ -581,9 +567,9 @@ const Notifications = () => {
         .header-btn {
           width: 40px;
           height: 40px;
-          border-radius: 11px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          background: #FFFDF8;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -592,21 +578,18 @@ const Notifications = () => {
         }
 
         .header-btn:hover {
-          background: #F7F1E3;
-          border-color: rgba(217, 154, 59, 0.4);
+          background: var(--color-surface-alt);
+          border-color: var(--color-accent);
         }
 
-        .header-actions {
-          display: flex;
-          gap: 6px;
-        }
+        .header-actions { display: flex; gap: 6px; }
 
         .header-action-btn {
           width: 40px;
           height: 40px;
-          border-radius: 11px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          background: #FFFDF8;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -615,8 +598,8 @@ const Notifications = () => {
         }
 
         .header-action-btn:hover:not(:disabled) {
-          background: #F7F1E3;
-          border-color: rgba(217, 154, 59, 0.4);
+          background: var(--color-surface-alt);
+          border-color: var(--color-accent);
         }
 
         .header-action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -630,11 +613,11 @@ const Notifications = () => {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(188, 91, 52, 0.1);
+          background: var(--color-accent-tint);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: var(--radius-full);
           font-size: 11.5px;
-          color: #BC5B34;
+          color: var(--color-accent);
           font-weight: 700;
           margin-bottom: 8px;
           text-transform: uppercase;
@@ -642,10 +625,10 @@ const Notifications = () => {
         }
 
         .page-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: clamp(24px, 3.2vw, 30px);
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           margin: 0 0 4px;
           letter-spacing: -0.02em;
           display: flex;
@@ -654,21 +637,21 @@ const Notifications = () => {
         }
 
         .unread-badge {
-          font-family: 'Work Sans', sans-serif;
+          font-family: var(--font-sans);
           font-size: 12px;
           font-weight: 800;
-          color: #F7F1E3;
-          background: linear-gradient(135deg, #BC5B34, #A04724);
+          color: var(--color-text-inverse);
+          background: var(--color-accent);
           padding: 4px 10px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           min-width: 26px;
           text-align: center;
-          box-shadow: 0 3px 8px rgba(188, 91, 52, 0.3);
+          box-shadow: var(--shadow-accent);
         }
 
         .page-subtitle {
           font-size: 13px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 0;
         }
 
@@ -690,12 +673,12 @@ const Notifications = () => {
           align-items: center;
           gap: 6px;
           padding: 8px 16px;
-          border-radius: 20px;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
-          background: #FFFDF8;
+          border-radius: var(--radius-full);
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
           font-size: 13px;
           font-weight: 600;
-          color: #6B6259;
+          color: var(--color-text-secondary);
           cursor: pointer;
           white-space: nowrap;
           font-family: inherit;
@@ -704,15 +687,15 @@ const Notifications = () => {
         }
 
         .filter-chip:hover {
-          border-color: rgba(217, 154, 59, 0.5);
-          color: #201F1B;
+          border-color: var(--color-accent);
+          color: var(--color-text);
         }
 
         .filter-chip.active {
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
-          border-color: #24453B;
-          color: #F7F1E3;
-          box-shadow: 0 6px 16px rgba(36, 69, 59, 0.22);
+          background: var(--color-primary);
+          border-color: var(--color-primary);
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-primary);
         }
 
         .chip-badge {
@@ -723,8 +706,8 @@ const Notifications = () => {
           height: 18px;
           padding: 0 6px;
           border-radius: 9px;
-          background: linear-gradient(135deg, #BC5B34, #A04724);
-          color: #F7F1E3;
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
           font-size: 10px;
           font-weight: 800;
         }
@@ -742,7 +725,7 @@ const Notifications = () => {
         .group-title {
           font-size: 11.5px;
           font-weight: 800;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 0 0 10px 6px;
           text-transform: uppercase;
           letter-spacing: 0.1em;
@@ -759,31 +742,31 @@ const Notifications = () => {
           display: flex;
           gap: 13px;
           padding: 14px;
-          background: #FFFDF8;
-          border-radius: 14px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
+          border: 1px solid var(--color-border);
           cursor: pointer;
           transition: all 0.22s ease;
           position: relative;
           overflow: hidden;
-          box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
+          box-shadow: var(--shadow-xs);
         }
 
         .notification-card:hover {
-          border-color: rgba(217, 154, 59, 0.4);
+          border-color: var(--color-accent);
           transform: translateY(-2px);
-          box-shadow: 0 10px 24px rgba(22, 38, 31, 0.07);
+          box-shadow: var(--shadow-md);
         }
 
         .notification-card:focus-visible {
           outline: none;
-          border-color: #D99A3B;
-          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.18);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .notification-card.unread {
-          background: linear-gradient(135deg, #FFFDF8 0%, #FEF8EB 100%);
-          border-color: rgba(217, 154, 59, 0.35);
+          background: var(--color-accent-tint);
+          border-color: var(--color-accent);
         }
 
         .unread-bar {
@@ -792,14 +775,14 @@ const Notifications = () => {
           top: 14px;
           bottom: 14px;
           width: 3.5px;
-          background: linear-gradient(180deg, #D99A3B, #BC5B34);
+          background: var(--color-accent);
           border-radius: 0 3px 3px 0;
         }
 
         .notification-icon-wrap {
           width: 42px;
           height: 42px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -821,7 +804,7 @@ const Notifications = () => {
         .notification-title {
           font-size: 14px;
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -836,14 +819,14 @@ const Notifications = () => {
           width: 7px;
           height: 7px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #D99A3B, #BC5B34);
+          background: var(--color-accent);
           flex-shrink: 0;
-          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.15);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .notification-desc {
           font-size: 13px;
-          color: #6B6259;
+          color: var(--color-text-secondary);
           margin: 0 0 6px;
           line-height: 1.45;
           display: -webkit-box;
@@ -852,14 +835,14 @@ const Notifications = () => {
           overflow: hidden;
         }
 
-        .notification-card.unread .notification-desc { color: #3A362E; }
+        .notification-card.unread .notification-desc { color: var(--color-text); }
 
         .notification-time {
           display: flex;
           align-items: center;
           gap: 5px;
           font-size: 11px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           font-weight: 600;
           letter-spacing: 0.01em;
         }
@@ -877,8 +860,8 @@ const Notifications = () => {
         .loading-spinner {
           width: 34px;
           height: 34px;
-          border: 3px solid rgba(36, 69, 59, 0.15);
-          border-top-color: #BC5B34;
+          border: 3px solid var(--color-primary-tint);
+          border-top-color: var(--color-accent);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
           margin-bottom: 14px;
@@ -888,7 +871,7 @@ const Notifications = () => {
 
         .loading-text {
           font-size: 13px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 0;
           font-weight: 500;
         }
@@ -897,41 +880,41 @@ const Notifications = () => {
         .empty-state {
           text-align: center;
           padding: 56px 24px 64px;
-          background: #FFFDF8;
-          border-radius: 18px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          box-shadow: 0 1px 3px rgba(22, 38, 31, 0.04);
+          background: var(--color-surface);
+          border-radius: var(--radius-3xl);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-xs);
         }
 
         .empty-icon-wrap {
           width: 84px;
           height: 84px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #FFF3E0, #FDEBCB);
+          background: var(--color-accent-soft);
           display: flex;
           align-items: center;
           justify-content: center;
           margin: 0 auto 16px;
-          box-shadow: 0 10px 26px rgba(217, 154, 59, 0.16);
+          box-shadow: var(--shadow-md);
         }
 
         .empty-icon-error {
-          background: linear-gradient(135deg, #FEF2F2, #FEE2E2);
-          box-shadow: 0 10px 26px rgba(220, 38, 38, 0.15);
+          background: var(--color-error-bg);
+          box-shadow: var(--shadow-error);
         }
 
         .empty-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 18px;
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           margin: 0 0 6px;
           letter-spacing: -0.01em;
         }
 
         .empty-text {
           font-size: 13.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 0 auto 22px;
           line-height: 1.55;
           max-width: 320px;
@@ -942,22 +925,23 @@ const Notifications = () => {
           align-items: center;
           gap: 7px;
           padding: 12px 24px;
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          background: var(--color-primary);
           border: none;
-          border-radius: 13px;
-          color: #F7F1E3;
+          border-radius: var(--radius-xl);
+          color: var(--color-text-inverse);
           font-size: 13.5px;
           font-weight: 700;
           cursor: pointer;
           font-family: inherit;
           transition: all 0.2s;
-          box-shadow: 0 8px 20px rgba(36, 69, 59, 0.25);
+          box-shadow: var(--shadow-primary);
           letter-spacing: 0.01em;
         }
 
         .empty-btn:hover {
+          background: var(--color-accent);
           transform: translateY(-2px);
-          box-shadow: 0 12px 28px rgba(36, 69, 59, 0.35);
+          box-shadow: var(--shadow-accent);
         }
 
         .empty-btn:active { transform: translateY(0); }
@@ -968,10 +952,10 @@ const Notifications = () => {
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(255, 253, 248, 0.96);
+          background: var(--color-surface);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
-          border-top: 1px solid rgba(239, 230, 206, 0.9);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 10px;
@@ -994,29 +978,29 @@ const Notifications = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 9px;
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: background 0.2s, transform 0.15s;
+          transition: background var(--transition-fast), transform 0.15s;
         }
 
         .nav-icon-wrap.active {
-          background: #24453B;
-          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-btn:hover .nav-icon-wrap:not(.active) {
-          background: rgba(239, 230, 206, 0.6);
+          background: var(--color-surface-alt);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #9C9482;
+          color: var(--color-text-muted);
         }
 
-        .nav-label.active { color: #201F1B; font-weight: 600; }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {

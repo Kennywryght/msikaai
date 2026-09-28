@@ -28,7 +28,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   };
 
   const d = icons[name] || icons.store;
-  
+
   return (
     <svg
       width={size}
@@ -142,7 +142,7 @@ const PriceBoard = () => {
 
   const handleShare = async () => {
     const shareText = `Today's Market Board - ${BOARD_DATA.date}\n\n` +
-      BOARD_DATA.categories.map(cat => 
+      BOARD_DATA.categories.map(cat =>
         `${cat.name}:\n${cat.items.map(i => `  • ${i.name}: ${i.price}`).join('\n')}`
       ).join('\n\n') +
       `\n\nView on Kumsika: ${window.location.href}`;
@@ -173,8 +173,8 @@ const PriceBoard = () => {
     else if (id === 'profile') navigate('/profile');
   };
 
-  const filteredCategories = activeCategory === 'all' 
-    ? BOARD_DATA.categories 
+  const filteredCategories = activeCategory === 'all'
+    ? BOARD_DATA.categories
     : BOARD_DATA.categories.filter(c => c.id === activeCategory);
 
   return (
@@ -183,38 +183,38 @@ const PriceBoard = () => {
       <div className="board-header">
         <div className="header-top">
           <button className="back-btn" onClick={() => navigate(-1)}>
-            <Icon name="arrowLeft" size={18} color="#1E293B" strokeWidth={1.75} />
+            <Icon name="arrowLeft" size={18} color="var(--color-text)" strokeWidth={1.75} />
           </button>
           <div className="header-actions">
             <button className="icon-btn" onClick={handleRefresh} disabled={refreshing}>
-              <Icon 
-                name="refresh" 
-                size={18} 
-                color="#64748B" 
+              <Icon
+                name="refresh"
+                size={18}
+                color="var(--color-text-secondary)"
                 strokeWidth={1.75}
                 className={refreshing ? 'spinning' : ''}
               />
             </button>
             <button className="icon-btn" onClick={handleShare}>
-              <Icon name="share" size={18} color="#64748B" strokeWidth={1.75} />
+              <Icon name="share" size={18} color="var(--color-text-secondary)" strokeWidth={1.75} />
             </button>
           </div>
         </div>
 
         <div className="header-content">
           <div className="header-badge">
-            <Icon name="trendingUp" size={14} color="#F59E0B" strokeWidth={1.75} />
+            <Icon name="trendingUp" size={14} color="var(--color-warning)" strokeWidth={1.75} />
             <span>Today's Board</span>
           </div>
           <h1 className="page-title">Market Prices</h1>
           <div className="header-meta">
             <span className="meta-item">
-              <Icon name="mapPin" size={12} color="#94A3B8" strokeWidth={1.75} />
+              <Icon name="mapPin" size={12} color="var(--color-text-muted)" strokeWidth={1.75} />
               {BOARD_DATA.location}
             </span>
             <span className="meta-divider">•</span>
             <span className="meta-item">
-              <Icon name="clock" size={12} color="#94A3B8" strokeWidth={1.75} />
+              <Icon name="clock" size={12} color="var(--color-text-muted)" strokeWidth={1.75} />
               Updated {lastUpdated}
             </span>
           </div>
@@ -223,7 +223,7 @@ const PriceBoard = () => {
 
       {/* Category Filter */}
       <div className="category-filter">
-        <button 
+        <button
           className={`filter-chip ${activeCategory === 'all' ? 'active' : ''}`}
           onClick={() => setActiveCategory('all')}
         >
@@ -263,10 +263,10 @@ const PriceBoard = () => {
                     <span className="item-price">{item.price}</span>
                     {item.trend !== 'stable' && (
                       <span className={`item-trend ${item.trend}`}>
-                        <Icon 
-                          name={item.trend === 'up' ? 'trendingUp' : 'trendingDown'} 
-                          size={10} 
-                          color={item.trend === 'up' ? '#EF4444' : '#10B981'} 
+                        <Icon
+                          name={item.trend === 'up' ? 'trendingUp' : 'trendingDown'}
+                          size={10}
+                          color={item.trend === 'up' ? 'var(--color-error)' : 'var(--color-success)'}
                           strokeWidth={2}
                         />
                         {item.change}
@@ -285,7 +285,7 @@ const PriceBoard = () => {
         <div className="cta-card">
           <div className="cta-content">
             <div className="cta-icon">
-              <Icon name="sparkles" size={20} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="sparkles" size={20} color="var(--color-accent)" strokeWidth={1.75} />
             </div>
             <div className="cta-text">
               <h3 className="cta-title">Selling today?</h3>
@@ -300,7 +300,7 @@ const PriceBoard = () => {
 
       {/* Info Footer */}
       <div className="info-footer">
-        <Icon name="info" size={14} color="#94A3B8" strokeWidth={1.75} />
+        <Icon name="info" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
         <span>Prices are updated throughout the day by local vendors</span>
       </div>
 
@@ -318,7 +318,7 @@ const PriceBoard = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -330,23 +330,23 @@ const PriceBoard = () => {
       <style jsx>{`
         .price-board {
           min-height: 100vh;
-          background: #F8FAFC;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #1E293B;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 100px;
         }
 
         @media (min-width: 769px) {
-          .price-board {
-            padding-bottom: 40px;
-          }
+          .price-board { padding-bottom: 40px; }
         }
 
         /* ===== HEADER ===== */
         .board-header {
-          background: #FFFFFF;
+          background: var(--color-surface);
           padding: 14px 16px 20px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
           position: sticky;
           top: 0;
           z-index: 10;
@@ -362,9 +362,9 @@ const PriceBoard = () => {
         .back-btn {
           width: 40px;
           height: 40px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border: none;
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -372,21 +372,16 @@ const PriceBoard = () => {
           transition: all 0.2s;
         }
 
-        .back-btn:hover {
-          background: #F1F5F9;
-        }
+        .back-btn:hover { background: var(--color-border); }
 
-        .header-actions {
-          display: flex;
-          gap: 8px;
-        }
+        .header-actions { display: flex; gap: 8px; }
 
         .icon-btn {
           width: 40px;
           height: 40px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border: none;
-          background: #F8FAFC;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -394,22 +389,16 @@ const PriceBoard = () => {
           transition: all 0.2s;
         }
 
-        .icon-btn:hover {
-          background: #F1F5F9;
-        }
+        .icon-btn:hover { background: var(--color-border); }
 
         .icon-btn:disabled {
           opacity: 0.5;
           cursor: not-allowed;
         }
 
-        .icon-btn .spinning {
-          animation: spin 1s linear infinite;
-        }
+        .icon-btn .spinning { animation: spin 1s linear infinite; }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .header-content {
           max-width: 1200px;
@@ -420,19 +409,20 @@ const PriceBoard = () => {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(245, 158, 11, 0.08);
+          background: var(--color-warning-bg);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: var(--radius-full);
           font-size: 12px;
-          color: #F59E0B;
+          color: var(--color-warning);
           font-weight: 500;
           margin-bottom: 8px;
         }
 
         .page-title {
+          font-family: var(--font-serif);
           font-size: clamp(24px, 3vw, 30px);
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 6px;
           letter-spacing: -0.5px;
         }
@@ -442,7 +432,7 @@ const PriceBoard = () => {
           align-items: center;
           gap: 8px;
           font-size: 13px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           flex-wrap: wrap;
         }
 
@@ -452,9 +442,7 @@ const PriceBoard = () => {
           gap: 4px;
         }
 
-        .meta-divider {
-          color: #E2E8F0;
-        }
+        .meta-divider { color: var(--color-border); }
 
         /* ===== CATEGORY FILTER ===== */
         .category-filter {
@@ -463,42 +451,38 @@ const PriceBoard = () => {
           padding: 14px 16px;
           overflow-x: auto;
           scrollbar-width: none;
-          background: #FFFFFF;
-          border-bottom: 1px solid #F1F5F9;
+          background: var(--color-surface);
+          border-bottom: 1px solid var(--color-border);
           position: sticky;
           top: 130px;
           z-index: 9;
         }
 
-        .category-filter::-webkit-scrollbar {
-          display: none;
-        }
+        .category-filter::-webkit-scrollbar { display: none; }
 
         .filter-chip {
           display: flex;
           align-items: center;
           gap: 6px;
           padding: 8px 16px;
-          border-radius: 20px;
-          border: 1px solid #E2E8F0;
-          background: #FFFFFF;
+          border-radius: var(--radius-full);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface);
           font-size: 13px;
           font-weight: 500;
-          color: #64748B;
+          color: var(--color-text-secondary);
           cursor: pointer;
           white-space: nowrap;
           transition: all 0.2s;
           font-family: inherit;
         }
 
-        .filter-chip:hover {
-          border-color: #94A3B8;
-        }
+        .filter-chip:hover { border-color: var(--color-border-strong); }
 
         .filter-chip.active {
-          background: #1E293B;
-          border-color: #1E293B;
-          color: #FFFFFF;
+          background: var(--color-primary);
+          border-color: var(--color-primary);
+          color: var(--color-text-inverse);
         }
 
         /* ===== BOARD CONTENT ===== */
@@ -509,12 +493,12 @@ const PriceBoard = () => {
         }
 
         .category-section {
-          background: #FFFFFF;
-          border-radius: 14px;
+          background: var(--color-surface);
+          border-radius: var(--radius-2xl);
           padding: 16px 18px;
           margin-bottom: 12px;
-          border: 1px solid #F1F5F9;
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-xs);
         }
 
         .category-header {
@@ -523,7 +507,7 @@ const PriceBoard = () => {
           align-items: center;
           margin-bottom: 12px;
           padding-bottom: 12px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .category-title-wrap {
@@ -532,23 +516,22 @@ const PriceBoard = () => {
           gap: 10px;
         }
 
-        .category-emoji {
-          font-size: 20px;
-        }
+        .category-emoji { font-size: 20px; }
 
         .category-name {
+          font-family: var(--font-serif);
           font-size: 16px;
-          font-weight: 700;
-          color: #1E293B;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0;
         }
 
         .vendor-count {
           font-size: 12px;
-          color: #94A3B8;
-          background: #F1F5F9;
+          color: var(--color-text-muted);
+          background: var(--color-surface-alt);
           padding: 3px 12px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-weight: 500;
         }
 
@@ -563,7 +546,7 @@ const PriceBoard = () => {
           justify-content: space-between;
           align-items: center;
           padding: 10px 0;
-          border-bottom: 1px solid #F8FAFC;
+          border-bottom: 1px solid var(--color-surface-alt);
           gap: 12px;
         }
 
@@ -579,7 +562,7 @@ const PriceBoard = () => {
 
         .item-name {
           font-size: 14px;
-          color: #475569;
+          color: var(--color-text-secondary);
           font-weight: 500;
         }
 
@@ -594,7 +577,7 @@ const PriceBoard = () => {
         .item-price {
           font-size: 14px;
           font-weight: 700;
-          color: #1E293B;
+          color: var(--color-text);
         }
 
         .item-trend {
@@ -605,13 +588,8 @@ const PriceBoard = () => {
           font-weight: 600;
         }
 
-        .item-trend.up {
-          color: #EF4444;
-        }
-
-        .item-trend.down {
-          color: #10B981;
-        }
+        .item-trend.up { color: var(--color-error); }
+        .item-trend.down { color: var(--color-success); }
 
         /* ===== POST CTA ===== */
         .post-cta-section {
@@ -621,12 +599,13 @@ const PriceBoard = () => {
         }
 
         .cta-card {
-          background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-          border-radius: 14px;
+          background: var(--color-primary);
+          border-radius: var(--radius-2xl);
           padding: 20px;
-          color: #FFFFFF;
+          color: var(--color-text-inverse);
           position: relative;
           overflow: hidden;
+          box-shadow: var(--shadow-primary);
         }
 
         .cta-card::before {
@@ -653,23 +632,21 @@ const PriceBoard = () => {
         .cta-icon {
           width: 44px;
           height: 44px;
-          border-radius: 12px;
-          background: rgba(245, 158, 11, 0.15);
+          border-radius: var(--radius-xl);
+          background: var(--color-accent-tint);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .cta-text {
-          flex: 1;
-        }
+        .cta-text { flex: 1; }
 
         .cta-title {
           font-size: 16px;
           font-weight: 700;
           margin: 0 0 4px;
-          color: #FFFFFF;
+          color: var(--color-text-inverse);
         }
 
         .cta-desc {
@@ -682,10 +659,10 @@ const PriceBoard = () => {
         .cta-btn {
           width: 100%;
           padding: 12px;
-          background: #F59E0B;
+          background: var(--color-accent);
           border: none;
-          border-radius: 10px;
-          color: #FFFFFF;
+          border-radius: var(--radius-lg);
+          color: var(--color-text-inverse);
           font-size: 14px;
           font-weight: 700;
           cursor: pointer;
@@ -693,10 +670,11 @@ const PriceBoard = () => {
           transition: all 0.2s;
           position: relative;
           z-index: 1;
+          box-shadow: var(--shadow-accent);
         }
 
         .cta-btn:hover {
-          background: #D97706;
+          background: var(--color-accent-hover);
           transform: scale(0.98);
         }
 
@@ -708,7 +686,7 @@ const PriceBoard = () => {
           gap: 6px;
           padding: 24px 16px 16px;
           font-size: 12px;
-          color: #94A3B8;
+          color: var(--color-text-muted);
           text-align: center;
           max-width: 800px;
           margin: 0 auto;
@@ -722,7 +700,7 @@ const PriceBoard = () => {
           right: 0;
           background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(12px);
-          border-top: 1px solid rgba(226, 232, 240, 0.4);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 8px;
@@ -745,7 +723,7 @@ const PriceBoard = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -753,63 +731,38 @@ const PriceBoard = () => {
         }
 
         .nav-icon-wrap.active {
-          background: #1E293B;
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #94A3B8;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #1E293B;
+          color: var(--color-text);
           font-weight: 600;
         }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .board-header {
-            padding: 12px 12px 16px;
-          }
-          .page-title {
-            font-size: 22px;
-          }
-          .category-filter {
-            padding: 12px;
-            top: 118px;
-          }
-          .board-content {
-            padding: 12px;
-          }
-          .category-section {
-            padding: 14px;
-          }
-          .post-cta-section {
-            padding: 0 12px;
-          }
-          .cta-card {
-            padding: 16px;
-          }
-          .item-name {
-            font-size: 13px;
-          }
-          .item-price {
-            font-size: 13px;
-          }
+          .board-header { padding: 12px 12px 16px; }
+          .page-title { font-size: 22px; }
+          .category-filter { padding: 12px; top: 118px; }
+          .board-content { padding: 12px; }
+          .category-section { padding: 14px; }
+          .post-cta-section { padding: 0 12px; }
+          .cta-card { padding: 16px; }
+          .item-name { font-size: 13px; }
+          .item-price { font-size: 13px; }
         }
 
         @media (max-width: 380px) {
-          .category-section {
-            padding: 12px;
-          }
-          .category-name {
-            font-size: 15px;
-          }
-          .vendor-count {
-            font-size: 11px;
-            padding: 2px 10px;
-          }
+          .category-section { padding: 12px; }
+          .category-name { font-size: 15px; }
+          .vendor-count { font-size: 11px; padding: 2px 10px; }
         }
       `}</style>
     </div>

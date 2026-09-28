@@ -233,7 +233,7 @@ const ProfileSetup = () => {
             <Icon
               name="arrowLeft"
               size={18}
-              color="#64748B"
+              color="var(--color-text-secondary)"
               strokeWidth={1.75}
             />
           </button>
@@ -242,7 +242,7 @@ const ProfileSetup = () => {
               <Icon
                 name="sparkles"
                 size={14}
-                color="#F59E0B"
+                color="var(--color-warning)"
                 strokeWidth={1.75}
               />
               <span>Step {step} of 2</span>
@@ -288,7 +288,7 @@ const ProfileSetup = () => {
                     <Icon
                       name="camera"
                       size={24}
-                      color="#94A3B8"
+                      color="var(--color-text-muted)"
                       strokeWidth={1.5}
                     />
                     <span>Add photo</span>
@@ -310,7 +310,7 @@ const ProfileSetup = () => {
             {/* Business Name */}
             <div className="form-group">
               <label className="form-label">
-                <Icon name="store" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="store" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 Business Name <span className="required">*</span>
               </label>
               <input
@@ -328,7 +328,7 @@ const ProfileSetup = () => {
             {/* Category */}
             <div className="form-group">
               <label className="form-label">
-                <Icon name="tag" size={14} color="#94A3B8" strokeWidth={1.75} />
+                <Icon name="tag" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                 Category <span className="required">*</span>
               </label>
               <div className="category-grid">
@@ -356,7 +356,7 @@ const ProfileSetup = () => {
                 <Icon
                   name="mapPin"
                   size={14}
-                  color="#94A3B8"
+                  color="var(--color-text-muted)"
                   strokeWidth={1.75}
                 />
                 Location
@@ -415,7 +415,7 @@ const ProfileSetup = () => {
             {/* Summary Card */}
             <div className="summary-card">
               <div className="summary-header">
-                <Icon name="check" size={16} color="#10B981" strokeWidth={2.5} />
+                <Icon name="check" size={16} color="var(--color-success)" strokeWidth={2.5} />
                 <span>Ready to save</span>
               </div>
               <div className="summary-list">
@@ -444,7 +444,7 @@ const ProfileSetup = () => {
 
             {/* Trust Note */}
             <div className="trust-note">
-              <Icon name="shield" size={16} color="#3B82F6" strokeWidth={1.75} />
+              <Icon name="shield" size={16} color="var(--color-primary)" strokeWidth={1.75} />
               <span>
                 Your information is only shared with interested buyers
               </span>
@@ -468,7 +468,7 @@ const ProfileSetup = () => {
                 <Icon
                   name="arrowRight"
                   size={16}
-                  color="#FFFFFF"
+                  color="var(--color-text-inverse)"
                   strokeWidth={2}
                 />
               </button>
@@ -495,7 +495,7 @@ const ProfileSetup = () => {
                     <Icon
                       name="check"
                       size={16}
-                      color="#FFFFFF"
+                      color="var(--color-text-inverse)"
                       strokeWidth={2.5}
                     />
                   </>
@@ -512,10 +512,11 @@ const ProfileSetup = () => {
       <style jsx>{`
         .profile-setup {
           min-height: 100vh;
-          background: #f8fafc;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-            sans-serif;
-          color: #1e293b;
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
+          background-size: 22px 22px;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -525,11 +526,11 @@ const ProfileSetup = () => {
         .setup-card {
           max-width: 520px;
           width: 100%;
-          background: #ffffff;
-          border-radius: 20px;
+          background: var(--color-surface);
+          border-radius: var(--radius-3xl);
           padding: 24px 24px 28px;
-          border: 1px solid #f1f5f9;
-          box-shadow: 0 4px 24px rgba(30, 41, 59, 0.04);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-md);
           animation: fadeInUp 0.5s ease-out;
         }
 
@@ -551,19 +552,19 @@ const ProfileSetup = () => {
         .back-btn {
           width: 36px;
           height: 36px;
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           border: none;
-          background: #f8fafc;
+          background: var(--color-surface-alt);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           margin-bottom: 12px;
         }
 
         .back-btn:hover {
-          background: #f1f5f9;
+          background: var(--color-border);
         }
 
         .header-content {
@@ -574,27 +575,27 @@ const ProfileSetup = () => {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          background: rgba(245, 158, 11, 0.08);
+          background: var(--color-warning-bg);
           padding: 4px 12px;
-          border-radius: 20px;
+          border-radius: var(--radius-full);
           font-size: 12px;
-          color: #f59e0b;
+          color: var(--color-warning);
           font-weight: 600;
           margin-bottom: 10px;
         }
 
         .card-title {
           font-size: clamp(22px, 3vw, 26px);
-          font-weight: 700;
-          color: #1e293b;
+          font-weight: 600;
+          color: var(--color-text);
           margin: 0 0 6px;
-          font-family: 'Georgia', serif;
+          font-family: var(--font-serif);
           letter-spacing: -0.02em;
         }
 
         .card-subtitle {
           font-size: 14px;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           margin: 0 auto;
           line-height: 1.5;
           max-width: 360px;
@@ -607,14 +608,14 @@ const ProfileSetup = () => {
         .progress-track {
           width: 100%;
           height: 4px;
-          background: #f1f5f9;
+          background: var(--color-border);
           border-radius: 2px;
           overflow: hidden;
         }
 
         .progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, #f59e0b, #d97706);
+          background: var(--color-accent);
           border-radius: 2px;
           transition: width 0.4s ease;
         }
@@ -643,19 +644,19 @@ const ProfileSetup = () => {
           width: 88px;
           height: 88px;
           border-radius: 50%;
-          border: 2px dashed #e2e8f0;
+          border: 2px dashed var(--color-border-strong);
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           overflow: hidden;
-          transition: all 0.2s;
-          background: #f8fafc;
+          transition: all var(--transition-fast);
+          background: var(--color-surface-alt);
         }
 
         .photo-upload:hover {
-          border-color: #f59e0b;
-          background: #fefcf5;
+          border-color: var(--color-accent);
+          background: var(--color-accent-soft);
         }
 
         .photo-preview {
@@ -669,13 +670,13 @@ const ProfileSetup = () => {
           flex-direction: column;
           align-items: center;
           gap: 4px;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           font-size: 11px;
         }
 
         .photo-hint {
           font-size: 12px;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           margin: 8px 0 0;
           text-align: center;
         }
@@ -690,12 +691,12 @@ const ProfileSetup = () => {
           gap: 4px;
           font-size: 13px;
           font-weight: 600;
-          color: #475569;
+          color: var(--color-text-secondary);
           margin-bottom: 6px;
         }
 
         .required {
-          color: #ef4444;
+          color: var(--color-error);
         }
 
         .form-input,
@@ -703,22 +704,22 @@ const ProfileSetup = () => {
         .form-select {
           width: 100%;
           padding: 11px 14px;
-          border: 1px solid #e2e8f0;
-          border-radius: 10px;
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-lg);
           font-size: 14px;
-          color: #1e293b;
+          color: var(--color-text);
           outline: none;
-          background: #ffffff;
+          background: var(--color-surface);
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           box-sizing: border-box;
         }
 
         .form-input:focus,
         .form-textarea:focus,
         .form-select:focus {
-          border-color: #f59e0b;
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .form-textarea {
@@ -729,7 +730,7 @@ const ProfileSetup = () => {
 
         .form-select {
           appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
           background-position: right 14px center;
           padding-right: 36px;
@@ -737,7 +738,7 @@ const ProfileSetup = () => {
 
         .field-hint {
           font-size: 12px;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           margin: 6px 0 0;
         }
 
@@ -752,24 +753,24 @@ const ProfileSetup = () => {
           align-items: center;
           gap: 8px;
           padding: 10px 12px;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          background: #ffffff;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          background: var(--color-surface);
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           font-family: inherit;
           text-align: left;
         }
 
         .category-chip:hover {
-          border-color: #cbd5e1;
-          background: #f8fafc;
+          border-color: var(--color-border-strong);
+          background: var(--color-surface-alt);
         }
 
         .category-chip.active {
-          border-color: #f59e0b;
-          background: rgba(245, 158, 11, 0.04);
-          box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.06);
+          border-color: var(--color-accent);
+          background: var(--color-accent-tint);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .category-emoji {
@@ -780,22 +781,22 @@ const ProfileSetup = () => {
         .category-label {
           font-size: 12px;
           font-weight: 500;
-          color: #475569;
+          color: var(--color-text-secondary);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
         .category-chip.active .category-label {
-          color: #1e293b;
+          color: var(--color-text);
           font-weight: 600;
         }
 
         .summary-card {
-          background: #f8fafc;
-          border-radius: 12px;
+          background: var(--color-surface-alt);
+          border-radius: var(--radius-xl);
           padding: 16px;
-          border: 1px solid #f1f5f9;
+          border: 1px solid var(--color-border);
           margin-bottom: 12px;
         }
 
@@ -805,10 +806,10 @@ const ProfileSetup = () => {
           gap: 6px;
           font-size: 13px;
           font-weight: 600;
-          color: #10b981;
+          color: var(--color-success);
           margin-bottom: 12px;
           padding-bottom: 10px;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid var(--color-border);
         }
 
         .summary-list {
@@ -826,12 +827,12 @@ const ProfileSetup = () => {
         }
 
         .summary-key {
-          color: #94a3b8;
+          color: var(--color-text-muted);
           flex-shrink: 0;
         }
 
         .summary-value {
-          color: #1e293b;
+          color: var(--color-text);
           font-weight: 500;
           text-align: right;
           overflow: hidden;
@@ -844,11 +845,11 @@ const ProfileSetup = () => {
           align-items: center;
           gap: 8px;
           padding: 10px 14px;
-          background: rgba(59, 130, 246, 0.06);
-          border-radius: 10px;
-          border: 1px solid rgba(59, 130, 246, 0.12);
+          background: var(--color-info-bg);
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
           font-size: 12px;
-          color: #1e40af;
+          color: var(--color-primary);
           line-height: 1.4;
         }
 
@@ -862,12 +863,12 @@ const ProfileSetup = () => {
         .continue-btn {
           width: 100%;
           padding: 14px;
-          background: #e2e8f0;
+          background: var(--color-border);
           border: none;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           font-size: 15px;
           font-weight: 700;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           cursor: not-allowed;
           transition: all 0.25s ease;
           font-family: inherit;
@@ -879,15 +880,16 @@ const ProfileSetup = () => {
         }
 
         .continue-btn.active {
-          background: #1e293b;
-          color: #ffffff;
+          background: var(--color-primary);
+          color: var(--color-text-inverse);
           cursor: pointer;
+          box-shadow: var(--shadow-primary);
         }
 
         .continue-btn.active:hover:not(:disabled) {
-          background: #f59e0b;
+          background: var(--color-accent);
           transform: scale(0.98);
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+          box-shadow: var(--shadow-accent);
         }
 
         .continue-btn:disabled {
@@ -899,24 +901,24 @@ const ProfileSetup = () => {
           padding: 10px;
           background: none;
           border: none;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           font-size: 13px;
           font-weight: 500;
           cursor: pointer;
           font-family: inherit;
-          transition: color 0.2s;
+          transition: color var(--transition-fast);
           text-align: center;
         }
 
         .skip-btn:hover {
-          color: #1e293b;
+          color: var(--color-text);
         }
 
         .btn-spinner {
           width: 18px;
           height: 18px;
           border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #ffffff;
+          border-top-color: var(--color-text-inverse);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -930,7 +932,7 @@ const ProfileSetup = () => {
         @media (max-width: 480px) {
           .setup-card {
             padding: 20px 16px 24px;
-            border-radius: 16px;
+            border-radius: var(--radius-2xl);
           }
           .card-title {
             font-size: 20px;

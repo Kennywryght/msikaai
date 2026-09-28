@@ -289,7 +289,7 @@ const CreateListing = () => {
       <div className="page-header">
         <div className="header-inner">
           <button className="back-btn" onClick={() => navigate('/dashboard')} aria-label="Back">
-            <Icon name="arrowLeft" size={18} color="#201F1B" strokeWidth={2.2} />
+            <Icon name="arrowLeft" size={18} color="var(--color-text)" strokeWidth={2.2} />
           </button>
           <div className="header-text">
             <h1 className="page-title">New Listing</h1>
@@ -305,7 +305,7 @@ const CreateListing = () => {
           {/* Image Upload */}
           <div className="upload-section">
             <label className="form-label">
-              <Icon name="camera" size={14} color="#BC5B34" strokeWidth={2} />
+              <Icon name="camera" size={14} color="var(--color-secondary-hover)" strokeWidth={2} />
               Photos
               <span className="form-label-hint">Up to 4 images</span>
             </label>
@@ -329,13 +329,13 @@ const CreateListing = () => {
                         onClick={(e) => { e.stopPropagation(); removeImage(index); }}
                         aria-label="Remove image"
                       >
-                        <Icon name="close" size={11} color="#FFFFFF" strokeWidth={3} />
+                        <Icon name="close" size={11} color="var(--color-text-inverse)" strokeWidth={3} />
                       </button>
                     </div>
                   ))}
                   {imagePreviews.length < 4 && (
                     <div className="image-upload-btn">
-                      <Icon name="plus" size={20} color="#D99A3B" strokeWidth={2.2} />
+                      <Icon name="plus" size={20} color="var(--color-accent)" strokeWidth={2.2} />
                       <span>Add</span>
                     </div>
                   )}
@@ -343,7 +343,7 @@ const CreateListing = () => {
               ) : (
                 <div className="upload-placeholder">
                   <div className="upload-icon-wrap">
-                    <Icon name="camera" size={28} color="#D99A3B" strokeWidth={1.6} />
+                    <Icon name="camera" size={28} color="var(--color-accent)" strokeWidth={1.6} />
                   </div>
                   <span className="upload-text">Add photos</span>
                   <span className="upload-hint">Tap to upload</span>
@@ -528,7 +528,7 @@ const CreateListing = () => {
                 />
                 <span className="checkbox-box">
                   {formData.deliveryAvailable && (
-                    <Icon name="check" size={12} color="#F7F1E3" strokeWidth={3} />
+                    <Icon name="check" size={12} color="var(--color-text-inverse)" strokeWidth={3} />
                   )}
                 </span>
                 <span className="checkbox-text">Delivery available</span>
@@ -567,7 +567,7 @@ const CreateListing = () => {
               <span className="btn-loader" />
             ) : (
               <>
-                <Icon name="check" size={18} color="#F7F1E3" strokeWidth={2.4} />
+                <Icon name="check" size={18} color="var(--color-text-inverse)" strokeWidth={2.4} />
                 Post Listing
               </>
             )}
@@ -589,7 +589,7 @@ const CreateListing = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#F7F1E3' : '#9C9482'} strokeWidth={1.85} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.85} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -601,11 +601,11 @@ const CreateListing = () => {
       <style jsx>{`
         .create-listing {
           min-height: 100vh;
-          background: #F7F1E3;
-          background-image: radial-gradient(rgba(217, 154, 59, 0.06) 1px, transparent 1px);
+          background: var(--color-bg);
+          background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
           background-size: 22px 22px;
-          font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: #201F1B;
+          font-family: var(--font-sans);
+          color: var(--color-text);
           padding-bottom: 100px;
         }
 
@@ -615,10 +615,10 @@ const CreateListing = () => {
 
         /* ===== HEADER ===== */
         .page-header {
-          background: rgba(255, 253, 248, 0.94);
+          background: var(--color-surface);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(239, 230, 206, 0.9);
+          border-bottom: 1px solid var(--color-border);
           position: sticky;
           top: 0;
           z-index: 10;
@@ -636,20 +636,20 @@ const CreateListing = () => {
         .back-btn {
           width: 40px;
           height: 40px;
-          border-radius: 11px;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          background: #FFFDF8;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.15s;
+          transition: all var(--transition-fast);
           flex-shrink: 0;
         }
 
         .back-btn:hover {
-          background: #F7F1E3;
-          border-color: rgba(217, 154, 59, 0.4);
+          background: var(--color-surface-alt);
+          border-color: var(--color-accent);
         }
 
         .header-text {
@@ -659,17 +659,17 @@ const CreateListing = () => {
         }
 
         .page-title {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-serif);
           font-size: 18px;
           font-weight: 600;
-          color: #201F1B;
+          color: var(--color-text);
           margin: 0;
           letter-spacing: -0.01em;
         }
 
         .page-subtitle {
           font-size: 11.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           margin: 1px 0 0;
         }
 
@@ -695,7 +695,7 @@ const CreateListing = () => {
           gap: 6px;
           font-size: 12.5px;
           font-weight: 700;
-          color: #3A362E;
+          color: var(--color-text-secondary);
           margin-bottom: 7px;
           letter-spacing: 0.02em;
           text-transform: uppercase;
@@ -704,14 +704,14 @@ const CreateListing = () => {
         .form-label-hint {
           font-weight: 500;
           font-size: 10.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
           text-transform: none;
           letter-spacing: 0;
           margin-left: auto;
         }
 
         .required {
-          color: #DC2626;
+          color: var(--color-error);
         }
 
         .form-input,
@@ -719,22 +719,22 @@ const CreateListing = () => {
         .form-select {
           width: 100%;
           padding: 12px 15px;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
-          border-radius: 12px;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-xl);
           font-size: 14px;
-          color: #201F1B;
+          color: var(--color-text);
           outline: none;
-          background: #FFFDF8;
+          background: var(--color-surface);
           font-family: inherit;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           box-sizing: border-box;
         }
 
         .form-input:focus,
         .form-textarea:focus,
         .form-select:focus {
-          border-color: #D99A3B;
-          box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.12);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
         .form-textarea {
@@ -745,7 +745,7 @@ const CreateListing = () => {
 
         .form-select {
           appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B6259' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
           background-repeat: no-repeat;
           background-position: right 14px center;
           padding-right: 36px;
@@ -767,11 +767,11 @@ const CreateListing = () => {
         }
 
         .upload-area {
-          border: 2px dashed rgba(217, 154, 59, 0.45);
-          border-radius: 16px;
+          border: 2px dashed var(--color-border-strong);
+          border-radius: var(--radius-2xl);
           padding: 20px;
           cursor: pointer;
-          background: linear-gradient(135deg, #FFFDF8 0%, #FEF6E7 100%);
+          background: var(--color-surface);
           transition: all 0.22s ease;
           min-height: 120px;
           display: flex;
@@ -780,10 +780,10 @@ const CreateListing = () => {
         }
 
         .upload-area:hover {
-          border-color: #D99A3B;
-          background: linear-gradient(135deg, #FEF6E7 0%, #FDEBCB 100%);
+          border-color: var(--color-accent);
+          background: var(--color-accent-soft);
           transform: translateY(-1px);
-          box-shadow: 0 8px 20px rgba(217, 154, 59, 0.12);
+          box-shadow: var(--shadow-md);
         }
 
         .upload-placeholder {
@@ -797,23 +797,22 @@ const CreateListing = () => {
           width: 56px;
           height: 56px;
           border-radius: 50%;
-          background: #FEF6E7;
+          background: var(--color-accent-tint);
           display: flex;
           align-items: center;
           justify-content: center;
           margin-bottom: 6px;
-          box-shadow: 0 6px 16px rgba(217, 154, 59, 0.15);
         }
 
         .upload-text {
           font-size: 14px;
           font-weight: 700;
-          color: #201F1B;
+          color: var(--color-text);
         }
 
         .upload-hint {
           font-size: 11.5px;
-          color: #9C9482;
+          color: var(--color-text-muted);
         }
 
         .image-preview-grid {
@@ -827,10 +826,10 @@ const CreateListing = () => {
           position: relative;
           width: 82px;
           height: 82px;
-          border-radius: 12px;
+          border-radius: var(--radius-xl);
           overflow: hidden;
-          border: 1px solid rgba(239, 230, 206, 0.9);
-          box-shadow: 0 2px 6px rgba(22, 38, 31, 0.05);
+          border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-xs);
         }
 
         .image-preview {
@@ -846,42 +845,41 @@ const CreateListing = () => {
           width: 22px;
           height: 22px;
           border-radius: 50%;
-          background: rgba(220, 38, 38, 0.92);
-          color: #FFFFFF;
-          border: 2px solid #FFFDF8;
+          background: var(--color-error);
+          color: var(--color-text-inverse);
+          border: 2px solid var(--color-surface);
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.15s;
-          backdrop-filter: blur(4px);
+          transition: all var(--transition-fast);
         }
 
         .image-remove:hover {
-          background: #DC2626;
           transform: scale(1.08);
+          box-shadow: var(--shadow-error);
         }
 
         .image-upload-btn {
           width: 82px;
           height: 82px;
-          border-radius: 12px;
-          border: 1.5px dashed rgba(217, 154, 59, 0.5);
+          border-radius: var(--radius-xl);
+          border: 1.5px dashed var(--color-border-strong);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           gap: 2px;
-          color: #D99A3B;
+          color: var(--color-accent);
           font-size: 10.5px;
           font-weight: 700;
-          transition: all 0.2s;
-          background: #FFFDF8;
+          transition: all var(--transition-fast);
+          background: var(--color-surface);
         }
 
         .image-upload-btn:hover {
-          border-color: #D99A3B;
-          background: #FEF6E7;
+          border-color: var(--color-accent);
+          background: var(--color-accent-soft);
         }
 
         .upload-progress {
@@ -890,14 +888,14 @@ const CreateListing = () => {
           gap: 8px;
           margin-top: 10px;
           font-size: 13px;
-          color: #9C9482;
+          color: var(--color-text-muted);
         }
 
         .upload-loader {
           width: 16px;
           height: 16px;
-          border: 2px solid rgba(217, 154, 59, 0.2);
-          border-top-color: #D99A3B;
+          border: 2px solid var(--color-accent-tint);
+          border-top-color: var(--color-accent);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -919,14 +917,14 @@ const CreateListing = () => {
           align-items: center;
           gap: 9px;
           padding: 11px 16px;
-          border: 1.5px solid rgba(239, 230, 206, 0.9);
-          border-radius: 12px;
-          background: #FFFDF8;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-xl);
+          background: var(--color-surface);
           cursor: pointer;
           font-size: 13.5px;
           font-weight: 600;
-          color: #6B6259;
-          transition: all 0.2s;
+          color: var(--color-text-secondary);
+          transition: all var(--transition-fast);
           user-select: none;
         }
 
@@ -935,27 +933,27 @@ const CreateListing = () => {
         }
 
         .checkbox-card.checked {
-          border-color: #24453B;
-          background: rgba(36, 69, 59, 0.06);
-          color: #24453B;
+          border-color: var(--color-primary);
+          background: var(--color-primary-tint);
+          color: var(--color-primary);
         }
 
         .checkbox-box {
           width: 20px;
           height: 20px;
-          border-radius: 6px;
-          border: 1.5px solid #D9C79E;
-          background: #FFFDF8;
+          border-radius: var(--radius-sm);
+          border: 1.5px solid var(--color-border-strong);
+          background: var(--color-surface);
           display: inline-flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
         }
 
         .checkbox-card.checked .checkbox-box {
-          background: #24453B;
-          border-color: #24453B;
+          background: var(--color-primary);
+          border-color: var(--color-primary);
         }
 
         .checkbox-text {
@@ -971,28 +969,29 @@ const CreateListing = () => {
         .submit-btn {
           width: 100%;
           padding: 16px;
-          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          background: var(--color-accent);
           border: none;
-          border-radius: 14px;
+          border-radius: var(--radius-xl);
           font-size: 15px;
           font-weight: 700;
-          color: #F7F1E3;
+          color: var(--color-text-inverse);
           cursor: pointer;
           font-family: inherit;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 9px;
-          transition: all 0.2s;
+          transition: all var(--transition-fast);
           margin-top: 8px;
           min-height: 54px;
-          box-shadow: 0 10px 24px rgba(36, 69, 59, 0.28);
+          box-shadow: var(--shadow-accent);
           letter-spacing: 0.01em;
         }
 
         .submit-btn:hover:not(:disabled) {
+          background: var(--color-accent-hover);
           transform: translateY(-2px);
-          box-shadow: 0 14px 30px rgba(36, 69, 59, 0.4);
+          box-shadow: 0 14px 30px rgba(255, 92, 35, 0.32);
         }
 
         .submit-btn:active:not(:disabled) {
@@ -1007,8 +1006,8 @@ const CreateListing = () => {
         .btn-loader {
           width: 22px;
           height: 22px;
-          border: 2px solid rgba(247, 241, 227, 0.25);
-          border-top-color: #F7F1E3;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top-color: var(--color-text-inverse);
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
@@ -1019,10 +1018,10 @@ const CreateListing = () => {
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(255, 253, 248, 0.96);
+          background: rgba(255, 255, 255, 0.96);
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
-          border-top: 1px solid rgba(239, 230, 206, 0.9);
+          border-top: 1px solid var(--color-border);
           display: flex;
           justify-content: space-around;
           padding: 4px 0 10px;
@@ -1045,30 +1044,30 @@ const CreateListing = () => {
         .nav-icon-wrap {
           width: 34px;
           height: 34px;
-          border-radius: 9px;
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: background 0.2s, transform 0.15s;
+          transition: background var(--transition-fast);
         }
 
         .nav-icon-wrap.active {
-          background: #24453B;
-          box-shadow: 0 4px 10px rgba(36, 69, 59, 0.25);
+          background: var(--color-primary);
+          box-shadow: var(--shadow-primary);
         }
 
         .nav-btn:hover .nav-icon-wrap:not(.active) {
-          background: rgba(239, 230, 206, 0.6);
+          background: var(--color-surface-alt);
         }
 
         .nav-label {
           font-size: 9px;
           font-weight: 500;
-          color: #9C9482;
+          color: var(--color-text-muted);
         }
 
         .nav-label.active {
-          color: #201F1B;
+          color: var(--color-text);
           font-weight: 600;
         }
 

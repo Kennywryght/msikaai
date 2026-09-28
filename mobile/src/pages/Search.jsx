@@ -168,11 +168,11 @@ const Search = () => {
           {[1, 2, 3].map((i) => <div key={i} className="skeleton-result" />)}
         </div>
         <style jsx>{`
-          .loading-skeleton { min-height: 100vh; background: #F8FAFC; padding: 16px 16px 80px; max-width: 800px; margin: 0 auto; }
-          .skeleton-search { height: 60px; background: #E2E8F0; border-radius: 12px; margin-bottom: 12px; animation: pulse 1.5s ease-in-out infinite; }
-          .skeleton-filters { height: 40px; background: #E2E8F0; border-radius: 8px; margin-bottom: 16px; animation: pulse 1.5s ease-in-out infinite; }
+          .loading-skeleton { min-height: 100vh; background: var(--color-bg); padding: 16px 16px 80px; max-width: 800px; margin: 0 auto; }
+          .skeleton-search { height: 60px; background: var(--color-border); border-radius: var(--radius-xl); margin-bottom: 12px; animation: pulse 1.5s ease-in-out infinite; }
+          .skeleton-filters { height: 40px; background: var(--color-border); border-radius: var(--radius-md); margin-bottom: 16px; animation: pulse 1.5s ease-in-out infinite; }
           .skeleton-results { display: flex; flex-direction: column; gap: 10px; }
-          .skeleton-result { height: 100px; background: #E2E8F0; border-radius: 12px; animation: pulse 1.5s ease-in-out infinite; }
+          .skeleton-result { height: 100px; background: var(--color-border); border-radius: var(--radius-xl); animation: pulse 1.5s ease-in-out infinite; }
           @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         `}</style>
       </div>
@@ -183,14 +183,14 @@ const Search = () => {
     <div className="search-page">
       <div className="main-content">
         <button className="back-btn" onClick={() => navigate('/dashboard')}>
-          <Icon name="arrowLeft" size={16} color="#64748B" strokeWidth={1.75} />
+          <Icon name="arrowLeft" size={16} color="var(--color-text-secondary)" strokeWidth={1.75} />
           Back
         </button>
 
         <div className="search-header">
           <div className="search-header-content">
             <div className="header-icon">
-              <Icon name="search" size={28} color="#F59E0B" strokeWidth={1.75} />
+              <Icon name="search" size={28} color="var(--color-accent)" strokeWidth={1.75} />
             </div>
             <h1 className="search-title">Search</h1>
             <p className="search-subtitle">Find products and services in your area</p>
@@ -198,7 +198,7 @@ const Search = () => {
 
           <form onSubmit={handleSearch} className="search-form">
             <div className="search-input-wrapper">
-              <Icon name="search" size={18} color="#94A3B8" strokeWidth={1.75} />
+              <Icon name="search" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -209,14 +209,14 @@ const Search = () => {
                 autoComplete="off"
               />
               <button type="submit" className="search-btn">
-                <Icon name="search" size={16} color="#FFFFFF" strokeWidth={2} />
+                <Icon name="search" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                 Search
               </button>
             </div>
           </form>
 
           <button className="filter-toggle" onClick={() => setShowFilters(!showFilters)}>
-            <Icon name="filter" size={14} color="#64748B" strokeWidth={1.75} />
+            <Icon name="filter" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
 
@@ -291,7 +291,7 @@ const Search = () => {
                           )}
                           {listing.location_area && (
                             <span className="badge badge-location">
-                              <Icon name="mapPin" size={10} color="#1E40AF" strokeWidth={1.75} />
+                              <Icon name="mapPin" size={10} color="var(--color-primary)" strokeWidth={1.75} />
                               {listing.location_area}
                             </span>
                           )}
@@ -309,7 +309,7 @@ const Search = () => {
                         onClick={(e) => handleMessage(e, listing)}
                         disabled={openingChatId === listing.id}
                       >
-                        <Icon name="message" size={14} color="#FFFFFF" strokeWidth={2} />
+                        <Icon name="message" size={14} color="var(--color-text-inverse)" strokeWidth={2} />
                         {openingChatId === listing.id ? 'Opening…' : 'Message Seller'}
                       </button>
                     )}
@@ -330,13 +330,13 @@ const Search = () => {
           </>
         ) : searchQuery || selectedCategory ? (
           <div className="empty-state">
-            <Icon name="search" size={48} color="#CBD5E1" strokeWidth={1.5} />
+            <Icon name="search" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
             <h3 className="empty-title">No results found</h3>
             <p className="empty-text">Try adjusting your search or filters</p>
           </div>
         ) : (
           <div className="empty-state">
-            <Icon name="search" size={48} color="#CBD5E1" strokeWidth={1.5} />
+            <Icon name="search" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
             <h3 className="empty-title">Search for products and services</h3>
             <p className="empty-text">Enter a search term above to get started</p>
           </div>
@@ -356,7 +356,7 @@ const Search = () => {
             return (
               <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
-                  <Icon name={item.icon} size={20} color={active ? '#FFFFFF' : '#94A3B8'} strokeWidth={1.75} />
+                  <Icon name={item.icon} size={20} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
                 <span className={`nav-label ${active ? 'active' : ''}`}>{item.label}</span>
               </button>
@@ -366,75 +366,75 @@ const Search = () => {
       )}
 
       <style jsx>{`
-        .search-page { min-height: 100vh; background: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1E293B; padding-bottom: 80px; }
+        .search-page { min-height: 100vh; background: var(--color-bg); background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px); background-size: 22px 22px; font-family: var(--font-sans); color: var(--color-text); padding-bottom: 80px; }
         @media (min-width: 769px) { .search-page { padding-bottom: 0; } }
 
         .main-content { max-width: 800px; margin: 0 auto; padding: 16px 16px 40px; }
 
-        .back-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; background: #FFFFFF; border: 1px solid #F1F5F9; border-radius: 10px; font-size: 13px; font-weight: 500; color: #64748B; cursor: pointer; font-family: inherit; transition: all 0.2s; margin-bottom: 16px; }
-        .back-btn:hover { background: #F1F5F9; border-color: #E2E8F0; }
+        .back-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); font-size: 13px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; font-family: inherit; transition: all 0.2s; margin-bottom: 16px; }
+        .back-btn:hover { background: var(--color-surface-alt); border-color: var(--color-border-strong); }
 
-        .search-header { background: #FFFFFF; border-radius: 14px; padding: 18px 20px; border: 1px solid #F1F5F9; margin-bottom: 16px; }
+        .search-header { background: var(--color-surface); border-radius: var(--radius-2xl); padding: 18px 20px; border: 1px solid var(--color-border); margin-bottom: 16px; }
         .search-header-content { margin-bottom: 16px; }
-        .header-icon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: rgba(245, 158, 11, 0.1); border-radius: 14px; margin-bottom: 8px; }
-        .search-title { font-size: clamp(22px, 2.8vw, 26px); font-weight: 700; color: #1E293B; margin: 0 0 4px; letter-spacing: -0.5px; }
-        .search-subtitle { font-size: 14px; color: #94A3B8; margin: 0; }
+        .header-icon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: var(--color-accent-tint); border-radius: var(--radius-2xl); margin-bottom: 8px; }
+        .search-title { font-family: var(--font-serif); font-size: clamp(22px, 2.8vw, 26px); font-weight: 600; color: var(--color-text); margin: 0 0 4px; letter-spacing: -0.5px; }
+        .search-subtitle { font-size: 14px; color: var(--color-text-muted); margin: 0; }
 
         .search-form { margin-bottom: 12px; }
-        .search-input-wrapper { display: flex; align-items: center; gap: 10px; background: #F8FAFC; border: 2px solid #E2E8F0; border-radius: 12px; padding: 4px 4px 4px 14px; transition: all 0.2s; }
-        .search-input-wrapper:focus-within { border-color: #F59E0B; background: #FFFFFF; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.08); }
-        .search-input { flex: 1; border: none; outline: none; background: transparent; padding: 10px 0; font-size: 15px; font-family: inherit; color: #1E293B; }
-        .search-input::placeholder { color: #94A3B8; }
-        .search-btn { padding: 8px 16px; background: #1E293B; border: none; border-radius: 10px; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-        .search-btn:hover { background: #F59E0B; transform: scale(0.98); }
+        .search-input-wrapper { display: flex; align-items: center; gap: 10px; background: var(--color-surface-alt); border: 2px solid var(--color-border); border-radius: var(--radius-xl); padding: 4px 4px 4px 14px; transition: all 0.2s; }
+        .search-input-wrapper:focus-within { border-color: var(--color-accent); background: var(--color-surface); box-shadow: 0 0 0 4px var(--color-accent-tint); }
+        .search-input { flex: 1; border: none; outline: none; background: transparent; padding: 10px 0; font-size: 15px; font-family: inherit; color: var(--color-text); }
+        .search-input::placeholder { color: var(--color-text-muted); }
+        .search-btn { padding: 8px 16px; background: var(--color-primary); border: none; border-radius: var(--radius-lg); color: var(--color-text-inverse); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .search-btn:hover { background: var(--color-accent); transform: scale(0.98); }
 
-        .filter-toggle { background: #F8FAFC; border: 1px solid #F1F5F9; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: #64748B; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s; }
-        .filter-toggle:hover { background: #F1F5F9; border-color: #E2E8F0; }
+        .filter-toggle { background: var(--color-surface-alt); border: 1px solid var(--color-border); padding: 6px 14px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s; }
+        .filter-toggle:hover { background: var(--color-border); border-color: var(--color-border-strong); }
 
-        .filters-panel { margin-top: 14px; padding-top: 14px; border-top: 1px solid #F1F5F9; }
+        .filters-panel { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--color-border); }
         .filter-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
         .filter-group { flex: 1; min-width: 140px; }
-        .filter-label { font-size: 12px; font-weight: 600; color: #94A3B8; display: block; margin-bottom: 4px; }
-        .filter-select, .filter-input { width: 100%; padding: 6px 12px; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 14px; color: #1E293B; background: #FFFFFF; font-family: inherit; outline: none; transition: all 0.2s; box-sizing: border-box; }
-        .filter-select:focus, .filter-input:focus { border-color: #F59E0B; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08); }
+        .filter-label { font-size: 12px; font-weight: 600; color: var(--color-text-muted); display: block; margin-bottom: 4px; }
+        .filter-select, .filter-input { width: 100%; padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 14px; color: var(--color-text); background: var(--color-surface); font-family: inherit; outline: none; transition: all 0.2s; box-sizing: border-box; }
+        .filter-select:focus, .filter-input:focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-tint); }
         .filter-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn-apply { padding: 8px 20px; background: #1E293B; border: none; border-radius: 8px; color: #FFFFFF; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-        .btn-apply:hover { background: #F59E0B; transform: scale(0.98); }
-        .btn-clear { padding: 8px 20px; background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 8px; color: #64748B; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-        .btn-clear:hover { background: #E2E8F0; }
+        .btn-apply { padding: 8px 20px; background: var(--color-primary); border: none; border-radius: var(--radius-md); color: var(--color-text-inverse); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+        .btn-apply:hover { background: var(--color-accent); transform: scale(0.98); }
+        .btn-clear { padding: 8px 20px; background: var(--color-surface-alt); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-secondary); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+        .btn-clear:hover { background: var(--color-border); }
 
-        .result-count { font-size: 14px; color: #94A3B8; margin: 0 0 12px; font-weight: 500; }
+        .result-count { font-size: 14px; color: var(--color-text-muted); margin: 0 0 12px; font-weight: 500; }
         .results-grid { display: flex; flex-direction: column; gap: 10px; }
-        .result-card { background: #FFFFFF; border-radius: 12px; padding: 14px 16px; border: 1px solid #F1F5F9; transition: all 0.2s; }
-        .result-card:hover { border-color: #E2E8F0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04); }
+        .result-card { background: var(--color-surface); border-radius: var(--radius-xl); padding: 14px 16px; border: 1px solid var(--color-border); transition: all 0.2s; }
+        .result-card:hover { border-color: var(--color-border-strong); box-shadow: var(--shadow-md); }
         .result-content { display: flex; gap: 12px; cursor: pointer; }
         .result-info { flex: 1; min-width: 0; }
-        .result-title { font-size: 15px; font-weight: 600; color: #1E293B; margin: 0 0 2px; }
-        .result-business { font-size: 13px; color: #94A3B8; margin: 0 0 6px; }
+        .result-title { font-size: 15px; font-weight: 600; color: var(--color-text); margin: 0 0 2px; }
+        .result-business { font-size: 13px; color: var(--color-text-muted); margin: 0 0 6px; }
         .result-badges { display: flex; gap: 6px; flex-wrap: wrap; }
-        .badge { padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; }
-        .badge-category { background: #EDE9F5; color: #1E293B; }
-        .badge-price { background: #D1FAE5; color: #065F46; }
-        .badge-negotiable { background: #FEF3C7; color: #92400E; }
-        .badge-location { background: #DBEAFE; color: #1E40AF; }
-        .result-image { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: #F1F5F9; }
+        .badge { padding: 2px 10px; border-radius: var(--radius-full); font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 3px; }
+        .badge-category { background: var(--color-primary-tint); color: var(--color-primary); }
+        .badge-price { background: var(--color-success-bg); color: var(--color-success); }
+        .badge-negotiable { background: var(--color-warning-bg); color: var(--color-warning); }
+        .badge-location { background: var(--color-info-bg); color: var(--color-primary); }
+        .result-image { width: 64px; height: 64px; object-fit: cover; border-radius: var(--radius-md); flex-shrink: 0; background: var(--color-surface-alt); }
 
-        .result-message-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px; margin-top: 10px; background: #1E293B; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; color: #FFFFFF; font-family: inherit; cursor: pointer; transition: background 0.2s; }
-        .result-message-btn:hover:not(:disabled) { background: #F59E0B; }
+        .result-message-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px; margin-top: 10px; background: var(--color-primary); border: none; border-radius: var(--radius-lg); font-size: 13px; font-weight: 600; color: var(--color-text-inverse); font-family: inherit; cursor: pointer; transition: background 0.2s; }
+        .result-message-btn:hover:not(:disabled) { background: var(--color-accent); }
         .result-message-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .result-share { margin-top: 10px; padding-top: 10px; border-top: 1px solid #F1F5F9; }
+        .result-share { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-border); }
 
-        .empty-state { text-align: center; padding: 48px 20px; background: #FFFFFF; border-radius: 12px; border: 1px solid #F1F5F9; }
-        .empty-title { font-size: 17px; font-weight: 600; color: #1E293B; margin: 12px 0 4px; }
-        .empty-text { font-size: 14px; color: #94A3B8; margin: 0; }
+        .empty-state { text-align: center; padding: 48px 20px; background: var(--color-surface); border-radius: var(--radius-xl); border: 1px solid var(--color-border); }
+        .empty-title { font-family: var(--font-serif); font-size: 17px; font-weight: 600; color: var(--color-text); margin: 12px 0 4px; }
+        .empty-text { font-size: 14px; color: var(--color-text-muted); margin: 0; }
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-top: 1px solid rgba(226, 232, 240, 0.4); display: flex; justify-content: space-around; padding: 4px 0 8px; z-index: 100; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(12px); border-top: 1px solid var(--color-border); display: flex; justify-content: space-around; padding: 4px 0 8px; z-index: 100; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; cursor: pointer; padding: 4px 8px; font-family: inherit; min-width: 44px; }
-        .nav-icon-wrap { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-        .nav-icon-wrap.active { background: #1E293B; }
-        .nav-label { font-size: 9px; font-weight: 500; color: #94A3B8; }
-        .nav-label.active { color: #1E293B; font-weight: 600; }
+        .nav-icon-wrap { width: 34px; height: 34px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .nav-icon-wrap.active { background: var(--color-primary); box-shadow: var(--shadow-primary); }
+        .nav-label { font-size: 9px; font-weight: 500; color: var(--color-text-muted); }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
 
         @media (max-width: 480px) {
           .filter-row { flex-direction: column; }
@@ -448,7 +448,7 @@ const Search = () => {
         @media (max-width: 380px) {
           .main-content { padding: 12px 12px 32px; }
           .search-input-wrapper { flex-wrap: wrap; background: transparent; border: none; padding: 0; gap: 8px; }
-          .search-input { width: 100%; background: #F8FAFC; border: 2px solid #E2E8F0; border-radius: 10px; padding: 10px 14px; }
+          .search-input { width: 100%; background: var(--color-surface-alt); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: 10px 14px; }
           .search-btn { width: 100%; justify-content: center; }
           .filter-actions { flex-direction: column; }
           .btn-apply, .btn-clear { width: 100%; justify-content: center; }
