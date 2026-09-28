@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { useToast } from '../components/ToastContainer';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import SubscriptionSection from '../components/SubscriptionSection';
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -58,9 +59,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-// ============================================================
-// HELPERS
-// ============================================================
 const getUserDisplayName = (user) => {
   if (!user) return 'User';
   const full =
@@ -82,9 +80,6 @@ const getInitials = (name) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const Settings = () => {
   const { user, logout, updateRole } = useAuth();
   const { t, language, setLanguage } = useTranslation();
@@ -174,7 +169,6 @@ const Settings = () => {
 
   return (
     <div className="settings-page">
-      {/* Header */}
       <div className="page-header">
         <div className="header-top">
           <button className="header-btn" onClick={() => navigate(-1)} aria-label="Back">
@@ -187,7 +181,6 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="main-content">
         {/* Profile Card */}
         <Link to="/profile" className="profile-card">
@@ -198,6 +191,11 @@ const Settings = () => {
           </div>
           <Icon name="chevronRight" size={18} color="#9C9482" strokeWidth={2} />
         </Link>
+
+        {/* ★ Subscription — new in Phase 2C */}
+        <div id="subscription">
+          <SubscriptionSection />
+        </div>
 
         {/* Account Section */}
         <section className="settings-section">
@@ -272,7 +270,6 @@ const Settings = () => {
         <section className="settings-section">
           <h2 className="section-title">Preferences</h2>
           <div className="settings-group">
-            {/* Language */}
             <div className="settings-item-static">
               <div className="item-icon-wrap" style={{ background: 'rgba(91, 123, 94, 0.12)' }}>
                 <Icon name="globe" size={18} color="#5B7B5E" strokeWidth={1.9} />
@@ -301,7 +298,6 @@ const Settings = () => {
               </div>
             </div>
 
-            {/* In-app notifications */}
             <div className="settings-item-static">
               <div className="item-icon-wrap" style={{ background: 'rgba(217, 154, 59, 0.14)' }}>
                 <Icon name="bell" size={18} color="#D99A3B" strokeWidth={1.9} />
@@ -322,7 +318,6 @@ const Settings = () => {
               </button>
             </div>
 
-            {/* Push notifications */}
             {pushSupported && (
               <div className="settings-item-static">
                 <div className="item-icon-wrap" style={{ background: 'rgba(139, 90, 131, 0.12)' }}>
@@ -419,7 +414,6 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* App Info */}
         <div className="app-info">
           <div className="app-logo">
             <span className="logo-icon">K</span>
@@ -514,9 +508,6 @@ const Settings = () => {
       )}
 
       <style jsx>{`
-        /* ========================================================
-           SETTINGS — warm, editorial, matches the marketplace
-           ======================================================== */
         .settings-page {
           min-height: 100vh;
           background: #F7F1E3;
@@ -593,7 +584,6 @@ const Settings = () => {
           padding: 20px 16px;
         }
 
-        /* ===== PROFILE CARD ===== */
         .profile-card {
           display: flex;
           align-items: center;
@@ -658,7 +648,6 @@ const Settings = () => {
           white-space: nowrap;
         }
 
-        /* ===== SECTIONS ===== */
         .settings-section { margin-bottom: 24px; }
 
         .section-title {
@@ -704,7 +693,6 @@ const Settings = () => {
         }
 
         .settings-item:hover { background: #F7F1E3; }
-
         .settings-item-static { cursor: default; }
 
         .item-icon-wrap {
@@ -745,7 +733,6 @@ const Settings = () => {
           white-space: nowrap;
         }
 
-        /* ===== ROLE SELECTOR ===== */
         .role-selector { padding: 16px; }
 
         .role-desc {
@@ -795,7 +782,6 @@ const Settings = () => {
         .role-emoji { font-size: 15px; }
         .role-label { font-size: 13px; }
 
-        /* ===== LANGUAGE ===== */
         .language-toggle {
           display: flex;
           gap: 4px;
@@ -827,7 +813,6 @@ const Settings = () => {
           box-shadow: 0 2px 6px rgba(22, 38, 31, 0.08);
         }
 
-        /* ===== TOGGLE ===== */
         .toggle-switch {
           position: relative;
           width: 46px;
@@ -863,7 +848,6 @@ const Settings = () => {
 
         .toggle-switch.on .toggle-thumb { transform: translateX(19px); }
 
-        /* ===== APP INFO ===== */
         .app-info {
           text-align: center;
           padding: 28px 16px 16px;
@@ -912,7 +896,6 @@ const Settings = () => {
           margin: 0;
         }
 
-        /* ===== MODALS ===== */
         .modal-overlay {
           position: fixed;
           inset: 0;
@@ -1013,7 +996,6 @@ const Settings = () => {
           box-shadow: 0 10px 22px rgba(220, 38, 38, 0.35);
         }
 
-        /* ===== BOTTOM NAV ===== */
         .bottom-nav {
           position: fixed;
           bottom: 0;
@@ -1072,7 +1054,6 @@ const Settings = () => {
           font-weight: 600;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
           .page-header { padding: 12px 12px 16px; }
           .main-content { padding: 16px 12px; }

@@ -301,21 +301,25 @@ app.use(compression({
   },
 }));
 
-app.use(express.json({ limit: '50mb' }));
+// ============================================
+// BODY PARSING
+//
+// ★ PHASE 2B: The PayChangu webhook needs the RAW body so we can
+//   verify the HMAC signature. Every other route gets parsed JSON.
+// ============================================
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api/payment/webhook') {
+    return express.raw({ type: '*/*', limit: '1mb' })(req, res, next);
+  }
+  return express.json({ limit: '50mb' })(req, res, next);
+});
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use(logHttpRequest);
 
 // ============================================
-// RATE LIMITING  (Approach A — skip logic)
+// RATE LIMITING
 // ============================================
-//
-// Endpoints that the landing page polls frequently (likes/batch,
-// comments/counts, notifications, analytics) are SKIPPED by the general
-// limiter via the `skip` function below. They still run through the
-// pollingLimiter, which has a much higher ceiling, so real abuse is
-// still throttled but normal app traffic is never blocked.
-
 const rateLimitCommon = {
   standardHeaders: true,
   legacyHeaders: false,
@@ -323,7 +327,6 @@ const rateLimitCommon = {
   keyGenerator: (req) => req.ip,
 };
 
-// Paths that bypass the general limiter entirely.
 const POLLING_PATH_PREFIXES = [
   '/api/interactions',
   '/api/notifications',
@@ -340,7 +343,6 @@ const generalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 600,
   message: { success: false, error: 'Too many requests, please try again later.' },
-  // ★ Approach A — skip polling endpoints so they don't burn the general bucket
   skip: (req) => isPollingPath(req),
   handler: (req, res) => {
     logger.warn(`Rate limit exceeded for IP: ${req.ip} on ${req.method} ${req.originalUrl}`);
@@ -382,9 +384,6 @@ const aiLimiter = rateLimit({
   },
 });
 
-// High-ceiling limiter for the polling endpoints. Real abuse still gets
-// throttled at 3000 requests / 15 min per IP — way above anything a
-// legitimate user or even a fast-refreshing SPA can produce.
 const pollingLimiter = rateLimit({
   ...rateLimitCommon,
   windowMs: 15 * 60 * 1000,
@@ -404,7 +403,6 @@ app.use('/api', generalLimiter);
 app.use('/api/auth', authLimiter);
 app.use('/api/ai', aiLimiter);
 
-// Polling endpoints are governed only by the high-ceiling limiter.
 app.use('/api/interactions', pollingLimiter);
 app.use('/api/notifications', pollingLimiter);
 app.use('/api/analytics', pollingLimiter);
@@ -493,7 +491,7 @@ app.get('/health', async (req, res) => {
 });
 
 // ============================================
-// ADMIN: QUEUE STATUS
+// ADMIN ROUTES
 // ============================================
 app.get('/api/admin/queue/status', authenticateToken, async (req, res) => {
   try {
@@ -548,9 +546,6 @@ app.post('/api/admin/queue/purge/:queue', authenticateToken, async (req, res) =>
   }
 });
 
-// ============================================
-// ADMIN: CACHE
-// ============================================
 app.get('/api/admin/cache/stats', authenticateToken, async (req, res) => {
   try {
     const { data: profile } = await supabase
@@ -595,9 +590,6 @@ app.post('/api/admin/cache/clear', authenticateToken, async (req, res) => {
   }
 });
 
-// ============================================
-// ADMIN: EMAIL TEST
-// ============================================
 app.post('/api/admin/email/test', authenticateToken, async (req, res) => {
   try {
     const { data: profile } = await supabase
@@ -664,13 +656,18 @@ app.use('/api/notifications', authenticateToken, notificationsRoutes);
 app.use('/api/export', authenticateToken, exportRoutes);
 app.use('/api/matching', authenticateToken, matchingRoutes);
 app.use('/api/ai', authenticateToken, aiLimiter, aiRoutes);
-app.use('/api/payment', authenticateToken, paymentRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/messages', authenticateToken, messagesRoutes);
 
-// ★ Interactions: the router itself decides which routes need auth.
-//   GET /comments/:listingId and POST /comments/counts are public.
-//   Everything else (likes, create comment, delete comment) requires auth.
+// ★ PHASE 2B: /api/payment — webhook must be reachable WITHOUT a JWT.
+//   Every other payment route requires auth.
+app.use('/api/payment', (req, res, next) => {
+  if (req.path === '/webhook' && req.method === 'POST') {
+    return next(); // public webhook
+  }
+  return authenticateToken(req, res, next);
+}, paymentRoutes);
+
 app.use('/api/interactions', interactionsRoutes);
 
 app.use(notFoundHandler);

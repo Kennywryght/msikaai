@@ -7,12 +7,12 @@ import {
   reviewsAPI,
   analyticsAPI,
   messagesAPI,
-  paymentAPI,
   interactionsAPI,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
+import BoostModal from '../components/BoostModal';
 
 // ============================================================
 // ICONS
@@ -49,7 +49,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     refresh: 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
     externalLink: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3',
     heart: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
-    /* ★ FIRE — used for listing likes ("flame on") */
     fire: 'M12 2c1.5 3.5 4 5.5 4 9a4 4 0 11-8 0c0-1.4.5-2.5 1.2-3.4.3-.4.6-.9.8-1.4.2-.5.2-1 0-1.4-.2-.4-.3-.6-.3-.8 0-.3.2-.6.5-.7.3-.2.6-.1.8.2.6.7.8 1.4.5 2.5.7-.5 1.2-1.1 1.5-1.9.1-.4.1-.7 0-1 0-.2 0-.4.2-.5.2-.1.4-.1.5 0 .3.3.4.6.3.9z',
     comment: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
     shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
@@ -66,9 +65,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-/* ---------- Live Burning Fire Icon ----------
- * Clean gradient flame — no glow circle. Used for the "Fresh" badge.
- */
 const BurningFire = ({ size = 16 }) => (
   <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
     <svg viewBox="0 0 24 24" width={size} height={size} className="burning-fire-svg">
@@ -105,7 +101,6 @@ const BurningFire = ({ size = 16 }) => (
 // ============================================================
 // HELPERS
 // ============================================================
-
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 
 const isFreshListing = (item) => {
@@ -223,286 +218,6 @@ const daysUntil = (date) => {
 };
 
 // ============================================================
-// BOOST MODAL
-// ============================================================
-const BOOST_PLANS = [
-  { days: 7, label: '7 days', price: 'MK 2,000', amount: 2000, popular: true },
-  { days: 14, label: '14 days', price: 'MK 3,500', amount: 3500 },
-  { days: 30, label: '30 days', price: 'MK 6,000', amount: 6000, best: true },
-];
-
-const BoostModal = ({ listing, onClose, onActivated }) => {
-  const navigate = useNavigate();
-  const { showToast, success } = useToast();
-  const [stage, setStage] = useState('pick');
-  const [days, setDays] = useState(7);
-  const [message, setMessage] = useState('');
-  const [paymentRef, setPaymentRef] = useState(null);
-  const pollTimerRef = useRef(null);
-
-  useEffect(() => () => {
-    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-  }, []);
-
-  const selectedPlan = BOOST_PLANS.find((p) => p.days === days) || BOOST_PLANS[0];
-
-  const startPayment = async () => {
-    setStage('processing');
-    setMessage('');
-    try {
-      const res = await paymentAPI.initiatePayment({
-        purpose: 'listing_boost',
-        listingId: listing?.id,
-        durationDays: days,
-        amount: selectedPlan.amount,
-        currency: 'MWK',
-      });
-      const data = res?.data || {};
-
-      if (data.checkoutUrl) {
-        setPaymentRef(data.reference || data.txRef);
-        window.open(data.checkoutUrl, '_blank', 'noopener');
-        setStage('pending');
-        startPolling(data.reference || data.txRef);
-        return;
-      }
-      if (data.instructions) {
-        setPaymentRef(data.reference || data.txRef);
-        setMessage(data.instructions);
-        setStage('pending');
-        startPolling(data.reference || data.txRef);
-        return;
-      }
-      if (data.pending) {
-        setMessage(data.message || 'Your request has been received.');
-        setStage('manual');
-        return;
-      }
-      if (data.listing) {
-        success('Your listing is now in the Spotlight ✨');
-        setStage('success');
-        onActivated?.(data.listing);
-        return;
-      }
-      setMessage('Your request is being finalised.');
-      setStage('manual');
-    } catch (err) {
-      const status = err?.response?.status;
-      const serverMsg = err?.response?.data?.error;
-      if (status === 404 || status === 501 || /not configured|not implemented/i.test(serverMsg || '')) {
-        setMessage('Boost payments are being set up. Our team will activate your listing shortly.');
-        setStage('manual');
-        return;
-      }
-      setMessage(serverMsg || 'Could not start the payment. Please try again.');
-      setStage('failed');
-    }
-  };
-
-  const startPolling = (reference) => {
-    if (!reference) return;
-    let attempts = 0;
-    const MAX_ATTEMPTS = 60;
-    pollTimerRef.current = setInterval(async () => {
-      attempts += 1;
-      try {
-        const res = await paymentAPI.verifyPayment(reference);
-        const data = res?.data || {};
-        if (data.status === 'paid' || data.status === 'success') {
-          clearInterval(pollTimerRef.current);
-          success('Payment confirmed — your listing is now in the Spotlight ✨');
-          setStage('success');
-          onActivated?.(data.listing);
-          return;
-        }
-        if (data.status === 'failed' || data.status === 'cancelled') {
-          clearInterval(pollTimerRef.current);
-          setMessage(data.message || 'Payment was not completed.');
-          setStage('failed');
-          return;
-        }
-      } catch {}
-      if (attempts >= MAX_ATTEMPTS) {
-        clearInterval(pollTimerRef.current);
-        setMessage("We couldn't confirm your payment in time.");
-        setStage('manual');
-      }
-    }, 3000);
-  };
-
-  return (
-    <div className="boost-overlay" onClick={onClose}>
-      <div className="boost-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="boost-head">
-          <div className="boost-head-icon">
-            <Icon name="crown" size={22} color="#F0D9A8" strokeWidth={2} />
-          </div>
-          <div className="boost-head-text">
-            <h3 className="boost-title">Boost to Spotlight</h3>
-            <p className="boost-sub">
-              {stage === 'success' ? 'Your listing is featured' : 'Get more eyes on your listing'}
-            </p>
-          </div>
-          <button className="boost-close" onClick={onClose} aria-label="Close">
-            <Icon name="close" size={16} color="#201F1B" strokeWidth={2.2} />
-          </button>
-        </div>
-
-        <div className="boost-body">
-          {stage === 'pick' && (
-            <>
-              <p className="boost-preview-title">{listing?.title}</p>
-              <div className="boost-benefits">
-                <div className="boost-benefit">
-                  <span className="boost-benefit-icon">
-                    <Icon name="sparkles" size={14} color="#BC5B34" strokeWidth={2.2} />
-                  </span>
-                  <div>
-                    <div className="boost-benefit-title">Top of the homepage</div>
-                    <div className="boost-benefit-desc">Appear in the Spotlight strip</div>
-                  </div>
-                </div>
-                <div className="boost-benefit">
-                  <span className="boost-benefit-icon">
-                    <Icon name="crown" size={14} color="#BC5B34" strokeWidth={2.2} />
-                  </span>
-                  <div>
-                    <div className="boost-benefit-title">Premium crown badge</div>
-                    <div className="boost-benefit-desc">Stand out with a gold highlight</div>
-                  </div>
-                </div>
-                <div className="boost-benefit">
-                  <span className="boost-benefit-icon">
-                    <Icon name="zap" size={14} color="#BC5B34" strokeWidth={2.2} />
-                  </span>
-                  <div>
-                    <div className="boost-benefit-title">More views & messages</div>
-                    <div className="boost-benefit-desc">Premium listings get more attention</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="boost-section-label">Choose duration</div>
-              <div className="boost-options">
-                {BOOST_PLANS.map((opt) => {
-                  const active = days === opt.days;
-                  return (
-                    <button
-                      key={opt.days}
-                      type="button"
-                      className={`boost-option ${active ? 'active' : ''}`}
-                      onClick={() => setDays(opt.days)}
-                    >
-                      {opt.popular && <span className="boost-option-tag popular">Popular</span>}
-                      {opt.best && <span className="boost-option-tag best">Best value</span>}
-                      <span className="boost-option-days">{opt.label}</span>
-                      <span className="boost-option-price">{opt.price}</span>
-                      <span className="boost-option-check">
-                        {active && <Icon name="check" size={12} color="#F7F1E3" strokeWidth={2.6} />}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-          {stage === 'processing' && (
-            <div className="boost-status">
-              <span className="boost-status-spinner" />
-              <p className="boost-status-text">Starting your secure payment…</p>
-            </div>
-          )}
-          {stage === 'pending' && (
-            <div className="boost-status">
-              <span className="boost-status-spinner" />
-              <p className="boost-status-text">Waiting for payment confirmation…</p>
-              {message && <p className="boost-status-sub">{message}</p>}
-            </div>
-          )}
-          {stage === 'manual' && (
-            <div className="boost-status">
-              <div className="boost-status-badge amber">
-                <Icon name="clock" size={20} color="#92400E" strokeWidth={2} />
-              </div>
-              <p className="boost-status-text">Request received</p>
-              <p className="boost-status-sub">{message}</p>
-            </div>
-          )}
-          {stage === 'success' && (
-            <div className="boost-status">
-              <div className="boost-status-badge green">
-                <Icon name="check" size={22} color="#065F46" strokeWidth={2.6} />
-              </div>
-              <p className="boost-status-text">You're in the Spotlight ✨</p>
-            </div>
-          )}
-          {stage === 'failed' && (
-            <div className="boost-status">
-              <div className="boost-status-badge red">
-                <Icon name="alertCircle" size={20} color="#7F1D1D" strokeWidth={2} />
-              </div>
-              <p className="boost-status-text">Something went wrong</p>
-              <p className="boost-status-sub">{message}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="boost-foot">
-          {stage === 'pick' && (
-            <>
-              <button className="boost-cancel" onClick={onClose}>Cancel</button>
-              <button className="boost-confirm" onClick={startPayment}>
-                <Icon name="crown" size={14} color="#F7F1E3" strokeWidth={2.2} />
-                Boost now · {selectedPlan.price}
-              </button>
-            </>
-          )}
-          {stage === 'processing' && (
-            <button className="boost-cancel wide" disabled>Please wait…</button>
-          )}
-          {stage === 'pending' && (
-            <>
-              <button className="boost-cancel" onClick={onClose}>Keep in background</button>
-              <button
-                className="boost-confirm"
-                onClick={() => {
-                  if (paymentRef) startPolling(paymentRef);
-                  showToast('Checking payment status…', 'info');
-                }}
-              >
-                <Icon name="refresh" size={14} color="#F7F1E3" strokeWidth={2.2} />
-                Check now
-              </button>
-            </>
-          )}
-          {stage === 'manual' && (
-            <button className="boost-confirm wide" onClick={onClose}>Got it</button>
-          )}
-          {stage === 'success' && (
-            <button
-              className="boost-confirm wide"
-              onClick={() => { onClose(); navigate('/landing'); }}
-            >
-              <Icon name="externalLink" size={14} color="#F7F1E3" strokeWidth={2.2} />
-              See it on the homepage
-            </button>
-          )}
-          {stage === 'failed' && (
-            <>
-              <button className="boost-cancel" onClick={onClose}>Close</button>
-              <button className="boost-confirm" onClick={() => setStage('pick')}>
-                <Icon name="refresh" size={14} color="#F7F1E3" strokeWidth={2.2} />
-                Try again
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ============================================================
 // MAIN COMPONENT
 // ============================================================
 const ListingDetails = () => {
@@ -529,11 +244,9 @@ const ListingDetails = () => {
   const [showComments, setShowComments] = useState(false);
   const [liking, setLiking] = useState(false);
 
-  // ★ Real interaction state
   const [likeState, setLikeState] = useState({ liked: false, count: 0 });
   const [commentCount, setCommentCount] = useState(0);
 
-  // ★ Seller fallback
   const [resolvedBusiness, setResolvedBusiness] = useState(null);
 
   const isMobile = windowWidth <= 768;
@@ -698,7 +411,6 @@ const ListingDetails = () => {
     [user, navigate, location.pathname]
   );
 
-  // ---- FLAME (real, persisted) ----
   const handleLike = async () => {
     if (!requireAuth('flame this listing')) return;
     if (liking) return;
@@ -1082,7 +794,6 @@ const ListingDetails = () => {
           </button>
         )}
 
-        {/* LISTING CARD */}
         <div className="listing-card">
           {images.length > 0 ? (
             <div className="gallery">
@@ -1184,7 +895,6 @@ const ListingDetails = () => {
           </div>
 
           <div className="engage-row">
-            {/* ★ FIRE — the "flame this listing" button */}
             <button
               className={`engage-btn like ${isLiked ? 'active' : ''}`}
               onClick={handleLike}
@@ -1200,7 +910,6 @@ const ListingDetails = () => {
               <span>{likeCount > 0 ? likeCount : 'Flame'}</span>
             </button>
 
-            {/* Comment button stays as a message bubble */}
             <button className="engage-btn comment" onClick={handleOpenComments}>
               <Icon name="comment" size={16} color="#6B6259" strokeWidth={1.8} />
               <span>
@@ -1243,7 +952,6 @@ const ListingDetails = () => {
           </div>
         </div>
 
-        {/* CONTACT THE SELLER */}
         {!isOwnListing && (
           <div className="contact-card">
             <h3 className="section-title">
@@ -1327,7 +1035,6 @@ const ListingDetails = () => {
           </div>
         )}
 
-        {/* OWNER */}
         {isOwnListing && (
           <div className="contact-card">
             <h3 className="section-title">
@@ -1359,7 +1066,6 @@ const ListingDetails = () => {
           </div>
         )}
 
-        {/* REVIEWS */}
         <div className="reviews-card">
           <div className="reviews-header">
             <h3 className="section-title">
@@ -1431,7 +1137,6 @@ const ListingDetails = () => {
           )}
         </div>
 
-        {/* SHARE */}
         <div className="share-card">
           <h3 className="section-title">
             <Icon name="share" size={18} color="#F59E0B" strokeWidth={1.75} />
@@ -1463,7 +1168,6 @@ const ListingDetails = () => {
         </div>
       </div>
 
-      {/* STICKY CONTACT BAR */}
       {isMobile && !isOwnListing && (
         <div className="sticky-contact">
           {isAnonymous ? (
@@ -1522,7 +1226,6 @@ const ListingDetails = () => {
         </div>
       )}
 
-      {/* COMMENTS POP-UP */}
       {showComments && (
         <div className="pop-overlay" onClick={() => setShowComments(false)} role="dialog" aria-modal="true">
           <div className="pop" onClick={(e) => e.stopPropagation()}>
@@ -1558,7 +1261,6 @@ const ListingDetails = () => {
         </div>
       )}
 
-      {/* BOOST MODAL */}
       {showBoostModal && (
         <BoostModal
           listing={listing}
@@ -1580,7 +1282,6 @@ const ListingDetails = () => {
         />
       )}
 
-      {/* BOTTOM NAV */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -1787,7 +1488,6 @@ const ListingDetails = () => {
         .badge-premium { background: #F0D9A8; color: #7A5A16; }
         .badge-fresh { background: #FFEDD5; color: #C2410C; }
 
-        /* Burning fire — shared with Landing */
         .burning-fire {
           position: relative;
           display: inline-flex;
@@ -1847,7 +1547,6 @@ const ListingDetails = () => {
           color: #475569; cursor: pointer;
           transition: background 0.15s, border-color 0.15s, color 0.15s;
         }
-        /* ★ Flamed state — orange background + darker orange text */
         .engage-btn.like.active {
           background: #FFF3E0;
           border-color: #FDBA74;
@@ -2101,151 +1800,6 @@ const ListingDetails = () => {
           background: #FFFDF8;
         }
 
-        .boost-overlay {
-          position: fixed; inset: 0;
-          background: rgba(22, 38, 31, 0.55);
-          backdrop-filter: blur(6px);
-          display: flex; align-items: center; justify-content: center;
-          padding: 16px; z-index: 500;
-        }
-        .boost-modal {
-          width: 100%; max-width: 440px; max-height: 92vh;
-          overflow-y: auto; background: #FFFDF8;
-          border-radius: 18px;
-          display: flex; flex-direction: column;
-        }
-        .boost-head {
-          display: flex; align-items: center; gap: 12px;
-          padding: 16px 16px 12px;
-          border-bottom: 1px solid #EFE6CE;
-        }
-        .boost-head-icon {
-          width: 44px; height: 44px; border-radius: 12px;
-          background: #24453B;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .boost-head-text { flex: 1; min-width: 0; }
-        .boost-title {
-          font-family: Georgia, serif;
-          font-size: 17px; font-weight: 600;
-          color: #201F1B; margin: 0;
-        }
-        .boost-sub { font-size: 12px; color: #9C9482; margin: 2px 0 0; }
-        .boost-close {
-          width: 32px; height: 32px; border-radius: 9px;
-          border: 1px solid #EFE6CE; background: #FFFDF8;
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer; flex-shrink: 0;
-        }
-        .boost-body { padding: 14px 16px 8px; }
-        .boost-preview-title {
-          font-size: 13px; color: #6B6259; font-style: italic;
-          margin: 0 0 12px; padding: 8px 10px;
-          background: #F7F1E3; border-radius: 8px;
-          border-left: 3px solid #D99A3B;
-        }
-        .boost-benefits { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
-        .boost-benefit { display: flex; align-items: flex-start; gap: 10px; }
-        .boost-benefit-icon {
-          width: 28px; height: 28px; border-radius: 8px;
-          background: #F7F1E3;
-          display: flex; align-items: center; justify-content: center;
-          flex-shrink: 0;
-        }
-        .boost-benefit-title { font-size: 13px; font-weight: 600; color: #201F1B; }
-        .boost-benefit-desc { font-size: 11.5px; color: #9C9482; margin-top: 1px; }
-        .boost-section-label {
-          font-size: 11px; font-weight: 700; color: #6B6259;
-          text-transform: uppercase; letter-spacing: 0.08em;
-          margin-bottom: 8px;
-        }
-        .boost-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-        .boost-option {
-          position: relative; display: flex; align-items: center; gap: 10px;
-          padding: 12px 14px; background: #FFFDF8;
-          border: 1.5px solid #EFE6CE; border-radius: 12px;
-          cursor: pointer; font-family: inherit;
-          text-align: left;
-        }
-        .boost-option.active {
-          border-color: #24453B; background: #FDF9EF;
-          box-shadow: 0 0 0 3px rgba(36, 69, 59, 0.08);
-        }
-        .boost-option-days { font-size: 14px; font-weight: 700; color: #201F1B; flex: 1; }
-        .boost-option-price {
-          font-family: Georgia, serif; font-size: 15px; font-weight: 600;
-          color: #24453B;
-        }
-        .boost-option-tag {
-          position: absolute; top: -8px; left: 12px;
-          padding: 2px 7px; border-radius: 5px;
-          font-size: 9px; font-weight: 700;
-          letter-spacing: 0.06em; text-transform: uppercase;
-        }
-        .boost-option-tag.popular { background: #BC5B34; color: #FFFDF8; }
-        .boost-option-tag.best { background: #D99A3B; color: #201F1B; }
-        .boost-option-check {
-          width: 20px; height: 20px; border-radius: 50%;
-          background: #24453B;
-          display: flex; align-items: center; justify-content: center;
-          opacity: 0;
-        }
-        .boost-option.active .boost-option-check { opacity: 1; }
-
-        .boost-status {
-          display: flex; flex-direction: column; align-items: center; gap: 10px;
-          text-align: center; padding: 20px 8px 12px;
-        }
-        .boost-status-badge {
-          width: 52px; height: 52px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .boost-status-badge.amber { background: #FEF3C7; }
-        .boost-status-badge.green { background: #D1FAE5; }
-        .boost-status-badge.red { background: #FEE2E2; }
-        .boost-status-spinner {
-          width: 32px; height: 32px;
-          border: 3px solid #EFE6CE;
-          border-top-color: #24453B;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-        .boost-status-text {
-          font-family: Georgia, serif;
-          font-size: 15px; font-weight: 600;
-          color: #201F1B; margin: 0;
-        }
-        .boost-status-sub {
-          font-size: 12.5px; color: #6B6259;
-          margin: 0; max-width: 320px; line-height: 1.5;
-        }
-        .boost-foot {
-          display: flex; gap: 10px;
-          padding: 12px 16px 16px;
-          border-top: 1px solid #EFE6CE;
-        }
-        .boost-cancel {
-          flex: 1; padding: 12px; background: #F7F1E3;
-          border: 1px solid #EFE6CE; border-radius: 10px;
-          font-family: inherit; font-size: 13px; font-weight: 600;
-          color: #6B6259; cursor: pointer;
-        }
-        .boost-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
-        .boost-cancel.wide { flex: 1; }
-        .boost-confirm {
-          flex: 1.6;
-          display: inline-flex; align-items: center; justify-content: center;
-          gap: 6px;
-          padding: 12px;
-          background: #24453B; color: #F7F1E3;
-          border: none; border-radius: 10px;
-          font-family: inherit; font-size: 13px; font-weight: 700;
-          cursor: pointer;
-        }
-        .boost-confirm:disabled { opacity: 0.7; cursor: not-allowed; }
-        .boost-confirm.wide { flex: 1; }
-
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
           background: rgba(255, 255, 255, 0.96);
@@ -2282,11 +1836,10 @@ const ListingDetails = () => {
 
         @media (prefers-reduced-motion: reduce) {
           .contact-btn, .sticky-btn, .engage-btn, .share-btn,
-          .boost-option, .boost-confirm, .boost-cancel, .boost-close,
           .gallery-track, .gallery-arrow, .gallery-thumb {
             transition: none; animation: none;
           }
-          .btn-spinner, .boost-status-spinner { animation: none; }
+          .btn-spinner { animation: none; }
           .flame-outer, .flame-mid, .flame-core { animation: none; }
         }
       `}</style>

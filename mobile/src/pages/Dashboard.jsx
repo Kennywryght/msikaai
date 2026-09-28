@@ -8,7 +8,6 @@ import AnalyticsWidget from '../components/AnalyticsWidget';
 import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
-import PaymentModal from '../components/PaymentModal';
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -60,9 +59,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
   );
 };
 
-// ============================================================
-// HELPERS
-// ============================================================
 const getGreeting = () => {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -70,7 +66,6 @@ const getGreeting = () => {
   return 'Good evening';
 };
 
-/** Get the best possible display name for the user. */
 const getUserDisplayName = (user) => {
   if (!user) return 'there';
   const full =
@@ -81,13 +76,10 @@ const getUserDisplayName = (user) => {
     user.displayName ||
     '';
   if (full && String(full).trim()) {
-    // Capitalize each word lightly (but keep whatever casing the user set)
     return String(full).trim();
   }
-  // Fall back to email prefix, but only if there's no full name
   if (user.email) {
     const prefix = user.email.split('@')[0];
-    // Convert "john.doe" / "john_doe" to "john" for a cleaner display
     const cleaned = prefix.split(/[._-]/)[0];
     return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
@@ -102,9 +94,6 @@ const getInitials = (name) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
@@ -122,23 +111,16 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // ★ Subscription state — used only for the summary card
+  const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+
   const [stats, setStats] = useState({
     totalListings: 0,
     totalViews: 0,
     totalContacts: 0,
     activeListings: 0,
   });
-
-  const [subscription, setSubscription] = useState({
-    plan: 'free',
-    listings_allowed: 3,
-    listings_used: 0,
-    remaining_listings: 3,
-    status: 'active'
-  });
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [plans, setPlans] = useState(null);
-  const [loadingSubscription, setLoadingSubscription] = useState(false);
 
   const [formData, setFormData] = useState({
     businessName: '',
@@ -156,7 +138,6 @@ const Dashboard = () => {
       fetchBusiness();
       fetchNotifications();
       fetchSubscription();
-      fetchPlans();
     } else {
       setLoading(false);
     }
@@ -168,36 +149,27 @@ const Dashboard = () => {
     }
   }, [showCreateForm]);
 
+  // ---- Fetch subscription (summary card only) ----
   const fetchSubscription = async () => {
     if (!user?.id) return;
-    setLoadingSubscription(true);
+    setSubscriptionLoading(true);
     try {
       const response = await paymentAPI.getSubscription(user.id);
-      if (response.data.success) {
+      if (response?.data?.success && response.data.subscription) {
         setSubscription(response.data.subscription);
       }
     } catch (err) {
-      console.error('Error fetching subscription:', err);
+      console.warn('Subscription fetch failed:', err?.message);
+      // Fallback to free tier for the summary
       setSubscription({
         plan: 'free',
         listings_allowed: 3,
         listings_used: 0,
         remaining_listings: 3,
-        status: 'active'
+        status: 'active',
       });
     } finally {
-      setLoadingSubscription(false);
-    }
-  };
-
-  const fetchPlans = async () => {
-    try {
-      const response = await paymentAPI.getPlans();
-      if (response.data.success) {
-        setPlans(response.data.plans);
-      }
-    } catch (err) {
-      console.error('Error fetching plans:', err);
+      setSubscriptionLoading(false);
     }
   };
 
@@ -377,33 +349,10 @@ const Dashboard = () => {
     }
   };
 
-  const handlePaymentSuccess = async (paymentData) => {
-    try {
-      const response = await paymentAPI.upgradeSubscription({
-        userId: user.id,
-        plan: paymentData.plan,
-        paymentId: paymentData.paymentId
-      });
-
-      if (response.data.success) {
-        setSubscription(response.data.subscription);
-        success('🎉 Subscription upgraded successfully!');
-        if (business?.id) {
-          fetchListings(business.id);
-        }
-      }
-    } catch (err) {
-      console.error('Payment upgrade error:', err);
-      showToast('Failed to upgrade subscription', 'error');
-    }
-  };
-
+  // ★ Simple: go to create-listing. The backend can-create-listing
+  //   check (with expire-on-read) will gate them at the form.
   const handleAddListingClick = () => {
-    if (subscription.remaining_listings <= 0) {
-      setShowPaymentModal(true);
-    } else {
-      navigate('/create-listing');
-    }
+    navigate('/create-listing');
   };
 
   const handleBottomNav = (id) => {
@@ -490,6 +439,20 @@ const Dashboard = () => {
   const initials = getInitials(displayName);
   const greeting = getGreeting();
 
+  // ★ Derive plan card display
+  const currentPlanId = subscription?.plan || 'free';
+  const currentPlanName =
+    currentPlanId === 'free' ? 'Free' :
+    currentPlanId === 'basic' ? 'Basic' :
+    currentPlanId === 'pro' ? 'Professional' :
+    currentPlanId === 'business' ? 'Business' :
+    currentPlanId;
+
+  const planAllowed = subscription?.listings_allowed ?? 3;
+  const planUsed = subscription?.listings_used ?? 0;
+  const planRemaining = Math.max(0, planAllowed - planUsed);
+  const isPaidPlan = currentPlanId !== 'free';
+
   return (
     <div className="dashboard">
       <div className="dashboard-main">
@@ -504,6 +467,40 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
+
+        {/* ★ Your Plan Card */}
+        {!subscriptionLoading && subscription && (
+          <Link to="/settings#subscription" className="plan-card">
+            <div className={`plan-card-icon ${isPaidPlan ? 'paid' : ''}`}>
+              <Icon
+                name={isPaidPlan ? 'crown' : 'box'}
+                size={22}
+                color={isPaidPlan ? '#F0D9A8' : '#9C9482'}
+                strokeWidth={2}
+              />
+            </div>
+            <div className="plan-card-text">
+              <div className="plan-card-name">
+                {currentPlanName} plan
+                {isPaidPlan && <span className="plan-card-badge">Active</span>}
+              </div>
+              <div className="plan-card-usage">
+                {planUsed} of {planAllowed} listings used
+                {planRemaining === 0 && isPaidPlan && ' · limit reached'}
+              </div>
+              <div className="plan-card-bar">
+                <div
+                  className={`plan-card-bar-fill ${planRemaining === 0 ? 'full' : ''}`}
+                  style={{ width: `${Math.min(100, (planUsed / Math.max(1, planAllowed)) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="plan-card-cta">
+              {isPaidPlan ? 'Manage' : 'Upgrade'}
+              <Icon name="arrowRight" size={14} color="currentColor" strokeWidth={2.4} />
+            </div>
+          </Link>
+        )}
 
         {/* Stats Grid */}
         <div className="stats-grid">
@@ -591,12 +588,14 @@ const Dashboard = () => {
             </h3>
           </div>
           <div className="actions-grid">
-            <div className="action-item" onClick={() => navigate('/create-listing')}>
+            <div className="action-item" onClick={handleAddListingClick}>
               <div className="action-icon" style={{ background: 'rgba(217, 154, 59, 0.12)' }}>
                 <Icon name="plus" size={22} color="#D99A3B" strokeWidth={2} />
               </div>
               <div className="action-name">Add Listing</div>
-              <div className="action-desc">Create new product</div>
+              <div className="action-desc">
+                {planRemaining === 0 ? 'Upgrade needed' : 'Create new product'}
+              </div>
             </div>
             <div className="action-item" onClick={() => navigate('/search')}>
               <div className="action-icon" style={{ background: 'rgba(62, 108, 118, 0.12)' }}>
@@ -811,20 +810,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Payment Modal */}
-      {showPaymentModal && plans && (
-        <PaymentModal
-          plans={plans}
-          currentPlan={subscription.plan}
-          onClose={() => setShowPaymentModal(false)}
-          onSuccess={handlePaymentSuccess}
-        />
-      )}
-
       <style jsx>{`
-        /* ============================================================
-           DASHBOARD — warm, editorial, cohesive with the marketplace
-           ============================================================ */
         .dashboard {
           min-height: 100vh;
           background: #F7F1E3;
@@ -839,14 +825,12 @@ const Dashboard = () => {
           .dashboard { padding-bottom: 0; }
         }
 
-        /* ===== MAIN ===== */
         .dashboard-main {
           max-width: 1200px;
           margin: 0 auto;
           padding: 24px 16px 40px;
         }
 
-        /* ===== WELCOME ===== */
         .welcome-section {
           display: flex;
           align-items: center;
@@ -870,9 +854,7 @@ const Dashboard = () => {
           letter-spacing: 0.02em;
         }
 
-        .welcome-text {
-          min-width: 0;
-        }
+        .welcome-text { min-width: 0; }
 
         .welcome-greeting {
           font-size: 12.5px;
@@ -901,6 +883,115 @@ const Dashboard = () => {
           color: #9C9482;
           margin: 0;
           line-height: 1.45;
+        }
+
+        /* ===== YOUR PLAN CARD ===== */
+        .plan-card {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 14px 16px;
+          margin-bottom: 20px;
+          background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
+          border-radius: 16px;
+          text-decoration: none;
+          color: #F7F1E3;
+          box-shadow: 0 8px 24px rgba(36, 69, 59, 0.22);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          border: 1px solid rgba(240, 217, 168, 0.12);
+        }
+
+        .plan-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(36, 69, 59, 0.32);
+        }
+
+        .plan-card-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .plan-card-icon.paid {
+          background: linear-gradient(135deg, #D99A3B 0%, #B8802A 100%);
+          box-shadow: 0 4px 12px rgba(217, 154, 59, 0.32);
+        }
+
+        .plan-card-text {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .plan-card-name {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 15px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          letter-spacing: -0.01em;
+        }
+
+        .plan-card-badge {
+          padding: 2px 7px;
+          border-radius: 5px;
+          background: rgba(240, 217, 168, 0.18);
+          color: #F0D9A8;
+          font-family: 'Work Sans', sans-serif;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .plan-card-usage {
+          font-size: 11.5px;
+          color: rgba(247, 241, 227, 0.72);
+          margin-top: 2px;
+        }
+
+        .plan-card-bar {
+          margin-top: 8px;
+          height: 4px;
+          background: rgba(247, 241, 227, 0.14);
+          border-radius: 2px;
+          overflow: hidden;
+        }
+
+        .plan-card-bar-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #D99A3B 0%, #F0D9A8 100%);
+          border-radius: 2px;
+          transition: width 0.35s ease;
+        }
+
+        .plan-card-bar-fill.full {
+          background: linear-gradient(90deg, #BC5B34 0%, #E8A682 100%);
+        }
+
+        .plan-card-cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 8px 12px;
+          border-radius: 10px;
+          background: rgba(247, 241, 227, 0.14);
+          color: #F7F1E3;
+          font-size: 12px;
+          font-weight: 700;
+          flex-shrink: 0;
+          transition: background 0.15s;
+        }
+
+        .plan-card:hover .plan-card-cta {
+          background: #D99A3B;
+          color: #201F1B;
         }
 
         /* ===== STATS ===== */
@@ -943,10 +1034,7 @@ const Dashboard = () => {
           flex-shrink: 0;
         }
 
-        .stat-info {
-          flex: 1;
-          min-width: 0;
-        }
+        .stat-info { flex: 1; min-width: 0; }
 
         .stat-value {
           font-family: 'Fraunces', Georgia, serif;
@@ -966,7 +1054,6 @@ const Dashboard = () => {
           margin-top: 1px;
         }
 
-        /* ===== BUSINESS CARD ===== */
         .business-card {
           background: #FFFDF8;
           border-radius: 14px;
@@ -998,10 +1085,7 @@ const Dashboard = () => {
           box-shadow: 0 4px 12px rgba(188, 91, 52, 0.22);
         }
 
-        .business-details {
-          flex: 1;
-          min-width: 0;
-        }
+        .business-details { flex: 1; min-width: 0; }
 
         .business-name {
           font-family: 'Fraunces', Georgia, serif;
@@ -1021,11 +1105,8 @@ const Dashboard = () => {
           margin-top: 2px;
         }
 
-        .business-meta-divider {
-          color: #D9C79E;
-        }
+        .business-meta-divider { color: #D9C79E; }
 
-        /* ===== EMPTY BUSINESS ===== */
         .empty-business {
           background: #FFFDF8;
           border-radius: 14px;
@@ -1036,10 +1117,7 @@ const Dashboard = () => {
           box-shadow: 0 1px 2px rgba(22, 38, 31, 0.03);
         }
 
-        .empty-content {
-          max-width: 340px;
-          margin: 0 auto;
-        }
+        .empty-content { max-width: 340px; margin: 0 auto; }
 
         .empty-icon {
           width: 72px;
@@ -1069,7 +1147,6 @@ const Dashboard = () => {
           line-height: 1.55;
         }
 
-        /* ===== SECTION CARD ===== */
         .section-card {
           background: #FFFDF8;
           border-radius: 14px;
@@ -1119,7 +1196,6 @@ const Dashboard = () => {
           transform: translateX(2px);
         }
 
-        /* ===== ACTIONS GRID ===== */
         .actions-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
@@ -1170,7 +1246,6 @@ const Dashboard = () => {
           margin-top: 2px;
         }
 
-        /* ===== LISTINGS ===== */
         .listings-list {
           display: flex;
           flex-direction: column;
@@ -1229,10 +1304,7 @@ const Dashboard = () => {
           flex-shrink: 0;
         }
 
-        .listing-details {
-          flex: 1;
-          min-width: 0;
-        }
+        .listing-details { flex: 1; min-width: 0; }
 
         .listing-title {
           font-size: 14px;
@@ -1253,9 +1325,7 @@ const Dashboard = () => {
           margin-top: 2px;
         }
 
-        .listing-meta-dot {
-          color: #D9C79E;
-        }
+        .listing-meta-dot { color: #D9C79E; }
 
         .listing-right {
           text-align: right;
@@ -1280,7 +1350,6 @@ const Dashboard = () => {
           margin-top: 2px;
         }
 
-        /* ===== BUTTONS ===== */
         .btn-primary {
           padding: 12px 26px;
           background: linear-gradient(135deg, #24453B 0%, #16261F 100%);
@@ -1327,7 +1396,6 @@ const Dashboard = () => {
           border-color: rgba(217, 154, 59, 0.4);
         }
 
-        /* ===== MODAL ===== */
         .modal-overlay {
           position: fixed;
           inset: 0;
@@ -1401,9 +1469,7 @@ const Dashboard = () => {
           background: #F7F1E3;
         }
 
-        .field-group {
-          margin-bottom: 14px;
-        }
+        .field-group { margin-bottom: 14px; }
 
         .field-label {
           display: block;
@@ -1413,9 +1479,7 @@ const Dashboard = () => {
           margin-bottom: 6px;
         }
 
-        .required {
-          color: #DC2626;
-        }
+        .required { color: #DC2626; }
 
         .field-input,
         .field-select,
@@ -1441,10 +1505,7 @@ const Dashboard = () => {
           box-shadow: 0 0 0 3px rgba(217, 154, 59, 0.12);
         }
 
-        .field-textarea {
-          resize: vertical;
-          min-height: 70px;
-        }
+        .field-textarea { resize: vertical; min-height: 70px; }
 
         .field-select {
           appearance: none;
@@ -1476,7 +1537,6 @@ const Dashboard = () => {
           font-weight: 500;
         }
 
-        /* ===== BOTTOM NAV ===== */
         .bottom-nav {
           position: fixed;
           bottom: 0;
@@ -1535,7 +1595,6 @@ const Dashboard = () => {
           font-weight: 600;
         }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 380px) {
           .stats-grid { gap: 8px; }
           .stat-card { padding: 12px 12px; }
@@ -1548,13 +1607,14 @@ const Dashboard = () => {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .stat-card, .action-item, .btn-primary, .link-btn, .nav-icon-wrap {
+          .stat-card, .action-item, .btn-primary, .link-btn, .nav-icon-wrap, .plan-card, .plan-card-cta {
             transition: none;
           }
           .stat-card:hover,
           .action-item:hover,
           .btn-primary:hover,
-          .link-btn:hover { transform: none; }
+          .link-btn:hover,
+          .plan-card:hover { transform: none; }
         }
       `}</style>
     </div>

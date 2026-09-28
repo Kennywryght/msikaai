@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import UpdatePassword from './pages/UpdatePassword';
+import PaymentCallback from './pages/PaymentCallback';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import RoleSelection from './pages/RoleSelection';
@@ -40,22 +41,14 @@ import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import NotFound from './pages/NotFound';
 
-// ============================================================
-// PRESENCE PUBLISHER
-// ============================================================
 function PresencePublisher() {
   const { user } = useAuth();
   usePublishPresence(user?.id);
   return null;
 }
 
-// ============================================================
-// ROUTE GUARDS
-// ============================================================
-
 const ONBOARDING_EXEMPT_PATHS = ['/role-selection', '/profile-setup'];
 
-// ProtectedRoute — requires ANY session (anonymous OR verified)
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, authInitialized, user } = useAuth();
   const location = useLocation();
@@ -82,8 +75,6 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// VerifiedRoute — requires a REAL (non-anonymous) session.
-// Anonymous users hitting these routes get bounced to /login with reason='verify'.
 const VerifiedRoute = ({ children }) => {
   const { isAuthenticated, isVerified, authInitialized } = useAuth();
   const location = useLocation();
@@ -119,8 +110,6 @@ const VerifiedRoute = ({ children }) => {
   return children;
 };
 
-// PublicRoute — redirect VERIFIED users away from login/register.
-// Anonymous users ARE allowed here — this is where they upgrade.
 const PublicRoute = ({ children }) => {
   const { isVerified, authInitialized } = useAuth();
   const location = useLocation();
@@ -135,7 +124,6 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
-// AdminRoute
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, authInitialized, isAdmin } = useAuth();
   const location = useLocation();
@@ -157,9 +145,6 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// ============================================================
-// LAYOUT
-// ============================================================
 const Layout = ({ children }) => {
   const location = useLocation();
   const hideNavbar = [
@@ -178,9 +163,6 @@ const Layout = ({ children }) => {
   );
 };
 
-// ============================================================
-// APP ROUTES
-// ============================================================
 function AppRoutes() {
   const { authInitialized } = useAuth();
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
@@ -205,15 +187,12 @@ function AppRoutes() {
         path="/forgot-password"
         element={<PublicRoute><ForgotPassword /></PublicRoute>}
       />
-      {/*
-        /update-password is intentionally NOT wrapped in PublicRoute.
-        The user arrives here holding a Supabase recovery session that
-        makes them isVerified === true. PublicRoute would bounce them
-        straight off. The page manages its own session detection.
-      */}
       <Route path="/update-password" element={<UpdatePassword />} />
 
-      {/* ---------- PUBLIC BROWSE ROUTES (no auth required) ---------- */}
+      {/* ---------- Payment callback (auth-aware, not wrapped) ---------- */}
+      <Route path="/payment/callback" element={<PaymentCallback />} />
+
+      {/* ---------- PUBLIC BROWSE ROUTES ---------- */}
       <Route path="/landing" element={<Layout><Landing /></Layout>} />
       <Route path="/search" element={<Layout><Search /></Layout>} />
       <Route path="/search-results" element={<Layout><SearchResults /></Layout>} />
@@ -223,7 +202,7 @@ function AppRoutes() {
       {/* ---------- ROOT ---------- */}
       <Route path="/" element={<Navigate to="/landing" replace />} />
 
-      {/* ---------- PROTECTED (any session — anon included) ---------- */}
+      {/* ---------- PROTECTED (any session) ---------- */}
       <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
       <Route path="/admin/*" element={<AdminRoute><Layout><AdminDashboard /></Layout></AdminRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Layout><EditProfile /></Layout></ProtectedRoute>} />
@@ -237,7 +216,7 @@ function AppRoutes() {
       <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
       <Route path="/about" element={<ProtectedRoute><Layout><About /></Layout></ProtectedRoute>} />
 
-      {/* ---------- VERIFIED ONLY (real user, not anon) ---------- */}
+      {/* ---------- VERIFIED ONLY ---------- */}
       <Route path="/role-selection" element={<VerifiedRoute><Layout><RoleSelection /></Layout></VerifiedRoute>} />
       <Route path="/profile-setup" element={<VerifiedRoute><Layout><ProfileSetup /></Layout></VerifiedRoute>} />
       <Route path="/create-listing" element={<VerifiedRoute><Layout><CreateListing /></Layout></VerifiedRoute>} />
@@ -252,9 +231,6 @@ function AppRoutes() {
   );
 }
 
-// ============================================================
-// MAIN APP
-// ============================================================
 function App() {
   return (
     <ToastProvider>
