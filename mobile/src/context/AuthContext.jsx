@@ -32,6 +32,12 @@ const isAnonymousUser = (supabaseUser) =>
   supabaseUser?.is_anonymous === true ||
   supabaseUser?.user_metadata?.is_anonymous === true;
 
+// Roles that mean "the user has made a real choice". Everything else
+// (null, 'customer', 'guest', 'user') means they haven't picked yet.
+const CHOSEN_ROLES = new Set(['buyer', 'seller', 'provider', 'both', 'business', 'admin']);
+
+const hasChosenRole = (role) => CHOSEN_ROLES.has(String(role || '').toLowerCase());
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
@@ -237,21 +243,28 @@ export const AuthProvider = ({ children }) => {
         console.error('Profile fetch error:', error);
       }
 
+      // ★ Role resolution:
+      //   - If the profile row has a "chosen" role → use it.
+      //   - Otherwise leave it as-is (e.g. 'customer') so the landing
+      //     page's RoleChoiceBlock knows the user hasn't picked yet.
+      const rawRole = profile?.role || null;
+      const resolvedRole = rawRole || 'customer';
+
       const userData = {
         ...authUser,
         ...(profile || {}),
-        role: profile?.role || 'buyer',
+        role: resolvedRole,
         profile: profile || null,
       };
 
       setUser(userData);
-      setUserRole(profile?.role || 'buyer');
+      setUserRole(resolvedRole);
 
       return userData;
     } catch (err) {
       console.error('Profile fetch error:', err);
       setUser(authUser);
-      setUserRole('buyer');
+      setUserRole('customer');
       return authUser;
     }
   };
@@ -435,6 +448,22 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('refresh_token', data.session.refresh_token);
         }
 
+        // ★ Also write the chosen role into profiles — this is what
+        //   makes the RoleChoiceBlock disappear on next landing visit.
+        try {
+          await supabase
+            .from('profiles')
+            .update({
+              role,
+              full_name: fullName || null,
+              phone: phone || null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', data.user.id);
+        } catch (profileErr) {
+          console.warn('Could not write role to profile:', profileErr?.message);
+        }
+
         await fetchUserProfile(data.user);
         setSession(data.session);
         setIsAuthenticated(true);
@@ -554,8 +583,6 @@ export const AuthProvider = ({ children }) => {
 
   // ============================================================
   // SEND PASSWORD RESET
-  // Thin wrapper around Supabase so pages can use the context API
-  // instead of importing the raw client. Used by ForgotPassword.jsx.
   // ============================================================
   const sendPasswordReset = async (email) => {
     try {
@@ -573,6 +600,45 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ============================================================
+  // SET ROLE AS BUYER (Model C — landing page block)
+  //
+  // Called when an anonymous user picks "I'm here to buy".
+  // No signup, no auth call — just labels their profile so the
+  // landing block disappears and personalization can kick in.
+  // ============================================================
+  const setRoleAsBuyer = async () => {
+    try {
+      if (!user?.id) throw new Error('No active session');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          role: 'buyer',
+          onboarding_completed: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setUser((prev) => ({
+        ...prev,
+        ...data,
+        role: 'buyer',
+        profile: data,
+      }));
+      setUserRole('buyer');
+
+      return { success: true, data };
+    } catch (err) {
+      console.error('❌ setRoleAsBuyer error:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  // ============================================================
   // ROLE HELPERS
   // ============================================================
   const hasRole = useCallback(
@@ -585,7 +651,7 @@ export const AuthProvider = ({ children }) => {
         admin: ['admin'],
         business: ['admin', 'business'],
         seller: ['admin', 'business', 'seller'],
-        buyer: ['admin', 'business', 'seller', 'buyer'],
+        buyer: ['admin', 'business', 'seller', 'buyer', 'both', 'customer'],
       };
 
       return roleHierarchy[requiredRole]?.includes(userRole) || false;
@@ -606,8 +672,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     userRole,
     isAuthenticated,
-    isAnonymous,                                  // ← STEP 1C
-    isVerified: isAuthenticated && !isAnonymous,  // ← STEP 1C
+    isAnonymous,
+    isVerified: isAuthenticated && !isAnonymous,
     authInitialized,
     login,
     register,
@@ -615,7 +681,9 @@ export const AuthProvider = ({ children }) => {
     refreshToken,
     updateProfile,
     fetchUserProfile,
-    sendPasswordReset,                            // ← STEP 1D
+    sendPasswordReset,
+    setRoleAsBuyer,
+    hasChosenRole,           // exported helper for UI checks
     hasRole,
     isSeller,
     isBuyer,

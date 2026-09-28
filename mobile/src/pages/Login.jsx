@@ -18,6 +18,8 @@ const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) =
     arrowLeft: 'M19 12H5M12 19l-7-7 7-7',
     arrowRight: 'M5 12h14M12 5l7 7-7 7',
     shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    store: 'M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9',
+    wrench: 'M14.7 6.3a4 4 0 11-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 015.4-5.4z',
   };
   const d = icons[name] || icons.mail;
   return (
@@ -38,7 +40,6 @@ const Icon = ({ name, size = 18, color = 'currentColor', strokeWidth = 1.75 }) =
   );
 };
 
-// Facebook F — brand blue
 const FacebookF = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
     <path
@@ -56,18 +57,24 @@ const Login = () => {
     login,
     register,
     loading: authLoading,
-    isAuthenticated,
     isVerified,
     isAnonymous,
+    user,
   } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast, success } = useToast();
 
-  // ★ If arriving with reason='verify', default to the Sign-up tab
   const isVerifyFlow = location.state?.reason === 'verify';
 
-  const [isLogin, setIsLogin] = useState(!isVerifyFlow);
+  // Role can arrive from three places:
+  //   1. location.state.role — set by RoleChoiceBlock (seller / provider)
+  //   2. existing user.profile.role — if they somehow already have one
+  //   3. fallback to 'buyer'
+  const incomingRole = location.state?.role || null;
+  const selectedRole = incomingRole || user?.role || 'buyer';
+
+  const [isLogin, setIsLogin] = useState(!isVerifyFlow && !incomingRole);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -80,25 +87,17 @@ const Login = () => {
     fullName: '',
   });
 
-  // ★ Where to return after auth (from ProtectedRoute/VerifiedRoute state.from)
   const returnTo = location.state?.from || '/landing';
 
-  // ★ If the user is now a VERIFIED user, send them on their way.
-  //   Anonymous sessions are allowed to stay on this page — it's the
-  //   upgrade path.
   useEffect(() => {
     if (isVerified) navigate(returnTo, { replace: true });
   }, [isVerified, navigate, returnTo]);
 
-  // ★ If arriving with an anonymous session, default to Sign-up tab
-  //   (that's the upgrade path). Also react to late-arriving session.
   useEffect(() => {
-    if (isAnonymous && !isVerifyFlow) {
-      // Only auto-switch if the user hasn't manually toggled
-      // (we can't easily detect that; keep it simple and switch on mount)
+    if (isAnonymous && !isVerifyFlow && !incomingRole) {
       setIsLogin(false);
     }
-  }, [isAnonymous, isVerifyFlow]);
+  }, [isAnonymous, isVerifyFlow, incomingRole]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('remembered_email');
@@ -128,7 +127,7 @@ const Login = () => {
           email: formData.email,
           password: formData.password,
           fullName: formData.fullName,
-          role: 'buyer',
+          role: selectedRole,
         });
       }
 
@@ -138,7 +137,6 @@ const Login = () => {
 
         const needsOnboarding = !result.user?.profile?.onboarding_completed;
 
-        // ★ Onboarding takes priority — otherwise land on the return path
         if (needsOnboarding) {
           navigate('/role-selection', {
             replace: true,
@@ -164,7 +162,6 @@ const Login = () => {
     setSocialLoading('facebook');
 
     try {
-      // Preserve return path across the OAuth round-trip
       if (returnTo && returnTo !== '/landing') {
         sessionStorage.setItem('redirectAfterLogin', returnTo);
       } else {
@@ -210,19 +207,25 @@ const Login = () => {
             animation: spin 0.8s linear infinite;
           }
           @keyframes spin {
-            to {
-              transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
           }
         `}</style>
       </div>
     );
   }
 
+  const roleBadgeLabel =
+    incomingRole === 'seller'
+      ? '🏪 Seller'
+      : incomingRole === 'provider'
+      ? '🔧 Service Provider'
+      : incomingRole === 'both'
+      ? '⚡ Buyer & Seller'
+      : null;
+
   return (
     <div className="auth-page">
       <div className="auth-container">
-        {/* ===== BRAND ===== */}
         <div className="auth-brand">
           <div className="brand-mark">K</div>
           <h1 className="brand-name">
@@ -232,16 +235,22 @@ const Login = () => {
             {isVerifyFlow
               ? 'Create your account to start posting'
               : isLogin
-                ? 'Sign in to continue to your marketplace'
-                : isAnonymous
-                  ? 'Create your account to start posting'
-                  : 'Create your account to get started'}
+              ? 'Sign in to continue to your marketplace'
+              : incomingRole
+              ? `Sign up as a ${incomingRole === 'seller' ? 'seller' : 'service provider'}`
+              : isAnonymous
+              ? 'Create your account to start posting'
+              : 'Create your account to get started'}
           </p>
         </div>
 
-        {/* ===== CARD ===== */}
         <div className="auth-card">
-          {/* Verify-flow context banner — shown when redirected by VerifiedRoute */}
+          {roleBadgeLabel && !isLogin && (
+            <div className="role-badge">
+              Signing up as <strong>{roleBadgeLabel}</strong>
+            </div>
+          )}
+
           {isVerifyFlow && (
             <div className="return-banner verify-banner">
               <Icon name="shield" size={13} color="#92400e" />
@@ -249,8 +258,8 @@ const Login = () => {
             </div>
           )}
 
-          {/* Return-to context hint (only when it's not verify and not default) */}
           {!isVerifyFlow &&
+            !roleBadgeLabel &&
             returnTo &&
             returnTo !== '/landing' &&
             returnTo !== '/' && (
@@ -260,7 +269,6 @@ const Login = () => {
               </div>
             )}
 
-          {/* Error */}
           {errorMsg && (
             <div className="error" role="alert">
               <span className="error-dot" />
@@ -276,7 +284,6 @@ const Login = () => {
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleEmailSubmit} className="form" noValidate>
             {!isLogin && (
               <div className="field">
@@ -391,8 +398,8 @@ const Login = () => {
                     {isLogin
                       ? 'Sign in'
                       : isAnonymous
-                        ? 'Verify & continue'
-                        : 'Create account'}
+                      ? 'Verify & continue'
+                      : 'Create account'}
                   </span>
                   <Icon
                     name="arrowRight"
@@ -405,14 +412,12 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="divider">
             <span className="divider-line" />
             <span className="divider-text">or</span>
             <span className="divider-line" />
           </div>
 
-          {/* Facebook */}
           <button
             type="button"
             className="social-btn facebook"
@@ -430,7 +435,6 @@ const Login = () => {
           </button>
         </div>
 
-        {/* ===== FOOTER ===== */}
         <div className="auth-footer">
           <span className="footer-text">
             {isLogin ? "Don't have an account?" : 'Already have an account?'}
@@ -455,9 +459,6 @@ const Login = () => {
       </div>
 
       <style jsx>{`
-        /* ============================================
-           PAGE
-           ============================================ */
         .auth-page {
           min-height: 100vh;
           min-height: 100dvh;
@@ -481,53 +482,34 @@ const Login = () => {
           align-items: stretch;
         }
 
-        /* ============================================
-           BRAND
-           ============================================ */
-        .auth-brand {
-          text-align: center;
-          margin-bottom: 24px;
-        }
+        .auth-brand { text-align: center; margin-bottom: 24px; }
 
         .brand-mark {
-          width: 52px;
-          height: 52px;
+          width: 52px; height: 52px;
           border-radius: 14px;
-          background: #1e293b;
-          color: #f59e0b;
+          background: #1e293b; color: #f59e0b;
           font-family: Georgia, serif;
-          font-weight: 700;
-          font-size: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          font-weight: 700; font-size: 24px;
+          display: flex; align-items: center; justify-content: center;
           margin: 0 auto 14px;
           box-shadow: 0 4px 16px rgba(30, 41, 59, 0.18);
         }
 
         .brand-name {
           font-family: Georgia, serif;
-          font-size: 24px;
-          font-weight: 700;
+          font-size: 24px; font-weight: 700;
           letter-spacing: -0.02em;
           margin: 0 0 6px;
           color: #1e293b;
         }
 
-        .brand-name-accent {
-          color: #f59e0b;
-        }
+        .brand-name-accent { color: #f59e0b; }
 
         .brand-tagline {
-          font-size: 13px;
-          color: #64748b;
-          margin: 0;
-          line-height: 1.5;
+          font-size: 13px; color: #64748b;
+          margin: 0; line-height: 1.5;
         }
 
-        /* ============================================
-           CARD
-           ============================================ */
         .auth-card {
           background: #ffffff;
           border: 1px solid #e2e8f0;
@@ -536,9 +518,21 @@ const Login = () => {
           box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
         }
 
-        /* ============================================
-           RETURN BANNER
-           ============================================ */
+        .role-badge {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          margin-bottom: 14px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 12px;
+          color: #64748b;
+        }
+
+        .role-badge strong { color: #1e293b; font-weight: 700; }
+
         .return-banner {
           display: flex;
           align-items: center;
@@ -559,102 +553,59 @@ const Login = () => {
           color: #1e40af;
         }
 
-        /* ============================================
-           ERROR
-           ============================================ */
         .error {
-          display: flex;
-          align-items: center;
-          gap: 10px;
+          display: flex; align-items: center; gap: 10px;
           background: #fef2f2;
           border: 1px solid #fecaca;
           border-radius: 10px;
           padding: 10px 12px;
           margin-bottom: 16px;
-          font-size: 13px;
-          color: #991b1b;
+          font-size: 13px; color: #991b1b;
         }
 
         .error-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #ef4444;
-          flex-shrink: 0;
+          width: 6px; height: 6px; border-radius: 50%;
+          background: #ef4444; flex-shrink: 0;
         }
 
-        .error-msg {
-          flex: 1;
-          line-height: 1.4;
-        }
+        .error-msg { flex: 1; line-height: 1.4; }
 
         .error-x {
-          background: none;
-          border: none;
-          color: #991b1b;
-          font-size: 18px;
-          line-height: 1;
-          cursor: pointer;
+          background: none; border: none;
+          color: #991b1b; font-size: 18px;
+          line-height: 1; cursor: pointer;
           padding: 0 4px;
         }
 
-        /* ============================================
-           FORM
-           ============================================ */
-        .form {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
+        .form { display: flex; flex-direction: column; gap: 16px; }
 
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
+        .field { display: flex; flex-direction: column; gap: 6px; }
 
-        .label {
-          font-size: 13px;
-          font-weight: 600;
-          color: #1e293b;
-        }
+        .label { font-size: 13px; font-weight: 600; color: #1e293b; }
 
-        .input-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
+        .input-wrap { position: relative; display: flex; align-items: center; }
 
         .input-icon {
-          position: absolute;
-          left: 12px;
-          display: flex;
-          align-items: center;
+          position: absolute; left: 12px;
+          display: flex; align-items: center;
           pointer-events: none;
         }
 
         .input {
-          width: 100%;
-          height: 44px;
+          width: 100%; height: 44px;
           padding: 0 12px 0 38px;
           border: 1px solid #cbd5e1;
           border-radius: 10px;
-          font-size: 14px;
-          color: #0f172a;
+          font-size: 14px; color: #0f172a;
           background: #ffffff;
-          font-family: inherit;
-          outline: none;
+          font-family: inherit; outline: none;
           box-sizing: border-box;
           transition: border-color 0.15s, box-shadow 0.15s;
         }
 
-        .input::placeholder {
-          color: #94a3b8;
-        }
+        .input::placeholder { color: #94a3b8; }
 
-        .input:hover:not(:disabled):not(:focus) {
-          border-color: #94a3b8;
-        }
+        .input:hover:not(:disabled):not(:focus) { border-color: #94a3b8; }
 
         .input:focus {
           border-color: #1e293b;
@@ -663,66 +614,42 @@ const Login = () => {
 
         .input:disabled {
           background: #f8fafc;
-          cursor: not-allowed;
-          opacity: 0.7;
+          cursor: not-allowed; opacity: 0.7;
         }
 
-        .input-pw {
-          padding-right: 42px;
-        }
+        .input-pw { padding-right: 42px; }
 
         .eye {
-          position: absolute;
-          right: 6px;
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          border-radius: 6px;
+          position: absolute; right: 6px;
+          width: 32px; height: 32px;
+          display: flex; align-items: center; justify-content: center;
+          border: none; background: transparent;
+          cursor: pointer; border-radius: 6px;
           transition: background 0.15s;
         }
 
-        .eye:hover {
-          background: #f1f5f9;
-        }
+        .eye:hover { background: #f1f5f9; }
 
-        /* ============================================
-           ROW
-           ============================================ */
         .row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
+          display: flex; align-items: center; justify-content: space-between;
           margin-top: -4px;
         }
 
         .check-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          color: #475569;
-          cursor: pointer;
-          user-select: none;
+          display: flex; align-items: center; gap: 8px;
+          font-size: 13px; color: #475569;
+          cursor: pointer; user-select: none;
         }
 
         .check {
-          width: 16px;
-          height: 16px;
+          width: 16px; height: 16px;
           accent-color: #1e293b;
-          cursor: pointer;
-          margin: 0;
+          cursor: pointer; margin: 0;
         }
 
         .link {
-          font-size: 13px;
-          color: #1e293b;
-          font-weight: 600;
-          text-decoration: none;
+          font-size: 13px; color: #1e293b;
+          font-weight: 600; text-decoration: none;
         }
 
         .link:hover {
@@ -730,44 +657,26 @@ const Login = () => {
           text-underline-offset: 2px;
         }
 
-        /* ============================================
-           SUBMIT
-           ============================================ */
         .submit {
-          width: 100%;
-          height: 46px;
+          width: 100%; height: 46px;
           margin-top: 4px;
           background: #1e293b;
-          border: none;
-          border-radius: 10px;
+          border: none; border-radius: 10px;
           color: #ffffff;
           font-family: inherit;
-          font-size: 14px;
-          font-weight: 600;
+          font-size: 14px; font-weight: 600;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: flex; align-items: center; justify-content: center;
           gap: 8px;
           transition: background 0.15s, transform 0.1s;
         }
 
-        .submit:hover:not(:disabled) {
-          background: #0f172a;
-        }
-
-        .submit:active:not(:disabled) {
-          transform: scale(0.99);
-        }
-
-        .submit:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
+        .submit:hover:not(:disabled) { background: #0f172a; }
+        .submit:active:not(:disabled) { transform: scale(0.99); }
+        .submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .spinner {
-          width: 18px;
-          height: 18px;
+          width: 18px; height: 18px;
           border: 2px solid rgba(255, 255, 255, 0.3);
           border-top-color: #ffffff;
           border-radius: 50%;
@@ -779,55 +688,34 @@ const Login = () => {
           border-top-color: #0f172a;
         }
 
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ============================================
-           DIVIDER
-           ============================================ */
         .divider {
-          display: flex;
-          align-items: center;
-          gap: 12px;
+          display: flex; align-items: center; gap: 12px;
           margin: 20px 0 16px;
         }
 
-        .divider-line {
-          flex: 1;
-          height: 1px;
-          background: #e2e8f0;
-        }
+        .divider-line { flex: 1; height: 1px; background: #e2e8f0; }
 
         .divider-text {
-          font-size: 11px;
-          color: #94a3b8;
+          font-size: 11px; color: #94a3b8;
           font-weight: 500;
           text-transform: uppercase;
           letter-spacing: 0.06em;
           white-space: nowrap;
         }
 
-        /* ============================================
-           SOCIAL
-           ============================================ */
         .social-btn {
-          width: 100%;
-          height: 46px;
+          width: 100%; height: 46px;
           padding: 0 14px;
           border: 1px solid #cbd5e1;
           border-radius: 10px;
           background: #ffffff;
           font-family: inherit;
-          font-size: 14px;
-          font-weight: 600;
+          font-size: 14px; font-weight: 600;
           color: #0f172a;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: flex; align-items: center; justify-content: center;
           gap: 10px;
           transition: background 0.15s, border-color 0.15s;
         }
@@ -837,10 +725,7 @@ const Login = () => {
           border-color: #94a3b8;
         }
 
-        .social-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
+        .social-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .social-btn.facebook {
           border-color: #1877f2;
@@ -853,28 +738,18 @@ const Login = () => {
           border-color: #1877f2;
         }
 
-        /* ============================================
-           FOOTER
-           ============================================ */
         .auth-footer {
           margin-top: 20px;
           text-align: center;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          font-size: 13px;
+          display: flex; align-items: center; justify-content: center;
+          gap: 6px; font-size: 13px;
         }
 
-        .footer-text {
-          color: #64748b;
-        }
+        .footer-text { color: #64748b; }
 
         .footer-btn {
-          background: none;
-          border: none;
-          padding: 0;
-          color: #1e293b;
+          background: none; border: none;
+          padding: 0; color: #1e293b;
           font-weight: 700;
           font-family: inherit;
           font-size: 13px;
@@ -889,52 +764,31 @@ const Login = () => {
         .back-link {
           margin-top: 20px;
           align-self: center;
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 12px;
-          color: #94a3b8;
-          text-decoration: none;
-          font-weight: 500;
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 12px; color: #94a3b8;
+          text-decoration: none; font-weight: 500;
           transition: color 0.15s;
         }
 
-        .back-link:hover {
-          color: #475569;
-        }
+        .back-link:hover { color: #475569; }
 
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
         @media (max-width: 420px) {
-          .auth-page {
-            padding: 16px 12px;
-          }
-          .auth-brand {
-            margin-bottom: 20px;
-          }
+          .auth-page { padding: 16px 12px; }
+          .auth-brand { margin-bottom: 20px; }
           .brand-mark {
-            width: 46px;
-            height: 46px;
-            font-size: 21px;
-            border-radius: 12px;
+            width: 46px; height: 46px;
+            font-size: 21px; border-radius: 12px;
           }
-          .brand-name {
-            font-size: 22px;
-          }
+          .brand-name { font-size: 22px; }
           .auth-card {
             padding: 20px 18px;
             border-radius: 14px;
           }
-          .form {
-            gap: 14px;
-          }
+          .form { gap: 14px; }
         }
 
         @media (max-width: 360px) {
-          .auth-card {
-            padding: 18px 16px;
-          }
+          .auth-card { padding: 18px 16px; }
         }
 
         @media (max-height: 640px) {
@@ -942,33 +796,18 @@ const Login = () => {
             padding: 12px;
             align-items: flex-start;
           }
-          .brand-tagline {
-            display: none;
-          }
-          .auth-brand {
-            margin-bottom: 14px;
-          }
+          .brand-tagline { display: none; }
+          .auth-brand { margin-bottom: 14px; }
           .brand-mark {
-            width: 42px;
-            height: 42px;
-            font-size: 19px;
-            margin-bottom: 8px;
+            width: 42px; height: 42px;
+            font-size: 19px; margin-bottom: 8px;
           }
-          .back-link {
-            margin-top: 12px;
-          }
+          .back-link { margin-top: 12px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .submit,
-          .social-btn,
-          .input,
-          .eye {
-            transition: none;
-          }
-          .submit:active:not(:disabled) {
-            transform: none;
-          }
+          .submit, .social-btn, .input, .eye { transition: none; }
+          .submit:active:not(:disabled) { transform: none; }
         }
       `}</style>
     </div>

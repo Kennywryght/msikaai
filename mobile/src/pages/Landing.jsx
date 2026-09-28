@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { listingsAPI, businessAPI, messagesAPI, interactionsAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
+import RoleChoiceBlock from '../components/RoleChoiceBlock';
 
 /* ---------- Icons ---------- */
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '', fill = 'none' }) => {
@@ -15,9 +16,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     user: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z",
     arrowRight: "M5 12h14M12 5l7 7-7 7",
     store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
-    /* ★ Heart (love) — primary like icon across the marketplace */
     heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
-    /* Kept for any legacy usage / decorative spark */
     fire: "M12 2c1.5 3.5 4 5.5 4 9a4 4 0 11-8 0c0-1.4.5-2.5 1.2-3.4.3-.4.6-.9.8-1.4.2-.5.2-1 0-1.4-.2-.4-.3-.6-.3-.8 0-.3.2-.6.5-.7.3-.2.6-.1.8.2.6.7.8 1.4.5 2.5.7-.5 1.2-1.1 1.5-1.9.1-.4.1-.7 0-1 0-.2 0-.4.2-.5.2-.1.4-.1.5 0 .3.3.4.6.3.9z",
     star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
     message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
@@ -50,7 +49,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 };
 
 /* ============================================================
-   LIVE BURNING FIRE — decorative "NEW" spark, not a like icon
+   LIVE BURNING FIRE — decorative "NEW" spark
    ============================================================ */
 const BurningFire = ({ size = 16 }) => (
   <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
@@ -301,7 +300,6 @@ const ProductCard = ({
           </span>
         )}
 
-        {/* ★ Heart (love) badge on the image */}
         <button
           className={`pcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
@@ -348,7 +346,6 @@ const ProductCard = ({
         </div>
 
         <div className="pcard-actions">
-          {/* ★ Heart (love) action button */}
           <button
             className={`pcard-icon-btn ${liked ? 'liked' : ''}`}
             onClick={(e) => onLike(e, item)}
@@ -422,7 +419,6 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
           )}
         </div>
 
-        {/* ★ Heart (love) button */}
         <button
           className={`fcard-heart ${liked ? 'liked' : ''}`}
           onClick={(e) => onLike(e, item)}
@@ -587,9 +583,11 @@ const Landing = () => {
     commentsListingIdRef.current = commentsListing?.id ?? null;
   }, [commentsListing?.id]);
 
-  useEffect(() => {
-    if (!isAuthenticated) navigate('/login', { replace: true });
-  }, [isAuthenticated, navigate]);
+  // ★ NOTE: We removed the old "if (!isAuthenticated) navigate('/login')" effect.
+  //   Anonymous sessions count as authenticated, and the role choice block
+  //   handles the flow for users who haven't picked yet. If Supabase is
+  //   unconfigured (no session at all), the landing page still renders so
+  //   users can see what's there.
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -927,6 +925,9 @@ const Landing = () => {
 
   return (
     <div className="app">
+      {/* ★ MODEL C — ROLE CHOICE BLOCK */}
+      <RoleChoiceBlock />
+
       {/* HERO */}
       <div className="hero-block">
         <div className="hero-texture" aria-hidden="true" />
@@ -1390,7 +1391,7 @@ const Landing = () => {
           -webkit-backdrop-filter: blur(6px);
         }
 
-        /* LIVE BURNING FIRE (decorative, "NEW") */
+        /* LIVE BURNING FIRE */
         .burning-fire {
           position: relative;
           display: inline-flex;
@@ -1757,7 +1758,6 @@ const Landing = () => {
           transition: background 0.2s, transform 0.15s;
         }
         .fcard-heart:hover { background: rgba(22, 38, 31, 0.78); transform: scale(1.04); }
-        /* ★ Liked = warm terracotta heart gradient */
         .fcard-heart.liked {
           background: linear-gradient(135deg, #BC5B34 0%, #A04724 100%);
           box-shadow: 0 4px 14px rgba(188, 91, 52, 0.35);
@@ -1943,7 +1943,6 @@ const Landing = () => {
           z-index: 5;
         }
         .pcard-heart:hover { background: rgba(22, 38, 31, 0.72); transform: scale(1.06); }
-        /* ★ Liked = warm terracotta heart gradient + pop */
         .pcard-heart.liked {
           background: linear-gradient(135deg, #BC5B34 0%, #A04724 100%);
           box-shadow: 0 4px 12px rgba(188, 91, 52, 0.4);
@@ -2031,7 +2030,6 @@ const Landing = () => {
         }
         .pcard-icon-btn:hover { background: rgba(188, 91, 52, 0.08); color: #201F1B; }
         .pcard-icon-btn:active { transform: scale(0.96); }
-        /* ★ Liked action button */
         .pcard-icon-btn.liked { color: #BC5B34; font-weight: 700; }
 
         .pcard-msg {
