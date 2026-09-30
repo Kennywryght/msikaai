@@ -1,5 +1,7 @@
 // mobile/src/components/TrustBadge.jsx
 import React from 'react';
+import useTrustScore from '../hooks/useTrustScore';
+import VerificationBadge from './VerificationBadge';
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -22,7 +24,7 @@ const Icon = ({ name, size = 14, color = 'currentColor', strokeWidth = 1.75, fil
   };
 
   const d = icons[name] || icons.shield;
-  
+
   return (
     <svg
       width={size}
@@ -41,7 +43,7 @@ const Icon = ({ name, size = 14, color = 'currentColor', strokeWidth = 1.75, fil
 };
 
 // ============================================================
-// TRUST BADGE TYPES
+// EXISTING BADGE TYPES (kept for backward compatibility)
 // ============================================================
 const BADGE_TYPES = {
   verified: {
@@ -95,7 +97,7 @@ const BADGE_TYPES = {
 };
 
 // ============================================================
-// TRUST BADGE COMPONENT
+// EXISTING TrustBadge COMPONENT (unchanged API)
 // ============================================================
 const TrustBadge = ({
   type,
@@ -103,12 +105,11 @@ const TrustBadge = ({
   value,
   icon,
   color,
-  variant = 'default', // 'default' | 'solid' | 'outline' | 'minimal'
-  size = 'md', // 'sm' | 'md' | 'lg'
+  variant = 'default',
+  size = 'md',
   showIcon = true,
   className = '',
 }) => {
-  // Get config from type
   const config = type ? BADGE_TYPES[type] : null;
 
   const displayLabel = label || config?.label || '';
@@ -116,7 +117,6 @@ const TrustBadge = ({
   const displayColor = color || config?.color || '#64748B';
   const displayBg = config?.bg || `${displayColor}15`;
 
-  // Format label with value
   const finalLabel = value ? `${displayLabel} ${value}` : displayLabel;
 
   return (
@@ -156,54 +156,26 @@ const TrustBadge = ({
           line-height: 1;
         }
 
-        /* ===== SIZES ===== */
-        .trust-badge-sm {
-          padding: 3px 8px;
-          font-size: 10px;
-          gap: 3px;
-        }
+        .trust-badge-sm { padding: 3px 8px; font-size: 10px; gap: 3px; }
+        .trust-badge-md { padding: 4px 10px; font-size: 11px; }
+        .trust-badge-lg { padding: 6px 12px; font-size: 12px; }
 
-        .trust-badge-md {
-          padding: 4px 10px;
-          font-size: 11px;
-        }
-
-        .trust-badge-lg {
-          padding: 6px 12px;
-          font-size: 12px;
-        }
-
-        /* ===== LABEL ===== */
         .trust-badge-label {
           line-height: 1;
           text-transform: uppercase;
           letter-spacing: 0.03em;
         }
 
-        /* ===== HOVER ===== */
-        .trust-badge:hover {
-          transform: translateY(-1px);
-        }
+        .trust-badge:hover { transform: translateY(-1px); }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .trust-badge-md {
-            padding: 3px 8px;
-            font-size: 10px;
-          }
-          .trust-badge-lg {
-            padding: 5px 10px;
-            font-size: 11px;
-          }
+          .trust-badge-md { padding: 3px 8px; font-size: 10px; }
+          .trust-badge-lg { padding: 5px 10px; font-size: 11px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .trust-badge {
-            transition: none;
-          }
-          .trust-badge:hover {
-            transform: none;
-          }
+          .trust-badge { transition: none; }
+          .trust-badge:hover { transform: none; }
         }
       `}</style>
     </span>
@@ -211,9 +183,15 @@ const TrustBadge = ({
 };
 
 // ============================================================
-// TRUST BADGE GROUP
+// EXISTING TrustBadgeGroup (kept for backward compatibility)
 // ============================================================
-export const TrustBadgeGroup = ({ badges = [], size = 'md', variant = 'default', max = 3, className = '' }) => {
+export const TrustBadgeGroup = ({
+  badges = [],
+  size = 'md',
+  variant = 'default',
+  max = 3,
+  className = '',
+}) => {
   const visibleBadges = badges.slice(0, max);
   const remaining = badges.length - max;
 
@@ -260,4 +238,121 @@ export const TrustBadgeGroup = ({ badges = [], size = 'md', variant = 'default',
   );
 };
 
+// ============================================================
+// ★ NEW: Tier-driven badge. Reads real trust data for a user.
+// ============================================================
+const TIER_META = {
+  0: { label: 'Unverified', color: '#9CA3AF', bg: 'rgba(156, 163, 175, 0.1)', icon: 'shield' },
+  1: { label: 'Phone Verified', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.1)', icon: 'checkCircle' },
+  2: { label: 'ID Verified', color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.1)', icon: 'shield' },
+  3: { label: 'Business Verified', color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)', icon: 'award' },
+};
+
+export const TrustTierBadge = ({
+  userId,
+  size = 'md',
+  showLabel = true,
+  variant = 'default',
+  className = '',
+}) => {
+  const { tier, loading } = useTrustScore(userId);
+
+  if (loading) {
+    return (
+      <span
+        className={`trust-badge trust-badge-${size} ${className}`}
+        style={{ background: '#F3F4F6', width: 70, height: 20, display: 'inline-block' }}
+      />
+    );
+  }
+
+  const meta = TIER_META[tier] || TIER_META[0];
+
+  return (
+    <TrustBadge
+      icon={meta.icon}
+      label={meta.label}
+      color={meta.color}
+      variant={variant}
+      size={size}
+      showIcon={showLabel}
+      className={className}
+    />
+  );
+};
+
+// ============================================================
+// ★ NEW: Real-data badge group — pulls tier + verification flags
+// ============================================================
+export const RealTrustBadgeGroup = ({
+  userId,
+  size = 'sm',
+  variant = 'default',
+  showLabels = false,
+  max = 4,
+  className = '',
+}) => {
+  const {
+    trust,
+    loading,
+    emailVerified,
+    phoneVerified,
+    idVerified,
+    businessVerified,
+  } = useTrustScore(userId);
+
+  if (loading) {
+    return (
+      <div className={`trust-badge-group ${className}`} style={{ display: 'flex', gap: 6 }}>
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            style={{
+              width: 40,
+              height: 18,
+              background: '#F3F4F6',
+              borderRadius: 999,
+              display: 'inline-block',
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (!trust) return null;
+
+  const visible = [
+    { type: 'email', verified: emailVerified },
+    { type: 'phone', verified: phoneVerified },
+    { type: 'id', verified: idVerified },
+    { type: 'business', verified: businessVerified },
+  ]
+    .filter((v) => v.verified)
+    .slice(0, max);
+
+  if (visible.length === 0) {
+    return (
+      <div className={className}>
+        <TrustTierBadge userId={userId} size={size} variant={variant} showLabel={showLabels} />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`trust-badge-group ${className}`} style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {visible.map((v, i) => (
+        <VerificationBadge
+          key={i}
+          type={v.type}
+          verified
+          size={size}
+          showLabel={showLabels}
+        />
+      ))}
+    </div>
+  );
+};
+
+export { Icon };
 export default TrustBadge;

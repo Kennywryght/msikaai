@@ -18,7 +18,6 @@ const api = axios.create({
 // TOKEN HELPERS
 // ============================================
 
-// Pull the freshest access token available (Supabase session > localStorage)
 async function getAccessToken() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -29,12 +28,10 @@ async function getAccessToken() {
   return localStorage.getItem('access_token') || null;
 }
 
-// Try to refresh the Supabase session; returns new token or null
 async function tryRefreshSession() {
   try {
     const { data, error } = await supabase.auth.refreshSession();
     if (error || !data?.session?.access_token) return null;
-    // Keep the mirror copies in sync
     localStorage.setItem('access_token', data.session.access_token);
     if (data.session.refresh_token) {
       localStorage.setItem('refresh_token', data.session.refresh_token);
@@ -48,10 +45,6 @@ async function tryRefreshSession() {
 
 // ============================================
 // RESPONSE NORMALIZERS
-// The backend returns camelCase (businessName, userId, contactPhone,
-// locationArea, createdAt, etc.) while the UI is written for snake_case
-// (business_name, user_id, contact_phone, location_area, created_at).
-// Normalizing once here means every consumer of the API stays simple.
 // ============================================
 
 const isBlobUrl = (url) =>
@@ -65,7 +58,6 @@ const normalizeBusiness = (b) => {
 
   return {
     ...b,
-    // snake_case aliases for the fields the UI reads
     user_id: b.userId ?? b.user_id ?? null,
     business_name: b.businessName ?? b.business_name ?? null,
     logo_url: b.logoUrl ?? b.logo_url ?? null,
@@ -87,13 +79,11 @@ const normalizeListing = (raw) => {
   if (!raw) return raw;
 
   const rawImages = Array.isArray(raw.images) ? raw.images : [];
-  // Drop dead blob: URLs — they only work in the tab that created them
   const images = rawImages.filter((src) => !isBlobUrl(src));
 
   return {
     ...raw,
 
-    // Top-level snake_case aliases
     business_id: raw.businessId ?? raw.business_id ?? null,
     sub_category: raw.subCategory ?? raw.sub_category ?? null,
     price_type: raw.priceType ?? raw.price_type ?? null,
@@ -111,19 +101,16 @@ const normalizeListing = (raw) => {
       raw.featured ?? raw.isFeatured ?? raw.is_featured ?? false,
     premium_until: raw.premiumUntil ?? raw.premium_until ?? null,
 
-    // Engagement counts
     likes: raw.likes ?? 0,
     liked_by_me: raw.likedByMe ?? raw.liked_by_me ?? false,
     comment_count: raw.commentCount ?? raw.comment_count ?? 0,
 
-    // Nested business object
     businesses: raw.businesses
       ? normalizeBusiness(raw.businesses)
       : raw.business
       ? normalizeBusiness(raw.business)
       : undefined,
 
-    // Cleaned image list
     images,
   };
 };
@@ -142,7 +129,6 @@ const normalizeComment = (c) => {
   };
 };
 
-// ★ Normalize a message row into a shape the Chat UI can rely on
 const normalizeMessage = (m) => {
   if (!m) return m;
   return {
@@ -157,7 +143,6 @@ const normalizeMessage = (m) => {
   };
 };
 
-// ★ Normalize the response from the interactions API
 const normalizeInteractionCounts = (payload) => {
   if (!payload) return {};
   const out = {};
@@ -165,6 +150,157 @@ const normalizeInteractionCounts = (payload) => {
     out[k] = Number(v) || 0;
   }
   return out;
+};
+
+const normalizeTrust = (raw) => {
+  if (!raw) return raw;
+  return {
+    ...raw,
+    user_id: raw.userId ?? raw.user_id ?? null,
+    trust_score: raw.trustScore ?? raw.trust_score ?? 0,
+    escrow_limit: Number(raw.escrowLimit ?? raw.escrow_limit ?? 0) || 0,
+    email_verified: raw.emailVerified ?? raw.email_verified ?? false,
+    phone_verified: raw.phoneVerified ?? raw.phone_verified ?? false,
+    id_verified: raw.idVerified ?? raw.id_verified ?? false,
+    business_verified: raw.businessVerified ?? raw.business_verified ?? false,
+    tier_name: raw.tierName ?? raw.tier_name ?? null,
+    tier_description: raw.tierDescription ?? raw.tier_description ?? null,
+    next_tier_requirements:
+      raw.nextTierRequirements ?? raw.next_tier_requirements ?? [],
+    average_rating: Number(raw.averageRating ?? raw.average_rating ?? 0) || 0,
+    total_reviews: raw.totalReviews ?? raw.total_reviews ?? 0,
+    listings_count: raw.listingsCount ?? raw.listings_count ?? 0,
+    responses_count: raw.responsesCount ?? raw.responses_count ?? 0,
+    fulfilled_requests_count:
+      raw.fulfilledRequestsCount ?? raw.fulfilled_requests_count ?? 0,
+    deliveries_completed_count:
+      raw.deliveriesCompletedCount ?? raw.deliveries_completed_count ?? 0,
+    last_computed_at: raw.lastComputedAt ?? raw.last_computed_at ?? null,
+  };
+};
+
+const normalizeRequestAuthor = (author) => {
+  if (!author) return null;
+  return {
+    ...author,
+    full_name: author.fullName ?? author.full_name ?? null,
+    avatar_url: author.avatarUrl ?? author.avatar_url ?? null,
+    location_text: author.locationText ?? author.location_text ?? null,
+    trust: author.trust ? normalizeTrust(author.trust) : null,
+  };
+};
+
+const normalizeRequest = (raw) => {
+  if (!raw) return raw;
+  return {
+    ...raw,
+    user_id: raw.userId ?? raw.user_id ?? null,
+    location_area: raw.locationArea ?? raw.location_area ?? null,
+    location_lat: raw.locationLat ?? raw.location_lat ?? null,
+    location_lng: raw.locationLng ?? raw.location_lng ?? null,
+    budget_min: raw.budgetMin ?? raw.budget_min ?? null,
+    budget_max: raw.budgetMax ?? raw.budget_max ?? null,
+    responses_count: raw.responsesCount ?? raw.responses_count ?? 0,
+    view_count: raw.viewCount ?? raw.view_count ?? 0,
+    expires_at: raw.expiresAt ?? raw.expires_at ?? null,
+    fulfilled_at: raw.fulfilledAt ?? raw.fulfilled_at ?? null,
+    cancelled_at: raw.cancelledAt ?? raw.cancelled_at ?? null,
+    created_at: raw.createdAt ?? raw.created_at ?? null,
+    updated_at: raw.updatedAt ?? raw.updated_at ?? null,
+    is_mine: raw.isMine ?? raw.is_mine ?? false,
+    can_respond: raw.canRespond ?? raw.can_respond ?? false,
+    effective_status: raw.effectiveStatus ?? raw.effective_status ?? raw.status,
+    author: normalizeRequestAuthor(raw.author),
+    responses: Array.isArray(raw.responses)
+      ? raw.responses.map(normalizeResponse)
+      : undefined,
+  };
+};
+
+const normalizeResponse = (raw) => {
+  if (!raw) return raw;
+  return {
+    ...raw,
+    request_id: raw.requestId ?? raw.request_id ?? null,
+    responder_id: raw.responderId ?? raw.responder_id ?? null,
+    offered_price: raw.offeredPrice ?? raw.offered_price ?? null,
+    conversation_id: raw.conversationId ?? raw.conversation_id ?? null,
+    accepted_at: raw.acceptedAt ?? raw.accepted_at ?? null,
+    rejected_at: raw.rejectedAt ?? raw.rejected_at ?? null,
+    withdrawn_at: raw.withdrawnAt ?? raw.withdrawn_at ?? null,
+    created_at: raw.createdAt ?? raw.created_at ?? null,
+    updated_at: raw.updatedAt ?? raw.updated_at ?? null,
+    is_mine: raw.isMine ?? raw.is_mine ?? false,
+    is_accepted: raw.isAccepted ?? raw.is_accepted ?? false,
+    responder: normalizeRequestAuthor(raw.responder),
+  };
+};
+
+const normalizeDeliveryParty = (party) => {
+  if (!party) return null;
+  return {
+    ...party,
+    full_name: party.fullName ?? party.full_name ?? null,
+    avatar_url: party.avatarUrl ?? party.avatar_url ?? null,
+    location_text: party.locationText ?? party.location_text ?? null,
+    trust: party.trust ? normalizeTrust(party.trust) : null,
+  };
+};
+
+const normalizeDelivery = (raw) => {
+  if (!raw) return raw;
+  return {
+    ...raw,
+
+    poster_id: raw.posterId ?? raw.poster_id ?? null,
+    courier_id: raw.courierId ?? raw.courier_id ?? null,
+    request_id: raw.requestId ?? raw.request_id ?? null,
+    conversation_id: raw.conversationId ?? raw.conversation_id ?? null,
+
+    package_size: raw.packageSize ?? raw.package_size ?? 'medium',
+
+    pickup_location: raw.pickupLocation ?? raw.pickup_location ?? null,
+    pickup_lat: raw.pickupLat ?? raw.pickup_lat ?? null,
+    pickup_lng: raw.pickupLng ?? raw.pickup_lng ?? null,
+    pickup_contact_name:
+      raw.pickupContactName ?? raw.pickup_contact_name ?? null,
+    pickup_contact_phone:
+      raw.pickupContactPhone ?? raw.pickup_contact_phone ?? null,
+
+    dropoff_location: raw.dropoffLocation ?? raw.dropoff_location ?? null,
+    dropoff_lat: raw.dropoffLat ?? raw.dropoff_lat ?? null,
+    dropoff_lng: raw.dropoffLng ?? raw.dropoff_lng ?? null,
+    dropoff_contact_name:
+      raw.dropoffContactName ?? raw.dropoff_contact_name ?? null,
+    dropoff_contact_phone:
+      raw.dropoffContactPhone ?? raw.dropoff_contact_phone ?? null,
+
+    courier_fee: raw.courierFee ?? raw.courier_fee ?? null,
+
+    expires_at: raw.expiresAt ?? raw.expires_at ?? null,
+    accepted_at: raw.acceptedAt ?? raw.accepted_at ?? null,
+    picked_up_at: raw.pickedUpAt ?? raw.picked_up_at ?? null,
+    delivered_at: raw.deliveredAt ?? raw.delivered_at ?? null,
+    confirmed_at: raw.confirmedAt ?? raw.confirmed_at ?? null,
+    cancelled_at: raw.cancelledAt ?? raw.cancelled_at ?? null,
+    cancel_reason: raw.cancelReason ?? raw.cancel_reason ?? null,
+
+    created_at: raw.createdAt ?? raw.created_at ?? null,
+    updated_at: raw.updatedAt ?? raw.updated_at ?? null,
+
+    effective_status: raw.effectiveStatus ?? raw.effective_status ?? raw.status,
+    is_mine: raw.isMine ?? raw.is_mine ?? false,
+    is_mine_as_courier:
+      raw.isMineAsCourier ?? raw.is_mine_as_courier ?? false,
+    can_accept: raw.canAccept ?? raw.can_accept ?? false,
+    can_confirm: raw.canConfirm ?? raw.can_confirm ?? false,
+    can_cancel: raw.canCancel ?? raw.can_cancel ?? false,
+    can_pickup: raw.canPickup ?? raw.can_pickup ?? false,
+    can_deliver: raw.canDeliver ?? raw.can_deliver ?? false,
+
+    poster: normalizeDeliveryParty(raw.poster),
+    courier: normalizeDeliveryParty(raw.courier),
+  };
 };
 
 // ============================================
@@ -180,7 +316,6 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // GET cache handling
     if (config.method === 'get' && config.cache !== false) {
       const cacheKey = `${config.url}${config.params ? JSON.stringify(config.params) : ''}`;
       const cachedData = cacheService.get(cacheKey);
@@ -222,7 +357,6 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
-    // Cached GET short-circuit
     if (error.__cached) {
       return Promise.resolve({
         data: error.data,
@@ -235,9 +369,6 @@ api.interceptors.response.use(
     const method = originalRequest.method?.toUpperCase() ?? 'GET';
     const url = originalRequest.url ?? '(unknown)';
 
-    // =========================================
-    // 401 HANDLING — refresh once, then retry
-    // =========================================
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -252,7 +383,6 @@ api.interceptors.response.use(
         return api(originalRequest);
       }
 
-      // Refresh failed — clear session and bounce to login
       console.error(`❌ Session refresh failed — signing out`);
       try {
         await supabase.auth.signOut();
@@ -270,7 +400,6 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Log other failures
     if (error.response) {
       console.error(`❌ ${method} ${url} → HTTP ${error.response.status}`);
     } else if (error.request) {
@@ -324,7 +453,7 @@ export const businessAPI = {
 };
 
 // ============================================
-// LISTINGS API (with normalizers applied)
+// LISTINGS API
 // ============================================
 export const listingsAPI = {
   create: (data) => api.post('/listings/create', data),
@@ -349,7 +478,6 @@ export const listingsAPI = {
   getById: async (id) => {
     const res = await api.get(`/listings/${id}`, { cacheTTL: 10 * 60 * 1000 });
 
-    // Common shape: { listing: {...} }
     if (res?.data?.listing) {
       return {
         ...res,
@@ -360,7 +488,6 @@ export const listingsAPI = {
       };
     }
 
-    // Fallback: the listing is the top-level object
     if (res?.data?.id) {
       return {
         ...res,
@@ -391,13 +518,11 @@ export const listingsAPI = {
     return res;
   },
 
-  // ===== LIKES (persisted) =====
   like: (id) => api.post(`/listings/${id}/like`, {}, { cache: false }),
   unlike: (id) => api.delete(`/listings/${id}/like`, { cache: false }),
   getLikes: (id, params) =>
     api.get(`/listings/${id}/likes`, { params, cacheTTL: 60 * 1000 }),
 
-  // ===== COMMENTS =====
   getComments: async (id, params) => {
     const res = await api.get(`/listings/${id}/comments`, {
       params,
@@ -429,7 +554,6 @@ export const listingsAPI = {
   deleteComment: (id, commentId) =>
     api.delete(`/listings/${id}/comments/${commentId}`, { cache: false }),
 
-  // ===== BOOST / PREMIUM =====
   boost: (id, opts = {}) =>
     api.post(
       `/listings/${id}/boost`,
@@ -446,13 +570,9 @@ export const listingsAPI = {
 };
 
 // ============================================
-// ★ INTERACTIONS API — Likes + Comments
-// Uses the new /api/interactions endpoints which persist to the DB
-// and are shared across all users / devices.
+// INTERACTIONS API
 // ============================================
 export const interactionsAPI = {
-  // ---- LIKES ----
-  // Toggle like on a listing → returns { success, liked, count }
   toggleLike: async (listingId) => {
     const res = await api.post(
       `/interactions/likes/${listingId}`,
@@ -470,7 +590,6 @@ export const interactionsAPI = {
     };
   },
 
-  // Batch like states → { counts: {id: n}, userLikes: {id: true} }
   batchLikeStates: async (listingIds) => {
     const res = await api.post(
       '/interactions/likes/batch',
@@ -488,8 +607,6 @@ export const interactionsAPI = {
     };
   },
 
-  // ---- COMMENTS ----
-  // Batch comment counts → { counts: {id: n} }
   getCommentCounts: async (listingIds) => {
     const res = await api.post(
       '/interactions/comments/counts',
@@ -506,7 +623,6 @@ export const interactionsAPI = {
     };
   },
 
-  // List comments for a listing
   getComments: async (listingId, params) => {
     const res = await api.get(`/interactions/comments/${listingId}`, {
       params,
@@ -523,7 +639,6 @@ export const interactionsAPI = {
     };
   },
 
-  // Create a comment
   createComment: async (listingId, text) => {
     const res = await api.post(
       `/interactions/comments/${listingId}`,
@@ -537,7 +652,6 @@ export const interactionsAPI = {
     return res;
   },
 
-  // Delete a comment (owner only)
   deleteComment: (commentId) =>
     api.delete(`/interactions/comments/${commentId}`, { cache: false }),
 };
@@ -570,7 +684,6 @@ export const messagesAPI = {
       params,
       cache: false,
     });
-    // Normalize messages so the Chat UI gets consistent snake_case fields
     if (Array.isArray(res?.data?.messages)) {
       return {
         ...res,
@@ -611,7 +724,6 @@ export const messagesAPI = {
       { cache: false }
     ),
 
-  // ---- IMAGE UPLOAD ----
   uploadImage: (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -623,9 +735,6 @@ export const messagesAPI = {
     });
   },
 
-  // ---- ★ AUDIO UPLOAD ----
-  // Field name is `audio` — matches the planned backend route
-  // POST /messages/upload-audio → { url, durationMs? }
   uploadAudio: (file) => {
     const formData = new FormData();
     formData.append('audio', file);
@@ -633,7 +742,7 @@ export const messagesAPI = {
     return api.post('/messages/upload-audio', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       cache: false,
-      timeout: 120 * 1000, // recordings can be longer than images
+      timeout: 120 * 1000,
     });
   },
 };
@@ -655,9 +764,7 @@ export const paymentAPI = {
     }),
 
   getBoostPricing: () =>
-    
     api.get('/payment/boost-pricing', { cacheTTL: 60 * 60 * 1000 }),
-    
 };
 
 // ============================================
@@ -678,8 +785,56 @@ export const reviewsAPI = {
 // ============================================
 export const aiAPI = {
   search: (data) => api.post('/ai/search', data),
+
   getSuggestions: (q) =>
     api.get('/ai/suggestions', { params: { q }, cacheTTL: 2 * 60 * 1000 }),
+
+  // ★ PHASE 7A: Translate Chichewa (or mixed) query into English keywords.
+  // Returns: { success, original, translated, detectedLanguage, confidence, keywords }
+  // Uses 24h server-side cache. Fast (<10ms) on repeat queries.
+  translateSearch: async (query, opts = {}) => {
+    const q = String(query || '').trim();
+    if (!q) {
+      return {
+        data: {
+          success: true,
+          original: '',
+          translated: '',
+          detectedLanguage: 'unknown',
+          confidence: 0,
+          keywords: [],
+        },
+      };
+    }
+
+    try {
+      const res = await api.post(
+        '/ai/translate-search',
+        { q },
+        {
+          cache: false, // Server caches; client-side caching would confuse
+          timeout: opts.timeout || 8000,
+        }
+      );
+      return res;
+    } catch (err) {
+      console.warn(
+        '⚠️ translateSearch failed, using raw query:',
+        err?.message || err
+      );
+      return {
+        data: {
+          success: true,
+          original: q,
+          translated: q,
+          detectedLanguage: 'unknown',
+          confidence: 0,
+          keywords: [q],
+          fallback: true,
+        },
+      };
+    }
+  },
 };
 
 // ============================================
@@ -816,6 +971,344 @@ export const matchingAPI = {
     api.get('/matching/needs', { params, cacheTTL: 5 * 60 * 1000 }),
   closeNeed: (id, userId) =>
     api.put(`/matching/needs/${id}/close`, { userId }),
+};
+
+// ============================================
+// TRUST API
+// ============================================
+export const trustAPI = {
+  getMe: async () => {
+    const res = await api.get('/trust/me', { cache: false });
+    if (res?.data?.trust) {
+      return {
+        ...res,
+        data: { ...res.data, trust: normalizeTrust(res.data.trust) },
+      };
+    }
+    return res;
+  },
+
+  getUser: async (userId) => {
+    const res = await api.get(`/trust/${userId}`, {
+      cacheTTL: 5 * 60 * 1000,
+    });
+    if (res?.data?.trust) {
+      return {
+        ...res,
+        data: { ...res.data, trust: normalizeTrust(res.data.trust) },
+      };
+    }
+    return res;
+  },
+
+  recompute: async () => {
+    const res = await api.post('/trust/recompute', {}, { cache: false });
+    if (res?.data?.trust) {
+      return {
+        ...res,
+        data: { ...res.data, trust: normalizeTrust(res.data.trust) },
+      };
+    }
+    return res;
+  },
+
+  submitPhone: (phone) =>
+    api.post('/trust/verify-phone', { phone }, { cache: false }),
+  confirmPhone: (requestId, otp) =>
+    api.post('/trust/verify-phone/confirm', { requestId, otp }, { cache: false }),
+
+  submitEmail: (email) =>
+    api.post('/trust/verify-email', { email }, { cache: false }),
+
+  submitId: ({ idType, idNumber, documentUrl }) =>
+    api.post(
+      '/trust/verify-id',
+      { idType, idNumber, documentUrl },
+      { cache: false }
+    ),
+
+  submitBusiness: ({ businessName, registrationNumber, documentUrl }) =>
+    api.post(
+      '/trust/verify-business',
+      { businessName, registrationNumber, documentUrl },
+      { cache: false }
+    ),
+
+  uploadDocument: (file, onProgress) => {
+    const formData = new FormData();
+    formData.append('document', file);
+
+    return api.post('/trust/verify-documents/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      cache: false,
+      timeout: 90 * 1000,
+      onUploadProgress: onProgress
+        ? (evt) => {
+            if (evt.total) {
+              onProgress(Math.round((evt.loaded / evt.total) * 100));
+            }
+          }
+        : undefined,
+    });
+  },
+
+  getMyVerifications: () =>
+    api.get('/trust/verifications/mine', { cache: false }),
+
+  getPendingVerifications: () =>
+    api.get('/trust/verifications/pending', { cache: false }),
+
+  approveVerification: (id) =>
+    api.post(`/trust/verifications/${id}/approve`, {}, { cache: false }),
+
+  rejectVerification: (id, reason) =>
+    api.post(
+      `/trust/verifications/${id}/reject`,
+      { reason },
+      { cache: false }
+    ),
+};
+
+// ============================================
+// REQUESTS API
+// ============================================
+export const requestsAPI = {
+  create: async (data) => {
+    const res = await api.post('/requests', data, { cache: false });
+    if (res?.data?.request) {
+      return {
+        ...res,
+        data: { ...res.data, request: normalizeRequest(res.data.request) },
+      };
+    }
+    return res;
+  },
+
+  list: async (params = {}) => {
+    const res = await api.get('/requests', {
+      params,
+      cacheTTL: 30 * 1000,
+    });
+    if (Array.isArray(res?.data?.requests)) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          requests: res.data.requests.map(normalizeRequest),
+        },
+      };
+    }
+    return res;
+  },
+
+  mine: async (params = {}) => {
+    const res = await api.get('/requests/mine', {
+      params,
+      cache: false,
+    });
+    if (Array.isArray(res?.data?.requests)) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          requests: res.data.requests.map(normalizeRequest),
+        },
+      };
+    }
+    return res;
+  },
+
+  get: async (id) => {
+    const res = await api.get(`/requests/${id}`, { cache: false });
+    if (res?.data?.request) {
+      return {
+        ...res,
+        data: { ...res.data, request: normalizeRequest(res.data.request) },
+      };
+    }
+    return res;
+  },
+
+  respond: async (id, { message, offeredPrice }) => {
+    const res = await api.post(
+      `/requests/${id}/respond`,
+      { message, offeredPrice },
+      { cache: false }
+    );
+    if (res?.data?.response) {
+      return {
+        ...res,
+        data: { ...res.data, response: normalizeResponse(res.data.response) },
+      };
+    }
+    return res;
+  },
+
+  withdraw: (id, responseId) =>
+    api.delete(`/requests/${id}/responses/${responseId}`, { cache: false }),
+
+  accept: async (id, responseId) => {
+    const res = await api.post(
+      `/requests/${id}/responses/${responseId}/accept`,
+      {},
+      { cache: false }
+    );
+    if (res?.data?.response) {
+      return {
+        ...res,
+        data: { ...res.data, response: normalizeResponse(res.data.response) },
+      };
+    }
+    return res;
+  },
+
+  fulfill: (id) =>
+    api.post(`/requests/${id}/fulfill`, {}, { cache: false }),
+
+  remove: (id) => api.delete(`/requests/${id}`, { cache: false }),
+};
+
+// ============================================
+// DELIVERIES API
+// ============================================
+export const deliveriesAPI = {
+  create: async (data) => {
+    const res = await api.post('/deliveries', data, { cache: false });
+    if (res?.data?.delivery) {
+      return {
+        ...res,
+        data: { ...res.data, delivery: normalizeDelivery(res.data.delivery) },
+      };
+    }
+    return res;
+  },
+
+  list: async (params = {}) => {
+    const res = await api.get('/deliveries', {
+      params,
+      cacheTTL: 30 * 1000,
+    });
+    if (Array.isArray(res?.data?.deliveries)) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          deliveries: res.data.deliveries.map(normalizeDelivery),
+        },
+      };
+    }
+    return res;
+  },
+
+  mine: async (params = {}) => {
+    const res = await api.get('/deliveries/mine', {
+      params,
+      cache: false,
+    });
+    if (Array.isArray(res?.data?.deliveries)) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          deliveries: res.data.deliveries.map(normalizeDelivery),
+        },
+      };
+    }
+    return res;
+  },
+
+  active: async (params = {}) => {
+    const res = await api.get('/deliveries/active', {
+      params,
+      cache: false,
+    });
+    if (Array.isArray(res?.data?.deliveries)) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          deliveries: res.data.deliveries.map(normalizeDelivery),
+        },
+      };
+    }
+    return res;
+  },
+
+  earnings: async () => {
+    const res = await api.get('/deliveries/earnings', { cache: false });
+    const data = res?.data || {};
+    if (Array.isArray(data.recent)) {
+      return {
+        ...res,
+        data: {
+          ...data,
+          recent: data.recent.map(normalizeDelivery),
+        },
+      };
+    }
+    return res;
+  },
+
+  get: async (id) => {
+    const res = await api.get(`/deliveries/${id}`, { cache: false });
+    if (res?.data?.delivery) {
+      return {
+        ...res,
+        data: { ...res.data, delivery: normalizeDelivery(res.data.delivery) },
+      };
+    }
+    return res;
+  },
+
+  accept: async (id) => {
+    const res = await api.post(`/deliveries/${id}/accept`, {}, { cache: false });
+    if (res?.data?.delivery) {
+      return {
+        ...res,
+        data: { ...res.data, delivery: normalizeDelivery(res.data.delivery) },
+      };
+    }
+    return res;
+  },
+
+  pickup: async (id) => {
+    const res = await api.post(`/deliveries/${id}/pickup`, {}, { cache: false });
+    if (res?.data?.delivery) {
+      return {
+        ...res,
+        data: { ...res.data, delivery: normalizeDelivery(res.data.delivery) },
+      };
+    }
+    return res;
+  },
+
+  deliver: async (id) => {
+    const res = await api.post(`/deliveries/${id}/deliver`, {}, { cache: false });
+    if (res?.data?.delivery) {
+      return {
+        ...res,
+        data: { ...res.data, delivery: normalizeDelivery(res.data.delivery) },
+      };
+    }
+    return res;
+  },
+
+  confirm: async (id) => {
+    const res = await api.post(`/deliveries/${id}/confirm`, {}, { cache: false });
+    if (res?.data?.delivery) {
+      return {
+        ...res,
+        data: { ...res.data, delivery: normalizeDelivery(res.data.delivery) },
+      };
+    }
+    return res;
+  },
+
+  remove: (id, reason = null) =>
+    api.delete(`/deliveries/${id}`, {
+      data: { reason },
+      cache: false,
+    }),
 };
 
 // ============================================

@@ -15,7 +15,6 @@ class StorageService {
    * Upload listing images - Uses Cloudinary if available, falls back to Supabase
    */
   async uploadListingImages(files, businessId) {
-    // Check if Cloudinary is configured
     if (cloudinaryService.isConfigured) {
       logger.info('📤 Using Cloudinary for image upload...');
       const result = await cloudinaryService.uploadMultipleImages(files, {
@@ -33,11 +32,9 @@ class StorageService {
         return urls;
       } else {
         logger.warn('⚠️ Cloudinary upload failed, falling back to Supabase:', result.error);
-        // Fall through to Supabase
       }
     }
 
-    // Fallback: Upload to Supabase Storage
     logger.info('📤 Using Supabase Storage for image upload...');
     return this.uploadListingImagesToSupabase(files, businessId);
   }
@@ -48,22 +45,21 @@ class StorageService {
   async uploadListingImagesToSupabase(files, businessId) {
     const uploadedUrls = [];
     const bucketName = 'listing-images';
-    
+
     for (const file of files) {
       try {
-        // Compress image
         const compressed = await sharp(file.buffer)
           .resize(800, 800, { fit: 'cover' })
           .jpeg({ quality: 80 })
           .toBuffer();
 
         const fileName = `${businessId}/${uuidv4()}.jpg`;
-        
+
         const { data, error } = await supabase.storage
           .from(bucketName)
           .upload(fileName, compressed, {
             contentType: 'image/jpeg',
-            cacheControl: '3600'
+            cacheControl: '3600',
           });
 
         if (error) {
@@ -71,7 +67,6 @@ class StorageService {
           continue;
         }
 
-        // Get public URL
         const { data: urlData } = supabase.storage
           .from(bucketName)
           .getPublicUrl(data.path);
@@ -90,7 +85,6 @@ class StorageService {
    * Upload business logo - Uses Cloudinary if available
    */
   async uploadLogo(file, businessId) {
-    // Try Cloudinary first
     if (cloudinaryService.isConfigured) {
       logger.info('📤 Using Cloudinary for logo upload...');
       const result = await cloudinaryService.uploadLogo(file, businessId);
@@ -102,7 +96,6 @@ class StorageService {
       }
     }
 
-    // Fallback: Upload to Supabase
     logger.info('📤 Using Supabase Storage for logo upload...');
     return this.uploadLogoToSupabase(file, businessId);
   }
@@ -113,19 +106,19 @@ class StorageService {
   async uploadLogoToSupabase(file, businessId) {
     try {
       const bucketName = 'business-logos';
-      
+
       const compressed = await sharp(file.buffer)
         .resize(300, 300, { fit: 'contain' })
         .jpeg({ quality: 80 })
         .toBuffer();
 
       const fileName = `${businessId}/logo.jpg`;
-      
+
       const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(fileName, compressed, {
           contentType: 'image/jpeg',
-          cacheControl: '3600'
+          cacheControl: '3600',
         });
 
       if (error) throw error;
@@ -146,7 +139,6 @@ class StorageService {
    * Upload user avatar - Uses Cloudinary if available
    */
   async uploadAvatar(file, userId) {
-    // Try Cloudinary first
     if (cloudinaryService.isConfigured) {
       logger.info('📤 Using Cloudinary for avatar upload...');
       const result = await cloudinaryService.uploadAvatar(file, userId);
@@ -158,7 +150,6 @@ class StorageService {
       }
     }
 
-    // Fallback: Upload to Supabase
     logger.info('📤 Using Supabase Storage for avatar upload...');
     return this.uploadAvatarToSupabase(file, userId);
   }
@@ -169,19 +160,19 @@ class StorageService {
   async uploadAvatarToSupabase(file, userId) {
     try {
       const bucketName = 'service-images';
-      
+
       const compressed = await sharp(file.buffer)
         .resize(200, 200, { fit: 'cover' })
         .jpeg({ quality: 80 })
         .toBuffer();
 
       const fileName = `${userId}/avatar.jpg`;
-      
+
       const { data, error } = await supabase.storage
         .from(bucketName)
         .upload(fileName, compressed, {
           contentType: 'image/jpeg',
-          cacheControl: '3600'
+          cacheControl: '3600',
         });
 
       if (error) throw error;
@@ -198,11 +189,116 @@ class StorageService {
     }
   }
 
+  // ============================================
+  // ★ PHASE 3H: VERIFICATION DOCUMENT UPLOAD
+  // ============================================
+  /**
+   * Upload a verification document (ID or business).
+   * Documents are NOT aggressively resized — legibility matters.
+   * Uses Cloudinary if configured, falls back to Supabase bucket
+   * `verification-documents`.
+   *
+   * @param {object} file   - Multer file (must have .buffer, .mimetype, .originalname)
+   * @param {string} userId - User UUID
+   * @returns {Promise<{url: string|null, error?: string}>}
+   */
+  async uploadVerificationDocument(file, userId) {
+    if (!file || !file.buffer) {
+      return { url: null, error: 'No file provided' };
+    }
+
+    if (cloudinaryService.isConfigured) {
+      logger.info('📤 Using Cloudinary for verification document upload...');
+      try {
+        const result = await cloudinaryService.uploadImage(file, {
+          folder: `verification-documents/${userId}`,
+          publicId: `${userId}/${uuidv4()}`,
+          width: 1600,
+          height: 1600,
+          fit: 'inside',
+          quality: 90,
+        });
+
+        if (result.success) {
+          logger.info(`✅ Verification document uploaded to Cloudinary for user ${userId}`);
+          return { url: result.url };
+        }
+        logger.warn('⚠️ Cloudinary verification upload failed, falling back to Supabase:', result.error);
+      } catch (error) {
+        logger.warn('⚠️ Cloudinary verification upload error, falling back to Supabase:', error.message);
+      }
+    }
+
+    // Supabase fallback
+    return this.uploadVerificationDocumentToSupabase(file, userId);
+  }
+
+  /**
+   * Upload verification document to Supabase bucket `verification-documents`.
+   * Preserves original format (jpg/png/webp) — no JPEG re-encode.
+   */
+  async uploadVerificationDocumentToSupabase(file, userId) {
+    try {
+      const bucketName = 'verification-documents';
+
+      // Light resize only — keep legibility
+      const isPdf = file.mimetype === 'application/pdf';
+      let buffer = file.buffer;
+      let contentType = file.mimetype || 'image/jpeg';
+      let extension = 'jpg';
+
+      if (isPdf) {
+        contentType = 'application/pdf';
+        extension = 'pdf';
+      } else {
+        try {
+          buffer = await sharp(file.buffer)
+            .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
+            .toBuffer();
+          // Figure out output format
+          if (file.mimetype === 'image/png') {
+            contentType = 'image/png';
+            extension = 'png';
+          } else if (file.mimetype === 'image/webp') {
+            contentType = 'image/webp';
+            extension = 'webp';
+          } else {
+            contentType = 'image/jpeg';
+            extension = 'jpg';
+          }
+        } catch (sharpErr) {
+          logger.warn('Sharp resize skipped for verification document:', sharpErr.message);
+          // fall through with original buffer
+        }
+      }
+
+      const fileName = `${userId}/${uuidv4()}.${extension}`;
+
+      const { data, error } = await supabase.storage
+        .from(bucketName)
+        .upload(fileName, buffer, {
+          contentType,
+          cacheControl: '3600',
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(data.path);
+
+      logger.info(`✅ Verification document uploaded to Supabase bucket: ${bucketName}`);
+      return { url: urlData.publicUrl };
+    } catch (error) {
+      logger.error('Verification document upload error:', error);
+      return { url: null, error: error.message };
+    }
+  }
+
   /**
    * Delete image - Supports both Cloudinary and Supabase
    */
   async deleteImage(bucket, path) {
-    // Try Cloudinary first (if path is a Cloudinary public ID)
     if (cloudinaryService.isConfigured && path && !path.includes('supabase')) {
       try {
         const result = await cloudinaryService.deleteImage(path);
@@ -215,7 +311,6 @@ class StorageService {
       }
     }
 
-    // Fallback: Delete from Supabase
     try {
       const { error } = await supabase.storage
         .from(bucket)
@@ -248,14 +343,12 @@ class StorageService {
    * Get optimized URL (Cloudinary) or public URL (Supabase)
    */
   getOptimizedUrl(url, options = {}) {
-    // If it's a Cloudinary URL, use Cloudinary optimization
     if (url && url.includes('cloudinary.com')) {
       const publicId = this.extractPublicIdFromUrl(url);
       if (publicId) {
         return cloudinaryService.getOptimizedUrl(publicId, options);
       }
     }
-    // Return original URL for Supabase or other
     return url;
   }
 
@@ -266,10 +359,8 @@ class StorageService {
     try {
       const urlObj = new URL(url);
       const pathParts = urlObj.pathname.split('/');
-      // Find the part after 'upload/'
       const uploadIndex = pathParts.indexOf('upload');
       if (uploadIndex !== -1) {
-        // Get everything after the version number
         const publicIdParts = pathParts.slice(uploadIndex + 2);
         return publicIdParts.join('/').replace(/\.[^.]+$/, '');
       }

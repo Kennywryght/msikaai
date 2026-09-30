@@ -1,7 +1,7 @@
 // mobile/src/pages/Search.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { listingsAPI, messagesAPI } from '../services/api';
+import { listingsAPI, messagesAPI, aiAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
 import { useToast } from '../components/ToastContainer';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +26,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
     sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
     store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+    globe: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z",
   };
   const d = icons[name] || icons.store;
   return (
@@ -59,6 +60,11 @@ const Search = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [openingChatId, setOpeningChatId] = useState(null);
+
+  // ★ PHASE 7A: translation state
+  const [translation, setTranslation] = useState(null); // { original, translated, detectedLanguage, confidence }
+  const [translating, setTranslating] = useState(false);
+
   const searchInputRef = useRef(null);
 
   const isMobile = windowWidth <= 768;
@@ -67,9 +73,13 @@ const Search = () => {
     const params = new URLSearchParams(location.search);
     const q = params.get('q');
     const category = params.get('category');
-    if (q) { setSearchQuery(q); performSearch(0, q); }
+    if (q) {
+      setSearchQuery(q);
+      performSearch(0, q);
+    }
     if (category && category !== 'All') setSelectedCategory(category);
     if (searchInputRef.current) setTimeout(() => searchInputRef.current.focus(), 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -78,11 +88,68 @@ const Search = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // ★ PHASE 7A: translate before searching
+  const translateAndSearch = async (query) => {
+    const trimmed = String(query || '').trim();
+    if (!trimmed) {
+      setTranslation(null);
+      return { searchTerms: [], translated: '' };
+    }
+
+    // Skip translation for very short non-Chichewa queries — no need to spend
+    // an AI call on "a", "hi", etc.
+    if (trimmed.length < 3) {
+      return { searchTerms: [trimmed], translated: trimmed };
+    }
+
+    setTranslating(true);
+    try {
+      const res = await aiAPI.translateSearch(trimmed);
+      const data = res?.data || {};
+      const translated = data.translated || trimmed;
+      const keywords = Array.isArray(data.keywords) && data.keywords.length > 0
+        ? data.keywords
+        : [trimmed, translated].filter(Boolean);
+
+      // Only surface the translation chip if it actually changed something
+      const lang = data.detectedLanguage || 'unknown';
+      const confidence = Number(data.confidence) || 0;
+      if (lang !== 'en' && translated.toLowerCase() !== trimmed.toLowerCase()) {
+        setTranslation({
+          original: trimmed,
+          translated,
+          detectedLanguage: lang,
+          confidence,
+        });
+      } else {
+        setTranslation(null);
+      }
+
+      return { searchTerms: keywords, translated };
+    } catch (err) {
+      console.warn('translateAndSearch failed:', err?.message || err);
+      setTranslation(null);
+      return { searchTerms: [trimmed], translated: trimmed };
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   const performSearch = async (page = 0, query = searchQuery) => {
     setLoading(true);
     try {
+      // ★ PHASE 7A: Translate the query first
+      const { searchTerms } = await translateAndSearch(query);
+
       const params = { limit: 20, offset: page * 20 };
-      if (query?.trim()) params.q = query.trim();
+
+      if (searchTerms.length > 0) {
+        // Join keywords so the search engine can match ANY of them
+        params.q = searchTerms.join(' ');
+      } else if (query?.trim()) {
+        params.q = query.trim();
+      }
+
       if (selectedCategory && selectedCategory !== 'All') params.category = selectedCategory;
       if (minPrice) params.minPrice = parseFloat(minPrice);
       if (maxPrice) params.maxPrice = parseFloat(maxPrice);
@@ -101,7 +168,9 @@ const Search = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`, { replace: true });
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`, { replace: true });
+    }
     performSearch(0);
   };
 
@@ -112,6 +181,7 @@ const Search = () => {
     setMaxPrice('');
     setResults([]);
     setTotalResults(0);
+    setTranslation(null);
     navigate('/search', { replace: true });
     if (searchInputRef.current) searchInputRef.current.focus();
   };
@@ -132,7 +202,8 @@ const Search = () => {
     const sellerUserId =
       listing?.businesses?.user_id ||
       listing?.businesses?.userId ||
-      listing?.businesses?.owner_id || null;
+      listing?.businesses?.owner_id ||
+      null;
     if (!sellerUserId) { showToast('Seller information is unavailable', 'error'); return; }
     if (sellerUserId === user.id) { showToast("You can't message yourself", 'warning'); return; }
     if (openingChatId === listing.id) return;
@@ -202,18 +273,38 @@ const Search = () => {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search Mitundu marketplace..."
+                placeholder="Search in English or Chichewa…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input"
                 autoComplete="off"
               />
-              <button type="submit" className="search-btn">
+              <button type="submit" className="search-btn" disabled={translating}>
                 <Icon name="search" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
-                Search
+                {translating ? 'Translating…' : 'Search'}
               </button>
             </div>
           </form>
+
+          {/* ★ PHASE 7A: Translation chip */}
+          {translation && (
+            <div className="translation-chip">
+              <Icon name="globe" size={14} color="#1E40AF" strokeWidth={2} />
+              <span className="translation-text">
+                Showing results for <strong>{translation.translated}</strong>
+              </span>
+              <span className="translation-original">
+                (from "{translation.original}")
+              </span>
+            </div>
+          )}
+
+          {translating && !translation && (
+            <div className="translation-chip translating">
+              <div className="translation-spinner" />
+              <span className="translation-text">Translating your search…</span>
+            </div>
+          )}
 
           <button className="filter-toggle" onClick={() => setShowFilters(!showFilters)}>
             <Icon name="filter" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
@@ -270,7 +361,8 @@ const Search = () => {
                 const sellerUserId =
                   listing.businesses?.user_id ||
                   listing.businesses?.userId ||
-                  listing.businesses?.owner_id || null;
+                  listing.businesses?.owner_id ||
+                  null;
                 const canMessage = !!sellerUserId && sellerUserId !== user?.id;
 
                 return (
@@ -332,13 +424,19 @@ const Search = () => {
           <div className="empty-state">
             <Icon name="search" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
             <h3 className="empty-title">No results found</h3>
-            <p className="empty-text">Try adjusting your search or filters</p>
+            <p className="empty-text">
+              {translation
+                ? `We translated "${translation.original}" to "${translation.translated}" but found nothing. Try different keywords.`
+                : 'Try adjusting your search or filters'}
+            </p>
           </div>
         ) : (
           <div className="empty-state">
             <Icon name="search" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
             <h3 className="empty-title">Search for products and services</h3>
-            <p className="empty-text">Enter a search term above to get started</p>
+            <p className="empty-text">
+              Try English or Chichewa — e.g. "chimanga", "maize", "plumber", "zovala"
+            </p>
           </div>
         )}
       </div>
@@ -386,7 +484,42 @@ const Search = () => {
         .search-input { flex: 1; border: none; outline: none; background: transparent; padding: 10px 0; font-size: 15px; font-family: inherit; color: var(--color-text); }
         .search-input::placeholder { color: var(--color-text-muted); }
         .search-btn { padding: 8px 16px; background: var(--color-primary); border: none; border-radius: var(--radius-lg); color: var(--color-text-inverse); font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-        .search-btn:hover { background: var(--color-accent); transform: scale(0.98); }
+        .search-btn:hover:not(:disabled) { background: var(--color-accent); transform: scale(0.98); }
+        .search-btn:disabled { opacity: 0.65; cursor: wait; }
+
+        /* ★ PHASE 7A: translation chip */
+        .translation-chip {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          margin-bottom: 12px;
+          background: #EFF6FF;
+          border: 1px solid #BFDBFE;
+          border-radius: var(--radius-lg);
+          font-size: 13px;
+          color: #1E40AF;
+          animation: fadeIn 0.25s ease-out;
+          flex-wrap: wrap;
+        }
+        .translation-chip.translating { background: #F3F4F6; border-color: #E5E7EB; color: #6B7280; }
+        .translation-chip strong { font-weight: 700; }
+        .translation-text { font-weight: 500; }
+        .translation-original { font-size: 12px; opacity: 0.75; font-style: italic; }
+        .translation-spinner {
+          width: 14px;
+          height: 14px;
+          border: 2px solid #E5E7EB;
+          border-top-color: #6B7280;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
 
         .filter-toggle { background: var(--color-surface-alt); border: 1px solid var(--color-border); padding: 6px 14px; border-radius: var(--radius-md); cursor: pointer; font-size: 13px; font-weight: 500; color: var(--color-text-secondary); display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s; }
         .filter-toggle:hover { background: var(--color-border); border-color: var(--color-border-strong); }
@@ -444,6 +577,7 @@ const Search = () => {
           .result-image { width: 100%; height: 100px; }
           .result-card { padding: 12px 14px; }
           .result-title { font-size: 14px; }
+          .translation-chip { font-size: 12px; padding: 8px 12px; }
         }
         @media (max-width: 380px) {
           .main-content { padding: 12px 12px 32px; }
@@ -457,6 +591,9 @@ const Search = () => {
         @media (min-width: 481px) and (max-width: 768px) {
           .filter-row { flex-wrap: wrap; }
           .filter-group { min-width: 160px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .translation-chip, .translation-spinner { animation: none; }
         }
       `}</style>
     </div>

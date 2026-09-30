@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { listingsAPI, businessAPI, messagesAPI, interactionsAPI } from '../services/api';
+import { listingsAPI, businessAPI, messagesAPI, interactionsAPI, requestsAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
 import RoleChoiceBlock from '../components/RoleChoiceBlock';
@@ -36,6 +36,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     crown: "M3 8l4 4 5-7 5 7 4-4v10a1 1 0 01-1 1H4a1 1 0 01-1-1V8z",
     chevronLeft: "M15 18l-6-6 6-6",
     chevronRight: "M9 18l6-6-6-6",
+    tag: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01",
+    clock: "M12 6v6l4 2M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z",
   };
   const d = icons[name] || icons.store;
   return (
@@ -139,6 +141,15 @@ const SPOTLIGHT_MAX = 8;
 const SPOTLIGHT_IMAGE_MS = 2000;
 const SPOTLIGHT_HOLD_MS = 1600;
 
+const REQUESTS_SPOTLIGHT_LIMIT = 5;
+
+const URGENCY_META = {
+  low: { label: 'Low', color: '#6B7280', bg: '#F3F4F6' },
+  medium: { label: 'Medium', color: '#0EA5E9', bg: '#E0F2FE' },
+  high: { label: 'High', color: '#F59E0B', bg: '#FEF3C7' },
+  urgent: { label: 'Urgent', color: '#DC2626', bg: '#FEE2E2' },
+};
+
 const getCategoryColor = (category) => {
   if (!category) return 'var(--color-text-secondary)';
   const c = category.toLowerCase();
@@ -161,6 +172,27 @@ const isPremium = (item) => {
     if (!Number.isNaN(t) && t > Date.now()) return true;
   }
   return false;
+};
+
+const formatTimeAgo = (dateStr) => {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+};
+
+const formatRequestBudget = (min, max) => {
+  const fmt = (n) => `MK ${Number(n).toLocaleString()}`;
+  if (min && max) return `${fmt(min)} – ${fmt(max)}`;
+  if (min) return `From ${fmt(min)}`;
+  if (max) return `Up to ${fmt(max)}`;
+  return null;
 };
 
 /* ---------- Photo slider ---------- */
@@ -555,6 +587,50 @@ const SpotlightTile = ({ item, onOpen }) => {
   );
 };
 
+/* ---------- Request mini-card ---------- */
+const RequestMiniCard = ({ request, onClick }) => {
+  const urgency = URGENCY_META[request.urgency] || URGENCY_META.medium;
+  const budget = formatRequestBudget(request.budget_min, request.budget_max);
+  const timeAgo = formatTimeAgo(request.created_at);
+  const responsesCount = request.responses_count || 0;
+
+  return (
+    <button className="req-mini" onClick={() => onClick(request)} type="button">
+      <div className="req-mini-top">
+        <span className="req-mini-urgency" style={{ background: urgency.bg, color: urgency.color }}>
+          {urgency.label}
+        </span>
+        <span className="req-mini-time">
+          <Icon name="clock" size={10} strokeWidth={2} />
+          {timeAgo}
+        </span>
+      </div>
+
+      <h3 className="req-mini-title">{request.title}</h3>
+
+      {budget && (
+        <div className="req-mini-budget">
+          <Icon name="tag" size={11} strokeWidth={2} />
+          {budget}
+        </div>
+      )}
+
+      <div className="req-mini-footer">
+        {request.location_area && (
+          <span className="req-mini-loc">
+            <Icon name="mapPin" size={10} strokeWidth={2} />
+            {request.location_area}
+          </span>
+        )}
+        <span className="req-mini-responses">
+          <Icon name="message" size={10} strokeWidth={2} />
+          {responsesCount}
+        </span>
+      </div>
+    </button>
+  );
+};
+
 const Landing = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -569,6 +645,9 @@ const Landing = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [openingChatId, setOpeningChatId] = useState(null);
   const [commentsListing, setCommentsListing] = useState(null);
+
+  const [spotlightRequests, setSpotlightRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
 
   const [likeStates, setLikeStates] = useState({});
   const [commentCounts, setCommentCounts] = useState({});
@@ -653,6 +732,30 @@ const Landing = () => {
     fetchData();
     return () => { mounted = false; };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    let mounted = true;
+    setRequestsLoading(true);
+
+    (async () => {
+      try {
+        const res = await requestsAPI.list({
+          status: 'open',
+          limit: REQUESTS_SPOTLIGHT_LIMIT,
+          sort: 'recent',
+        });
+        const list = res?.data?.requests || [];
+        if (mounted) setSpotlightRequests(list.slice(0, REQUESTS_SPOTLIGHT_LIMIT));
+      } catch (err) {
+        console.warn('Requests spotlight fetch failed:', err?.message);
+        if (mounted) setSpotlightRequests([]);
+      } finally {
+        if (mounted) setRequestsLoading(false);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -889,6 +992,23 @@ const Landing = () => {
     });
   }, []);
 
+  const handleRequestClick = useCallback((request) => {
+    if (!request?.id) return;
+    navigate(`/requests/${request.id}`);
+  }, [navigate]);
+
+  const handleSeeAllRequests = useCallback(() => {
+    navigate('/requests');
+  }, [navigate]);
+
+  const handlePostRequest = useCallback(() => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/create-request' } });
+      return;
+    }
+    navigate('/create-request');
+  }, [isAuthenticated, navigate]);
+
   const handleBottomNav = (id) => {
     if (id === 'home') navigate('/landing');
     else if (id === 'search') navigate('/search');
@@ -919,7 +1039,6 @@ const Landing = () => {
 
   return (
     <div className="app">
-      {/* ★ MODEL C — ROLE CHOICE BLOCK */}
       <RoleChoiceBlock />
 
       {/* HERO */}
@@ -937,7 +1056,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* STICKY SEARCH */}
+      {/* STICKY SEARCH — ★ PHASE 7A: placeholder hints at Chichewa */}
       <div className="search-sticky">
         <div className="search-sticky-inner">
           <form onSubmit={handleSearch} className="search-form">
@@ -946,7 +1065,7 @@ const Landing = () => {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search the marketplace…"
+                placeholder="Search — English or Chichewa…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input"
@@ -958,6 +1077,50 @@ const Landing = () => {
           </form>
         </div>
       </div>
+
+      {/* REQUESTS SPOTLIGHT */}
+      {spotlightRequests.length > 0 && (
+        <div className="req-spotlight">
+          <div className="req-spotlight-header">
+            <div className="req-spotlight-heading-wrap">
+              <h2 className="req-spotlight-heading">
+                People near you need…
+              </h2>
+              <span className="req-spotlight-sub">
+                {spotlightRequests.length} open request{spotlightRequests.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <button
+              className="req-spotlight-seeall"
+              onClick={handleSeeAllRequests}
+              type="button"
+            >
+              See all
+              <Icon name="arrowRight" size={13} strokeWidth={2.2} />
+            </button>
+          </div>
+
+          <div className="req-spotlight-scroll">
+            {spotlightRequests.map((r) => (
+              <RequestMiniCard key={r.id} request={r} onClick={handleRequestClick} />
+            ))}
+
+            <button
+              className="req-mini req-mini-cta"
+              onClick={handlePostRequest}
+              type="button"
+            >
+              <div className="req-cta-icon">
+                <Icon name="plus" size={22} color="var(--color-accent)" strokeWidth={2.2} />
+              </div>
+              <div className="req-cta-text">
+                <span className="req-cta-title">Post a request</span>
+                <span className="req-cta-desc">Tell us what you need</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* SPOTLIGHT */}
       {spotlight.length > 0 && (
@@ -1299,6 +1462,200 @@ const Landing = () => {
           box-shadow: var(--shadow-accent);
         }
         .search-btn:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
+
+        /* REQUESTS SPOTLIGHT */
+        .req-spotlight {
+          max-width: 1200px;
+          margin: 10px auto 0;
+          padding: 4px 0 4px;
+        }
+        .req-spotlight-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0 20px;
+          margin-bottom: 10px;
+        }
+        .req-spotlight-heading-wrap {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .req-spotlight-heading {
+          font-family: var(--font-serif);
+          font-weight: 600;
+          font-size: 16px;
+          margin: 0;
+          color: var(--color-text);
+          letter-spacing: -0.01em;
+        }
+        .req-spotlight-sub {
+          font-size: 11px;
+          color: var(--color-text-muted);
+          font-weight: 500;
+        }
+        .req-spotlight-seeall {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 6px 12px;
+          border-radius: 999px;
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
+          color: var(--color-text);
+          font-size: 11.5px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .req-spotlight-seeall:hover {
+          border-color: var(--color-accent);
+          color: var(--color-accent);
+        }
+        .req-spotlight-scroll {
+          display: flex;
+          gap: 12px;
+          overflow-x: auto;
+          scrollbar-width: none;
+          padding: 4px 20px 8px;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+        }
+        .req-spotlight-scroll::-webkit-scrollbar { display: none; }
+
+        .req-mini {
+          flex: 0 0 auto;
+          width: 220px;
+          scroll-snap-align: start;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: var(--radius-2xl);
+          padding: 12px 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          cursor: pointer;
+          font-family: inherit;
+          text-align: left;
+          transition: all 0.25s ease;
+          box-shadow: var(--shadow-xs);
+        }
+        .req-mini:hover {
+          border-color: var(--color-accent);
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-lg);
+        }
+        .req-mini-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 6px;
+        }
+        .req-mini-urgency {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 8px;
+          border-radius: 999px;
+          font-size: 9.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .req-mini-time {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 10px;
+          color: var(--color-text-muted);
+          white-space: nowrap;
+        }
+        .req-mini-title {
+          font-family: var(--font-serif);
+          font-size: 13.5px;
+          font-weight: 600;
+          color: var(--color-text);
+          margin: 0;
+          line-height: 1.3;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          letter-spacing: -0.005em;
+        }
+        .req-mini-budget {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11.5px;
+          font-weight: 700;
+          color: var(--color-accent);
+        }
+        .req-mini-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 6px;
+          padding-top: 8px;
+          border-top: 1px solid var(--color-border);
+        }
+        .req-mini-loc,
+        .req-mini-responses {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 10.5px;
+          color: var(--color-text-muted);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .req-mini-loc { flex: 1; min-width: 0; }
+
+        .req-mini-cta {
+          background: linear-gradient(135deg, var(--color-accent-tint), var(--color-surface));
+          border: 1.5px dashed var(--color-accent);
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+          padding: 14px;
+          gap: 8px;
+          min-height: 148px;
+        }
+        .req-mini-cta:hover {
+          background: linear-gradient(135deg, var(--color-accent-soft), var(--color-surface));
+          border-style: solid;
+        }
+        .req-cta-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: var(--color-surface);
+          border: 1.5px solid var(--color-accent);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .req-cta-text {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .req-cta-title {
+          font-family: var(--font-serif);
+          font-size: 13.5px;
+          font-weight: 600;
+          color: var(--color-text);
+        }
+        .req-cta-desc {
+          font-size: 11px;
+          color: var(--color-text-muted);
+        }
 
         /* PHOTO SLIDER */
         .pslider {
@@ -2200,6 +2557,9 @@ const Landing = () => {
           .hero-title { font-size: 22px; }
           .hero-desc { font-size: 12.5px; }
           .search-sticky { padding: 0 16px 10px; }
+          .req-spotlight-header { padding: 0 16px; }
+          .req-spotlight-scroll { padding: 4px 16px 8px; }
+          .req-mini { width: 200px; }
           .spotlight-header { padding: 0 16px; }
           .spotlight-scroll { padding: 4px 16px 8px; }
           .spot-tile { width: 152px; }
@@ -2222,7 +2582,7 @@ const Landing = () => {
           .pcard, .pcard-heart, .pcard-icon-btn, .pcard-msg,
           .fcard-media, .fcard-heart, .fcard-action, .fcard-msg,
           .spot-tile, .search-btn, .filter-btn, .biz-card,
-          .nav-icon-wrap, .pop, .pop-overlay { transition: none; animation: none; }
+          .nav-icon-wrap, .pop, .pop-overlay, .req-mini, .req-spotlight-seeall { transition: none; animation: none; }
           .flame-outer, .flame-mid, .flame-core, .ember { animation: none; }
         }
       `}</style>

@@ -37,7 +37,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
-import { authenticateToken } from './middleware/auth.js';
+import { authenticateToken, optionalAuth } from './middleware/auth.js';
 import { cacheMiddleware, getCacheStats, clearCache } from './middleware/cache.js';
 import { logger, logHttpRequest } from './utils/logger.js';
 
@@ -65,6 +65,15 @@ import paymentRoutes from './api/payment.js';
 import searchRoutes from './api/search.js';
 import messagesRoutes from './api/messages.js';
 import interactionsRoutes from './api/interactions.js';
+
+// ★ PHASE 3C: Trust routes
+import trustRoutes from './api/trust.js';
+
+// ★ PHASE 5C: Requests routes
+import requestsRoutes from './api/requests.js';
+
+// ★ PHASE 6C: Deliveries routes
+import deliveriesRoutes from './api/deliveries.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -264,8 +273,6 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 const uniqueOrigins = [...new Set(allowedOrigins)];
-// ★ FIX: added "-" to the character class so branch previews like
-//   msikaai-git-master-kennedy-bandas-projects.vercel.app match.
 const vercelPreviewPattern = /^https:\/\/msikaai-[a-z0-9-]+-kennedy-bandas-projects\.vercel\.app$/;
 const msikaVercelPattern = /^https:\/\/msika-wa-mitundu[a-z0-9-]*\.vercel\.app$/;
 
@@ -305,9 +312,6 @@ app.use(compression({
 
 // ============================================
 // BODY PARSING
-//
-// ★ PHASE 2B: The PayChangu webhook needs the RAW body so we can
-//   verify the HMAC signature. Every other route gets parsed JSON.
 // ============================================
 app.use((req, res, next) => {
   if (req.originalUrl === '/api/payment/webhook') {
@@ -661,11 +665,18 @@ app.use('/api/ai', authenticateToken, aiLimiter, aiRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/messages', authenticateToken, messagesRoutes);
 
-// ★ PHASE 2B: /api/payment — webhook must be reachable WITHOUT a JWT.
-//   Every other payment route requires auth.
+// ★ PHASE 3C: Trust routes (each route handles its own auth)
+app.use('/api/trust', trustRoutes);
+
+// ★ PHASE 5C: Requests routes — optional auth so the feed is public
+app.use('/api/requests', optionalAuth, requestsRoutes);
+
+// ★ PHASE 6C: Deliveries routes — optional auth so the feed is public
+app.use('/api/deliveries', optionalAuth, deliveriesRoutes);
+
 app.use('/api/payment', (req, res, next) => {
   if (req.path === '/webhook' && req.method === 'POST') {
-    return next(); // public webhook
+    return next();
   }
   return authenticateToken(req, res, next);
 }, paymentRoutes);

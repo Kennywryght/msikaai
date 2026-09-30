@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { trustAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 
 // ============================================================
-// LUCIDE-STYLE ICONS
+// ICONS
 // ============================================================
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
@@ -25,10 +26,10 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     trendingUp: "M23 6l-9.5 9.5-5-5L1 18",
     check: "M20 6L9 17l-5-5",
     star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+    shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+    chevronRight: "M9 18l6-6-6-6",
   };
-
   const d = icons[name] || icons.store;
-
   return (
     <svg
       width={size}
@@ -55,6 +56,10 @@ const AdminDashboard = () => {
   const { showToast, success, error } = useToast();
   const [loading, setLoading] = useState(true);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
+
+  // ★ PHASE 3I: pending verification count
+  const [pendingVerifications, setPendingVerifications] = useState(0);
+
   const [stats, setStats] = useState({
     users: 0,
     projects: 0,
@@ -97,6 +102,7 @@ const AdminDashboard = () => {
       }
 
       await loadDashboardData();
+      await loadPendingVerifications();
     } catch (err) {
       console.error('Error checking admin status:', err);
       showToast('Error loading dashboard', 'error');
@@ -149,6 +155,18 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error('Error loading dashboard data:', err);
       showToast('Error loading data', 'error');
+    }
+  };
+
+  // ★ PHASE 3I: fetch pending count
+  const loadPendingVerifications = async () => {
+    try {
+      const res = await trustAPI.getPendingVerifications();
+      const list = res?.data?.verifications || [];
+      setPendingVerifications(list.length);
+    } catch (err) {
+      // Not fatal — just skip the badge
+      console.warn('Could not load pending verifications:', err?.message);
     }
   };
 
@@ -255,6 +273,27 @@ const AdminDashboard = () => {
           <h1 className="welcome-title">Admin Dashboard</h1>
           <p className="welcome-subtitle">Overview of your platform's performance and activity</p>
         </div>
+
+        {/* ★ PHASE 3I: Verification queue banner */}
+        {pendingVerifications > 0 && (
+          <Link to="/admin/verifications" className="verification-banner">
+            <div className="banner-icon">
+              <Icon name="shield" size={22} color="#FFFFFF" strokeWidth={1.9} />
+            </div>
+            <div className="banner-content">
+              <div className="banner-title">
+                {pendingVerifications} pending verification{pendingVerifications === 1 ? '' : 's'}
+              </div>
+              <div className="banner-desc">
+                Review ID, business, and email submissions
+              </div>
+            </div>
+            <div className="banner-cta">
+              Review
+              <Icon name="chevronRight" size={14} color="#FFFFFF" strokeWidth={2.4} />
+            </div>
+          </Link>
+        )}
 
         {/* Stats Grid */}
         <div className="stats-grid">
@@ -411,7 +450,7 @@ const AdminDashboard = () => {
         }
 
         /* ===== WELCOME ===== */
-        .welcome-section { margin-bottom: 24px; }
+        .welcome-section { margin-bottom: 20px; }
 
         .welcome-badge {
           display: inline-flex;
@@ -439,6 +478,66 @@ const AdminDashboard = () => {
           font-size: 14px;
           color: var(--color-text-muted);
           margin: 0;
+        }
+
+        /* ===== ★ PHASE 3I: Verification banner ===== */
+        .verification-banner {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 14px 18px;
+          margin-bottom: 20px;
+          background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+          border-radius: var(--radius-xl);
+          text-decoration: none;
+          color: #FFFFFF;
+          box-shadow: 0 4px 16px rgba(139, 92, 246, 0.28);
+          transition: all 0.2s ease;
+        }
+
+        .verification-banner:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);
+        }
+
+        .banner-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: var(--radius-lg);
+          background: rgba(255, 255, 255, 0.18);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .banner-content {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .banner-title {
+          font-size: 15px;
+          font-weight: 700;
+          margin-bottom: 2px;
+          letter-spacing: -0.01em;
+        }
+
+        .banner-desc {
+          font-size: 12.5px;
+          opacity: 0.9;
+        }
+
+        .banner-cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 8px 14px;
+          background: rgba(255, 255, 255, 0.18);
+          border-radius: var(--radius-lg);
+          font-size: 13px;
+          font-weight: 700;
+          flex-shrink: 0;
         }
 
         /* ===== STATS ===== */
@@ -692,10 +791,22 @@ const AdminDashboard = () => {
           .activity-card { padding: 12px 14px; }
           .activity-item { padding: 8px 0; }
           .welcome-title { font-size: 20px; }
+          .verification-banner { padding: 12px 14px; gap: 10px; }
+          .banner-icon { width: 38px; height: 38px; }
+          .banner-title { font-size: 13.5px; }
+          .banner-desc { font-size: 11px; }
+          .banner-cta { padding: 6px 10px; font-size: 12px; }
         }
 
         @media (min-width: 481px) and (max-width: 768px) {
           .stats-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .stat-card,
+          .verification-banner { transition: none; }
+          .stat-card:hover,
+          .verification-banner:hover { transform: none; }
         }
       `}</style>
     </div>

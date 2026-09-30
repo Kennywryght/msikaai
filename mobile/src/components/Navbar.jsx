@@ -4,6 +4,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { notificationsAPI } from '../services/api';
+import useTrustScore from '../hooks/useTrustScore';
+import TrustBadge from './TrustBadge';
 import Logo from './Logo';
 
 const Icon = ({
@@ -38,6 +40,9 @@ const Icon = ({
     settings:
       'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z',
     trending: 'M23 6l-9.5 9.5-5-5L1 18',
+    shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+    message: 'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z',
+    truck: 'M1 3h13v13H1V3zM14 8h4l4 4v4h-8V8zM6.5 20a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM18.5 20a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
   };
 
   const d = icons[name] || icons.home;
@@ -60,12 +65,19 @@ const Icon = ({
   );
 };
 
+// ★ PHASE 6I: added delivery emoji mappings (ready for 6J notifications)
 const NOTIFICATION_ICONS = {
   message: '💬',
   view: '👁️',
   order: '📦',
   reservation: '📦',
   request: '⏰',
+  request_response: '📬',
+  request_accepted: '✅',
+  request_fulfilled: '🎉',
+  delivery_accepted: '🚚',
+  delivery_picked_up: '📦',
+  delivery_confirmed: '🎉',
   heart: '❤️',
   like: '❤️',
   star: '⭐',
@@ -80,6 +92,8 @@ const Navbar = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { tier: trustTier } = useTrustScore(user?.id);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -214,12 +228,15 @@ const Navbar = () => {
     'U'
   ).toUpperCase();
 
+  // ★ PHASE 6I: Deliveries added to Main section
   const drawerNavSections = [
     {
       label: 'Main',
       items: [
         { label: 'Home', path: '/landing', icon: 'home' },
         { label: 'Search', path: '/search', icon: 'search' },
+        { label: 'Requests', path: '/requests', icon: 'message' },
+        { label: 'Deliveries', path: '/deliveries', icon: 'truck' },
         { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
       ],
     },
@@ -242,6 +259,7 @@ const Navbar = () => {
     {
       label: 'Account',
       items: [
+        { label: 'Trust Profile', path: '/trust', icon: 'shield' },
         { label: 'Messages', path: '/messages', icon: 'message' },
         { label: 'Notifications', path: '/notifications', icon: 'bell' },
         { label: 'Profile', path: '/profile', icon: 'user' },
@@ -267,10 +285,46 @@ const Navbar = () => {
             className="logo"
             aria-label="Kumsika home"
           >
-            <Logo variant="full" size={38} clickable={false} />
+            <Logo variant="full" size={46} clickable={false} />
           </Link>
 
           <div className="nav-right">
+            {isAuthenticated && (
+              <Link to="/trust" className="trust-chip" aria-label="Trust Profile">
+                <TrustBadge
+                  type={
+                    trustTier >= 3
+                      ? 'trusted'
+                      : trustTier >= 2
+                      ? 'verified'
+                      : trustTier >= 1
+                      ? 'verified'
+                      : undefined
+                  }
+                  label={
+                    trustTier >= 3
+                      ? 'Business'
+                      : trustTier >= 2
+                      ? 'ID Verified'
+                      : trustTier >= 1
+                      ? 'Verified'
+                      : 'Unverified'
+                  }
+                  color={
+                    trustTier >= 3
+                      ? '#10B981'
+                      : trustTier >= 2
+                      ? '#8B5CF6'
+                      : trustTier >= 1
+                      ? '#3B82F6'
+                      : '#94A3B8'
+                  }
+                  size="sm"
+                  variant="default"
+                />
+              </Link>
+            )}
+
             {isAuthenticated && (
               <div className="bell-wrapper">
                 <button
@@ -434,7 +488,7 @@ const Navbar = () => {
           <aside className="drawer" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
               <div className="drawer-logo">
-                <Logo variant="full" size={34} clickable={false} />
+                <Logo variant="full" size={42} clickable={false} />
               </div>
               <button
                 type="button"
@@ -564,7 +618,7 @@ const Navbar = () => {
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-bottom: 1px solid var(--color-border);
-          height: 60px;
+          height: 68px;
           display: flex;
           align-items: center;
         }
@@ -599,6 +653,15 @@ const Navbar = () => {
           gap: 6px;
           flex-shrink: 0;
         }
+
+        .trust-chip {
+          display: inline-flex;
+          align-items: center;
+          text-decoration: none;
+          transition: transform 0.2s ease;
+        }
+
+        .trust-chip:hover { transform: translateY(-1px); }
 
         .icon-btn {
           position: relative;
@@ -1161,13 +1224,15 @@ const Navbar = () => {
             font-size: 12px;
           }
 
+          .trust-chip { display: none; }
+
           .notification-dropdown {
             position: fixed;
-            top: 68px;
+            top: 76px;
             right: 12px;
             left: 12px;
             width: auto;
-            max-height: calc(100vh - 92px);
+            max-height: calc(100vh - 100px);
             border-radius: var(--radius-xl);
           }
 
@@ -1200,7 +1265,8 @@ const Navbar = () => {
           .drawer-signout,
           .view-all-btn,
           .mark-all-btn,
-          .notification-item { transition: none; }
+          .notification-item,
+          .trust-chip { transition: none; }
         }
       `}</style>
     </>

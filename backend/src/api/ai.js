@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import groqService from '../services/groqService.js';
 import geminiService from '../services/geminiService.js';
+import aiService from '../services/aiService.js';
 import { logger } from '../utils/logger.js';
 
 dotenv.config();
@@ -15,30 +16,151 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// Configure multer for file uploads
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 // ============================================
-// 1. SMART SEARCH - Using Groq for speed
+// ★ PHASE 7A: TRANSLATE SEARCH QUERY (Chichewa → English)
+// ============================================
+router.post('/translate-search', async (req, res) => {
+  try {
+    const rawQuery = req.body?.q ?? req.body?.query ?? '';
+    const query = String(rawQuery).trim();
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        error: 'Query (q) is required',
+      });
+    }
+
+    if (query.length > 200) {
+      return res.status(400).json({
+        success: false,
+        error: 'Query is too long (max 200 chars)',
+      });
+    }
+
+    const result = await aiService.translateChichewaQuery(query);
+
+    return res.json({
+      success: true,
+      original: query,
+      translated: result.translated,
+      detectedLanguage: result.detectedLanguage,
+      confidence: result.confidence,
+      keywords: result.keywords,
+    });
+  } catch (error) {
+    logger.error('❌ /translate-search error:', error?.message || error);
+    const fallbackQuery = String(req.body?.q ?? req.body?.query ?? '').trim();
+    return res.json({
+      success: true,
+      original: fallbackQuery,
+      translated: fallbackQuery,
+      detectedLanguage: 'unknown',
+      confidence: 0,
+      keywords: fallbackQuery ? [fallbackQuery] : [],
+      fallback: true,
+    });
+  }
+});
+
+router.get('/translate-search', async (req, res) => {
+  try {
+    const query = String(req.query.q || '').trim();
+    if (!query) {
+      return res.status(400).json({ success: false, error: 'q is required' });
+    }
+    const result = await aiService.translateChichewaQuery(query);
+    return res.json({
+      success: true,
+      original: query,
+      translated: result.translated,
+      detectedLanguage: result.detectedLanguage,
+      confidence: result.confidence,
+      keywords: result.keywords,
+    });
+  } catch (error) {
+    logger.error('❌ GET /translate-search error:', error?.message || error);
+    return res.status(500).json({ success: false, error: 'Translation failed' });
+  }
+});
+
+// ============================================
+// ★ PHASE 7B: PRICE SUGGESTION
+// ============================================
+/**
+ * POST /api/ai/price-suggest
+ * Body: { title: string, category?: string }
+ * Returns:
+ *   { success: true, suggestion: { hasSuggestion, min, median, max,
+ *      sampleSize, confidence, insight, currency, category } }
+ *   OR if not enough data:
+ *   { success: true, suggestion: { hasSuggestion: false, reason,
+ *      message, sampleSize? } }
+ */
+router.post('/price-suggest', async (req, res) => {
+  try {
+    const title = String(req.body?.title || '').trim();
+    const category = String(req.body?.category || '').trim();
+
+    if (!title || title.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Title (min 3 chars) is required',
+      });
+    }
+
+    if (title.length > 200) {
+      return res.status(400).json({
+        success: false,
+        error: 'Title is too long (max 200 chars)',
+      });
+    }
+
+    const suggestion = await aiService.suggestPriceForListing({
+      title,
+      category,
+    });
+
+    return res.json({
+      success: true,
+      suggestion,
+    });
+  } catch (error) {
+    logger.error('❌ /price-suggest error:', error?.message || error);
+    // Graceful — never break the listing form
+    return res.json({
+      success: true,
+      suggestion: {
+        hasSuggestion: false,
+        reason: 'server_error',
+        message: 'Could not analyze pricing right now.',
+      },
+    });
+  }
+});
+
+// ============================================
+// 1. SMART SEARCH
 // ============================================
 router.post('/search', async (req, res) => {
   try {
     const { query, location, category, history } = req.body;
-    
+
     if (!query) {
       return res.status(400).json({
         success: false,
-        error: 'Search query is required'
+        error: 'Search query is required',
       });
     }
 
     logger.info('🔍 AI Search:', { query, category });
 
-    // Step 1: Use Groq for smart search
     let aiResults = null;
     let searchMethod = 'fallback';
 
@@ -46,7 +168,7 @@ router.post('/search', async (req, res) => {
       const result = await groqService.smartSearch(query, {
         location: location || 'Mitundu',
         category: category || 'All',
-        history: history || []
+        history: history || [],
       });
 
       if (result.success) {
@@ -58,7 +180,6 @@ router.post('/search', async (req, res) => {
       logger.error('Groq search error:', error.message);
     }
 
-    // Step 2: Database search with AI-enhanced terms
     let searchTerms = [];
     let suggestedCategory = category || 'All';
 
@@ -69,7 +190,6 @@ router.post('/search', async (req, res) => {
       searchTerms = [query];
     }
 
-    // Build database query
     let dbQuery = supabase
       .from('listings')
       .select(`
@@ -87,16 +207,14 @@ router.post('/search', async (req, res) => {
       .eq('status', 'active')
       .limit(30);
 
-    // Use search terms
     if (searchTerms.length > 0) {
       const searchQuery = searchTerms.join(' ');
       dbQuery = dbQuery.textSearch('search_vector', searchQuery, {
         config: 'english',
-        type: 'websearch'
+        type: 'websearch',
       });
     }
 
-    // Apply category filter
     if (suggestedCategory && suggestedCategory !== 'All') {
       dbQuery = dbQuery.eq('category', suggestedCategory);
     }
@@ -105,7 +223,6 @@ router.post('/search', async (req, res) => {
 
     if (error) {
       logger.error('Database search error:', error);
-      // Fallback to simple search
       const { data: fallbackData, error: fallbackError } = await supabase
         .from('listings')
         .select(`
@@ -131,24 +248,22 @@ router.post('/search', async (req, res) => {
           total: fallbackData.length,
           query: query,
           ai_processed: false,
-          method: 'fallback'
+          method: 'fallback',
         });
       }
 
       return res.status(500).json({
         success: false,
-        error: error.message
+        error: error.message,
       });
     }
 
-    // Step 3: Enhance results with AI summaries
-    const enhancedResults = data.map(item => ({
+    const enhancedResults = data.map((item) => ({
       ...item,
       ai_summary: getAISummary(item, query),
-      ai_enhanced: true
+      ai_enhanced: true,
     }));
 
-    // Step 4: Add AI response
     const response = {
       success: true,
       results: enhancedResults.slice(0, 20),
@@ -158,14 +273,13 @@ router.post('/search', async (req, res) => {
       method: searchMethod,
       ai_response: aiResults?.response || null,
       related_searches: aiResults?.relatedSearches || [],
-      suggested_category: suggestedCategory
+      suggested_category: suggestedCategory,
     };
 
     res.json(response);
   } catch (error) {
     logger.error('❌ AI Search error:', error);
-    
-    // Ultimate fallback
+
     try {
       const { data, error: fallbackError } = await supabase
         .from('listings')
@@ -193,12 +307,12 @@ router.post('/search', async (req, res) => {
         total: data?.length || 0,
         query: req.body.query,
         ai_processed: false,
-        method: 'fallback'
+        method: 'fallback',
       });
     } catch (fallbackErr) {
       res.status(500).json({
         success: false,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -210,12 +324,11 @@ router.post('/search', async (req, res) => {
 router.get('/suggestions', async (req, res) => {
   try {
     const { q } = req.query;
-    
+
     if (!q || q.length < 2) {
       return res.json({ success: true, suggestions: [] });
     }
 
-    // Get suggestions from database
     const { data, error } = await supabase
       .from('listings')
       .select('category')
@@ -224,39 +337,38 @@ router.get('/suggestions', async (req, res) => {
 
     if (error) throw error;
 
-    const categories = [...new Set(data.map(item => item.category))];
+    const categories = [...new Set(data.map((item) => item.category))];
     const suggestions = categories
-      .filter(cat => cat.toLowerCase().includes(q.toLowerCase()))
+      .filter((cat) => cat.toLowerCase().includes(q.toLowerCase()))
       .slice(0, 5);
 
-    // Chichewa sample queries
     const chichewaQueries = [
       'Ndikufuna plumber pafupi',
       'Kodi pali shop yamagetsi?',
       'Ntchito za zomanga',
       'Kugula chimanga',
-      'Salon yatsitsi'
+      'Salon yatsitsi',
     ];
 
     const chichewaSuggestions = chichewaQueries
-      .filter(qs => qs.toLowerCase().includes(q.toLowerCase()))
+      .filter((qs) => qs.toLowerCase().includes(q.toLowerCase()))
       .slice(0, 3);
 
     res.json({
       success: true,
-      suggestions: [...suggestions, ...chichewaSuggestions]
+      suggestions: [...suggestions, ...chichewaSuggestions],
     });
   } catch (error) {
     console.error('❌ AI Suggestions error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
 
 // ============================================
-// 3. GENERATE DESCRIPTION - Using Gemini for quality
+// 3. GENERATE DESCRIPTION
 // ============================================
 router.post('/generate-description', async (req, res) => {
   try {
@@ -265,11 +377,10 @@ router.post('/generate-description', async (req, res) => {
     if (!title) {
       return res.status(400).json({
         success: false,
-        error: 'Title is required'
+        error: 'Title is required',
       });
     }
 
-    // Try Gemini first for quality
     let result = null;
     let provider = 'gemini';
 
@@ -279,7 +390,7 @@ router.post('/generate-description', async (req, res) => {
         category: category || 'General',
         features: features || 'Not specified',
         price: price || 'Contact for price',
-        location: location || 'Mitundu'
+        location: location || 'Mitundu',
       });
 
       if (result.success) {
@@ -287,8 +398,7 @@ router.post('/generate-description', async (req, res) => {
       }
     } catch (error) {
       logger.error('Gemini description error:', error.message);
-      
-      // Fallback to Groq
+
       try {
         const prompt = `
           Generate a compelling product listing description for Kumsika marketplace in Mitundu, Malawi.
@@ -301,20 +411,21 @@ router.post('/generate-description', async (req, res) => {
           
           Write a friendly, professional description (150-250 words) with a call-to-action.
         `;
-        
+
         const fallbackResult = await groqService.generateText(prompt, {
           temperature: 0.7,
           maxTokens: 500,
-          systemPrompt: 'You are a professional marketplace assistant for Kumsika in Mitundu, Malawi.'
+          systemPrompt:
+            'You are a professional marketplace assistant for Kumsika in Mitundu, Malawi.',
         });
-        
+
         result = fallbackResult;
         provider = 'groq (fallback)';
       } catch (fallbackError) {
         logger.error('Fallback description error:', fallbackError);
         return res.status(500).json({
           success: false,
-          error: 'Failed to generate description'
+          error: 'Failed to generate description',
         });
       }
     }
@@ -324,34 +435,35 @@ router.post('/generate-description', async (req, res) => {
         success: true,
         description: result.parsed?.text || result.data,
         provider: provider,
-        usage: result.usage
+        usage: result.usage,
       });
     } else {
       res.status(500).json({
         success: false,
-        error: 'Failed to generate description'
+        error: 'Failed to generate description',
       });
     }
   } catch (error) {
     logger.error('Description generation error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
 
 // ============================================
-// 4. GENERATE AD - Using Gemini for quality
+// 4. GENERATE AD
 // ============================================
 router.post('/ads/generate', upload.single('image'), async (req, res) => {
   try {
-    const productInfo = req.body.productInfo ? JSON.parse(req.body.productInfo) : {};
+    const productInfo = req.body.productInfo
+      ? JSON.parse(req.body.productInfo)
+      : {};
     const imageBuffer = req.file ? req.file.buffer : null;
 
     logger.info('🎨 Generating ad for:', productInfo.title || 'Product');
 
-    // Try Gemini first for quality
     let result = null;
     let provider = 'gemini';
 
@@ -360,7 +472,7 @@ router.post('/ads/generate', upload.single('image'), async (req, res) => {
         title: productInfo.title || 'Product',
         description: productInfo.description || '',
         category: productInfo.category || 'Other',
-        price: productInfo.price || 'Contact for price'
+        price: productInfo.price || 'Contact for price',
       });
 
       if (result.success) {
@@ -368,8 +480,7 @@ router.post('/ads/generate', upload.single('image'), async (req, res) => {
       }
     } catch (error) {
       logger.error('Gemini ad error:', error.message);
-      
-      // Fallback to Groq
+
       try {
         const prompt = `
           Create engaging ad content for a listing on Kumsika marketplace.
@@ -380,43 +491,39 @@ router.post('/ads/generate', upload.single('image'), async (req, res) => {
           
           Generate headline, short copy, full copy, call to action, and selling points.
         `;
-        
+
         const fallbackResult = await groqService.generateText(prompt, {
           temperature: 0.8,
           maxTokens: 600,
-          systemPrompt: 'You are an advertising expert for Kumsika marketplace.'
+          systemPrompt: 'You are an advertising expert for Kumsika marketplace.',
         });
-        
+
         result = fallbackResult;
         provider = 'groq (fallback)';
       } catch (fallbackError) {
         logger.error('Fallback ad error:', fallbackError);
-        // Use built-in generator
         const adCopy = generateAdCopy(productInfo);
         return res.json({
           success: true,
           ad: adCopy,
           socialPosts: generateSocialPosts(adCopy, productInfo),
           provider: 'built-in',
-          ai_processed: false
+          ai_processed: false,
         });
       }
     }
 
     let adData = result.parsed || result.data;
-    
-    // If result is text, parse it
+
     if (typeof adData === 'string') {
       try {
         const parsed = JSON.parse(adData);
         adData = parsed;
       } catch (e) {
-        // Use as text
         adData = { fullCopy: adData };
       }
     }
 
-    // Ensure we have ad data
     if (!adData.headline && !adData.fullCopy) {
       const fallbackAd = generateAdCopy(productInfo);
       adData = fallbackAd;
@@ -430,44 +537,45 @@ router.post('/ads/generate', upload.single('image'), async (req, res) => {
       ad: adData,
       socialPosts: socialPosts,
       provider: provider,
-      ai_processed: true
+      ai_processed: true,
     });
   } catch (error) {
     logger.error('❌ Ad generation error:', error);
-    
-    const adCopy = generateAdCopy(req.body.productInfo ? JSON.parse(req.body.productInfo) : {});
+
+    const adCopy = generateAdCopy(
+      req.body.productInfo ? JSON.parse(req.body.productInfo) : {}
+    );
     res.json({
       success: true,
       ad: adCopy,
       socialPosts: generateSocialPosts(adCopy, {}),
       ai_processed: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
 
 // ============================================
-// 5. VOICE LISTING - Using Groq Whisper
+// 5. VOICE LISTING
 // ============================================
 router.post('/voice/process', upload.single('audio'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        error: 'Audio file is required'
+        error: 'Audio file is required',
       });
     }
 
     const { language = 'ny' } = req.body;
     logger.info('🎤 Processing voice...');
 
-    // Step 1: Transcribe using Groq Whisper
     let transcript = '';
     let aiProcessed = false;
-    
+
     try {
       const transcription = await groqService.transcribeAudio(req.file.buffer, {
-        language: language === 'ny' ? 'en' : 'en' // Groq Whisper supports 'en'
+        language: language === 'ny' ? 'en' : 'en',
       });
 
       if (transcription.success) {
@@ -479,24 +587,22 @@ router.post('/voice/process', upload.single('audio'), async (req, res) => {
       }
     } catch (error) {
       logger.error('Whisper transcription error:', error.message);
-      
-      // Fallback: Use sample transcript based on language
-      transcript = language === 'ny' 
-        ? 'Ndili ndi matumba 10 a chimanga ndikugulitsa. Mtengo ndi 5000 per bag.'
-        : 'I have 10 bags of maize for sale. Price is 5000 per bag.';
+      transcript =
+        language === 'ny'
+          ? 'Ndili ndi matumba 10 a chimanga ndikugulitsa. Mtengo ndi 5000 per bag.'
+          : 'I have 10 bags of maize for sale. Price is 5000 per bag.';
       aiProcessed = false;
     }
 
     logger.info('📝 Transcript:', transcript);
 
-    // Step 2: Process the transcript with Groq
     let listingData = null;
     let validation = null;
 
     try {
       const result = await groqService.processVoiceListing(transcript, {
         location: 'Mitundu',
-        language: language
+        language: language,
       });
 
       if (result.success) {
@@ -505,12 +611,11 @@ router.post('/voice/process', upload.single('audio'), async (req, res) => {
           isValid: true,
           errors: [],
           warnings: [],
-          confidence: 0.8
+          confidence: 0.8,
         };
       }
     } catch (error) {
       logger.error('Voice processing error:', error.message);
-      // Extract listing data locally
       listingData = extractListingData(transcript, language);
       validation = validateListing(listingData);
     }
@@ -519,23 +624,28 @@ router.post('/voice/process', upload.single('audio'), async (req, res) => {
       success: true,
       transcript: transcript,
       listing: listingData,
-      validation: validation || { isValid: true, errors: [], warnings: [], confidence: 0.5 },
+      validation: validation || {
+        isValid: true,
+        errors: [],
+        warnings: [],
+        confidence: 0.5,
+      },
       ai_processed: aiProcessed,
-      method: 'whisper'
+      method: 'whisper',
     });
   } catch (error) {
     logger.error('❌ Voice processing error:', error);
-    
+
     const mockTranscript = 'Ndili ndi matumba 10 a chimanga ndikugulitsa.';
     const listingData = extractListingData(mockTranscript, 'ny');
-    
+
     res.json({
       success: true,
       transcript: mockTranscript,
       listing: listingData,
       validation: validateListing(listingData),
       ai_processed: false,
-      method: 'fallback'
+      method: 'fallback',
     });
   }
 });
@@ -546,26 +656,28 @@ router.post('/voice/process', upload.single('audio'), async (req, res) => {
 router.post('/voice/create-listing', upload.single('audio'), async (req, res) => {
   try {
     const { businessId, userId, language = 'ny' } = req.body;
-    
-    // If audio file is provided, process it first
+
     let transcript = req.body.transcript || '';
-    let listingData = req.body.listingData ? JSON.parse(req.body.listingData) : null;
-    let validation = req.body.validation ? JSON.parse(req.body.validation) : null;
+    let listingData = req.body.listingData
+      ? JSON.parse(req.body.listingData)
+      : null;
+    let validation = req.body.validation
+      ? JSON.parse(req.body.validation)
+      : null;
 
     if (req.file) {
-      // Process the audio
       try {
-        const transcription = await groqService.transcribeAudio(req.file.buffer, {
-          language: language === 'ny' ? 'en' : 'en'
-        });
+        const transcription = await groqService.transcribeAudio(
+          req.file.buffer,
+          { language: language === 'ny' ? 'en' : 'en' }
+        );
 
         if (transcription.success) {
           transcript = transcription.text;
-          
-          // Process the transcript
+
           const result = await groqService.processVoiceListing(transcript, {
             location: 'Mitundu',
-            language: language
+            language: language,
           });
 
           if (result.success) {
@@ -574,7 +686,7 @@ router.post('/voice/create-listing', upload.single('audio'), async (req, res) =>
               isValid: true,
               errors: [],
               warnings: [],
-              confidence: 0.8
+              confidence: 0.8,
             };
           }
         }
@@ -586,18 +698,17 @@ router.post('/voice/create-listing', upload.single('audio'), async (req, res) =>
     if (!businessId || !userId) {
       return res.status(400).json({
         success: false,
-        error: 'Business ID and User ID are required'
+        error: 'Business ID and User ID are required',
       });
     }
 
     if (!listingData) {
       return res.status(400).json({
         success: false,
-        error: 'Listing data is required'
+        error: 'Listing data is required',
       });
     }
 
-    // Verify business belongs to user
     const { data: business, error: bizError } = await supabase
       .from('businesses')
       .select('id')
@@ -608,21 +719,20 @@ router.post('/voice/create-listing', upload.single('audio'), async (req, res) =>
     if (bizError || !business) {
       return res.status(403).json({
         success: false,
-        error: 'You do not have permission to create listings for this business'
+        error:
+          'You do not have permission to create listings for this business',
       });
     }
 
-    // Validate
     const validationResult = validateListing(listingData);
     if (!validationResult.isValid) {
       return res.status(400).json({
         success: false,
         error: validationResult.errors.join(', '),
-        validation: validationResult
+        validation: validationResult,
       });
     }
 
-    // Create listing
     const { data: newListing, error: createError } = await supabase
       .from('listings')
       .insert({
@@ -641,8 +751,8 @@ router.post('/voice/create-listing', upload.single('audio'), async (req, res) =>
           language: language,
           transcript: transcript,
           confidence: validationResult.confidence || 0.5,
-          ai_processed: true
-        }
+          ai_processed: true,
+        },
       })
       .select()
       .single();
@@ -651,7 +761,7 @@ router.post('/voice/create-listing', upload.single('audio'), async (req, res) =>
       logger.error('❌ Listing creation error:', createError);
       return res.status(400).json({
         success: false,
-        error: createError.message
+        error: createError.message,
       });
     }
 
@@ -661,19 +771,19 @@ router.post('/voice/create-listing', upload.single('audio'), async (req, res) =>
       transcript: transcript,
       validation: validationResult,
       ai_processed: true,
-      method: 'whisper'
+      method: 'whisper',
     });
   } catch (error) {
     logger.error('❌ Voice listing creation error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
 
 // ============================================
-// 7. SMART MATCHING - Using Groq
+// 7. SMART MATCHING
 // ============================================
 router.post('/match', async (req, res) => {
   try {
@@ -682,7 +792,7 @@ router.post('/match', async (req, res) => {
     if (!query) {
       return res.status(400).json({
         success: false,
-        error: 'Query is required'
+        error: 'Query is required',
       });
     }
 
@@ -692,7 +802,7 @@ router.post('/match', async (req, res) => {
     try {
       const result = await groqService.findMatches(query, {
         userType: userType || 'buyer',
-        location: location || 'Mitundu'
+        location: location || 'Mitundu',
       });
 
       if (result.success) {
@@ -703,8 +813,7 @@ router.post('/match', async (req, res) => {
       }
     } catch (error) {
       logger.error('Groq matching error:', error.message);
-      
-      // Built-in matching
+
       const { data, err } = await supabase
         .from('listings')
         .select(`
@@ -718,12 +827,12 @@ router.post('/match', async (req, res) => {
         .limit(5);
 
       if (!err && data) {
-        matches = data.map(item => ({
+        matches = data.map((item) => ({
           type: 'product',
           name: item.title,
           description: item.description,
           reason: 'Available in Mitundu',
-          confidence: 0.5
+          confidence: 0.5,
         }));
       }
     }
@@ -732,19 +841,19 @@ router.post('/match', async (req, res) => {
       success: true,
       matches: matches,
       provider: provider,
-      ai_processed: true
+      ai_processed: true,
     });
   } catch (error) {
     logger.error('Matching error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
 
 // ============================================
-// 8. RECOMMENDATIONS - Using Groq
+// 8. RECOMMENDATIONS
 // ============================================
 router.post('/recommendations', async (req, res) => {
   try {
@@ -758,7 +867,7 @@ router.post('/recommendations', async (req, res) => {
         interests: interests || [],
         history: history || [],
         location: location || 'Mitundu',
-        userType: userType || 'buyer'
+        userType: userType || 'buyer',
       });
 
       if (result.success) {
@@ -768,8 +877,7 @@ router.post('/recommendations', async (req, res) => {
       }
     } catch (error) {
       logger.error('Groq recommendations error:', error.message);
-      
-      // Built-in recommendations
+
       const { data, err } = await supabase
         .from('listings')
         .select('*')
@@ -778,12 +886,12 @@ router.post('/recommendations', async (req, res) => {
 
       if (!err && data) {
         recommendations = {
-          personalized: data.map(item => ({
+          personalized: data.map((item) => ({
             name: item.title,
             category: item.category,
-            reason: 'Popular in Mitundu'
+            reason: 'Popular in Mitundu',
           })),
-          trendingCategories: ['Farm Inputs', 'Construction', 'Plumber']
+          trendingCategories: ['Farm Inputs', 'Construction', 'Plumber'],
         };
       }
     }
@@ -792,13 +900,13 @@ router.post('/recommendations', async (req, res) => {
       success: true,
       recommendations: recommendations,
       provider: provider,
-      ai_processed: true
+      ai_processed: true,
     });
   } catch (error) {
     logger.error('Recommendations error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -808,27 +916,27 @@ router.post('/recommendations', async (req, res) => {
 // ============================================
 router.get('/voice/prompts', (req, res) => {
   const { language = 'ny' } = req.query;
-  
+
   const prompts = {
-    'ny': [
+    ny: [
       'Ndili ndi matumba 10 a chimanga ndikugulitsa. Mtengo ndi 5000 per bag.',
       'Ndikufuna kugulitsa nkhuku 20 ndi mazira 50.',
       'Ndili ndi simenti 50kg ndikugulitsa.',
       'Ndikufuna plumber ku Mitundu.',
-      'Ndili ndi fensi 100m ndikugulitsa.'
+      'Ndili ndi fensi 100m ndikugulitsa.',
     ],
-    'en': [
+    en: [
       'I have 10 bags of maize for sale. Price is 5000 per bag.',
       'I want to sell 20 chickens and 50 eggs.',
       'I have 50kg cement for sale.',
       'I need a plumber in Mitundu.',
-      'I have 100m of fencing wire for sale.'
-    ]
+      'I have 100m of fencing wire for sale.',
+    ],
   };
 
   res.json({
     success: true,
-    prompts: prompts[language] || prompts['ny']
+    prompts: prompts[language] || prompts['ny'],
   });
 });
 
@@ -848,15 +956,15 @@ router.get('/ads/templates', (req, res) => {
       'Hairdresser',
       'Mechanic',
       'Carpenter',
-      'Other'
+      'Other',
     ],
     tones: ['Professional', 'Friendly', 'Urgent', 'Luxury', 'Budget', 'Eco-friendly'],
-    platforms: ['Facebook', 'WhatsApp', 'Twitter', 'Instagram']
+    platforms: ['Facebook', 'WhatsApp', 'Twitter', 'Instagram'],
   };
 
   res.json({
     success: true,
-    templates: templates
+    templates: templates,
   });
 });
 
@@ -866,81 +974,86 @@ router.get('/ads/templates', (req, res) => {
 router.post('/ads/batch-generate', async (req, res) => {
   try {
     const { items } = req.body;
-    
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'Items array is required'
+        error: 'Items array is required',
       });
     }
 
-    const results = await Promise.all(items.map(async (item) => {
-      try {
-        const result = await geminiService.generateAd({
-          title: item.title || 'Product',
-          description: item.description || '',
-          category: item.category || 'Other',
-          price: item.price || 'Contact for price'
-        });
+    const results = await Promise.all(
+      items.map(async (item) => {
+        try {
+          const result = await geminiService.generateAd({
+            title: item.title || 'Product',
+            description: item.description || '',
+            category: item.category || 'Other',
+            price: item.price || 'Contact for price',
+          });
 
-        if (result.success) {
-          const adData = result.parsed || result.data;
-          return {
-            ad: adData,
-            socialPosts: generateSocialPosts(adData, item),
-            originalItem: item,
-            provider: 'gemini'
-          };
+          if (result.success) {
+            const adData = result.parsed || result.data;
+            return {
+              ad: adData,
+              socialPosts: generateSocialPosts(adData, item),
+              originalItem: item,
+              provider: 'gemini',
+            };
+          }
+        } catch (error) {
+          logger.error('Batch ad error:', error);
         }
-      } catch (error) {
-        logger.error('Batch ad error:', error);
-      }
 
-      // Fallback
-      const adCopy = generateAdCopy(item);
-      return {
-        ad: adCopy,
-        socialPosts: generateSocialPosts(adCopy, item),
-        originalItem: item,
-        provider: 'built-in'
-      };
-    }));
+        const adCopy = generateAdCopy(item);
+        return {
+          ad: adCopy,
+          socialPosts: generateSocialPosts(adCopy, item),
+          originalItem: item,
+          provider: 'built-in',
+        };
+      })
+    );
 
     res.json({
       success: true,
       results: results,
-      ai_processed: true
+      ai_processed: true,
     });
   } catch (error) {
     logger.error('❌ Batch ad generation error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
 
 // ============================================
-// 12. HEALTH CHECK FOR AI SERVICES
+// 12. HEALTH CHECK
 // ============================================
 router.get('/health', async (req, res) => {
   try {
-    const groqStatus = await groqService.checkAPIKey ? await groqService.checkAPIKey() : false;
-    const geminiStatus = await geminiService.checkAPIKey ? await geminiService.checkAPIKey() : false;
+    const groqStatus = groqService.checkAPIKey
+      ? await groqService.checkAPIKey()
+      : false;
+    const geminiStatus = geminiService.checkAPIKey
+      ? await geminiService.checkAPIKey()
+      : false;
 
     res.json({
       success: true,
       status: {
         groq: groqStatus,
         gemini: geminiStatus,
-        supabase: true
+        supabase: true,
       },
-      message: 'AI services ready'
+      message: 'AI services ready',
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
@@ -948,23 +1061,39 @@ router.get('/health', async (req, res) => {
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
-
 function getAISummary(item, query) {
-  const relevance = query && (
-    item.title?.toLowerCase().includes(query.toLowerCase()) ||
-    item.description?.toLowerCase().includes(query.toLowerCase())
-  );
-  
+  const relevance =
+    query &&
+    (item.title?.toLowerCase().includes(query.toLowerCase()) ||
+      item.description?.toLowerCase().includes(query.toLowerCase()));
+
   const summaries = {
-    'Farm Inputs': `🌾 ${item.title} available in Mitundu. ${relevance ? 'Matches your search.' : 'Quality farm inputs.'}`,
-    'Construction': `🔨 ${item.title} available in Mitundu. ${relevance ? 'Matches your search.' : 'Building materials.'}`,
-    'Plumber': `🔧 Professional plumbing services in Mitundu. ${relevance ? 'Matches your search.' : 'Contact for services.'}`,
-    'Electrician': `⚡ Electrical services in Mitundu. ${relevance ? 'Matches your search.' : 'Licensed electrician.'}`,
-    'Retail': `🛍️ ${item.title} available in Mitundu. ${relevance ? 'Matches your search.' : 'Quality products.'}`,
-    'Restaurant': `🍽️ Delicious meals available in Mitundu. ${relevance ? 'Matches your search.' : 'Dine with us.'}`
+    'Farm Inputs': `🌾 ${item.title} available in Mitundu. ${
+      relevance ? 'Matches your search.' : 'Quality farm inputs.'
+    }`,
+    Construction: `🔨 ${item.title} available in Mitundu. ${
+      relevance ? 'Matches your search.' : 'Building materials.'
+    }`,
+    Plumber: `🔧 Professional plumbing services in Mitundu. ${
+      relevance ? 'Matches your search.' : 'Contact for services.'
+    }`,
+    Electrician: `⚡ Electrical services in Mitundu. ${
+      relevance ? 'Matches your search.' : 'Licensed electrician.'
+    }`,
+    Retail: `🛍️ ${item.title} available in Mitundu. ${
+      relevance ? 'Matches your search.' : 'Quality products.'
+    }`,
+    Restaurant: `🍽️ Delicious meals available in Mitundu. ${
+      relevance ? 'Matches your search.' : 'Dine with us.'
+    }`,
   };
-  
-  return summaries[item.category] || `${item.title} available in Mitundu. ${relevance ? 'Matches your search.' : 'Contact for details.'}`;
+
+  return (
+    summaries[item.category] ||
+    `${item.title} available in Mitundu. ${
+      relevance ? 'Matches your search.' : 'Contact for details.'
+    }`
+  );
 }
 
 function extractListingData(transcript, language) {
@@ -978,10 +1107,9 @@ function extractListingData(transcript, language) {
     unit: '',
     delivery_available: false,
     contact_phone: '',
-    confidence: 0.5
+    confidence: 0.5,
   };
 
-  // Detect product types
   if (lower.includes('chimanga') || lower.includes('maize')) {
     data.title = 'Maize for Sale';
     data.category = 'Farm Inputs';
@@ -1006,15 +1134,14 @@ function extractListingData(transcript, language) {
     data.title = transcript.split(' ').slice(0, 5).join(' ') + '...';
   }
 
-  // Extract price
-  const priceMatch = transcript.match(/(\d+)\s*(per|each|bag|kg|piece)/i) ||
-                     transcript.match(/MWK\s*(\d+)/i);
+  const priceMatch =
+    transcript.match(/(\d+)\s*(per|each|bag|kg|piece)/i) ||
+    transcript.match(/MWK\s*(\d+)/i);
   if (priceMatch) {
     data.price = parseInt(priceMatch[1]);
     data.confidence += 0.1;
   }
 
-  // Extract quantity
   const qtyMatch = transcript.match(/(\d+)\s*(matumba|kg|bags|pieces|pcs)/i);
   if (qtyMatch) {
     data.quantity = parseInt(qtyMatch[1]);
@@ -1051,7 +1178,7 @@ function validateListing(data) {
     isValid: errors.length === 0,
     errors: errors,
     warnings: warnings,
-    confidence: data.confidence || 0.5
+    confidence: data.confidence || 0.5,
   };
 }
 
@@ -1068,39 +1195,59 @@ function generateAdCopy(productInfo) {
       shortCopy: `Quality ${title} from trusted suppliers. ${price} per ${unit}.`,
       fullCopy: `Get premium ${title} for your farm or business. We offer competitive prices and reliable delivery in Mitundu and surrounding areas. ${description}`,
       cta: `📞 Contact us for ${title}!`,
-      sellingPoints: ['Quality guaranteed', 'Competitive prices', 'Reliable delivery', 'Trusted supplier']
+      sellingPoints: [
+        'Quality guaranteed',
+        'Competitive prices',
+        'Reliable delivery',
+        'Trusted supplier',
+      ],
     },
-    'Construction': {
+    Construction: {
       headline: `🔨 ${title} - Build with Confidence!`,
       shortCopy: `Premium ${title} for all your construction needs.`,
       fullCopy: `Get high-quality ${title} for your building projects. We supply materials to contractors and individuals across Mitundu. ${description}`,
       cta: `📞 Order ${title} today!`,
-      sellingPoints: ['Premium quality', 'Competitive pricing', 'Quick delivery', 'Trusted supplier']
+      sellingPoints: [
+        'Premium quality',
+        'Competitive pricing',
+        'Quick delivery',
+        'Trusted supplier',
+      ],
     },
-    'Plumber': {
+    Plumber: {
       headline: `🔧 Professional ${title} Services`,
       shortCopy: `Experienced plumber in Mitundu. Reliable and affordable.`,
       fullCopy: `Need a professional plumber? We offer fast, reliable, and affordable plumbing services in Mitundu and surrounding areas. ${description}`,
       cta: `📞 Call for emergency services!`,
-      sellingPoints: ['Experienced team', 'Fast response', 'Affordable rates', 'Emergency services']
+      sellingPoints: [
+        'Experienced team',
+        'Fast response',
+        'Affordable rates',
+        'Emergency services',
+      ],
     },
-    'default': {
+    default: {
       headline: `📢 ${title} Available Now!`,
       shortCopy: `Quality ${title} available in Mitundu.`,
       fullCopy: `Get quality ${title} at the best prices in Mitundu. We offer reliable service and customer satisfaction. ${description}`,
       cta: `📞 Contact us for details!`,
-      sellingPoints: ['Quality products', 'Best prices', 'Reliable service', 'Customer satisfaction']
-    }
+      sellingPoints: [
+        'Quality products',
+        'Best prices',
+        'Reliable service',
+        'Customer satisfaction',
+      ],
+    },
   };
 
   const template = adTemplates[category] || adTemplates['default'];
-  
+
   return {
     headline: template.headline,
     shortCopy: template.shortCopy,
     fullCopy: template.fullCopy,
     cta: template.cta,
-    sellingPoints: template.sellingPoints
+    sellingPoints: template.sellingPoints,
   };
 }
 
@@ -1109,9 +1256,13 @@ function generateSocialPosts(ad, productInfo) {
   const title = ad.headline || ad.title || 'New Listing';
 
   return {
-    facebook: `${title}\n\n${ad.fullCopy || ad.description || ''}\n\n${ad.cta || 'Contact for details.'}\n\n${hashtags}`,
-    whatsapp: `${title}\n\n${ad.shortCopy || ad.description || ''}\n\n${ad.cta || 'Contact for details.'}`,
-    twitter: `${title}\n${ad.shortCopy?.substring(0, 100) || ''}...\n${hashtags}`
+    facebook: `${title}\n\n${ad.fullCopy || ad.description || ''}\n\n${
+      ad.cta || 'Contact for details.'
+    }\n\n${hashtags}`,
+    whatsapp: `${title}\n\n${ad.shortCopy || ad.description || ''}\n\n${
+      ad.cta || 'Contact for details.'
+    }`,
+    twitter: `${title}\n${ad.shortCopy?.substring(0, 100) || ''}...\n${hashtags}`,
   };
 }
 

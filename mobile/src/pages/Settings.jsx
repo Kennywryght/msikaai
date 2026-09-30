@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { useToast } from '../components/ToastContainer';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import useTrustScore from '../hooks/useTrustScore';
+import TrustScoreRing from '../components/TrustScoreRing';
 import SubscriptionSection from '../components/SubscriptionSection';
 import Logo from '../components/Logo';
 
@@ -91,6 +93,9 @@ const Settings = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currentRole, setCurrentRole] = useState(user?.role || 'buyer');
 
+  // ★ PHASE 3G: trust data
+  const { tier, score, loading: trustLoading } = useTrustScore(user?.id);
+
   const {
     supported: pushSupported,
     permission: pushPermission,
@@ -165,6 +170,19 @@ const Settings = () => {
   const userName = getUserDisplayName(user);
   const userInitial = getInitials(userName);
 
+  const TIER_NAMES = {
+    0: 'Unverified',
+    1: 'Phone Verified',
+    2: 'ID Verified',
+    3: 'Business Verified',
+  };
+  const TIER_COLORS = {
+    0: '#9CA3AF',
+    1: '#3B82F6',
+    2: '#8B5CF6',
+    3: '#10B981',
+  };
+
   return (
     <div className="settings-page">
       <div className="page-header">
@@ -180,6 +198,35 @@ const Settings = () => {
       </div>
 
       <div className="main-content">
+        {/* ★ PHASE 3G: Trust Profile card */}
+        <Link to="/trust" className="trust-hero-card">
+          <div className="trust-hero-left">
+            {trustLoading ? (
+              <div className="trust-ring-skeleton" />
+            ) : (
+              <TrustScoreRing score={score} tier={tier} size={72} stroke={6} />
+            )}
+          </div>
+          <div className="trust-hero-right">
+            <div className="trust-hero-label">Trust Profile</div>
+            <div
+              className="trust-hero-tier"
+              style={{ color: TIER_COLORS[tier] || TIER_COLORS[0] }}
+            >
+              Tier {tier} — {TIER_NAMES[tier] || TIER_NAMES[0]}
+            </div>
+            <div className="trust-hero-desc">
+              View verifications, escrow limit, and score breakdown
+            </div>
+          </div>
+          <Icon
+            name="chevronRight"
+            size={18}
+            color="var(--color-text-muted)"
+            strokeWidth={2}
+          />
+        </Link>
+
         <Link to="/profile" className="profile-card">
           <div className="profile-avatar">{userInitial}</div>
           <div className="profile-info">
@@ -196,6 +243,20 @@ const Settings = () => {
         <section className="settings-section">
           <h2 className="section-title">Account</h2>
           <div className="settings-group">
+            {/* ★ PHASE 3G: Trust Profile entry */}
+            <Link to="/trust" className="settings-item">
+              <div className="item-icon-wrap" style={{ background: 'var(--color-primary-tint)' }}>
+                <Icon name="shield" size={18} color="var(--color-primary)" strokeWidth={1.9} />
+              </div>
+              <div className="item-content">
+                <span className="item-label">Trust Profile</span>
+                <span className="item-desc">
+                  Tier {tier} — {TIER_NAMES[tier] || TIER_NAMES[0]}
+                </span>
+              </div>
+              <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
+            </Link>
+
             <Link to="/profile" className="settings-item">
               <div className="item-icon-wrap" style={{ background: 'var(--color-primary-tint)' }}>
                 <Icon name="user" size={18} color="var(--color-primary)" strokeWidth={1.9} />
@@ -569,6 +630,73 @@ const Settings = () => {
           max-width: 600px;
           margin: 0 auto;
           padding: 20px 16px;
+        }
+
+        /* ★ PHASE 3G: Trust hero card */
+        .trust-hero-card {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 16px;
+          background: linear-gradient(135deg, #F0F9FF, #FFFFFF);
+          border: 1px solid #BFDBFE;
+          border-radius: var(--radius-2xl);
+          text-decoration: none;
+          color: inherit;
+          margin-bottom: 12px;
+          transition: all 0.22s ease;
+          box-shadow: var(--shadow-xs);
+        }
+
+        .trust-hero-card:hover {
+          border-color: var(--color-primary);
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-lg);
+        }
+
+        .trust-hero-left { flex-shrink: 0; }
+
+        .trust-ring-skeleton {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: linear-gradient(90deg, #E5E7EB, #F3F4F6, #E5E7EB);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+
+        .trust-hero-right {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .trust-hero-label {
+          font-size: 10.5px;
+          font-weight: 800;
+          color: var(--color-text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .trust-hero-tier {
+          font-family: var(--font-serif);
+          font-size: 16px;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+        }
+
+        .trust-hero-desc {
+          font-size: 12px;
+          color: var(--color-text-muted);
+          line-height: 1.4;
         }
 
         .profile-card {
@@ -1027,6 +1155,8 @@ const Settings = () => {
           .profile-avatar { width: 48px; height: 48px; font-size: 17px; }
           .settings-item,
           .settings-item-static { padding: 13px 14px; }
+          .trust-hero-card { padding: 14px; gap: 12px; }
+          .trust-hero-tier { font-size: 15px; }
         }
 
         @media (max-width: 380px) {
@@ -1036,15 +1166,18 @@ const Settings = () => {
         @media (prefers-reduced-motion: reduce) {
           .settings-item,
           .profile-card,
+          .trust-hero-card,
           .role-chip,
           .toggle-switch,
           .lang-btn,
           .modal-btn,
           .nav-icon-wrap { transition: none; }
           .profile-card:hover,
+          .trust-hero-card:hover,
           .modal-btn.danger:hover { transform: none; }
           .modal-overlay,
           .modal-content { animation: none; }
+          .trust-ring-skeleton { animation: none; }
         }
       `}</style>
     </div>

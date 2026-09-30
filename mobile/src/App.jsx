@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { TrustProvider } from './context/TrustContext';
 import { TranslationProvider } from './context/TranslationContext';
 import { ToastProvider } from './components/ToastContainer';
 import Navbar from './components/Navbar';
@@ -40,6 +41,31 @@ import PostStock from './pages/PostStock';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import NotFound from './pages/NotFound';
+
+// Phase 3G
+import TrustProfile from './pages/TrustProfile';
+
+// Phase 3H
+import VerifyPhone from './pages/VerifyPhone';
+import VerifyEmail from './pages/VerifyEmail';
+import VerifyID from './pages/VerifyID';
+import VerifyBusiness from './pages/VerifyBusiness';
+
+// Phase 3I
+import AdminVerifications from './pages/AdminVerifications';
+
+// Phase 5F + 5H
+import Requests from './pages/Requests';
+import RequestDetail from './pages/RequestDetail';
+
+// Phase 5G
+import CreateRequest from './pages/CreateRequest';
+
+// ★ PHASE 6F-6H
+import Deliveries from './pages/Deliveries';
+import CreateDelivery from './pages/CreateDelivery';
+import DeliveryDetail from './pages/DeliveryDetail';
+import DeliveryEarnings from './pages/DeliveryEarnings';
 
 function PresencePublisher() {
   const { user } = useAuth();
@@ -158,7 +184,7 @@ const Layout = ({ children }) => {
   return (
     <>
       <Navbar />
-      <div style={{ paddingTop: '60px' }}>{children}</div>
+      <div style={{ paddingTop: '68px' }}>{children}</div>
     </>
   );
 };
@@ -189,7 +215,7 @@ function AppRoutes() {
       />
       <Route path="/update-password" element={<UpdatePassword />} />
 
-      {/* ---------- Payment callback (auth-aware, not wrapped) ---------- */}
+      {/* ---------- Payment callback ---------- */}
       <Route path="/payment/callback" element={<PaymentCallback />} />
 
       {/* ---------- PUBLIC BROWSE ROUTES ---------- */}
@@ -199,12 +225,26 @@ function AppRoutes() {
       <Route path="/category/:category" element={<Layout><CategoryBrowse /></Layout>} />
       <Route path="/listing/:id" element={<Layout><ListingDetails /></Layout>} />
 
+      {/* ---------- REQUESTS ---------- */}
+      <Route path="/requests" element={<Layout><Requests /></Layout>} />
+      <Route path="/requests/:id" element={<Layout><RequestDetail /></Layout>} />
+
+      {/* ★ PHASE 6F + 6G + 6H: Deliveries (public feed & detail) */}
+      <Route path="/deliveries" element={<Layout><Deliveries /></Layout>} />
+      <Route path="/deliveries/new" element={<Layout><CreateDelivery /></Layout>} />
+      <Route path="/deliveries/earnings" element={<Layout><DeliveryEarnings /></Layout>} />
+      <Route path="/deliveries/:id" element={<Layout><DeliveryDetail /></Layout>} />
+
       {/* ---------- ROOT ---------- */}
       <Route path="/" element={<Navigate to="/landing" replace />} />
 
       {/* ---------- PROTECTED (any session) ---------- */}
       <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+
+      {/* Admin — specific route first, then wildcard */}
+      <Route path="/admin/verifications" element={<AdminRoute><Layout><AdminVerifications /></Layout></AdminRoute>} />
       <Route path="/admin/*" element={<AdminRoute><Layout><AdminDashboard /></Layout></AdminRoute>} />
+
       <Route path="/profile" element={<ProtectedRoute><Layout><EditProfile /></Layout></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
       <Route path="/chat/:id" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
@@ -216,6 +256,16 @@ function AppRoutes() {
       <Route path="/notifications" element={<ProtectedRoute><Layout><Notifications /></Layout></ProtectedRoute>} />
       <Route path="/about" element={<ProtectedRoute><Layout><About /></Layout></ProtectedRoute>} />
 
+      {/* ---------- TRUST ---------- */}
+      <Route path="/trust" element={<ProtectedRoute><Layout><TrustProfile /></Layout></ProtectedRoute>} />
+      <Route path="/trust/:userId" element={<ProtectedRoute><Layout><TrustProfile /></Layout></ProtectedRoute>} />
+
+      {/* ---------- VERIFICATION FLOWS ---------- */}
+      <Route path="/verify-phone" element={<ProtectedRoute><Layout><VerifyPhone /></Layout></ProtectedRoute>} />
+      <Route path="/verify-email" element={<ProtectedRoute><Layout><VerifyEmail /></Layout></ProtectedRoute>} />
+      <Route path="/verify-id" element={<ProtectedRoute><Layout><VerifyID /></Layout></ProtectedRoute>} />
+      <Route path="/verify-business" element={<ProtectedRoute><Layout><VerifyBusiness /></Layout></ProtectedRoute>} />
+
       {/* ---------- VERIFIED ONLY ---------- */}
       <Route path="/role-selection" element={<VerifiedRoute><Layout><RoleSelection /></Layout></VerifiedRoute>} />
       <Route path="/profile-setup" element={<VerifiedRoute><Layout><ProfileSetup /></Layout></VerifiedRoute>} />
@@ -224,6 +274,8 @@ function AppRoutes() {
       <Route path="/voice-listing" element={<VerifiedRoute><Layout><VoiceListing /></Layout></VerifiedRoute>} />
       <Route path="/ad-generator" element={<VerifiedRoute><Layout><AdGenerator /></Layout></VerifiedRoute>} />
       <Route path="/post-stock" element={<VerifiedRoute><Layout><PostStock /></Layout></VerifiedRoute>} />
+
+      <Route path="/create-request" element={<VerifiedRoute><Layout><CreateRequest /></Layout></VerifiedRoute>} />
 
       {/* 404 */}
       <Route path="*" element={<Layout><NotFound /></Layout>} />
@@ -235,12 +287,14 @@ function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <TranslationProvider>
-          <BrowserRouter>
-            <PresencePublisher />
-            <AppRoutes />
-          </BrowserRouter>
-        </TranslationProvider>
+        <TrustProvider>
+          <TranslationProvider>
+            <BrowserRouter>
+              <PresencePublisher />
+              <AppRoutes />
+            </BrowserRouter>
+          </TranslationProvider>
+        </TrustProvider>
       </AuthProvider>
     </ToastProvider>
   );

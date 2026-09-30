@@ -24,6 +24,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     plus: "M12 4v16m8-8H4",
     message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
     store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
+    globe: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z",
   };
 
   const d = icons[name] || icons.store;
@@ -64,6 +65,11 @@ const AISearch = () => {
   const [relatedSearches, setRelatedSearches] = useState([]);
   const [suggestedCategory, setSuggestedCategory] = useState('');
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
+
+  // ★ PHASE 7A: translation state
+  const [translation, setTranslation] = useState(null); // { original, translated, detectedLanguage, confidence }
+  const [translating, setTranslating] = useState(false);
+
   const searchRef = useRef();
 
   const isMobile = windowWidth <= 768;
@@ -92,6 +98,47 @@ const AISearch = () => {
     await performSearch(query.trim());
   };
 
+  // ★ PHASE 7A: translate before hitting the AI search
+  const translateQuery = async (searchQuery) => {
+    const trimmed = String(searchQuery || '').trim();
+    if (!trimmed || trimmed.length < 3) {
+      setTranslation(null);
+      return { searchTerms: [trimmed], translated: trimmed };
+    }
+
+    setTranslating(true);
+    try {
+      const res = await aiAPI.translateSearch(trimmed);
+      const data = res?.data || {};
+      const translated = data.translated || trimmed;
+      const keywords = Array.isArray(data.keywords) && data.keywords.length > 0
+        ? data.keywords
+        : [trimmed, translated].filter(Boolean);
+
+      const lang = data.detectedLanguage || 'unknown';
+      const confidence = Number(data.confidence) || 0;
+
+      if (lang !== 'en' && translated.toLowerCase() !== trimmed.toLowerCase()) {
+        setTranslation({
+          original: trimmed,
+          translated,
+          detectedLanguage: lang,
+          confidence,
+        });
+      } else {
+        setTranslation(null);
+      }
+
+      return { searchTerms: keywords, translated };
+    } catch (err) {
+      console.warn('translateQuery failed:', err?.message || err);
+      setTranslation(null);
+      return { searchTerms: [trimmed], translated: trimmed };
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   const performSearch = async (searchQuery) => {
     setLoading(true);
     setErrorMsg('');
@@ -100,9 +147,18 @@ const AISearch = () => {
     setRelatedSearches([]);
 
     try {
+      // ★ PHASE 7A: translate first
+      const { searchTerms } = await translateQuery(searchQuery);
+
+      // Send the joined keywords to AI search — the search backend can
+      // match on any of them.
+      const combinedQuery = searchTerms.length > 0
+        ? searchTerms.join(' ')
+        : searchQuery;
+
       const response = await aiAPI.search({
-        query: searchQuery,
-        location: 'Malawi'
+        query: combinedQuery,
+        location: 'Malawi',
       });
 
       if (response.data.success) {
@@ -213,7 +269,6 @@ const AISearch = () => {
   return (
     <div className="ai-search">
       <div className="main-content">
-        {/* Page Header */}
         <div className="page-header">
           <div className="header-icon">
             <Icon name="bot" size={28} color="var(--color-accent)" strokeWidth={1.75} />
@@ -222,23 +277,22 @@ const AISearch = () => {
           <p className="page-subtitle">Ask in English or Chichewa. Example: "Ndikufuna plumber pafupi"</p>
         </div>
 
-        {/* Search Card */}
         <div className="search-card" ref={searchRef}>
           <form onSubmit={handleSearch} className="search-form">
             <div className="search-input-wrapper">
               <Icon name="search" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
               <input
                 type="text"
-                placeholder="Ask anything..."
+                placeholder="Ask anything in English or Chichewa..."
                 value={query}
                 onChange={handleQueryChange}
                 onFocus={() => query.length >= 2 && setShowSuggestions(true)}
                 className="search-input"
                 autoComplete="off"
               />
-              <button type="submit" className="search-btn" disabled={loading}>
+              <button type="submit" className="search-btn" disabled={loading || translating}>
                 <Icon name="search" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
-                {loading ? '...' : 'Search'}
+                {translating ? 'Translating…' : loading ? '...' : 'Search'}
               </button>
             </div>
 
@@ -257,9 +311,25 @@ const AISearch = () => {
               </div>
             )}
           </form>
+
+          {/* ★ PHASE 7A: translation chip */}
+          {translation && (
+            <div className="translation-chip">
+              <Icon name="globe" size={14} color="#1E40AF" strokeWidth={2} />
+              <span className="translation-text">
+                Translated: <strong>{translation.original}</strong> → <strong>{translation.translated}</strong>
+              </span>
+            </div>
+          )}
+
+          {translating && !translation && (
+            <div className="translation-chip translating">
+              <div className="translation-spinner" />
+              <span className="translation-text">Translating your query…</span>
+            </div>
+          )}
         </div>
 
-        {/* Error */}
         {errorMsg && (
           <div className="error-banner">
             <Icon name="search" size={16} color="var(--color-error)" strokeWidth={1.75} />
@@ -267,7 +337,6 @@ const AISearch = () => {
           </div>
         )}
 
-        {/* AI Response */}
         {aiResponse && (
           <div className="ai-response">
             <div className="ai-response-header">
@@ -301,7 +370,6 @@ const AISearch = () => {
           </div>
         )}
 
-        {/* Results */}
         {results.length > 0 && (
           <div className="results-section">
             <p className="results-count">
@@ -347,16 +415,18 @@ const AISearch = () => {
           </div>
         )}
 
-        {/* Empty State - No Results */}
         {!loading && results.length === 0 && query && !errorMsg && (
           <div className="empty-state">
             <Icon name="search" size={40} color="var(--color-border-strong)" strokeWidth={1.5} />
             <h3 className="empty-title">No results found for "{query}"</h3>
-            <p className="empty-text">Try using different keywords or check your spelling</p>
+            <p className="empty-text">
+              {translation
+                ? `We translated it to "${translation.translated}" but found nothing. Try different keywords.`
+                : 'Try using different keywords or check your spelling'}
+            </p>
           </div>
         )}
 
-        {/* Examples */}
         {!query && !loading && results.length === 0 && (
           <div className="examples-card">
             <h3 className="examples-title">💡 Try These Examples:</h3>
@@ -378,7 +448,6 @@ const AISearch = () => {
         )}
       </div>
 
-      {/* Bottom Nav */}
       {isMobile && (
         <div className="bottom-nav">
           {[
@@ -413,22 +482,16 @@ const AISearch = () => {
         }
 
         @media (min-width: 769px) {
-          .ai-search {
-            padding-bottom: 0;
-          }
+          .ai-search { padding-bottom: 0; }
         }
 
-        /* ===== MAIN CONTENT ===== */
         .main-content {
           max-width: 800px;
           margin: 0 auto;
           padding: 20px 16px 40px;
         }
 
-        /* ===== PAGE HEADER ===== */
-        .page-header {
-          margin-bottom: 24px;
-        }
+        .page-header { margin-bottom: 24px; }
 
         .header-icon {
           display: inline-flex;
@@ -456,7 +519,6 @@ const AISearch = () => {
           margin: 0;
         }
 
-        /* ===== SEARCH CARD ===== */
         .search-card {
           background: var(--color-surface);
           border-radius: var(--radius-xl);
@@ -467,9 +529,7 @@ const AISearch = () => {
           box-shadow: var(--shadow-xs);
         }
 
-        .search-form {
-          position: relative;
-        }
+        .search-form { position: relative; }
 
         .search-input-wrapper {
           display: flex;
@@ -499,9 +559,7 @@ const AISearch = () => {
           color: var(--color-text);
         }
 
-        .search-input::placeholder {
-          color: var(--color-text-muted);
-        }
+        .search-input::placeholder { color: var(--color-text-muted); }
 
         .search-btn {
           padding: 8px 18px;
@@ -524,12 +582,48 @@ const AISearch = () => {
           transform: scale(0.98);
         }
 
-        .search-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
+        .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ★ PHASE 7A: translation chip */
+        .translation-chip {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 12px;
+          padding: 10px 14px;
+          background: #EFF6FF;
+          border: 1px solid #BFDBFE;
+          border-radius: var(--radius-lg);
+          font-size: 13px;
+          color: #1E40AF;
+          animation: fadeIn 0.25s ease-out;
         }
 
-        /* ===== SUGGESTIONS ===== */
+        .translation-chip.translating {
+          background: #F3F4F6;
+          border-color: #E5E7EB;
+          color: #6B7280;
+        }
+
+        .translation-chip strong { font-weight: 700; }
+        .translation-text { font-weight: 500; }
+
+        .translation-spinner {
+          width: 14px;
+          height: 14px;
+          border: 2px solid #E5E7EB;
+          border-top-color: #6B7280;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          flex-shrink: 0;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
         .suggestions-dropdown {
           position: absolute;
           top: calc(100% + 6px);
@@ -556,15 +650,9 @@ const AISearch = () => {
           border-bottom: 1px solid var(--color-border);
         }
 
-        .suggestion-item:last-child {
-          border-bottom: none;
-        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: var(--color-surface-alt); }
 
-        .suggestion-item:hover {
-          background: var(--color-surface-alt);
-        }
-
-        /* ===== ERROR ===== */
         .error-banner {
           color: var(--color-error);
           font-size: 13px;
@@ -578,7 +666,6 @@ const AISearch = () => {
           margin-bottom: 16px;
         }
 
-        /* ===== AI RESPONSE ===== */
         .ai-response {
           background: var(--color-success-bg);
           padding: 16px 18px;
@@ -640,10 +727,7 @@ const AISearch = () => {
           margin-top: 8px;
         }
 
-        /* ===== RESULTS ===== */
-        .results-section {
-          margin-top: 4px;
-        }
+        .results-section { margin-top: 4px; }
 
         .results-count {
           font-size: 14px;
@@ -669,15 +753,8 @@ const AISearch = () => {
           box-shadow: var(--shadow-md);
         }
 
-        .result-content {
-          display: flex;
-          gap: 12px;
-        }
-
-        .result-info {
-          flex: 1;
-          min-width: 0;
-        }
+        .result-content { display: flex; gap: 12px; }
+        .result-info { flex: 1; min-width: 0; }
 
         .result-title {
           font-size: 15px;
@@ -720,25 +797,10 @@ const AISearch = () => {
           gap: 3px;
         }
 
-        .badge-category {
-          background: var(--color-primary-tint);
-          color: var(--color-primary);
-        }
-
-        .badge-price {
-          background: var(--color-success-bg);
-          color: var(--color-success);
-        }
-
-        .badge-location {
-          background: var(--color-warning-bg);
-          color: var(--color-warning);
-        }
-
-        .badge-match {
-          background: var(--color-primary-tint);
-          color: var(--color-primary);
-        }
+        .badge-category { background: var(--color-primary-tint); color: var(--color-primary); }
+        .badge-price { background: var(--color-success-bg); color: var(--color-success); }
+        .badge-location { background: var(--color-warning-bg); color: var(--color-warning); }
+        .badge-match { background: var(--color-primary-tint); color: var(--color-primary); }
 
         .result-image {
           width: 64px;
@@ -749,7 +811,6 @@ const AISearch = () => {
           background: var(--color-surface-alt);
         }
 
-        /* ===== EMPTY STATE ===== */
         .empty-state {
           text-align: center;
           padding: 40px 20px;
@@ -772,7 +833,6 @@ const AISearch = () => {
           margin: 0;
         }
 
-        /* ===== EXAMPLES ===== */
         .examples-card {
           background: var(--color-surface);
           border-radius: var(--radius-xl);
@@ -818,7 +878,6 @@ const AISearch = () => {
           transform: translateX(4px);
         }
 
-        /* ===== BOTTOM NAV ===== */
         .bottom-nav {
           position: fixed;
           bottom: 0;
@@ -867,67 +926,32 @@ const AISearch = () => {
           color: var(--color-text-muted);
         }
 
-        .nav-label.active {
-          color: var(--color-text);
-          font-weight: 600;
-        }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
 
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
-          .search-input-wrapper {
-            padding: 4px 4px 4px 12px;
-          }
-          .search-input {
-            font-size: 14px;
-            padding: 8px 0;
-          }
-          .search-btn {
-            padding: 6px 14px;
-            font-size: 13px;
-          }
-          .result-content {
-            flex-direction: column;
-          }
-          .result-image {
-            width: 100%;
-            height: 100px;
-          }
-          .result-card {
-            padding: 12px 14px;
-          }
-          .result-title {
-            font-size: 14px;
-          }
-          .page-title {
-            font-size: 22px;
-          }
+          .search-input-wrapper { padding: 4px 4px 4px 12px; }
+          .search-input { font-size: 14px; padding: 8px 0; }
+          .search-btn { padding: 6px 14px; font-size: 13px; }
+          .result-content { flex-direction: column; }
+          .result-image { width: 100%; height: 100px; }
+          .result-card { padding: 12px 14px; }
+          .result-title { font-size: 14px; }
+          .page-title { font-size: 22px; }
+          .translation-chip { font-size: 12px; padding: 8px 12px; }
         }
 
         @media (max-width: 380px) {
-          .main-content {
-            padding: 12px 12px 32px;
-          }
-          .search-card {
-            padding: 14px 16px;
-          }
-          .examples-card {
-            padding: 14px 16px;
-          }
-          .example-btn {
-            font-size: 13px;
-            padding: 8px 12px;
-          }
-          .header-icon {
-            width: 40px;
-            height: 40px;
-          }
-          .header-icon svg {
-            width: 22px;
-            height: 22px;
-          }
-          .page-title {
-            font-size: 20px;
-          }
+          .main-content { padding: 12px 12px 32px; }
+          .search-card { padding: 14px 16px; }
+          .examples-card { padding: 14px 16px; }
+          .example-btn { font-size: 13px; padding: 8px 12px; }
+          .header-icon { width: 40px; height: 40px; }
+          .header-icon svg { width: 22px; height: 22px; }
+          .page-title { font-size: 20px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .translation-chip, .translation-spinner { animation: none; }
         }
       `}</style>
     </div>

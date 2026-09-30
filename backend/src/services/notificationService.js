@@ -1,3 +1,4 @@
+// backend/src/services/notificationService.js
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
@@ -9,33 +10,39 @@ const supabase = createClient(
 );
 
 class NotificationService {
-  // Create notification
-  async createNotification(userId, type, title, message, link = null) {
+  // ============================================
+  // CORE
+  // ============================================
+  async createNotification(userId, type, title, message, link = null, data = null) {
     try {
-      const { data, error } = await supabase
+      const insertRow = {
+        user_id: userId,
+        type: type,
+        title: title,
+        message: message,
+        link: link,
+        read: false,
+        created_at: new Date().toISOString(),
+      };
+
+      // Optional JSONB payload (best-effort — column may not exist)
+      if (data) insertRow.data = data;
+
+      const { data: inserted, error } = await supabase
         .from('notifications')
-        .insert({
-          user_id: userId,
-          type: type,
-          title: title,
-          message: message,
-          link: link,
-          read: false,
-          created_at: new Date().toISOString()
-        })
+        .insert(insertRow)
         .select()
         .single();
 
       if (error) throw error;
 
-      return { success: true, notification: data };
+      return { success: true, notification: inserted };
     } catch (error) {
-      console.error('Create notification error:', error);
-      return { success: false, error: error.message };
+      console.error('Create notification error:', error?.message || error);
+      return { success: false, error: error?.message || 'Failed to create notification' };
     }
   }
 
-  // Get user notifications
   async getUserNotifications(userId, limit = 20) {
     try {
       const { data, error } = await supabase
@@ -47,7 +54,6 @@ class NotificationService {
 
       if (error) throw error;
 
-      // Get unread count
       const { count, error: countError } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
@@ -59,15 +65,14 @@ class NotificationService {
       return {
         success: true,
         notifications: data || [],
-        unreadCount: count || 0
+        unreadCount: count || 0,
       };
     } catch (error) {
-      console.error('Get notifications error:', error);
-      return { success: false, error: error.message };
+      console.error('Get notifications error:', error?.message || error);
+      return { success: false, error: error?.message || 'Failed to fetch notifications' };
     }
   }
 
-  // Mark notification as read
   async markAsRead(notificationId, userId) {
     try {
       const { error } = await supabase
@@ -80,12 +85,11 @@ class NotificationService {
 
       return { success: true };
     } catch (error) {
-      console.error('Mark as read error:', error);
-      return { success: false, error: error.message };
+      console.error('Mark as read error:', error?.message || error);
+      return { success: false, error: error?.message || 'Failed to mark as read' };
     }
   }
 
-  // Mark all as read
   async markAllAsRead(userId) {
     try {
       const { error } = await supabase
@@ -97,12 +101,11 @@ class NotificationService {
 
       return { success: true };
     } catch (error) {
-      console.error('Mark all as read error:', error);
-      return { success: false, error: error.message };
+      console.error('Mark all as read error:', error?.message || error);
+      return { success: false, error: error?.message || 'Failed to mark all as read' };
     }
   }
 
-  // Delete notification
   async deleteNotification(notificationId, userId) {
     try {
       const { error } = await supabase
@@ -115,15 +118,16 @@ class NotificationService {
 
       return { success: true };
     } catch (error) {
-      console.error('Delete notification error:', error);
-      return { success: false, error: error.message };
+      console.error('Delete notification error:', error?.message || error);
+      return { success: false, error: error?.message || 'Failed to delete notification' };
     }
   }
 
-  // Send notifications for new listing
+  // ============================================
+  // LISTINGS
+  // ============================================
   async notifyNewListing(listing, business) {
     try {
-      // Get users who might be interested (based on category)
       const { data: interestedUsers } = await supabase
         .from('user_preferences')
         .select('user_id')
@@ -141,7 +145,6 @@ class NotificationService {
         }
       }
 
-      // Notify the business owner about their listing
       await this.createNotification(
         business.user_id,
         'listing_created',
@@ -152,12 +155,11 @@ class NotificationService {
 
       return { success: true };
     } catch (error) {
-      console.error('Notify new listing error:', error);
-      return { success: false, error: error.message };
+      console.error('Notify new listing error:', error?.message || error);
+      return { success: false, error: error?.message };
     }
   }
 
-  // Send notification for new contact
   async notifyNewContact(listing, business, customer) {
     try {
       await this.createNotification(
@@ -170,8 +172,163 @@ class NotificationService {
 
       return { success: true };
     } catch (error) {
-      console.error('Notify new contact error:', error);
-      return { success: false, error: error.message };
+      console.error('Notify new contact error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  // ============================================
+  // ★ PHASE 5K: REQUEST NOTIFICATIONS
+  // ============================================
+  async notifyRequestResponse({
+    requestOwnerId,
+    requestId,
+    requestTitle,
+    responderName,
+    offeredPrice = null,
+  }) {
+    try {
+      const priceSuffix = offeredPrice
+        ? ` — offered MK ${Number(offeredPrice).toLocaleString()}`
+        : '';
+
+      await this.createNotification(
+        requestOwnerId,
+        'request_response',
+        'New response to your request',
+        `${responderName || 'Someone'} responded to "${requestTitle}"${priceSuffix}`,
+        `/requests/${requestId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyRequestResponse error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  async notifyResponseAccepted({
+    responderId,
+    requestId,
+    requestTitle,
+    conversationId = null,
+  }) {
+    try {
+      await this.createNotification(
+        responderId,
+        'request_accepted',
+        'Your response was accepted 🎉',
+        `Your offer for "${requestTitle}" was accepted. Open the chat to arrange details.`,
+        conversationId ? `/chat/${conversationId}` : `/requests/${requestId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyResponseAccepted error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  async notifyRequestFulfilled({
+    responderId,
+    requestId,
+    requestTitle,
+  }) {
+    try {
+      await this.createNotification(
+        responderId,
+        'request_fulfilled',
+        'Request marked as fulfilled ✅',
+        `The request "${requestTitle}" has been fulfilled. Your trust score just went up.`,
+        `/requests/${requestId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyRequestFulfilled error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  // ============================================
+  // ★ PHASE 6J: DELIVERY NOTIFICATIONS
+  // ============================================
+
+  /**
+   * Courier accepted a delivery job.
+   * Fires to the POSTER (the person who needs the delivery).
+   */
+  async notifyDeliveryAccepted({
+    posterId,
+    deliveryId,
+    deliveryTitle,
+    courierName,
+  }) {
+    try {
+      await this.createNotification(
+        posterId,
+        'delivery_accepted',
+        'A courier accepted your delivery 🚚',
+        `${courierName || 'A courier'} is on it: "${deliveryTitle}". They'll pick up soon.`,
+        `/deliveries/${deliveryId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyDeliveryAccepted error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  /**
+   * Courier marked the package picked up.
+   * Fires to the POSTER.
+   */
+  async notifyDeliveryPickedUp({
+    posterId,
+    deliveryId,
+    deliveryTitle,
+    courierName,
+  }) {
+    try {
+      await this.createNotification(
+        posterId,
+        'delivery_picked_up',
+        'Your package is on the way 📦',
+        `${courierName || 'Your courier'} picked up "${deliveryTitle}".`,
+        `/deliveries/${deliveryId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyDeliveryPickedUp error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  /**
+   * Poster confirmed the delivery.
+   * Fires to the COURIER.
+   */
+  async notifyDeliveryConfirmed({
+    courierId,
+    deliveryId,
+    deliveryTitle,
+    posterName,
+  }) {
+    try {
+      await this.createNotification(
+        courierId,
+        'delivery_confirmed',
+        'Delivery confirmed ✅',
+        `${posterName || 'The poster'} confirmed "${deliveryTitle}". Your trust score just went up.`,
+        `/deliveries/${deliveryId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyDeliveryConfirmed error:', error?.message || error);
+      return { success: false, error: error?.message };
     }
   }
 }
