@@ -24,6 +24,9 @@ const translationCache = new Map();
 const PRICE_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const priceCache = new Map();
 
+const QUALITY_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes (listing content changes often)
+const qualityCache = new Map();
+
 const cacheGet = (key) => {
   const entry = translationCache.get(key);
   if (!entry) return null;
@@ -57,6 +60,24 @@ const priceCacheSet = (key, value) => {
   if (priceCache.size > 2000) {
     const firstKey = priceCache.keys().next().value;
     priceCache.delete(firstKey);
+  }
+};
+
+const qualityCacheGet = (key) => {
+  const entry = qualityCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.t > QUALITY_CACHE_TTL_MS) {
+    qualityCache.delete(key);
+    return null;
+  }
+  return entry.v;
+};
+
+const qualityCacheSet = (key, value) => {
+  qualityCache.set(key, { v: value, t: Date.now() });
+  if (qualityCache.size > 3000) {
+    const firstKey = qualityCache.keys().next().value;
+    qualityCache.delete(firstKey);
   }
 };
 
@@ -293,16 +314,6 @@ Return ONLY valid JSON, no markdown, no preamble:
   // ============================================
   // ★ PHASE 7B: PRICE SUGGESTION (based on real listings)
   // ============================================
-  /**
-   * Suggest a price for a listing based on similar listings in the DB.
-   * Never invents prices — LLM only summarizes the numbers we computed.
-   *
-   * Returns:
-   *   { hasSuggestion: true, min, median, max, sampleSize, confidence,
-   *     insight, currency, category }
-   * OR
-   *   { hasSuggestion: false, reason: 'insufficient_data', message }
-   */
   async suggestPriceForListing({ title, category }) {
     const cleanTitle = String(title || '').trim();
     const cleanCategory = String(category || '').trim();
@@ -315,7 +326,6 @@ Return ONLY valid JSON, no markdown, no preamble:
       };
     }
 
-    // Cache key: category + first few tokens of normalized title
     const tokens = cleanTitle
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, ' ')
@@ -330,7 +340,6 @@ Return ONLY valid JSON, no markdown, no preamble:
       return cached;
     }
 
-    // Step 1: query the DB for comparables
     let comparables = [];
     try {
       comparables = await this.fetchComparableListings({
@@ -357,7 +366,6 @@ Return ONLY valid JSON, no markdown, no preamble:
       return noData;
     }
 
-    // Step 2: compute stats
     const prices = comparables
       .map((l) => Number(l.price))
       .filter((n) => Number.isFinite(n) && n > 0)
@@ -379,13 +387,11 @@ Return ONLY valid JSON, no markdown, no preamble:
     const median = prices[Math.floor(prices.length / 2)];
     const sampleSize = prices.length;
 
-    // Step 3: confidence from sample size + spread
     const spread = (max - min) / (median || 1);
     let confidence = 'low';
     if (sampleSize >= 10 && spread < 0.6) confidence = 'high';
     else if (sampleSize >= 5 && spread < 1.2) confidence = 'medium';
 
-    // Step 4: ask LLM for a one-sentence insight (best-effort)
     let insight = this.fallbackInsight({ min, median, max, cleanCategory });
     try {
       const provider = this.getAvailableProvider();
@@ -440,14 +446,9 @@ Return ONLY the sentence, no JSON, no quotes.`;
     return result;
   }
 
-  /**
-   * Query the DB for listings that look like the given one.
-   * Uses ILIKE on title + optional category match.
-   */
   async fetchComparableListings({ tokens, category }) {
     if (!tokens || tokens.length === 0) return [];
 
-    // Build an OR clause on tokens using ilike on title
     const ilikeClauses = tokens
       .filter((t) => t.length >= 3)
       .map((t) => `title.ilike.%${t}%`);
@@ -463,14 +464,12 @@ Return ONLY the sentence, no JSON, no quotes.`;
       .limit(50);
 
     if (category) {
-      // Soft filter: same category, but allow cross-category if few matches
       query = query.eq('category', category);
     }
 
     const { data, error } = await query;
     if (error) throw error;
 
-    // If strict category filter returned too few, retry without category
     if ((!data || data.length < 3) && category) {
       const retry = await supabase
         .from('listings')
@@ -493,6 +492,500 @@ Return ONLY the sentence, no JSON, no quotes.`;
       return `Similar items${cat} sell for about ${fmt(median)}.`;
     }
     return `Similar items${cat} sell for ${fmt(min)} – ${fmt(max)}, most around ${fmt(median)}.`;
+  }
+
+  // ============================================
+  // ★ PHASE 7C: LISTING QUALITY SCORE
+  // ============================================
+  /**
+   * Score a listing 0–100 based on completeness, clarity, and market fit.
+   * Deterministic breakdown + LLM-generated improvement tips.
+   *
+   * @param {Object} input
+   * @param {string} [input.listingId] - If provided, fetches listing from DB
+   * @param {string} [input.title]
+   * @param {string} [input.description]
+   * @param {string} [input.category]
+   * @param {number|string} [input.price]
+   * @param {number|string} [input.quantity]
+   * @param {string} [input.unit]
+   * @param {Array}  [input.images]
+   * @param {string} [input.locationArea]
+   * @param {boolean}[input.deliveryAvailable]
+   * @param {string} [input.contactPhone]
+   *
+   * Returns:
+   *   { score, grade, breakdown, tips, computedAt }
+   */
+  async scoreListingQuality(input = {}) {
+    let listing = { ...input };
+
+    // Optionally hydrate from DB
+    if (input.listingId) {
+      try {
+        const { data, error } = await supabase
+          .from('listings')
+          .select('*')
+          .eq('id', input.listingId)
+          .maybeSingle();
+        if (!error && data) {
+          listing = { ...data, ...input, listingId: data.id };
+        }
+      } catch (err) {
+        logger.warn('scoreListingQuality: DB fetch failed:', err?.message);
+      }
+    }
+
+    const title = String(listing.title || '').trim();
+    const description = String(listing.description || '').trim();
+    const category = String(listing.category || '').trim();
+    const subCategory = String(listing.subCategory || listing.sub_category || '').trim();
+    const price = Number(listing.price) || 0;
+    const quantity = Number(listing.quantity) || 0;
+    const unit = String(listing.unit || '').trim();
+    const locationArea = String(listing.locationArea || listing.location_area || '').trim();
+    const contactPhone = String(listing.contactPhone || listing.contact_phone || '').trim();
+    const deliveryAvailable = !!(listing.deliveryAvailable ?? listing.delivery_available);
+    const images = Array.isArray(listing.images) ? listing.images.filter(Boolean) : [];
+
+    // ============================================
+    // MECHANICAL BREAKDOWN (max 100)
+    // ============================================
+    const breakdown = {
+      photos:      { score: 0, max: 25 },
+      title:       { score: 0, max: 20 },
+      description: { score: 0, max: 20 },
+      price:       { score: 0, max: 15 },
+      details:     { score: 0, max: 10 },
+      location:    { score: 0, max: 10 },
+    };
+
+    // --- PHOTOS (25) ---
+    // 0 photos → 0, 1 → 12, 2 → 18, 3 → 22, 4+ → 25
+    const photoCount = images.length;
+    if (photoCount >= 4) breakdown.photos.score = 25;
+    else if (photoCount === 3) breakdown.photos.score = 22;
+    else if (photoCount === 2) breakdown.photos.score = 18;
+    else if (photoCount === 1) breakdown.photos.score = 12;
+    else breakdown.photos.score = 0;
+
+    // --- TITLE (20) ---
+    // Length (0–10) + word diversity (0–5) + no ALL CAPS spam (0–5)
+    const titleLen = title.length;
+    let titleScore = 0;
+    if (titleLen >= 15 && titleLen <= 70) titleScore += 10;
+    else if (titleLen >= 8) titleScore += 7;
+    else if (titleLen >= 4) titleScore += 4;
+    else if (titleLen > 0) titleScore += 1;
+
+    const words = title.split(/\s+/).filter(Boolean);
+    if (words.length >= 3 && words.length <= 10) titleScore += 5;
+    else if (words.length >= 2) titleScore += 3;
+    else if (words.length === 1) titleScore += 1;
+
+    const capsRatio =
+      title.length > 0
+        ? title.replace(/[^A-Z]/g, '').length / title.replace(/[^A-Za-z]/g, '').length
+        : 0;
+    if (title.length > 0 && (isNaN(capsRatio) || capsRatio < 0.5)) titleScore += 5;
+    else if (title.length > 0) titleScore += 2;
+
+    breakdown.title.score = Math.min(20, titleScore);
+
+    // --- DESCRIPTION (20) ---
+    // Length (0–12) + sentence structure (0–4) + mentions price/qty (0–4)
+    const descLen = description.length;
+    let descScore = 0;
+    if (descLen >= 120) descScore += 12;
+    else if (descLen >= 60) descScore += 9;
+    else if (descLen >= 25) descScore += 6;
+    else if (descLen >= 10) descScore += 3;
+    else if (descLen > 0) descScore += 1;
+
+    const sentenceCount = (description.match(/[.!?]+/g) || []).length;
+    if (sentenceCount >= 2) descScore += 4;
+    else if (sentenceCount === 1) descScore += 2;
+
+    const lowerDesc = description.toLowerCase();
+    const mentionsSpecifics =
+      /\d/.test(description) ||
+      lowerDesc.includes('price') ||
+      lowerDesc.includes('quality') ||
+      lowerDesc.includes('condition') ||
+      lowerDesc.includes('available') ||
+      lowerDesc.includes('deliver');
+    if (mentionsSpecifics) descScore += 4;
+
+    breakdown.description.score = Math.min(20, descScore);
+
+    // --- PRICE (15) ---
+    // Present + reasonable (positive int) + not absurdly high
+    let priceScore = 0;
+    if (price > 0) priceScore += 10;
+    if (price >= 100 && price <= 100_000_000) priceScore += 5;
+    breakdown.price.score = Math.min(15, priceScore);
+
+    // --- DETAILS (10) ---
+    let detailScore = 0;
+    if (category) detailScore += 3;
+    if (subCategory) detailScore += 2;
+    if (quantity > 0 && unit) detailScore += 3;
+    else if (unit) detailScore += 1;
+    else if (quantity > 0) detailScore += 1;
+    if (deliveryAvailable) detailScore += 2;
+    breakdown.details.score = Math.min(10, detailScore);
+
+    // --- LOCATION (10) ---
+    let locScore = 0;
+    if (locationArea) locScore += 6;
+    if (contactPhone && contactPhone.replace(/\D/g, '').length >= 8) locScore += 4;
+    breakdown.location.score = Math.min(10, locScore);
+
+    // ============================================
+    // TOTAL + GRADE
+    // ============================================
+    const score = Object.values(breakdown).reduce((sum, b) => sum + b.score, 0);
+
+    let grade = 'poor';
+    if (score >= 85) grade = 'excellent';
+    else if (score >= 70) grade = 'good';
+    else if (score >= 50) grade = 'fair';
+
+    // ============================================
+    // FALLBACK TIPS (always available)
+    // ============================================
+    const fallbackTips = [];
+    if (breakdown.photos.score < 20) {
+      const need = Math.max(0, 4 - photoCount);
+      fallbackTips.push(
+        need > 0
+          ? `Add ${need} more photo${need === 1 ? '' : 's'} — listings with 4+ photos sell faster.`
+          : 'Add sharper, well-lit photos.'
+      );
+    }
+    if (breakdown.title.score < 15) {
+      fallbackTips.push('Make your title 15–70 characters and describe exactly what you sell.');
+    }
+    if (breakdown.description.score < 14) {
+      fallbackTips.push('Add a 2–3 sentence description with condition, quantity, and delivery info.');
+    }
+    if (breakdown.price.score < 12) {
+      fallbackTips.push('Set a clear price in MWK — listings without a price get 60% fewer clicks.');
+    }
+    if (breakdown.details.score < 8) {
+      fallbackTips.push('Fill in subcategory, quantity + unit, and delivery availability.');
+    }
+    if (breakdown.location.score < 8) {
+      fallbackTips.push('Add a location area and a valid contact phone number.');
+    }
+
+    // Cap at 3 tips — the most important ones
+    let tips = fallbackTips.slice(0, 3);
+
+    // ============================================
+    // LLM-ENRICHED TIPS (best-effort)
+    // ============================================
+    try {
+      const provider = this.getAvailableProvider();
+      if (provider && score < 95) {
+        const prompt = `You are a marketplace quality coach for Kumsika in Malawi.
+A seller has this listing:
+- Title: ${title || '(empty)'}
+- Description: ${description ? description.slice(0, 300) : '(empty)'}
+- Category: ${category || '(none)'}${subCategory ? ` / ${subCategory}` : ''}
+- Price: ${price > 0 ? `MK ${price.toLocaleString()}` : '(none)'}
+- Quantity: ${quantity > 0 ? `${quantity} ${unit || ''}`.trim() : '(none)'}
+- Photos: ${photoCount}
+- Location: ${locationArea || '(none)'}
+- Delivery: ${deliveryAvailable ? 'yes' : 'no'}
+- Quality score: ${score}/100 (${grade})
+
+Write EXACTLY 3 short, actionable improvement tips.
+Each tip: max 14 words, concrete, no greetings, no fluff, no emoji.
+Reference specifics from the listing where possible.
+Return ONLY a JSON array of 3 strings, no other text.`;
+
+        const raw = await this.callProvider(provider, prompt, 'Give the tips.', 0.4);
+        const parsed = this.parseTipsArray(raw);
+        if (parsed.length >= 2) {
+          tips = parsed.slice(0, 3);
+        }
+      }
+    } catch (err) {
+      logger.warn('Quality tips LLM failed, using fallback:', err?.message);
+    }
+
+    const result = {
+      score,
+      grade,
+      breakdown,
+      tips,
+      computedAt: new Date().toISOString(),
+    };
+
+    // Cache by content hash
+    const cacheKey = this.hashQualityInput({
+      title,
+      description,
+      category,
+      subCategory,
+      price,
+      quantity,
+      unit,
+      photoCount,
+      locationArea,
+      contactPhone,
+      deliveryAvailable,
+    });
+    qualityCacheSet(cacheKey, result);
+
+    logger.info('✨ Quality score computed:', {
+      score,
+      grade,
+      photoCount,
+      titleLen,
+      descLen,
+    });
+
+    return result;
+  }
+
+  parseTipsArray(raw) {
+    if (!raw || typeof raw !== 'string') return [];
+    let cleaned = raw.trim();
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+
+    const firstBracket = cleaned.indexOf('[');
+    const lastBracket = cleaned.lastIndexOf(']');
+    if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+      cleaned = cleaned.slice(firstBracket, lastBracket + 1);
+    }
+
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((t) => String(t || '').replace(/^["'\-\*\s]+|["'\s]+$/g, '').trim())
+        .filter((t) => t.length >= 8 && t.length <= 140);
+    } catch {
+      return [];
+    }
+  }
+
+  hashQualityInput(input) {
+    const parts = [
+      input.title || '',
+      input.description || '',
+      input.category || '',
+      input.subCategory || '',
+      String(input.price || ''),
+      String(input.quantity || ''),
+      input.unit || '',
+      String(input.photoCount || 0),
+      input.locationArea || '',
+      input.contactPhone || '',
+      String(!!input.deliveryAvailable),
+    ];
+    let hash = 0;
+    const joined = parts.join('|');
+    for (let i = 0; i < joined.length; i++) {
+      hash = (hash << 5) - hash + joined.charCodeAt(i);
+      hash |= 0;
+    }
+    return `q:${hash}`;
+  }
+
+  // ============================================
+  // ★ PHASE 7D: SALES ASSISTANT
+  // ============================================
+  /**
+   * Draft a seller reply to a buyer's message, using listing context.
+   *
+   * @param {Object} input
+   * @param {string} input.buyerMessage - The buyer's latest message
+   * @param {Object} [input.listing] - Listing context (title, price, location, delivery)
+   * @param {Array}  [input.history] - Recent chat history [{role:'buyer'|'seller', text}]
+   * @param {string} [input.tone] - 'friendly' | 'professional' | 'brief'
+   *
+   * Returns:
+   *   { draft, alternatives: [string, string], tone }
+   */
+  async draftSalesReply({ buyerMessage, listing = {}, history = [], tone = 'friendly' }) {
+    const message = String(buyerMessage || '').trim();
+    if (!message) {
+      return {
+        draft: '',
+        alternatives: [],
+        tone,
+        error: 'No buyer message provided',
+      };
+    }
+
+    const cleanTone = ['friendly', 'professional', 'brief'].includes(tone)
+      ? tone
+      : 'friendly';
+
+    const title = String(listing.title || '').trim();
+    const price = Number(listing.price) || 0;
+    const currency = 'MK';
+    const location = String(listing.locationArea || listing.location_area || '').trim();
+    const deliveryAvailable = !!(listing.deliveryAvailable ?? listing.delivery_available);
+    const deliveryFee = Number(listing.deliveryFee ?? listing.delivery_fee) || 0;
+    const quantity = Number(listing.quantity) || 0;
+    const unit = String(listing.unit || '').trim();
+    const category = String(listing.category || '').trim();
+
+    // Format recent history (last 6 turns)
+    const recentHistory = Array.isArray(history)
+      ? history
+          .slice(-6)
+          .map((h) => {
+            const who = h.role === 'buyer' ? 'Buyer' : 'Seller';
+            return `${who}: ${String(h.text || '').slice(0, 200)}`;
+          })
+          .join('\n')
+      : '';
+
+    const toneGuide = {
+      friendly: 'Warm and helpful, like a local business owner. Use natural English.',
+      professional: 'Polite and businesslike. Clear, concise, no slang.',
+      brief: 'Very short — max 2 short sentences. No greetings.',
+    }[cleanTone];
+
+    const provider = this.getAvailableProvider();
+    if (!provider) {
+      return this.fallbackSalesReply({
+        buyerMessage: message,
+        listing,
+        tone: cleanTone,
+      });
+    }
+
+    const systemPrompt = `You are a sales assistant for a Malawian marketplace seller on Kumsika.
+Draft a reply to the buyer's message.
+
+LISTING CONTEXT:
+- Title: ${title || '(unknown)'}
+- Category: ${category || '(unknown)'}
+- Price: ${price > 0 ? `${currency} ${price.toLocaleString()}` : '(not set)'}
+- Quantity: ${quantity > 0 ? `${quantity} ${unit}`.trim() : '(not set)'}
+- Location: ${location || '(unknown)'}
+- Delivery: ${deliveryAvailable ? `yes${deliveryFee > 0 ? `, fee ${currency} ${deliveryFee.toLocaleString()}` : ''}` : 'no'}
+
+RECENT CHAT:
+${recentHistory || '(none)'}
+
+TONE: ${cleanTone} — ${toneGuide}
+
+BUYER MESSAGE: "${message}"
+
+RULES:
+- Answer the buyer's actual question directly.
+- If price/delivery is asked and unknown, invite them to chat — do NOT invent numbers.
+- Use Malawi Kwacha formatting like "MK 8,000".
+- Never mention AI. Never add emojis unless the tone is friendly and it feels natural (max 1).
+- Do NOT include the buyer's name unless it was given.
+- Keep the main draft under 40 words.
+
+Return ONLY valid JSON, no markdown, no preamble:
+{
+  "draft": "the main reply",
+  "alternatives": ["a slightly different phrasing", "another variation"]
+}`;
+
+    try {
+      const raw = await this.callProvider(
+        provider,
+        systemPrompt,
+        `Draft a reply to: "${message}"`,
+        0.6
+      );
+
+      const parsed = this.parseSalesReply(raw);
+      if (parsed.draft) {
+        return {
+          draft: parsed.draft,
+          alternatives: parsed.alternatives.slice(0, 2),
+          tone: cleanTone,
+        };
+      }
+
+      return this.fallbackSalesReply({
+        buyerMessage: message,
+        listing,
+        tone: cleanTone,
+      });
+    } catch (err) {
+      logger.warn('draftSalesReply LLM failed, using fallback:', err?.message);
+      return this.fallbackSalesReply({
+        buyerMessage: message,
+        listing,
+        tone: cleanTone,
+      });
+    }
+  }
+
+  parseSalesReply(raw) {
+    if (!raw || typeof raw !== 'string') return { draft: '', alternatives: [] };
+
+    let cleaned = raw.trim();
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
+
+    try {
+      const parsed = JSON.parse(cleaned);
+      const draft = String(parsed.draft || '').trim();
+      const alternatives = Array.isArray(parsed.alternatives)
+        ? parsed.alternatives
+            .map((a) => String(a || '').trim())
+            .filter((a) => a.length > 0)
+            .slice(0, 2)
+        : [];
+      return { draft, alternatives };
+    } catch {
+      return { draft: '', alternatives: [] };
+    }
+  }
+
+  fallbackSalesReply({ buyerMessage, listing, tone }) {
+    const price = Number(listing?.price) || 0;
+    const location = String(listing?.locationArea || listing?.location_area || '').trim();
+    const deliveryAvailable = !!(listing?.deliveryAvailable ?? listing?.delivery_available);
+    const lower = buyerMessage.toLowerCase();
+
+    let draft = 'Thanks for your message! Yes, it is still available.';
+
+    if (lower.includes('deliver')) {
+      draft = deliveryAvailable
+        ? `Yes, I can deliver${location ? ` within ${location}` : ''}. When would you like it?`
+        : `Sorry, delivery is not available right now — pickup${location ? ` in ${location}` : ''} only.`;
+    } else if (lower.includes('price') || lower.includes('how much') || lower.includes('cost')) {
+      draft = price > 0
+        ? `The price is MK ${price.toLocaleString()}. Let me know if you'd like it.`
+        : `Let me share the price with you — what quantity do you need?`;
+    } else if (lower.includes('available') || lower.includes('still')) {
+      draft = `Yes, it's still available${price > 0 ? ` at MK ${price.toLocaleString()}` : ''}. When would you like to pick it up?`;
+    } else if (lower.includes('pick') || lower.includes('collect')) {
+      draft = `Sure! ${location ? `Pickup is in ${location}. ` : ''}What time works for you?`;
+    }
+
+    if (tone === 'brief') {
+      draft = draft.split(/[.!?]/)[0].trim() + '.';
+    }
+
+    return {
+      draft,
+      alternatives: [
+        'Happy to help! Let me know what you need and I will get back to you.',
+        'Thanks for reaching out — I will confirm the details and reply shortly.',
+      ],
+      tone: tone || 'friendly',
+    };
   }
 
   // ============================================

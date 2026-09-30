@@ -93,16 +93,6 @@ router.get('/translate-search', async (req, res) => {
 // ============================================
 // ★ PHASE 7B: PRICE SUGGESTION
 // ============================================
-/**
- * POST /api/ai/price-suggest
- * Body: { title: string, category?: string }
- * Returns:
- *   { success: true, suggestion: { hasSuggestion, min, median, max,
- *      sampleSize, confidence, insight, currency, category } }
- *   OR if not enough data:
- *   { success: true, suggestion: { hasSuggestion: false, reason,
- *      message, sampleSize? } }
- */
 router.post('/price-suggest', async (req, res) => {
   try {
     const title = String(req.body?.title || '').trim();
@@ -133,13 +123,122 @@ router.post('/price-suggest', async (req, res) => {
     });
   } catch (error) {
     logger.error('❌ /price-suggest error:', error?.message || error);
-    // Graceful — never break the listing form
     return res.json({
       success: true,
       suggestion: {
         hasSuggestion: false,
         reason: 'server_error',
         message: 'Could not analyze pricing right now.',
+      },
+    });
+  }
+});
+
+// ============================================
+// ★ PHASE 7C: LISTING QUALITY SCORE
+// ============================================
+/**
+ * POST /api/ai/quality-score
+ * Body: { listingId } OR { title, description, category, price, images, ... }
+ * Returns: { success, quality: { score, grade, breakdown, tips } }
+ */
+router.post('/quality-score', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const listingId = body.listingId ? String(body.listingId).trim() : '';
+    const title = String(body.title || '').trim();
+
+    // Need either a listingId OR at least a title
+    if (!listingId && title.length < 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Provide a listingId OR a title (min 3 chars)',
+      });
+    }
+
+    const quality = await aiService.scoreListingQuality({
+      listingId: listingId || undefined,
+      title: body.title,
+      description: body.description,
+      category: body.category,
+      subCategory: body.subCategory || body.sub_category,
+      price: body.price,
+      quantity: body.quantity,
+      unit: body.unit,
+      images: Array.isArray(body.images) ? body.images : [],
+      locationArea: body.locationArea || body.location_area,
+      deliveryAvailable: body.deliveryAvailable ?? body.delivery_available,
+      contactPhone: body.contactPhone || body.contact_phone,
+    });
+
+    return res.json({
+      success: true,
+      quality,
+    });
+  } catch (error) {
+    logger.error('❌ /quality-score error:', error?.message || error);
+    // Graceful — never block the listing form
+    return res.json({
+      success: true,
+      quality: {
+        score: 0,
+        grade: 'poor',
+        breakdown: {},
+        tips: [],
+        error: 'server_error',
+      },
+    });
+  }
+});
+
+// ============================================
+// ★ PHASE 7D: SALES ASSISTANT
+// ============================================
+/**
+ * POST /api/ai/sales-assist
+ * Body: { buyerMessage, listing?, history?, tone? }
+ * Returns: { success, assist: { draft, alternatives, tone } }
+ */
+router.post('/sales-assist', async (req, res) => {
+  try {
+    const buyerMessage = String(req.body?.buyerMessage || '').trim();
+    if (!buyerMessage) {
+      return res.status(400).json({
+        success: false,
+        error: 'buyerMessage is required',
+      });
+    }
+    if (buyerMessage.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        error: 'buyerMessage is too long (max 1000 chars)',
+      });
+    }
+
+    const listing = req.body?.listing || {};
+    const history = Array.isArray(req.body?.history) ? req.body.history : [];
+    const tone = String(req.body?.tone || 'friendly');
+
+    const assist = await aiService.draftSalesReply({
+      buyerMessage,
+      listing,
+      history,
+      tone,
+    });
+
+    return res.json({
+      success: true,
+      assist,
+    });
+  } catch (error) {
+    logger.error('❌ /sales-assist error:', error?.message || error);
+    return res.json({
+      success: true,
+      assist: {
+        draft: 'Thanks for your message! I will get back to you shortly.',
+        alternatives: [],
+        tone: 'friendly',
+        error: 'server_error',
       },
     });
   }

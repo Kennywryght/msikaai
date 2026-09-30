@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { businessAPI } from '../services/api';
+import { businessAPI, aiAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 
 // ============================================================
@@ -30,6 +30,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     message: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z",
     sparkles: "M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z",
     camera: "M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 13a3 3 0 100-6 3 3 0 000 6z",
+    trendingUp: "M23 6l-9.5 9.5-5-5L1 18M17 6h6v6",
+    award: "M12 15a7 7 0 100-14 7 7 0 000 14zM8.21 13.89L7 23l5-3 5 3-1.21-9.12",
   };
 
   const d = icons[name] || icons.store;
@@ -89,6 +91,16 @@ const SUB_CATEGORIES = {
 };
 
 // ============================================================
+// QUALITY GRADE HELPERS
+// ============================================================
+const GRADE_META = {
+  excellent: { label: 'Excellent', color: 'var(--color-success)', bg: 'var(--color-success-bg)', emoji: '🏆' },
+  good:      { label: 'Good',      color: 'var(--color-secondary-hover)', bg: 'var(--color-info-bg)', emoji: '✅' },
+  fair:      { label: 'Fair',      color: 'var(--color-accent-hover)', bg: 'var(--color-accent-soft)', emoji: '⚠️' },
+  poor:      { label: 'Needs work', color: 'var(--color-error)', bg: 'var(--color-error-bg)', emoji: '📝' },
+};
+
+// ============================================================
 // MAIN COMPONENT
 // ============================================================
 const CreateListing = () => {
@@ -119,6 +131,15 @@ const CreateListing = () => {
   const fileInputRef = useRef(null);
   const titleInputRef = useRef(null);
 
+  // ★ PHASE 7B: price suggestion state
+  const [priceSuggestion, setPriceSuggestion] = useState(null);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+
+  // ★ PHASE 7C: quality score state
+  const [quality, setQuality] = useState(null);
+  const [loadingQuality, setLoadingQuality] = useState(false);
+
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   useEffect(() => {
@@ -130,6 +151,88 @@ const CreateListing = () => {
   useEffect(() => {
     fetchBusinesses();
   }, [user]);
+
+  // ★ PHASE 7B: debounced price suggestion fetch (800ms)
+  useEffect(() => {
+    const title = String(formData.title || '').trim();
+    const category = String(formData.category || '').trim();
+
+    if (suggestionDismissed) return;
+
+    if (title.length < 3) {
+      setPriceSuggestion(null);
+      setLoadingSuggestion(false);
+      return;
+    }
+
+    setLoadingSuggestion(true);
+
+    const handle = setTimeout(async () => {
+      try {
+        const res = await aiAPI.priceSuggest({ title, category });
+        const suggestion = res?.data?.suggestion || null;
+        setPriceSuggestion(suggestion);
+      } catch (err) {
+        console.warn('priceSuggest error:', err?.message);
+        setPriceSuggestion(null);
+      } finally {
+        setLoadingSuggestion(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(handle);
+  }, [formData.title, formData.category, suggestionDismissed]);
+
+  // ★ PHASE 7C: debounced quality score fetch (1000ms — heavier call)
+  useEffect(() => {
+    const title = String(formData.title || '').trim();
+    if (title.length < 3) {
+      setQuality(null);
+      setLoadingQuality(false);
+      return;
+    }
+
+    setLoadingQuality(true);
+
+    const handle = setTimeout(async () => {
+      try {
+        const res = await aiAPI.qualityScore({
+          title: formData.title,
+          description: formData.description,
+          category: formData.category,
+          subCategory: formData.subCategory,
+          price: formData.price,
+          quantity: formData.quantity,
+          unit: formData.unit,
+          images: formData.images,
+          locationArea: formData.locationArea,
+          deliveryAvailable: formData.deliveryAvailable,
+          contactPhone: formData.contactPhone,
+        });
+        const q = res?.data?.quality || null;
+        setQuality(q);
+      } catch (err) {
+        console.warn('qualityScore error:', err?.message);
+        setQuality(null);
+      } finally {
+        setLoadingQuality(false);
+      }
+    }, 1000);
+
+    return () => clearTimeout(handle);
+  }, [
+    formData.title,
+    formData.description,
+    formData.category,
+    formData.subCategory,
+    formData.price,
+    formData.quantity,
+    formData.unit,
+    formData.images.length,
+    formData.locationArea,
+    formData.deliveryAvailable,
+    formData.contactPhone,
+  ]);
 
   const fetchBusinesses = async () => {
     if (!user?.id) return;
@@ -193,6 +296,24 @@ const CreateListing = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const applySuggestedPrice = () => {
+    if (!priceSuggestion?.hasSuggestion) return;
+    setFormData((prev) => ({
+      ...prev,
+      price: String(priceSuggestion.median),
+    }));
+    setSuggestionDismissed(true);
+  };
+
+  const dismissSuggestion = (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setSuggestionDismissed(true);
+    setPriceSuggestion(null);
   };
 
   const handleSubmit = async (e) => {
@@ -282,6 +403,13 @@ const CreateListing = () => {
     else if (id === 'messages') navigate('/messages');
     else if (id === 'profile') navigate('/profile');
   };
+
+  const showSuggestionChip =
+    !suggestionDismissed &&
+    formData.title.trim().length >= 3 &&
+    (loadingSuggestion || priceSuggestion?.hasSuggestion);
+
+  const gradeMeta = quality?.grade ? GRADE_META[quality.grade] : null;
 
   return (
     <div className="create-listing">
@@ -470,6 +598,66 @@ const CreateListing = () => {
             </div>
           </div>
 
+          {/* ★ PHASE 7B: AI Price Suggestion Chip */}
+          {showSuggestionChip && loadingSuggestion && (
+            <div className="price-suggestion-chip price-suggestion-loading">
+              <span className="chip-loader" />
+              <span className="chip-text">Checking similar listings…</span>
+            </div>
+          )}
+
+          {showSuggestionChip &&
+            !loadingSuggestion &&
+            priceSuggestion?.hasSuggestion && (
+              <div
+                role="button"
+                tabIndex={0}
+                className="price-suggestion-chip price-suggestion-ready"
+                onClick={applySuggestedPrice}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    applySuggestedPrice();
+                  }
+                }}
+                title="Tap to use the median price"
+              >
+                <div className="chip-icon">
+                  <Icon
+                    name="sparkles"
+                    size={16}
+                    color="var(--color-accent)"
+                    strokeWidth={2}
+                  />
+                </div>
+                <div className="chip-body">
+                  <div className="chip-title">
+                    Suggested: MK {Number(priceSuggestion.median).toLocaleString()}
+                  </div>
+                  <div className="chip-insight">{priceSuggestion.insight}</div>
+                  <div className="chip-meta">
+                    {priceSuggestion.sampleSize} similar ·{' '}
+                    MK {Number(priceSuggestion.min).toLocaleString()} –{' '}
+                    MK {Number(priceSuggestion.max).toLocaleString()} ·{' '}
+                    {priceSuggestion.confidence} confidence
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="chip-dismiss"
+                  onClick={dismissSuggestion}
+                  aria-label="Dismiss suggestion"
+                >
+                  <Icon
+                    name="close"
+                    size={12}
+                    color="var(--color-text-muted)"
+                    strokeWidth={2.4}
+                  />
+                </button>
+              </div>
+            )}
+
           {/* Quantity & Unit */}
           <div className="form-row">
             <div className="form-group half">
@@ -560,6 +748,67 @@ const CreateListing = () => {
               autoComplete="tel"
             />
           </div>
+
+          {/* ★ PHASE 7C: Live Listing Quality Card */}
+          {formData.title.trim().length >= 3 && (loadingQuality || quality) && (
+            <div className={`quality-card ${gradeMeta ? `quality-${quality?.grade}` : 'quality-loading'}`}>
+              <div className="quality-header">
+                <div className="quality-header-left">
+                  <div
+                    className="quality-score-ring"
+                    style={{
+                      borderColor: gradeMeta?.color || 'var(--color-border-strong)',
+                    }}
+                  >
+                    <span
+                      className="quality-score-number"
+                      style={{ color: gradeMeta?.color || 'var(--color-text-muted)' }}
+                    >
+                      {loadingQuality ? '—' : quality?.score ?? '—'}
+                    </span>
+                  </div>
+                  <div className="quality-header-text">
+                    <div className="quality-title">
+                      <Icon
+                        name="award"
+                        size={14}
+                        color={gradeMeta?.color || 'var(--color-text-muted)'}
+                        strokeWidth={2.2}
+                      />
+                      Listing quality
+                    </div>
+                    <div className="quality-subtitle">
+                      {loadingQuality
+                        ? 'Analyzing your listing…'
+                        : gradeMeta
+                        ? `${gradeMeta.emoji} ${gradeMeta.label}`
+                        : 'Keep filling in details'}
+                    </div>
+                  </div>
+                </div>
+                {loadingQuality && <span className="quality-loader" />}
+              </div>
+
+              {!loadingQuality && quality?.tips?.length > 0 && (
+                <ul className="quality-tips">
+                  {quality.tips.map((tip, i) => (
+                    <li key={i} className="quality-tip">
+                      <span className="quality-tip-bullet">
+                        <Icon name="trendingUp" size={11} color="var(--color-accent)" strokeWidth={2.4} />
+                      </span>
+                      <span>{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {!loadingQuality && quality?.score === 100 && (
+                <div className="quality-perfect">
+                  🎉 Your listing is fully optimized — great job!
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Submit */}
           <button type="submit" className="submit-btn" disabled={loading}>
@@ -904,6 +1153,257 @@ const CreateListing = () => {
           to { transform: rotate(360deg); }
         }
 
+        /* ===== AI PRICE SUGGESTION (Phase 7B) ===== */
+        .price-suggestion-chip {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          width: 100%;
+          padding: 12px 14px;
+          border-radius: var(--radius-xl);
+          border: 1.5px solid var(--color-accent-tint);
+          background: var(--color-accent-soft);
+          margin: -4px 0 16px;
+          text-align: left;
+          font-family: inherit;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+          box-sizing: border-box;
+          position: relative;
+          outline: none;
+        }
+
+        .price-suggestion-chip:hover,
+        .price-suggestion-chip:focus-visible {
+          border-color: var(--color-accent);
+          transform: translateY(-1px);
+          box-shadow: var(--shadow-md);
+        }
+
+        .price-suggestion-loading {
+          cursor: default;
+          color: var(--color-text-muted);
+          font-size: 12.5px;
+          align-items: center;
+        }
+
+        .price-suggestion-loading:hover {
+          transform: none;
+          box-shadow: none;
+          border-color: var(--color-accent-tint);
+        }
+
+        .price-suggestion-ready {
+          padding-right: 36px;
+        }
+
+        .chip-icon {
+          width: 30px;
+          height: 30px;
+          border-radius: var(--radius-md);
+          background: var(--color-surface);
+          border: 1px solid var(--color-accent-tint);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+
+        .chip-body {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .chip-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--color-text);
+          letter-spacing: 0.01em;
+        }
+
+        .chip-insight {
+          font-size: 12px;
+          line-height: 1.4;
+          color: var(--color-text-secondary);
+        }
+
+        .chip-meta {
+          font-size: 10.5px;
+          color: var(--color-text-muted);
+          letter-spacing: 0.02em;
+          margin-top: 2px;
+        }
+
+        .chip-text {
+          font-size: 12.5px;
+        }
+
+        .chip-loader {
+          width: 14px;
+          height: 14px;
+          border: 2px solid var(--color-accent-tint);
+          border-top-color: var(--color-accent);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          flex-shrink: 0;
+        }
+
+        .chip-dismiss {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          border: none;
+          background: transparent;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background var(--transition-fast);
+        }
+
+        .chip-dismiss:hover {
+          background: rgba(0, 0, 0, 0.06);
+        }
+
+        /* ===== AI LISTING QUALITY (Phase 7C) ===== */
+        .quality-card {
+          border-radius: var(--radius-xl);
+          padding: 14px;
+          margin: 8px 0 16px;
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
+          transition: all var(--transition-base);
+        }
+        .quality-excellent {
+          border-color: var(--color-success);
+          background: var(--color-success-bg);
+        }
+        .quality-good {
+          border-color: var(--color-secondary-hover);
+          background: var(--color-info-bg);
+        }
+        .quality-fair {
+          border-color: var(--color-accent);
+          background: var(--color-accent-soft);
+        }
+        .quality-poor {
+          border-color: var(--color-error);
+          background: var(--color-error-bg);
+        }
+        .quality-loading {
+          border-color: var(--color-border);
+          background: var(--color-surface-alt);
+        }
+
+        .quality-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .quality-header-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+        .quality-score-ring {
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
+          border: 3px solid var(--color-border-strong);
+          background: var(--color-surface);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: border-color var(--transition-base);
+        }
+        .quality-score-number {
+          font-family: var(--font-serif);
+          font-size: 20px;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          line-height: 1;
+        }
+        .quality-header-text {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        .quality-title {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--color-text);
+          letter-spacing: 0.01em;
+        }
+        .quality-subtitle {
+          font-size: 12px;
+          color: var(--color-text-secondary);
+          line-height: 1.3;
+        }
+        .quality-loader {
+          width: 18px;
+          height: 18px;
+          border: 2px solid var(--color-border-strong);
+          border-top-color: var(--color-accent);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          flex-shrink: 0;
+        }
+
+        .quality-tips {
+          list-style: none;
+          margin: 12px 0 0;
+          padding: 10px 0 0;
+          border-top: 1px solid var(--color-border);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .quality-tip {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          font-size: 12.5px;
+          line-height: 1.45;
+          color: var(--color-text-secondary);
+        }
+        .quality-tip-bullet {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: var(--color-surface);
+          border: 1px solid var(--color-accent-tint);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        .quality-perfect {
+          margin-top: 10px;
+          padding: 8px 10px;
+          border-radius: var(--radius-md);
+          background: var(--color-surface);
+          border: 1px dashed var(--color-success);
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--color-success);
+          text-align: center;
+        }
+
         /* ===== DELIVERY ===== */
         .delivery-toggle {
           display: flex;
@@ -1097,12 +1597,13 @@ const CreateListing = () => {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .upload-area, .back-btn, .submit-btn, .image-remove, .checkbox-card, .nav-icon-wrap {
+          .upload-area, .back-btn, .submit-btn, .image-remove, .checkbox-card, .nav-icon-wrap, .price-suggestion-chip {
             transition: none;
           }
           .upload-area:hover,
           .submit-btn:hover,
-          .image-remove:hover { transform: none; }
+          .image-remove:hover,
+          .price-suggestion-chip:hover { transform: none; }
         }
       `}</style>
     </div>

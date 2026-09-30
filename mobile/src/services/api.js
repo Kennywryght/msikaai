@@ -789,9 +789,7 @@ export const aiAPI = {
   getSuggestions: (q) =>
     api.get('/ai/suggestions', { params: { q }, cacheTTL: 2 * 60 * 1000 }),
 
-  // ★ PHASE 7A: Translate Chichewa (or mixed) query into English keywords.
-  // Returns: { success, original, translated, detectedLanguage, confidence, keywords }
-  // Uses 24h server-side cache. Fast (<10ms) on repeat queries.
+  // ★ PHASE 7A
   translateSearch: async (query, opts = {}) => {
     const q = String(query || '').trim();
     if (!q) {
@@ -811,17 +809,11 @@ export const aiAPI = {
       const res = await api.post(
         '/ai/translate-search',
         { q },
-        {
-          cache: false, // Server caches; client-side caching would confuse
-          timeout: opts.timeout || 8000,
-        }
+        { cache: false, timeout: opts.timeout || 8000 }
       );
       return res;
     } catch (err) {
-      console.warn(
-        '⚠️ translateSearch failed, using raw query:',
-        err?.message || err
-      );
+      console.warn('⚠️ translateSearch failed, using raw query:', err?.message || err);
       return {
         data: {
           success: true,
@@ -831,6 +823,153 @@ export const aiAPI = {
           confidence: 0,
           keywords: [q],
           fallback: true,
+        },
+      };
+    }
+  },
+
+  // ★ PHASE 7B
+  priceSuggest: async ({ title, category } = {}, opts = {}) => {
+    const cleanTitle = String(title || '').trim();
+    if (cleanTitle.length < 3) {
+      return {
+        data: {
+          success: true,
+          suggestion: {
+            hasSuggestion: false,
+            reason: 'invalid_input',
+            message: 'Title is too short.',
+          },
+        },
+      };
+    }
+
+    try {
+      const res = await api.post(
+        '/ai/price-suggest',
+        { title: cleanTitle, category: category || null },
+        { cache: false, timeout: opts.timeout || 8000 }
+      );
+      return res;
+    } catch (err) {
+      console.warn('⚠️ priceSuggest failed:', err?.message || err);
+      return {
+        data: {
+          success: true,
+          suggestion: {
+            hasSuggestion: false,
+            reason: 'network_error',
+            message: 'Could not analyze pricing right now.',
+          },
+        },
+      };
+    }
+  },
+
+  // ★ PHASE 7C: Listing Quality Score
+  // input: { listingId } OR { title, description, category, price, images, ... }
+  // Returns: { success, quality: { score, grade, breakdown, tips } }
+  // Never throws — always resolves.
+  qualityScore: async (input = {}, opts = {}) => {
+    const hasId = !!input?.listingId;
+    const title = String(input?.title || '').trim();
+
+    if (!hasId && title.length < 3) {
+      return {
+        data: {
+          success: true,
+          quality: {
+            score: 0,
+            grade: 'poor',
+            breakdown: {},
+            tips: [],
+            reason: 'invalid_input',
+          },
+        },
+      };
+    }
+
+    try {
+      const res = await api.post(
+        '/ai/quality-score',
+        {
+          listingId: input.listingId || undefined,
+          title: input.title || undefined,
+          description: input.description || undefined,
+          category: input.category || undefined,
+          subCategory: input.subCategory || input.sub_category || undefined,
+          price: input.price,
+          quantity: input.quantity,
+          unit: input.unit || undefined,
+          images: Array.isArray(input.images) ? input.images : undefined,
+          locationArea: input.locationArea || input.location_area || undefined,
+          deliveryAvailable:
+            input.deliveryAvailable ?? input.delivery_available ?? undefined,
+          contactPhone: input.contactPhone || input.contact_phone || undefined,
+        },
+        { cache: false, timeout: opts.timeout || 8000 }
+      );
+      return res;
+    } catch (err) {
+      console.warn('⚠️ qualityScore failed:', err?.message || err);
+      return {
+        data: {
+          success: true,
+          quality: {
+            score: 0,
+            grade: 'poor',
+            breakdown: {},
+            tips: [],
+            reason: 'network_error',
+          },
+        },
+      };
+    }
+  },
+
+  // ★ PHASE 7D: Sales Assistant
+  // input: { buyerMessage, listing?, history?, tone? }
+  // Returns: { success, assist: { draft, alternatives, tone } }
+  // Never throws.
+  salesAssist: async (input = {}, opts = {}) => {
+    const buyerMessage = String(input?.buyerMessage || '').trim();
+    if (!buyerMessage) {
+      return {
+        data: {
+          success: true,
+          assist: {
+            draft: '',
+            alternatives: [],
+            tone: input.tone || 'friendly',
+            reason: 'invalid_input',
+          },
+        },
+      };
+    }
+
+    try {
+      const res = await api.post(
+        '/ai/sales-assist',
+        {
+          buyerMessage,
+          listing: input.listing || {},
+          history: Array.isArray(input.history) ? input.history : [],
+          tone: input.tone || 'friendly',
+        },
+        { cache: false, timeout: opts.timeout || 8000 }
+      );
+      return res;
+    } catch (err) {
+      console.warn('⚠️ salesAssist failed:', err?.message || err);
+      return {
+        data: {
+          success: true,
+          assist: {
+            draft: 'Thanks for your message! I will get back to you shortly.',
+            alternatives: [],
+            tone: input.tone || 'friendly',
+            reason: 'network_error',
+          },
         },
       };
     }

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
-import { messagesAPI } from '../services/api';
+import { messagesAPI, aiAPI } from '../services/api';
 import { supabase } from '../lib/supabase';
 import { useUserPresence } from '../hooks/usePresence';
 import { useTyping } from '../hooks/useTyping';
@@ -28,6 +28,10 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     close: 'M18 6L6 18M6 6l12 12',
     chevronDown: 'M6 9l6 6 6-6',
     externalLink: 'M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3',
+    sparkles: 'M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z',
+    wand: 'M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5',
+    copy: 'M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M15 2H9a1 1 0 00-1 1v2a1 1 0 001 1h6a1 1 0 001-1V3a1 1 0 00-1-1z',
+    refresh: 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
   };
   const d = icons[name] || icons.message;
   return (
@@ -204,6 +208,12 @@ const QUICK_REPLIES = [
   "What's your best price?",
   'When can I collect?',
   'Can you deliver?',
+];
+
+const TONES = [
+  { id: 'friendly', label: 'Friendly', emoji: '😊' },
+  { id: 'professional', label: 'Professional', emoji: '💼' },
+  { id: 'brief', label: 'Brief', emoji: '⚡' },
 ];
 
 const MAX_IMAGE_MB = 10;
@@ -421,6 +431,12 @@ const Chat = () => {
   const [windowWidth, setWindowWidth] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 375
   );
+
+  // ★ PHASE 7D: Sales assistant state
+  const [showAssist, setShowAssist] = useState(false);
+  const [assistLoading, setAssistLoading] = useState(false);
+  const [assist, setAssist] = useState(null);
+  const [assistTone, setAssistTone] = useState('friendly');
 
   const messagesContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -722,6 +738,75 @@ const Chat = () => {
     else if (navId === 'profile') navigate('/profile');
   };
 
+  // ★ PHASE 7D: Sales assistant handlers
+  const openAssist = async () => {
+    setShowAssist(true);
+    setAssistLoading(true);
+    setAssist(null);
+
+    const lastBuyerMsg =
+      [...messages].reverse().find((m) => m.senderId !== user?.id && m.text) ||
+      messages[messages.length - 1];
+
+    // Build a small history of the last few messages
+    const history = messages.slice(-6).map((m) => ({
+      role: m.senderId === user?.id ? 'seller' : 'buyer',
+      text: m.text || (m.imageUrl ? '[photo]' : m.audioUrl ? '[voice]' : ''),
+    }));
+
+    try {
+      const res = await aiAPI.salesAssist({
+        buyerMessage: lastBuyerMsg?.text || '',
+        listing: conversation?.listing || {},
+        history,
+        tone: assistTone,
+      });
+      setAssist(res?.data?.assist || null);
+    } catch (err) {
+      console.warn('salesAssist error:', err?.message);
+      setAssist(null);
+    } finally {
+      setAssistLoading(false);
+    }
+  };
+
+  const regenerateAssist = async (nextTone = assistTone) => {
+    setAssistTone(nextTone);
+    setAssistLoading(true);
+    setAssist(null);
+
+    const lastBuyerMsg =
+      [...messages].reverse().find((m) => m.senderId !== user?.id && m.text) ||
+      messages[messages.length - 1];
+
+    const history = messages.slice(-6).map((m) => ({
+      role: m.senderId === user?.id ? 'seller' : 'buyer',
+      text: m.text || (m.imageUrl ? '[photo]' : m.audioUrl ? '[voice]' : ''),
+    }));
+
+    try {
+      const res = await aiAPI.salesAssist({
+        buyerMessage: lastBuyerMsg?.text || '',
+        listing: conversation?.listing || {},
+        history,
+        tone: nextTone,
+      });
+      setAssist(res?.data?.assist || null);
+    } catch (err) {
+      console.warn('salesAssist error:', err?.message);
+      setAssist(null);
+    } finally {
+      setAssistLoading(false);
+    }
+  };
+
+  const insertDraft = (draft) => {
+    if (!draft) return;
+    setInputText(draft);
+    setShowAssist(false);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
   const other = conversation?.otherParticipant || {};
   const otherName = other.fullName || other.email?.split('@')[0] || 'User';
   const initials = initialsOf(other.fullName, other.email);
@@ -738,6 +823,17 @@ const Chat = () => {
       };
     });
   }, [messages]);
+
+  // ★ PHASE 7D: show assistant button when the last message is from the buyer
+  const lastMsg = messages[messages.length - 1];
+  const showSuggestBtn =
+    !!user &&
+    !!lastMsg &&
+    lastMsg.senderId !== user.id &&
+    !!lastMsg.text &&
+    !recorder.isRecording &&
+    !uploadingAudio &&
+    !uploadingImage;
 
   if (loading && !conversation) {
     return (
@@ -943,6 +1039,21 @@ const Chat = () => {
         </button>
       )}
 
+      {/* ★ PHASE 7D: Suggest reply CTA — only when the buyer sent the last message */}
+      {showSuggestBtn && !showAssist && (
+        <div className="suggest-cta-wrap">
+          <button
+            type="button"
+            className="suggest-cta"
+            onClick={openAssist}
+            aria-label="Suggest a reply"
+          >
+            <Icon name="sparkles" size={15} color="var(--color-accent)" strokeWidth={2.2} />
+            <span>Suggest reply</span>
+          </button>
+        </div>
+      )}
+
       {showQuickReplies && messages.length < 4 && !uploadingImage && !uploadingAudio && !recorder.isRecording && (
         <div className="quick-replies">
           <div className="quick-replies-scroll">
@@ -1057,6 +1168,128 @@ const Chat = () => {
           </div>
         )}
       </div>
+
+      {/* ★ PHASE 7D: Sales Assistant bottom-sheet */}
+      {showAssist && (
+        <div
+          className="assist-overlay"
+          onClick={() => setShowAssist(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Suggested replies"
+        >
+          <div className="assist-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="assist-handle" />
+
+            <div className="assist-header">
+              <div className="assist-header-left">
+                <div className="assist-icon-wrap">
+                  <Icon name="sparkles" size={16} color="var(--color-accent)" strokeWidth={2.2} />
+                </div>
+                <div className="assist-header-text">
+                  <div className="assist-title">Suggested reply</div>
+                  <div className="assist-subtitle">
+                    {conversation?.listing?.title
+                      ? `For "${conversation.listing.title}"`
+                      : 'Drafted for this conversation'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="assist-close"
+                onClick={() => setShowAssist(false)}
+                aria-label="Close"
+              >
+                <Icon name="close" size={16} color="var(--color-text)" strokeWidth={2.2} />
+              </button>
+            </div>
+
+            <div className="assist-tones">
+              {TONES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`assist-tone ${assistTone === t.id ? 'active' : ''}`}
+                  onClick={() => regenerateAssist(t.id)}
+                  disabled={assistLoading}
+                >
+                  <span className="assist-tone-emoji">{t.emoji}</span>
+                  <span>{t.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="assist-body">
+              {assistLoading && (
+                <div className="assist-loading">
+                  <span className="assist-loader" />
+                  <span>Drafting a reply…</span>
+                </div>
+              )}
+
+              {!assistLoading && assist?.draft && (
+                <>
+                  <button
+                    type="button"
+                    className="assist-draft-card primary"
+                    onClick={() => insertDraft(assist.draft)}
+                  >
+                    <div className="assist-draft-label">Best match</div>
+                    <div className="assist-draft-text">{assist.draft}</div>
+                    <div className="assist-draft-action">
+                      <Icon name="check" size={12} color="var(--color-text-inverse)" strokeWidth={2.6} />
+                      Tap to use
+                    </div>
+                  </button>
+
+                  {assist.alternatives?.length > 0 && (
+                    <div className="assist-alts">
+                      <div className="assist-alts-label">Other options</div>
+                      {assist.alternatives.map((alt, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className="assist-draft-card alt"
+                          onClick={() => insertDraft(alt)}
+                        >
+                          <div className="assist-draft-text">{alt}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="assist-footer">
+                    <button
+                      type="button"
+                      className="assist-regen"
+                      onClick={() => regenerateAssist(assistTone)}
+                      disabled={assistLoading}
+                    >
+                      <Icon name="refresh" size={13} color="var(--color-text-secondary)" strokeWidth={2.2} />
+                      Try again
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {!assistLoading && !assist?.draft && (
+                <div className="assist-empty">
+                  <p>Couldn't draft a reply right now.</p>
+                  <button
+                    type="button"
+                    className="assist-regen"
+                    onClick={() => regenerateAssist(assistTone)}
+                  >
+                    <Icon name="refresh" size={13} color="var(--color-text-secondary)" strokeWidth={2.2} />
+                    Retry
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {lightboxUrl && (
         <div className="lightbox" onClick={() => setLightboxUrl(null)} role="dialog" aria-label="Image preview">
@@ -1408,6 +1641,40 @@ const Chat = () => {
         .scroll-down-btn:hover { background: var(--color-surface-alt); transform: translateY(-1px); }
         @media (min-width: 769px) { .scroll-down-btn { bottom: 120px; } }
 
+        /* ★ PHASE 7D: Suggest reply CTA */
+        .suggest-cta-wrap {
+          display: flex;
+          justify-content: center;
+          padding: 8px 14px 4px;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border-top: 1px solid var(--color-border);
+          flex-shrink: 0;
+        }
+        .suggest-cta {
+          display: inline-flex; align-items: center; gap: 7px;
+          padding: 8px 16px;
+          border-radius: var(--radius-full);
+          background: var(--color-accent-soft);
+          border: 1.5px solid var(--color-accent-tint);
+          color: var(--color-accent-hover);
+          font-family: inherit;
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+        .suggest-cta:hover {
+          background: var(--color-accent);
+          border-color: var(--color-accent);
+          color: var(--color-text-inverse);
+          transform: translateY(-1px);
+          box-shadow: var(--shadow-accent);
+        }
+        .suggest-cta:hover svg { stroke: var(--color-text-inverse); }
+        .suggest-cta:active { transform: translateY(0); }
+
         .quick-replies {
           background: rgba(255, 255, 255, 0.92);
           backdrop-filter: blur(10px);
@@ -1624,6 +1891,204 @@ const Chat = () => {
         }
         .lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
 
+        /* ★ PHASE 7D: Sales Assistant bottom-sheet */
+        .assist-overlay {
+          position: fixed; inset: 0;
+          z-index: 300;
+          background: rgba(10, 36, 114, 0.5);
+          backdrop-filter: blur(4px);
+          display: flex; align-items: flex-end; justify-content: center;
+          animation: popFade 0.2s ease;
+        }
+        .assist-sheet {
+          width: 100%;
+          max-width: 560px;
+          background: var(--color-surface);
+          border-top-left-radius: var(--radius-3xl);
+          border-top-right-radius: var(--radius-3xl);
+          display: flex; flex-direction: column;
+          animation: popUp 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
+          overflow: hidden;
+          max-height: 85vh;
+        }
+        @keyframes popUp {
+          from { transform: translateY(40px); opacity: 0.6; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .assist-handle {
+          width: 42px; height: 4px;
+          background: var(--color-border-strong); border-radius: 4px;
+          margin: 8px auto 0; flex-shrink: 0;
+        }
+        .assist-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 16px 8px;
+          flex-shrink: 0;
+        }
+        .assist-header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .assist-icon-wrap {
+          width: 34px; height: 34px; border-radius: var(--radius-md);
+          background: var(--color-accent-soft);
+          border: 1px solid var(--color-accent-tint);
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .assist-header-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .assist-title {
+          font-family: var(--font-serif);
+          font-size: 15px; font-weight: 700;
+          color: var(--color-text);
+          letter-spacing: -0.01em;
+        }
+        .assist-subtitle {
+          font-size: 11.5px; color: var(--color-text-muted);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .assist-close {
+          width: 30px; height: 30px; border-radius: 50%;
+          border: none; background: transparent;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; flex-shrink: 0;
+          transition: background var(--transition-fast);
+        }
+        .assist-close:hover { background: var(--color-surface-alt); }
+
+        .assist-tones {
+          display: flex; gap: 6px;
+          padding: 0 16px 10px;
+          flex-shrink: 0;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .assist-tones::-webkit-scrollbar { display: none; }
+        .assist-tone {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 6px 12px;
+          border-radius: var(--radius-full);
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
+          font-family: inherit;
+          font-size: 12px; font-weight: 600;
+          color: var(--color-text-secondary);
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all var(--transition-fast);
+          flex-shrink: 0;
+        }
+        .assist-tone:hover:not(:disabled) {
+          border-color: var(--color-accent);
+          color: var(--color-accent-hover);
+        }
+        .assist-tone.active {
+          background: var(--color-accent-soft);
+          border-color: var(--color-accent);
+          color: var(--color-accent-hover);
+        }
+        .assist-tone:disabled { opacity: 0.5; cursor: not-allowed; }
+        .assist-tone-emoji { font-size: 13px; }
+
+        .assist-body {
+          flex: 1; overflow-y: auto;
+          padding: 4px 16px 20px;
+          display: flex; flex-direction: column; gap: 10px;
+        }
+        .assist-loading {
+          display: flex; align-items: center; gap: 10px;
+          padding: 20px 0;
+          color: var(--color-text-muted);
+          font-size: 13px;
+        }
+        .assist-loader {
+          width: 16px; height: 16px;
+          border: 2px solid var(--color-accent-tint);
+          border-top-color: var(--color-accent);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        .assist-draft-card {
+          display: block; width: 100%;
+          text-align: left;
+          padding: 12px 14px;
+          border-radius: var(--radius-xl);
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
+          font-family: inherit;
+          color: var(--color-text);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+        .assist-draft-card:hover {
+          transform: translateY(-1px);
+          box-shadow: var(--shadow-md);
+        }
+        .assist-draft-card.primary {
+          background: var(--color-accent-soft);
+          border-color: var(--color-accent);
+        }
+        .assist-draft-card.primary:hover {
+          border-color: var(--color-accent-hover);
+        }
+        .assist-draft-card.alt {
+          padding: 10px 12px;
+        }
+        .assist-draft-label {
+          font-size: 10px; font-weight: 700;
+          color: var(--color-accent-hover);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-bottom: 5px;
+        }
+        .assist-draft-text {
+          font-size: 13.5px; line-height: 1.5;
+          color: var(--color-text);
+        }
+        .assist-draft-action {
+          display: inline-flex; align-items: center; gap: 5px;
+          margin-top: 8px;
+          padding: 5px 10px;
+          border-radius: var(--radius-md);
+          background: var(--color-accent);
+          color: var(--color-text-inverse);
+          font-size: 11px; font-weight: 700;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+        }
+        .assist-alts { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+        .assist-alts-label {
+          font-size: 10px; font-weight: 700;
+          color: var(--color-text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          padding: 0 2px;
+        }
+        .assist-footer {
+          display: flex; justify-content: center;
+          margin-top: 8px;
+        }
+        .assist-regen {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 7px 14px;
+          border-radius: var(--radius-full);
+          border: 1px solid var(--color-border);
+          background: var(--color-surface);
+          font-family: inherit;
+          font-size: 12px; font-weight: 600;
+          color: var(--color-text-secondary);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+        .assist-regen:hover:not(:disabled) {
+          background: var(--color-surface-alt);
+          border-color: var(--color-border-strong);
+        }
+        .assist-regen:disabled { opacity: 0.5; cursor: not-allowed; }
+        .assist-empty {
+          display: flex; flex-direction: column; align-items: center;
+          gap: 10px; padding: 24px 16px;
+          color: var(--color-text-muted);
+          font-size: 13px;
+        }
+
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
           background: rgba(255, 255, 255, 0.96);
@@ -1664,6 +2129,8 @@ const Chat = () => {
           .send-btn, .mic-btn { width: 42px; height: 42px; }
           .recording-cancel, .recording-send { width: 42px; height: 42px; }
           .scroll-down-btn { bottom: 176px; right: 12px; }
+          .suggest-cta-wrap { padding: 6px 12px 4px; }
+          .suggest-cta { padding: 7px 14px; font-size: 12px; }
         }
         @media (max-width: 380px) {
           .header-avatar { width: 36px; height: 36px; font-size: 13px; }
@@ -1676,7 +2143,8 @@ const Chat = () => {
           .mic-btn:active:not(:disabled),
           .recording-cancel:active,
           .recording-send:active,
-          .scroll-down-btn:hover { transform: none; }
+          .scroll-down-btn:hover,
+          .suggest-cta:hover { transform: none; }
           .lightbox { animation: none; }
           .header-online, .typing-dot, .recording-dot, .wave-bar { animation: none; }
         }

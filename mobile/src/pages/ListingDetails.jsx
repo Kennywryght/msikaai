@@ -8,6 +8,7 @@ import {
   analyticsAPI,
   messagesAPI,
   interactionsAPI,
+  aiAPI,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
@@ -53,6 +54,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     comment: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
     shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
     flame: 'M12 2s4 5 4 9a4 4 0 11-8 0c0-1.5.7-2.7 1.5-3.5C10 6 12 2 12 2z',
+    award: 'M12 15a7 7 0 100-14 7 7 0 000 14zM8.21 13.89L7 23l5-3 5 3-1.21-9.12',
+    trendingUp: 'M23 6l-9.5 9.5-5-5L1 18M17 6h6v6',
   };
   const d = icons[name] || icons.store;
   return (
@@ -99,7 +102,7 @@ const BurningFire = ({ size = 16 }) => (
 );
 
 // ============================================================
-// HELPERS (unchanged — same business logic)
+// HELPERS
 // ============================================================
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 
@@ -218,6 +221,16 @@ const daysUntil = (date) => {
 };
 
 // ============================================================
+// QUALITY GRADE META
+// ============================================================
+const GRADE_META = {
+  excellent: { label: 'Excellent', color: 'var(--color-success)', bg: 'var(--color-success-bg)', emoji: '🏆' },
+  good:      { label: 'Good',      color: 'var(--color-secondary-hover)', bg: 'var(--color-info-bg)', emoji: '✅' },
+  fair:      { label: 'Fair',      color: 'var(--color-accent-hover)', bg: 'var(--color-accent-soft)', emoji: '⚠️' },
+  poor:      { label: 'Needs work', color: 'var(--color-error)', bg: 'var(--color-error-bg)', emoji: '📝' },
+};
+
+// ============================================================
 // MAIN COMPONENT
 // ============================================================
 const ListingDetails = () => {
@@ -247,6 +260,10 @@ const ListingDetails = () => {
   const [likeState, setLikeState] = useState({ liked: false, count: 0 });
   const [commentCount, setCommentCount] = useState(0);
   const [resolvedBusiness, setResolvedBusiness] = useState(null);
+
+  // ★ PHASE 7C: quality state (owner only)
+  const [quality, setQuality] = useState(null);
+  const [loadingQuality, setLoadingQuality] = useState(false);
 
   const isMobile = windowWidth <= 768;
   const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV === true;
@@ -280,6 +297,40 @@ const ListingDetails = () => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [showComments]);
+
+  // ★ PHASE 7C: Load quality score once we know the viewer owns this listing
+  useEffect(() => {
+    if (!listing || !user?.id) return;
+
+    const sellerId = extractSellerUserId(listing);
+    const isOwner = !!(sellerId && sellerId === user.id);
+
+    if (!isOwner) {
+      setQuality(null);
+      return;
+    }
+
+    // Guard: only fetch once per listing
+    if (quality?.computedAt) return;
+
+    let cancelled = false;
+    setLoadingQuality(true);
+
+    (async () => {
+      try {
+        const res = await aiAPI.qualityScore({ listingId: listing.id });
+        const q = res?.data?.quality || null;
+        if (!cancelled) setQuality(q);
+      } catch (err) {
+        console.warn('qualityScore error:', err?.message);
+      } finally {
+        if (!cancelled) setLoadingQuality(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listing?.id, user?.id]);
 
   const fetchListingDetails = async () => {
     setLoading(true);
@@ -735,6 +786,7 @@ const ListingDetails = () => {
   const isLiked = likeState.liked;
   const likeCount = likeState.count;
   const isFresh = isFreshListing(listing);
+  const gradeMeta = quality?.grade ? GRADE_META[quality.grade] : null;
 
   return (
     <div className={`listing-details ${isMobile && !isOwnListing ? 'has-sticky-bar' : ''}`}>
@@ -950,6 +1002,78 @@ const ListingDetails = () => {
             )}
           </div>
         </div>
+
+        {/* ★ PHASE 7C: Owner-only Listing Quality Card */}
+        {isOwnListing && (loadingQuality || quality) && (
+          <div className={`quality-card ${gradeMeta ? `quality-${quality?.grade}` : 'quality-loading'}`}>
+            <div className="quality-header">
+              <div className="quality-header-left">
+                <div
+                  className="quality-score-ring"
+                  style={{
+                    borderColor: gradeMeta?.color || 'var(--color-border-strong)',
+                  }}
+                >
+                  <span
+                    className="quality-score-number"
+                    style={{ color: gradeMeta?.color || 'var(--color-text-muted)' }}
+                  >
+                    {loadingQuality ? '—' : quality?.score ?? '—'}
+                  </span>
+                </div>
+                <div className="quality-header-text">
+                  <div className="quality-title">
+                    <Icon
+                      name="award"
+                      size={14}
+                      color={gradeMeta?.color || 'var(--color-text-muted)'}
+                      strokeWidth={2.2}
+                    />
+                    Listing quality
+                  </div>
+                  <div className="quality-subtitle">
+                    {loadingQuality
+                      ? 'Analyzing your listing…'
+                      : gradeMeta
+                      ? `${gradeMeta.emoji} ${gradeMeta.label}`
+                      : 'Keep improving this listing'}
+                  </div>
+                </div>
+              </div>
+              {loadingQuality && <span className="quality-loader" />}
+            </div>
+
+            {!loadingQuality && quality?.tips?.length > 0 && (
+              <ul className="quality-tips">
+                {quality.tips.map((tip, i) => (
+                  <li key={i} className="quality-tip">
+                    <span className="quality-tip-bullet">
+                      <Icon name="trendingUp" size={11} color="var(--color-accent)" strokeWidth={2.4} />
+                    </span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {!loadingQuality && quality?.score < 90 && (
+              <button
+                type="button"
+                className="quality-improve-btn"
+                onClick={() => navigate(`/create-listing?edit=${listing.id}`)}
+              >
+                <Icon name="pencil" size={13} color="var(--color-text-inverse)" strokeWidth={2.2} />
+                Improve this listing
+              </button>
+            )}
+
+            {!loadingQuality && quality?.score === 100 && (
+              <div className="quality-perfect">
+                🎉 Your listing is fully optimized — great job!
+              </div>
+            )}
+          </div>
+        )}
 
         {!isOwnListing && (
           <div className="contact-card">
@@ -1341,9 +1465,7 @@ const ListingDetails = () => {
           background: var(--color-accent);
           box-shadow: var(--shadow-accent);
         }
-        .boost-card-active.expiring {
-          background: #BF3D11;
-        }
+        .boost-card-active.expiring { background: #BF3D11; }
         .boost-card-icon {
           width: 40px; height: 40px; border-radius: var(--radius-lg);
           background: var(--color-accent-soft);
@@ -1640,6 +1762,102 @@ const ListingDetails = () => {
         .share-btn.facebook { background: #1877f2; }
         .share-btn.twitter { background: #1da1f2; }
         .share-btn.copy { background: var(--color-text-secondary); }
+
+        /* ★ PHASE 7C: Quality card styles */
+        .quality-card {
+          border-radius: var(--radius-xl);
+          padding: 14px;
+          margin: 0 0 16px;
+          border: 1.5px solid var(--color-border);
+          background: var(--color-surface);
+          transition: all var(--transition-base);
+        }
+        .quality-excellent { border-color: var(--color-success); background: var(--color-success-bg); }
+        .quality-good { border-color: var(--color-secondary-hover); background: var(--color-info-bg); }
+        .quality-fair { border-color: var(--color-accent); background: var(--color-accent-soft); }
+        .quality-poor { border-color: var(--color-error); background: var(--color-error-bg); }
+        .quality-loading { border-color: var(--color-border); background: var(--color-surface-alt); }
+
+        .quality-header {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 12px;
+        }
+        .quality-header-left {
+          display: flex; align-items: center; gap: 12px; min-width: 0;
+        }
+        .quality-score-ring {
+          width: 52px; height: 52px; border-radius: 50%;
+          border: 3px solid var(--color-border-strong);
+          background: var(--color-surface);
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+          transition: border-color var(--transition-base);
+        }
+        .quality-score-number {
+          font-family: var(--font-serif);
+          font-size: 20px; font-weight: 700;
+          letter-spacing: -0.02em; line-height: 1;
+        }
+        .quality-header-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .quality-title {
+          display: flex; align-items: center; gap: 5px;
+          font-size: 13px; font-weight: 700; color: var(--color-text);
+          letter-spacing: 0.01em;
+        }
+        .quality-subtitle {
+          font-size: 12px; color: var(--color-text-secondary); line-height: 1.3;
+        }
+        .quality-loader {
+          width: 18px; height: 18px;
+          border: 2px solid var(--color-border-strong);
+          border-top-color: var(--color-accent);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          flex-shrink: 0;
+        }
+        .quality-tips {
+          list-style: none;
+          margin: 12px 0 0;
+          padding: 10px 0 0;
+          border-top: 1px solid var(--color-border);
+          display: flex; flex-direction: column; gap: 8px;
+        }
+        .quality-tip {
+          display: flex; align-items: flex-start; gap: 8px;
+          font-size: 12.5px; line-height: 1.45;
+          color: var(--color-text-secondary);
+        }
+        .quality-tip-bullet {
+          width: 18px; height: 18px; border-radius: 50%;
+          background: var(--color-surface);
+          border: 1px solid var(--color-accent-tint);
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0; margin-top: 1px;
+        }
+        .quality-improve-btn {
+          display: inline-flex; align-items: center; gap: 6px;
+          margin-top: 10px;
+          padding: 9px 14px;
+          background: var(--color-accent);
+          border: none; border-radius: var(--radius-lg);
+          color: var(--color-text-inverse);
+          font-family: inherit; font-size: 12.5px; font-weight: 700;
+          cursor: pointer;
+          box-shadow: var(--shadow-accent);
+          transition: background var(--transition-fast), transform 0.1s;
+        }
+        .quality-improve-btn:hover { background: var(--color-accent-hover); }
+        .quality-improve-btn:active { transform: scale(0.98); }
+        .quality-perfect {
+          margin-top: 10px;
+          padding: 8px 10px;
+          border-radius: var(--radius-md);
+          background: var(--color-surface);
+          border: 1px dashed var(--color-success);
+          font-size: 12.5px; font-weight: 600;
+          color: var(--color-success);
+          text-align: center;
+        }
 
         .reviews-header {
           display: flex; justify-content: space-between;
