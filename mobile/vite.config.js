@@ -36,7 +36,7 @@ export default defineConfig({
   build: {
     target: 'es2015',
     minify: 'esbuild',
-    sourcemap: false,
+    sourcemap: true, // Enable source maps for production debugging
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
