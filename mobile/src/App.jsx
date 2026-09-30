@@ -52,11 +52,11 @@ import VerifyID from './pages/VerifyID';
 import VerifyBusiness from './pages/VerifyBusiness';
 
 // Phase 3I
-import AdminVerification from './pages/AdminVerification';
+import AdminVerifications from './pages/AdminVerifications';
 
 // Phase 5F + 5H
 import Requests from './pages/Requests';
-import RequestDetails from './pages/RequestDetails';
+import RequestDetail from './pages/RequestDetail';
 
 // Phase 5G
 import CreateRequest from './pages/CreateRequest';
@@ -227,7 +227,7 @@ function AppRoutes() {
 
       {/* ---------- REQUESTS ---------- */}
       <Route path="/requests" element={<Layout><Requests /></Layout>} />
-      <Route path="/requests/:id" element={<Layout><RequestDetails /></Layout>} />
+      <Route path="/requests/:id" element={<Layout><RequestDetail /></Layout>} />
 
       {/* ★ PHASE 6F + 6G + 6H: Deliveries (public feed & detail) */}
       <Route path="/deliveries" element={<Layout><Deliveries /></Layout>} />
@@ -242,7 +242,7 @@ function AppRoutes() {
       <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
 
       {/* Admin — specific route first, then wildcard */}
-      <Route path="/admin/verifications" element={<AdminRoute><Layout><AdminVerification /></Layout></AdminRoute>} />
+      <Route path="/admin/verifications" element={<AdminRoute><Layout><AdminVerifications /></Layout></AdminRoute>} />
       <Route path="/admin/*" element={<AdminRoute><Layout><AdminDashboard /></Layout></AdminRoute>} />
 
       <Route path="/profile" element={<ProtectedRoute><Layout><EditProfile /></Layout></ProtectedRoute>} />
