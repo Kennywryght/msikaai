@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- Favicon + PWA icons — using the symbol PNG for all -->
+    <link rel="icon" type="image/png" href="/kumsika-symbol.png" />
+    <link rel="apple-touch-icon" href="/kumsika-symbol.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Browser / OS theme color -->
+    <meta name="theme-color" content="#FF5C23" />
+    <meta name="msapplication-TileColor" content="#1E3A8A" />
+
+    <title>Kumsika - Smart Local Marketplace</title>
+    <meta
+      name="description"
+      content="Kumsika - AI-powered marketplace for Mitundu and surrounding areas, Malawi. Buy, sell, and hire locally with smart AI assistance."
+    />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Kumsika - Smart Local Marketplace" />
+    <meta
+      property="og:description"
+      content="Trade, buy & hire locally in Mitundu with AI-powered assistance."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/kumsika-logo.png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Kumsika - Smart Local Marketplace" />
+    <meta
+      name="twitter:description"
+      content="Trade, buy & hire locally in Mitundu with AI-powered assistance."
+    />
+    <meta name="twitter:image" content="/kumsika-logo.png" />
+    <script type="module" crossorigin src="/assets/index-eT23y5z_.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-BOjySCb8.js">
+    <link rel="modulepreload" crossorigin href="/assets/supabase-Bfj0o6rb.js">
+    <link rel="modulepreload" crossorigin href="/assets/ui-DkWIM9Hg.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-md5WLiVL.css">
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Service Worker registration for PWA + push notifications -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then((reg) => console.log('✅ SW registered:', reg.scope))
+            .catch((err) => console.warn('❌ SW registration failed:', err));
+        });
+      }
+    </script>
+  </body>
+</html>
