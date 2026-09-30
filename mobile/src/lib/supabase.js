@@ -15,6 +15,11 @@ if (!supabaseKey) {
   console.error('❌ VITE_SUPABASE_KEY is not defined');
 }
 
+console.log('🔧 Supabase Config:', {
+  url: supabaseUrl ? '✓ Set' : '✗ Missing',
+  key: supabaseKey ? '✓ Set' : '✗ Missing',
+});
+
 // ✅ FIX: Use an invalid, fast-failing host instead of a plausible-looking
 // placeholder domain. A fake "your-project.supabase.co" style URL causes
 // the browser to hang on DNS/connection timeout (up to ~60s). An invalid
@@ -47,32 +52,42 @@ export const supabase = createClient(
 // that's doomed to fail.
 export const isSupabaseConfigured = isConfigured;
 
-// Helper: Get current session
+// Helper: Get current session with timeout
 export const getSession = async () => {
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { session }, error } = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Supabase session timeout')), 5000)
+      ),
+    ]);
     if (error) {
       console.error('Error getting session:', error);
       return null;
     }
     return session;
   } catch (error) {
-    console.error('Session error:', error);
+    console.error('Session error:', error?.message);
     return null;
   }
 };
 
-// Helper: Get current user
+// Helper: Get current user with timeout
 export const getCurrentUser = async () => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { user }, error } = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Supabase user timeout')), 5000)
+      ),
+    ]);
     if (error) {
       console.error('Error getting user:', error);
       return null;
     }
     return user;
   } catch (error) {
-    console.error('User error:', error);
+    console.error('User error:', error?.message);
     return null;
   }
 };
