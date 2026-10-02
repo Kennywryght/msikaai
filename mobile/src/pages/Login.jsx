@@ -317,7 +317,7 @@ const Login = () => {
             <header className="auth-brand">
               <Logo
                 variant="full"
-                size={104}
+                size={120}
                 clickable={false}
               />
             </header>
@@ -411,7 +411,7 @@ const Login = () => {
                     <span className="input-icon">
                       <Icon
                         name="user"
-                        size={17}
+                        size={19}
                       />
                     </span>
 
@@ -443,7 +443,7 @@ const Login = () => {
                   <span className="input-icon">
                     <Icon
                       name="mail"
-                      size={17}
+                      size={19}
                     />
                   </span>
 
@@ -486,7 +486,7 @@ const Login = () => {
                   <span className="input-icon">
                     <Icon
                       name="lock"
-                      size={17}
+                      size={19}
                     />
                   </span>
 
@@ -534,7 +534,7 @@ const Login = () => {
                           ? 'eyeOff'
                           : 'eye'
                       }
-                      size={18}
+                      size={20}
                     />
                   </button>
                 </div>
@@ -578,7 +578,7 @@ const Login = () => {
 
                     <Icon
                       name="arrowRight"
-                      size={17}
+                      size={19}
                       strokeWidth={2}
                     />
                   </>
@@ -608,7 +608,7 @@ const Login = () => {
               ) : (
                 <>
                   <span className="fb-icon">
-                    <FacebookF size={17} />
+                    <FacebookF size={19} />
                   </span>
 
                   <span>
@@ -651,7 +651,7 @@ const Login = () => {
             >
               <Icon
                 name="arrowLeft"
-                size={14}
+                size={15}
                 strokeWidth={2}
               />
 
@@ -758,10 +758,6 @@ const Login = () => {
       </aside>
 
       <style jsx>{`
-        /* =====================================================
-           GLOBAL AUTH VIEWPORT
-           ===================================================== */
-
         :global(html),
         :global(body),
         :global(#root) {
@@ -784,10 +780,7 @@ const Login = () => {
           box-sizing: border-box;
         }
 
-        /* =====================================================
-           FORM AREA
-           ===================================================== */
-
+        /* ================= FORM AREA ================= */
         .auth-main {
           width: 100%;
           height: 100%;
@@ -795,15 +788,15 @@ const Login = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
+          padding: 24px;
           box-sizing: border-box;
           overflow: hidden;
         }
 
         .auth-col {
           width: 100%;
-          max-width: 430px;
-          max-height: calc(100dvh - 40px);
+          max-width: 500px;
+          max-height: calc(100dvh - 48px);
           min-height: 0;
           display: flex;
           align-items: center;
@@ -811,42 +804,34 @@ const Login = () => {
           overflow: hidden;
         }
 
-        /*
-         * This is intentionally a compact card.
-         * It prevents the form from visually filling the
-         * entire desktop screen.
-         */
         .form-shell {
           width: 100%;
-          max-height: calc(100dvh - 40px);
+          max-height: calc(100dvh - 48px);
           box-sizing: border-box;
-          padding: 28px 30px;
+          padding: 36px 40px;
           background: #ffffff;
           border: 1px solid #e7ebf2;
-          border-radius: 24px;
+          border-radius: 26px;
           box-shadow:
             0 24px 60px rgba(15, 23, 42, 0.08),
             0 5px 18px rgba(15, 23, 42, 0.04);
           overflow: hidden;
         }
 
-        /* =====================================================
-           BRAND / HEADING
-           ===================================================== */
-
+        /* ================= BRAND / HEADING ================= */
         .auth-brand {
-          margin-bottom: 18px;
+          margin-bottom: 22px;
           display: flex;
           align-items: center;
         }
 
         .card-head {
-          margin-bottom: 18px;
+          margin-bottom: 22px;
         }
 
         .card-title {
-          margin: 0 0 6px;
-          font-size: 28px;
+          margin: 0 0 8px;
+          font-size: 32px;
           line-height: 1.12;
           font-weight: 800;
           letter-spacing: -0.035em;
@@ -855,24 +840,21 @@ const Login = () => {
 
         .card-subtitle {
           margin: 0;
-          font-size: 13px;
-          line-height: 1.45;
+          font-size: 14.5px;
+          line-height: 1.5;
           color: var(--color-text-secondary);
         }
 
-        /* =====================================================
-           CONTEXT NOTES
-           ===================================================== */
-
+        /* ================= NOTES ================= */
         .note {
           display: flex;
           flex-direction: column;
-          gap: 1px;
-          margin-bottom: 12px;
-          padding: 7px 0 7px 10px;
+          gap: 2px;
+          margin-bottom: 16px;
+          padding: 9px 0 9px 12px;
           border-left: 2px solid var(--color-accent);
-          font-size: 11px;
-          line-height: 1.35;
+          font-size: 12.5px;
+          line-height: 1.45;
         }
 
         .note strong {
@@ -884,21 +866,18 @@ const Login = () => {
           color: var(--color-text-secondary);
         }
 
-        /* =====================================================
-           ERROR
-           ===================================================== */
-
+        /* ================= ERROR ================= */
         .error {
           display: flex;
           align-items: flex-start;
-          gap: 8px;
-          margin-bottom: 12px;
-          padding: 8px 10px;
-          border-radius: 10px;
+          gap: 10px;
+          margin-bottom: 16px;
+          padding: 11px 13px;
+          border-radius: 12px;
           background: var(--color-error-bg);
           color: var(--color-error);
-          font-size: 11px;
-          line-height: 1.35;
+          font-size: 13px;
+          line-height: 1.4;
         }
 
         .error-msg {
@@ -910,27 +889,24 @@ const Login = () => {
           flex-shrink: 0;
           background: none;
           border: none;
-          padding: 0 2px;
-          font-size: 17px;
+          padding: 0 4px;
+          font-size: 20px;
           line-height: 1;
           color: var(--color-error);
           cursor: pointer;
         }
 
-        /* =====================================================
-           FORM
-           ===================================================== */
-
+        /* ================= FORM ================= */
         .form {
           display: flex;
           flex-direction: column;
-          gap: 11px;
+          gap: 15px;
         }
 
         .field {
           display: flex;
           flex-direction: column;
-          gap: 5px;
+          gap: 7px;
         }
 
         .label-row {
@@ -941,14 +917,14 @@ const Login = () => {
         }
 
         .label {
-          font-size: 11px;
+          font-size: 13.5px;
           line-height: 1.2;
           font-weight: 700;
           color: var(--color-text);
         }
 
         .link {
-          font-size: 11px;
+          font-size: 13px;
           font-weight: 600;
           color: var(--color-text-secondary);
           text-decoration: none;
@@ -958,10 +934,7 @@ const Login = () => {
           color: var(--color-accent);
         }
 
-        /* =====================================================
-           INPUTS
-           ===================================================== */
-
+        /* ================= INPUTS ================= */
         .input-wrap {
           position: relative;
           display: flex;
@@ -971,15 +944,15 @@ const Login = () => {
 
         .input {
           width: 100%;
-          height: 43px;
-          min-height: 43px;
-          padding: 0 13px;
+          height: 52px;
+          min-height: 52px;
+          padding: 0 16px;
           border: 1px solid #dfe4ec;
-          border-radius: 10px;
+          border-radius: 12px;
           background: #f8f9fc;
           color: var(--color-text);
           font-family: inherit;
-          font-size: 13px;
+          font-size: 15px;
           outline: none;
           box-sizing: border-box;
           transition:
@@ -990,6 +963,7 @@ const Login = () => {
 
         .input::placeholder {
           color: #a5adba;
+          font-size: 14.5px;
         }
 
         .input:hover:not(:disabled) {
@@ -999,8 +973,7 @@ const Login = () => {
         .input:focus {
           background: #ffffff;
           border-color: var(--color-accent);
-          box-shadow: 0 0 0 3px
-            rgba(10, 36, 114, 0.08);
+          box-shadow: 0 0 0 3px rgba(10, 36, 114, 0.08);
         }
 
         .input:disabled {
@@ -1009,16 +982,16 @@ const Login = () => {
         }
 
         .input-with-icon {
-          padding-left: 39px;
+          padding-left: 48px;
         }
 
         .input-pw {
-          padding-right: 43px;
+          padding-right: 52px;
         }
 
         .input-icon {
           position: absolute;
-          left: 13px;
+          left: 16px;
           z-index: 1;
           display: flex;
           align-items: center;
@@ -1029,15 +1002,15 @@ const Login = () => {
 
         .eye {
           position: absolute;
-          right: 5px;
-          width: 34px;
-          height: 34px;
+          right: 6px;
+          width: 40px;
+          height: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
           border: none;
           background: transparent;
-          border-radius: 8px;
+          border-radius: 10px;
           color: #8d97a7;
           cursor: pointer;
         }
@@ -1047,49 +1020,43 @@ const Login = () => {
           background: #f1f3f7;
         }
 
-        /* =====================================================
-           REMEMBER ME
-           ===================================================== */
-
+        /* ================= REMEMBER ME ================= */
         .check-label {
           display: flex;
           align-items: center;
-          gap: 7px;
-          min-height: 17px;
-          font-size: 11px;
+          gap: 9px;
+          min-height: 20px;
+          font-size: 13px;
           color: var(--color-text-secondary);
           cursor: pointer;
           user-select: none;
         }
 
         .check {
-          width: 15px;
-          height: 15px;
+          width: 17px;
+          height: 17px;
           margin: 0;
           accent-color: var(--color-accent);
           cursor: pointer;
         }
 
-        /* =====================================================
-           PRIMARY BUTTON
-           ===================================================== */
-
+        /* ================= SUBMIT ================= */
         .submit {
           width: 100%;
-          height: 44px;
-          min-height: 44px;
-          margin-top: 1px;
+          height: 54px;
+          min-height: 54px;
+          margin-top: 3px;
           border: none;
-          border-radius: 10px;
+          border-radius: 12px;
           background: var(--color-accent);
           color: var(--color-text-inverse);
           font-family: inherit;
-          font-size: 13px;
+          font-size: 15.5px;
           font-weight: 700;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 10px;
           cursor: pointer;
           transition:
             transform 160ms ease,
@@ -1100,8 +1067,7 @@ const Login = () => {
         .submit:hover:not(:disabled) {
           background: var(--color-accent-hover);
           transform: translateY(-1px);
-          box-shadow:
-            0 7px 18px rgba(10, 36, 114, 0.18);
+          box-shadow: 0 9px 22px rgba(10, 36, 114, 0.2);
         }
 
         .submit:active:not(:disabled) {
@@ -1113,13 +1079,10 @@ const Login = () => {
           cursor: not-allowed;
         }
 
-        /* =====================================================
-           SPINNERS
-           ===================================================== */
-
+        /* ================= SPINNERS ================= */
         .spinner {
-          width: 17px;
-          height: 17px;
+          width: 20px;
+          height: 20px;
           border: 2px solid rgba(255, 255, 255, 0.35);
           border-top-color: #ffffff;
           border-radius: 50%;
@@ -1137,15 +1100,12 @@ const Login = () => {
           }
         }
 
-        /* =====================================================
-           DIVIDER
-           ===================================================== */
-
+        /* ================= DIVIDER ================= */
         .divider {
           display: flex;
           align-items: center;
-          gap: 10px;
-          margin: 13px 0;
+          gap: 12px;
+          margin: 18px 0;
         }
 
         .divider-line {
@@ -1155,32 +1115,29 @@ const Login = () => {
         }
 
         .divider-text {
-          font-size: 10px;
+          font-size: 11.5px;
           color: var(--color-text-muted);
           text-transform: uppercase;
           letter-spacing: 0.08em;
           font-weight: 600;
         }
 
-        /* =====================================================
-           FACEBOOK
-           ===================================================== */
-
+        /* ================= SOCIAL ================= */
         .social-btn {
           width: 100%;
-          height: 42px;
-          min-height: 42px;
+          height: 50px;
+          min-height: 50px;
           border: 1px solid #dfe4ec;
-          border-radius: 10px;
+          border-radius: 12px;
           background: #ffffff;
           font-family: inherit;
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 600;
           color: var(--color-text);
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 10px;
           cursor: pointer;
           transition:
             background 160ms ease,
@@ -1202,19 +1159,16 @@ const Login = () => {
           color: #1877f2;
         }
 
-        /* =====================================================
-           ACCOUNT SWITCH
-           ===================================================== */
-
+        /* ================= SWITCH ================= */
         .switch {
-          margin: 13px 0 0;
+          margin: 18px 0 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 5px;
+          gap: 6px;
           flex-wrap: wrap;
-          font-size: 11px;
-          line-height: 1.3;
+          font-size: 13.5px;
+          line-height: 1.4;
           color: var(--color-text-secondary);
         }
 
@@ -1223,7 +1177,7 @@ const Login = () => {
           border: none;
           background: none;
           font-family: inherit;
-          font-size: 11px;
+          font-size: 13.5px;
           font-weight: 700;
           color: var(--color-accent);
           cursor: pointer;
@@ -1235,17 +1189,14 @@ const Login = () => {
           text-underline-offset: 3px;
         }
 
-        /* =====================================================
-           BACK LINK
-           ===================================================== */
-
+        /* ================= BACK LINK ================= */
         .back-link {
-          margin-top: 10px;
+          margin-top: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 5px;
-          font-size: 10px;
+          gap: 6px;
+          font-size: 12.5px;
           font-weight: 500;
           color: var(--color-text-muted);
           text-decoration: none;
@@ -1255,10 +1206,7 @@ const Login = () => {
           color: var(--color-text-secondary);
         }
 
-        /* =====================================================
-           DESKTOP MARKETING PANEL
-           ===================================================== */
-
+        /* ================= MARKETING PANEL ================= */
         .statement {
           position: relative;
           flex: 1;
@@ -1298,13 +1246,12 @@ const Login = () => {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 7px 11px;
-          border: 1px solid
-            rgba(255, 255, 255, 0.16);
+          padding: 8px 12px;
+          border: 1px solid rgba(255, 255, 255, 0.16);
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.07);
           color: rgba(255, 255, 255, 0.85);
-          font-size: 10px;
+          font-size: 11px;
           font-weight: 600;
           letter-spacing: 0.02em;
         }
@@ -1314,8 +1261,7 @@ const Login = () => {
           height: 6px;
           border-radius: 50%;
           background: #55c76a;
-          box-shadow: 0 0 0 4px
-            rgba(85, 199, 106, 0.12);
+          box-shadow: 0 0 0 4px rgba(85, 199, 106, 0.12);
         }
 
         .statement-content {
@@ -1328,7 +1274,7 @@ const Login = () => {
         .statement-eyebrow {
           margin: 0 0 18px;
           color: rgba(255, 255, 255, 0.48);
-          font-size: 10px;
+          font-size: 11px;
           font-weight: 700;
           letter-spacing: 0.16em;
         }
@@ -1345,7 +1291,7 @@ const Login = () => {
         .statement-sub {
           max-width: 450px;
           margin: 0 0 28px;
-          font-size: 15px;
+          font-size: 16px;
           line-height: 1.65;
           color: rgba(255, 255, 255, 0.67);
         }
@@ -1353,7 +1299,7 @@ const Login = () => {
         .statement-points {
           display: flex;
           flex-direction: column;
-          gap: 11px;
+          gap: 12px;
         }
 
         .statement-point {
@@ -1361,12 +1307,12 @@ const Login = () => {
           align-items: center;
           gap: 10px;
           color: rgba(255, 255, 255, 0.9);
-          font-size: 13px;
+          font-size: 14px;
         }
 
         .point-icon {
-          width: 21px;
-          height: 21px;
+          width: 22px;
+          height: 22px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1380,7 +1326,7 @@ const Login = () => {
           align-items: center;
           gap: 9px;
           color: rgba(255, 255, 255, 0.38);
-          font-size: 10px;
+          font-size: 11px;
         }
 
         .flag-stripe {
@@ -1428,29 +1374,25 @@ const Login = () => {
           height: 280px;
           bottom: -160px;
           left: -100px;
-          border: 1px solid
-            rgba(255, 255, 255, 0.07);
+          border: 1px solid rgba(255, 255, 255, 0.07);
         }
 
-        /* =====================================================
-           DESKTOP
-           ===================================================== */
-
+        /* ================= DESKTOP ================= */
         @media (min-width: 1024px) {
           .auth-main {
             flex: 0 0 55%;
             width: 55%;
             height: 100dvh;
-            padding: 24px 48px;
+            padding: 28px 48px;
           }
 
           .auth-col {
-            max-width: 430px;
-            max-height: calc(100dvh - 48px);
+            max-width: 500px;
+            max-height: calc(100dvh - 56px);
           }
 
           .form-shell {
-            max-height: calc(100dvh - 48px);
+            max-height: calc(100dvh - 56px);
           }
 
           .statement {
@@ -1458,10 +1400,7 @@ const Login = () => {
           }
         }
 
-        /* =====================================================
-           LARGE DESKTOP
-           ===================================================== */
-
+        /* ================= LARGE DESKTOP ================= */
         @media (min-width: 1440px) {
           .auth-main {
             padding-left: 70px;
@@ -1477,74 +1416,87 @@ const Login = () => {
           }
         }
 
-        /* =====================================================
-           SHORT DESKTOP / LAPTOP
-           ===================================================== */
-
-        @media (min-width: 1024px) and (max-height: 800px) {
+        /* ================= SHORT DESKTOP / LAPTOP ================= */
+        @media (min-width: 1024px) and (max-height: 820px) {
           .auth-main {
-            padding: 14px 38px;
+            padding: 18px 40px;
           }
 
           .auth-col {
-            max-height: calc(100dvh - 28px);
+            max-height: calc(100dvh - 36px);
           }
 
           .form-shell {
-            max-height: calc(100dvh - 28px);
-            padding: 20px 25px;
-            border-radius: 20px;
+            max-height: calc(100dvh - 36px);
+            padding: 26px 30px;
+            border-radius: 22px;
           }
 
           .auth-brand {
-            margin-bottom: 11px;
+            margin-bottom: 14px;
           }
 
           .card-head {
-            margin-bottom: 12px;
+            margin-bottom: 16px;
           }
 
           .card-title {
-            font-size: 24px;
+            font-size: 28px;
           }
 
           .card-subtitle {
-            font-size: 12px;
+            font-size: 13.5px;
           }
 
           .form {
-            gap: 8px;
+            gap: 12px;
           }
 
           .field {
-            gap: 4px;
+            gap: 5px;
           }
 
           .input {
-            height: 39px;
-            min-height: 39px;
+            height: 46px;
+            min-height: 46px;
+            font-size: 14.5px;
+          }
+
+          .input-with-icon {
+            padding-left: 44px;
+          }
+
+          .input-icon {
+            left: 14px;
           }
 
           .submit {
-            height: 40px;
-            min-height: 40px;
+            height: 48px;
+            min-height: 48px;
+            font-size: 15px;
           }
 
           .divider {
-            margin: 9px 0;
+            margin: 12px 0;
           }
 
           .social-btn {
-            height: 38px;
-            min-height: 38px;
+            height: 46px;
+            min-height: 46px;
+            font-size: 13.5px;
           }
 
           .switch {
-            margin-top: 9px;
+            margin-top: 12px;
+            font-size: 13px;
+          }
+
+          .switch-btn {
+            font-size: 13px;
           }
 
           .back-link {
-            margin-top: 6px;
+            margin-top: 10px;
           }
 
           .statement-inner {
@@ -1564,40 +1516,118 @@ const Login = () => {
 
           .statement-sub {
             margin-bottom: 20px;
-            font-size: 13px;
+            font-size: 14px;
           }
 
           .statement-points {
-            gap: 8px;
+            gap: 9px;
           }
         }
 
-        /* =====================================================
-           MOBILE
-           ===================================================== */
-
+        /* ================= MOBILE / TABLET ================= */
         @media (max-width: 1023px) {
+          .auth-main {
+            padding: 20px;
+          }
+
+          .auth-col {
+            max-width: 500px;
+            max-height: calc(100dvh - 40px);
+          }
+
+          .form-shell {
+            max-height: calc(100dvh - 40px);
+            padding: 30px 26px;
+            border-radius: 22px;
+          }
+        }
+
+        /* ================= SMALL MOBILE ================= */
+        @media (max-width: 480px) {
           .auth-main {
             padding: 14px;
           }
 
           .auth-col {
-            max-width: 430px;
             max-height: calc(100dvh - 28px);
           }
 
           .form-shell {
             max-height: calc(100dvh - 28px);
-            padding: 22px 20px;
+            padding: 24px 22px;
             border-radius: 20px;
+          }
+
+          .auth-brand {
+            margin-bottom: 16px;
+          }
+
+          .card-head {
+            margin-bottom: 18px;
+          }
+
+          .card-title {
+            font-size: 27px;
+          }
+
+          .card-subtitle {
+            font-size: 14px;
+          }
+
+          .form {
+            gap: 13px;
+          }
+
+          .field {
+            gap: 6px;
+          }
+
+          .input {
+            height: 48px;
+            min-height: 48px;
+            font-size: 15px;
+          }
+
+          .input-with-icon {
+            padding-left: 46px;
+          }
+
+          .input-icon {
+            left: 15px;
+          }
+
+          .submit {
+            height: 50px;
+            min-height: 50px;
+            font-size: 15px;
+          }
+
+          .divider {
+            margin: 15px 0;
+          }
+
+          .social-btn {
+            height: 48px;
+            min-height: 48px;
+            font-size: 13.5px;
+          }
+
+          .switch {
+            margin-top: 15px;
+            font-size: 13px;
+          }
+
+          .switch-btn {
+            font-size: 13px;
+          }
+
+          .back-link {
+            margin-top: 12px;
           }
         }
 
-        /* =====================================================
-           SMALL MOBILE
-           ===================================================== */
-
-        @media (max-width: 430px) {
+        /* ================= SHORT PHONES ================= */
+        @media (max-width: 480px) and (max-height: 780px) {
           .auth-main {
             padding: 10px;
           }
@@ -1608,7 +1638,7 @@ const Login = () => {
 
           .form-shell {
             max-height: calc(100dvh - 20px);
-            padding: 18px 17px;
+            padding: 20px 18px;
             border-radius: 18px;
           }
 
@@ -1625,96 +1655,146 @@ const Login = () => {
           }
 
           .card-subtitle {
+            font-size: 13px;
+            line-height: 1.4;
+          }
+
+          .note {
+            margin-bottom: 10px;
+            padding-top: 6px;
+            padding-bottom: 6px;
+            font-size: 12px;
+          }
+
+          .error {
+            margin-bottom: 10px;
+            padding: 8px 11px;
             font-size: 12px;
           }
 
           .form {
-            gap: 9px;
+            gap: 10px;
           }
 
           .field {
             gap: 4px;
           }
 
+          .label {
+            font-size: 12.5px;
+          }
+
+          .link {
+            font-size: 12px;
+          }
+
           .input {
-            height: 40px;
-            min-height: 40px;
+            height: 44px;
+            min-height: 44px;
+            font-size: 14px;
+          }
+
+          .input-with-icon {
+            padding-left: 42px;
+          }
+
+          .input-pw {
+            padding-right: 48px;
+          }
+
+          .input-icon {
+            left: 13px;
+          }
+
+          .eye {
+            width: 36px;
+            height: 36px;
+          }
+
+          .check-label {
+            font-size: 12.5px;
+          }
+
+          .check {
+            width: 16px;
+            height: 16px;
           }
 
           .submit {
-            height: 41px;
-            min-height: 41px;
+            height: 46px;
+            min-height: 46px;
+            font-size: 14.5px;
           }
 
           .divider {
-            margin: 10px 0;
+            margin: 11px 0;
+          }
+
+          .divider-text {
+            font-size: 10.5px;
           }
 
           .social-btn {
-            height: 39px;
-            min-height: 39px;
+            height: 44px;
+            min-height: 44px;
+            font-size: 13px;
           }
 
           .switch {
-            margin-top: 10px;
+            margin-top: 11px;
+            font-size: 12.5px;
+          }
+
+          .switch-btn {
+            font-size: 12.5px;
           }
 
           .back-link {
-            margin-top: 7px;
+            margin-top: 9px;
+            font-size: 12px;
           }
         }
 
-        /* =====================================================
-           SHORT PHONES
-           ===================================================== */
-
-        @media (max-width: 430px) and (max-height: 720px) {
+        /* ================= VERY SHORT PHONES ================= */
+        @media (max-width: 480px) and (max-height: 700px) {
           .auth-main {
-            padding: 7px;
+            padding: 6px 8px;
           }
 
           .auth-col {
-            max-height: calc(100dvh - 14px);
+            max-height: calc(100dvh - 12px);
           }
 
           .form-shell {
-            max-height: calc(100dvh - 14px);
-            padding: 14px 15px;
+            max-height: calc(100dvh - 12px);
+            padding: 16px 16px;
             border-radius: 16px;
           }
 
           .auth-brand {
-            margin-bottom: 7px;
-          }
-
-          .card-head {
             margin-bottom: 8px;
           }
 
+          .card-head {
+            margin-bottom: 10px;
+          }
+
           .card-title {
-            font-size: 21px;
+            font-size: 22px;
           }
 
           .card-subtitle {
-            font-size: 11px;
-            line-height: 1.3;
+            font-size: 12px;
           }
 
           .note {
-            margin-bottom: 7px;
-            padding-top: 4px;
-            padding-bottom: 4px;
-            font-size: 10px;
-          }
-
-          .error {
-            margin-bottom: 7px;
-            padding: 6px 8px;
-            font-size: 10px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            line-height: 1.35;
           }
 
           .form {
-            gap: 6px;
+            gap: 8px;
           }
 
           .field {
@@ -1722,159 +1802,45 @@ const Login = () => {
           }
 
           .label {
-            font-size: 10px;
-          }
-
-          .link {
-            font-size: 10px;
-          }
-
-          .input {
-            height: 36px;
-            min-height: 36px;
             font-size: 12px;
           }
 
-          .input-icon {
-            left: 11px;
+          .input {
+            height: 42px;
+            min-height: 42px;
+            font-size: 13.5px;
           }
 
           .input-with-icon {
-            padding-left: 34px;
-          }
-
-          .input-pw {
-            padding-right: 38px;
-          }
-
-          .eye {
-            width: 30px;
-            height: 30px;
-          }
-
-          .check-label {
-            font-size: 10px;
-          }
-
-          .check {
-            width: 14px;
-            height: 14px;
+            padding-left: 40px;
           }
 
           .submit {
-            height: 37px;
-            min-height: 37px;
-            font-size: 12px;
+            height: 44px;
+            min-height: 44px;
+            font-size: 14px;
           }
 
           .divider {
-            margin: 6px 0;
-          }
-
-          .divider-text {
-            font-size: 9px;
+            margin: 8px 0;
           }
 
           .social-btn {
-            height: 35px;
-            min-height: 35px;
-            font-size: 11px;
+            height: 42px;
+            min-height: 42px;
+            font-size: 13px;
           }
 
           .switch {
+            margin-top: 8px;
+          }
+
+          .back-link {
             margin-top: 6px;
-            font-size: 10px;
-          }
-
-          .switch-btn {
-            font-size: 10px;
-          }
-
-          .back-link {
-            margin-top: 4px;
-            font-size: 9px;
           }
         }
 
-        /* =====================================================
-           VERY SHORT PHONES
-           ===================================================== */
-
-        @media (max-width: 430px) and (max-height: 640px) {
-          .auth-main {
-            padding: 4px 6px;
-          }
-
-          .auth-col {
-            max-height: calc(100dvh - 8px);
-          }
-
-          .form-shell {
-            max-height: calc(100dvh - 8px);
-            padding: 10px 13px;
-            border-radius: 14px;
-          }
-
-          .auth-brand {
-            margin-bottom: 5px;
-          }
-
-          .card-head {
-            margin-bottom: 6px;
-          }
-
-          .card-title {
-            font-size: 19px;
-          }
-
-          .card-subtitle {
-            display: none;
-          }
-
-          .note {
-            margin-bottom: 5px;
-            font-size: 9px;
-            line-height: 1.2;
-          }
-
-          .form {
-            gap: 5px;
-          }
-
-          .input {
-            height: 33px;
-            min-height: 33px;
-            font-size: 11px;
-          }
-
-          .submit {
-            height: 34px;
-            min-height: 34px;
-          }
-
-          .divider {
-            margin: 5px 0;
-          }
-
-          .social-btn {
-            height: 32px;
-            min-height: 32px;
-            font-size: 10px;
-          }
-
-          .switch {
-            margin-top: 4px;
-          }
-
-          .back-link {
-            margin-top: 3px;
-          }
-        }
-
-        /* =====================================================
-           ACCESSIBILITY / REDUCED MOTION
-           ===================================================== */
-
+        /* ================= ACCESSIBILITY ================= */
         .submit:focus-visible,
         .social-btn:focus-visible,
         .switch-btn:focus-visible,

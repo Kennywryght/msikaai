@@ -138,8 +138,10 @@ const CATEGORIES = [
 const NEW_WINDOW_MS = 48 * 60 * 60 * 1000;
 const ASPECT_RATIOS = ['4 / 5', '4 / 5.4', '4 / 5', '4 / 5.4'];
 const SPOTLIGHT_MAX = 8;
-const SPOTLIGHT_IMAGE_MS = 2000;
-const SPOTLIGHT_HOLD_MS = 1600;
+
+// ★ TIMING: how long each image stays before advancing
+const SPOTLIGHT_IMAGE_MS = 2600;        // per-image hold (was 2000)
+const SPOTLIGHT_TILE_ADVANCE_MS = 9000; // how long a whole tile stays before scrolling to next (extra dwell)
 
 const REQUESTS_SPOTLIGHT_LIMIT = 5;
 
@@ -520,21 +522,46 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
   );
 };
 
-/* ---------- Spotlight tile ---------- */
-const SpotlightTile = ({ item, onOpen }) => {
+/* ============================================================
+   ★ SPOTLIGHT TILE
+   Each listing cycles through ALL its own images first.
+   When done, it notifies the parent (onCycleComplete) so the
+   parent can advance the scroll to the next listing.
+   ============================================================ */
+const SpotlightTile = ({ item, index, onOpen, onCycleComplete, isActiveTile }) => {
   const catColor = getCategoryColor(item.category);
   const premium = isPremium(item);
   const images = (item.images || []).filter(Boolean);
   const [idx, setIdx] = useState(0);
   const total = images.length;
 
+  // Only cycle when this tile is the currently-active spotlight tile
   useEffect(() => {
-    if (total <= 1) return;
+    if (!isActiveTile) {
+      // Reset to first image when not active (so it starts clean when it becomes active)
+      setIdx(0);
+      return;
+    }
+    if (total <= 1) {
+      // No images to cycle — immediately tell parent to move on after a hold
+      const t = setTimeout(() => {
+        onCycleComplete?.();
+      }, SPOTLIGHT_TILE_ADVANCE_MS);
+      return () => clearTimeout(t);
+    }
+
+    // Advance to next image within this tile
     const t = setTimeout(() => {
-      setIdx((prev) => (prev + 1) % total);
-    }, SPOTLIGHT_HOLD_MS);
+      if (idx + 1 < total) {
+        setIdx(idx + 1);
+      } else {
+        // Finished all images of this tile → tell parent to move to next tile
+        onCycleComplete?.();
+      }
+    }, SPOTLIGHT_IMAGE_MS);
+
     return () => clearTimeout(t);
-  }, [idx, total]);
+  }, [isActiveTile, idx, total, onCycleComplete]);
 
   return (
     <button className={`spot-tile ${premium ? 'is-premium' : ''}`} onClick={() => onOpen(item)}>
@@ -597,7 +624,6 @@ const RequestMiniCard = ({ request, onClick }) => {
   const budget = formatRequestBudget(request.budget_min, request.budget_max);
   const timeAgo = formatTimeAgo(request.created_at);
   const responsesCount = request.responses_count || 0;
-  // ★ PHASE 1: never show raw coords
   const displayLocation = getDisplayLocation(request);
 
   return (
@@ -612,21 +638,22 @@ const RequestMiniCard = ({ request, onClick }) => {
         </span>
       </div>
 
-      <h3 className="req-mini-title">{request.title}</h3>
+      <h3 className="req-mini-title" title={request.title}>{request.title}</h3>
 
-      {budget && (
+      {budget ? (
         <div className="req-mini-budget">
           <Icon name="tag" size={11} strokeWidth={2} />
           {budget}
         </div>
+      ) : (
+        <div className="req-mini-budget req-mini-budget-muted">Budget flexible</div>
       )}
 
       <div className="req-mini-footer">
-        {/* ★ PHASE 1: only render location row if it's a real name */}
         {displayLocation ? (
-          <span className="req-mini-loc">
+          <span className="req-mini-loc" title={displayLocation}>
             <Icon name="mapPin" size={10} strokeWidth={2} />
-            {displayLocation}
+            <span className="req-mini-loc-text">{displayLocation}</span>
           </span>
         ) : (
           <span className="req-mini-loc req-mini-loc-muted">
@@ -634,7 +661,7 @@ const RequestMiniCard = ({ request, onClick }) => {
             Location not set
           </span>
         )}
-        <span className="req-mini-responses">
+        <span className="req-mini-responses" title={`${responsesCount} responses`}>
           <Icon name="message" size={10} strokeWidth={2} />
           {responsesCount}
         </span>
@@ -663,6 +690,9 @@ const Landing = () => {
 
   const [likeStates, setLikeStates] = useState({});
   const [commentCounts, setCommentCounts] = useState({});
+
+  // ★ Spotlight state — which tile is currently "playing"
+  const [activeSpotlightIndex, setActiveSpotlightIndex] = useState(0);
 
   const searchInputRef = useRef(null);
   const spotlightScrollRef = useRef(null);
@@ -916,28 +946,19 @@ const Landing = () => {
     });
   }, []);
 
+  // ★ When a spotlight tile finishes playing all its images → advance to next
+  const handleSpotlightCycleComplete = useCallback((finishedIndex) => {
+    if (!spotlight.length) return;
+    const nextIndex = (finishedIndex + 1) % spotlight.length;
+    setActiveSpotlightIndex(nextIndex);
+    scrollSpotlightTo(nextIndex);
+  }, [spotlight.length, scrollSpotlightTo]);
+
+  // ★ Auto-start: make sure index 0 is active and scrolled into view on mount / when spotlight changes
   useEffect(() => {
-    if (spotlight.length <= 1) return;
-    const container = spotlightScrollRef.current;
-    if (!container) return;
-
-    let cancelled = false;
-    let currentIndex = 0;
-
+    if (spotlight.length === 0) return;
+    setActiveSpotlightIndex(0);
     scrollSpotlightTo(0);
-
-    const advance = () => {
-      if (cancelled) return;
-      currentIndex = (currentIndex + 1) % spotlight.length;
-      scrollSpotlightTo(currentIndex);
-    };
-
-    const interval = setInterval(advance, SPOTLIGHT_IMAGE_MS);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
   }, [spotlight, scrollSpotlightTo]);
 
   const featured = useMemo(() => {
@@ -1068,7 +1089,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* STICKY SEARCH */}
+      {/* ★ STICKY SEARCH — now properly floats over the hero bottom edge */}
       <div className="search-sticky">
         <div className="search-sticky-inner">
           <form onSubmit={handleSearch} className="search-form">
@@ -1158,7 +1179,13 @@ const Landing = () => {
                 ref={(el) => { spotlightTileRefs.current[i] = el; }}
                 className="spot-tile-wrap"
               >
-                <SpotlightTile item={item} onOpen={handleListingClick} />
+                <SpotlightTile
+                  item={item}
+                  index={i}
+                  onOpen={handleListingClick}
+                  onCycleComplete={() => handleSpotlightCycleComplete(i)}
+                  isActiveTile={i === activeSpotlightIndex}
+                />
               </div>
             ))}
           </div>
@@ -1389,10 +1416,11 @@ const Landing = () => {
         }
         @media (min-width: 769px) { .app { padding-bottom: 0; } }
 
+        /* ================= HERO ================= */
         .hero-block {
           position: relative;
           background: linear-gradient(155deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-          padding: 30px 20px 60px;
+          padding: 30px 20px 84px; /* ★ bottom padding increased so the search bar has room to overlap */
           overflow: hidden;
         }
         .hero-texture {
@@ -1430,18 +1458,33 @@ const Landing = () => {
           margin: 0; max-width: 440px;
         }
 
+        /* ================= ★ SEARCH (FIXED) =================
+           The navbar is 68px tall. The search bar sits directly
+           below it and pulls UP over the hero's bottom edge with
+           margin-top: -34px. Uses backdrop blur + strong shadow
+           so it visually "floats" above the page content.
+        */
         .search-sticky {
           position: sticky;
-          top: 64px;
+          top: 68px; /* exactly below the navbar */
           z-index: 50;
           padding: 0 20px;
-          margin-top: -26px;
-          padding-bottom: 10px;
-          background: linear-gradient(to bottom, var(--color-bg) 78%, rgba(248, 250, 252, 0.85));
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
+          margin-top: -34px; /* pull up over the hero's bottom edge */
+          padding-bottom: 14px;
+          background: linear-gradient(
+            to bottom,
+            transparent 0%,
+            transparent 46%,
+            var(--color-bg) 46%,
+            var(--color-bg) 100%
+          );
+          pointer-events: none; /* so the transparent half doesn't block clicks */
         }
-        .search-sticky-inner { max-width: 1200px; margin: 0 auto; }
+        .search-sticky-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          pointer-events: auto; /* re-enable for the wrapper only */
+        }
         .search-form { max-width: 620px; }
         .search-wrapper {
           display: flex; align-items: center; gap: 10px;
@@ -1462,6 +1505,7 @@ const Landing = () => {
         .search-input {
           flex: 1; border: none; outline: none; background: transparent;
           padding: 12px 0; font-size: 14px; font-family: inherit; color: var(--color-text);
+          min-width: 0;
         }
         .search-input::placeholder { color: var(--color-text-muted); }
         .search-btn {
@@ -1470,17 +1514,23 @@ const Landing = () => {
           display: flex; align-items: center; justify-content: center;
           transition: background 0.2s, transform 0.15s;
           box-shadow: var(--shadow-accent);
+          flex-shrink: 0;
         }
         .search-btn:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
 
+        /* ================= ★ REQUEST MINI-CARDS (FIXED) =================
+           Fixed width, min-height so all cards have consistent size,
+           text wraps cleanly, footer pinned to the bottom with
+           flex: 1 trick on the title block.
+        */
         .req-spotlight {
           max-width: 1200px;
-          margin: 10px auto 0;
+          margin: 12px auto 0;
           padding: 4px 0 4px;
         }
         .req-spotlight-header {
           display: flex; align-items: center; gap: 10px;
-          padding: 0 20px; margin-bottom: 10px;
+          padding: 0 20px; margin-bottom: 12px;
         }
         .req-spotlight-heading-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .req-spotlight-heading {
@@ -1505,102 +1555,145 @@ const Landing = () => {
         .req-spotlight-scroll {
           display: flex; gap: 12px;
           overflow-x: auto; scrollbar-width: none;
-          padding: 4px 20px 8px;
+          padding: 4px 20px 12px;
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
         }
         .req-spotlight-scroll::-webkit-scrollbar { display: none; }
 
         .req-mini {
-          flex: 0 0 auto; width: 220px;
+          flex: 0 0 240px;
+          width: 240px;
+          min-height: 176px;
           scroll-snap-align: start;
           background: var(--color-surface);
           border: 1px solid var(--color-border);
           border-radius: var(--radius-2xl);
-          padding: 12px 14px;
-          display: flex; flex-direction: column; gap: 8px;
+          padding: 14px 14px 12px;
+          display: flex; flex-direction: column;
+          gap: 10px;
           cursor: pointer; font-family: inherit;
           text-align: left;
           transition: all 0.25s ease;
           box-shadow: var(--shadow-xs);
+          box-sizing: border-box;
         }
         .req-mini:hover {
           border-color: var(--color-accent);
           transform: translateY(-2px);
           box-shadow: var(--shadow-lg);
         }
-        .req-mini-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+        .req-mini-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
         .req-mini-urgency {
           display: inline-flex; align-items: center;
-          padding: 2px 8px; border-radius: 999px;
+          padding: 3px 9px; border-radius: 999px;
           font-size: 9.5px; font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.04em;
+          letter-spacing: 0.05em;
+          white-space: nowrap;
         }
         .req-mini-time {
           display: inline-flex; align-items: center; gap: 3px;
-          font-size: 10px; color: var(--color-text-muted); white-space: nowrap;
+          font-size: 10.5px; color: var(--color-text-muted);
+          white-space: nowrap;
+          flex-shrink: 0;
         }
         .req-mini-title {
           font-family: var(--font-serif);
-          font-size: 13.5px; font-weight: 600;
+          font-size: 14px; font-weight: 600;
           color: var(--color-text);
-          margin: 0; line-height: 1.3;
+          margin: 0; line-height: 1.35;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
           letter-spacing: -0.005em;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          min-height: 38px;
         }
         .req-mini-budget {
           display: inline-flex; align-items: center; gap: 4px;
-          font-size: 11.5px; font-weight: 700;
+          font-size: 12px; font-weight: 700;
           color: var(--color-accent);
+          flex-shrink: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
+        }
+        .req-mini-budget-muted {
+          color: var(--color-text-muted);
+          font-style: italic;
+          font-weight: 500;
         }
         .req-mini-footer {
-          display: flex; justify-content: space-between;
-          align-items: center; gap: 6px;
-          padding-top: 8px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+          padding-top: 10px;
+          margin-top: auto;
           border-top: 1px solid var(--color-border);
+          flex-shrink: 0;
         }
         .req-mini-loc,
         .req-mini-responses {
           display: inline-flex; align-items: center; gap: 3px;
           font-size: 10.5px; color: var(--color-text-muted);
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          min-width: 0;
         }
-        .req-mini-loc { flex: 1; min-width: 0; }
+        .req-mini-loc { flex: 1 1 0; overflow: hidden; }
+        .req-mini-loc-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          display: inline-block;
+          max-width: 100%;
+        }
         .req-mini-loc-muted {
           color: var(--color-text-muted);
           font-style: italic;
           opacity: 0.75;
+          white-space: nowrap;
+        }
+        .req-mini-responses {
+          flex-shrink: 0;
+          font-weight: 600;
         }
 
         .req-mini-cta {
           background: linear-gradient(135deg, var(--color-accent-tint), var(--color-surface));
           border: 1.5px dashed var(--color-accent);
           justify-content: center; align-items: center;
-          text-align: center; padding: 14px; gap: 8px;
-          min-height: 148px;
+          text-align: center; padding: 16px 14px;
+          gap: 10px;
         }
         .req-mini-cta:hover {
           background: linear-gradient(135deg, var(--color-accent-soft), var(--color-surface));
           border-style: solid;
         }
         .req-cta-icon {
-          width: 44px; height: 44px; border-radius: 50%;
+          width: 46px; height: 46px; border-radius: 50%;
           background: var(--color-surface);
           border: 1.5px solid var(--color-accent);
           display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
-        .req-cta-text { display: flex; flex-direction: column; gap: 2px; }
+        .req-cta-text { display: flex; flex-direction: column; gap: 3px; }
         .req-cta-title {
           font-family: var(--font-serif);
-          font-size: 13.5px; font-weight: 600; color: var(--color-text);
+          font-size: 14px; font-weight: 600; color: var(--color-text);
         }
-        .req-cta-desc { font-size: 11px; color: var(--color-text-muted); }
+        .req-cta-desc { font-size: 11.5px; color: var(--color-text-muted); }
 
+        /* ================= PHOTO SLIDER ================= */
         .pslider {
           position: absolute; inset: 0;
           overflow: hidden;
@@ -1610,7 +1703,7 @@ const Landing = () => {
         }
         .pslider-track {
           display: flex; height: 100%; width: 100%;
-          transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+          transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
           will-change: transform;
         }
         .pslider-img {
@@ -1665,6 +1758,7 @@ const Landing = () => {
           -webkit-backdrop-filter: blur(6px);
         }
 
+        /* ================= BURNING FIRE ================= */
         .burning-fire {
           position: relative;
           display: inline-flex; align-items: center; justify-content: center;
@@ -1739,14 +1833,15 @@ const Landing = () => {
           line-height: 1;
         }
 
+        /* ================= ★ SPOTLIGHT (FIXED) ================= */
         .spotlight-section {
           max-width: 1200px;
-          margin: 6px auto 0;
+          margin: 12px auto 0;
           padding: 4px 0 4px;
         }
         .spotlight-header {
           display: flex; align-items: baseline; gap: 10px;
-          padding: 0 20px; margin-bottom: 10px;
+          padding: 0 20px; margin-bottom: 12px;
         }
         .spotlight-heading {
           font-family: var(--font-serif);
@@ -1773,14 +1868,18 @@ const Landing = () => {
         .spotlight-scroll {
           display: flex; gap: 12px;
           overflow-x: auto; scrollbar-width: none;
-          padding: 4px 20px 8px;
+          padding: 4px 20px 12px;
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
         }
         .spotlight-scroll::-webkit-scrollbar { display: none; }
-        .spot-tile-wrap { flex: 0 0 auto; scroll-snap-align: start; }
+        .spot-tile-wrap {
+          flex: 0 0 auto;
+          scroll-snap-align: start;
+          scroll-snap-stop: always;
+        }
         .spot-tile {
-          flex: 0 0 auto; width: 172px;
+          flex: 0 0 auto; width: 180px;
           background: transparent; border: none; padding: 0;
           text-align: left; cursor: pointer;
           font-family: inherit;
@@ -1814,7 +1913,7 @@ const Landing = () => {
         }
         .spot-slider-track {
           display: flex; height: 100%; width: 100%;
-          transition: transform 0.55s cubic-bezier(0.25, 0.8, 0.25, 1);
+          transition: transform 0.7s cubic-bezier(0.25, 0.8, 0.25, 1);
           will-change: transform;
         }
         .spot-slider-img {
@@ -1861,6 +1960,7 @@ const Landing = () => {
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
+          min-height: 32px;
         }
         .spot-price {
           font-family: var(--font-serif);
@@ -1869,6 +1969,7 @@ const Landing = () => {
           letter-spacing: -0.01em;
         }
 
+        /* ================= CATEGORY BAR ================= */
         .cats-wrap { max-width: 1200px; margin: 14px auto 0; padding: 0 20px; }
         .cats-bar {
           display: flex; gap: 6px;
@@ -1910,6 +2011,7 @@ const Landing = () => {
           height: 2px; background: var(--color-accent); border-radius: 2px;
         }
 
+        /* ================= FEATURED ================= */
         .featured-wrap { max-width: 1200px; margin: 16px auto 0; padding: 0 20px; }
         .fcard { position: relative; }
         .fcard-media {
@@ -2052,6 +2154,7 @@ const Landing = () => {
         .fcard-msg:hover { background: var(--color-premium-light); }
         .fcard-msg:disabled { opacity: 0.6; cursor: not-allowed; }
 
+        /* ================= FEED ================= */
         .section { max-width: 1200px; margin: 22px auto 0; padding: 0 20px; }
         .section-head {
           display: flex; justify-content: space-between; align-items: center;
@@ -2232,6 +2335,7 @@ const Landing = () => {
         .pcard-msg:hover { background: var(--color-accent); }
         .pcard-msg:disabled { opacity: 0.55; cursor: not-allowed; }
 
+        /* ================= BUSINESSES ================= */
         .biz-section { padding-bottom: 10px; }
         .biz-scroll {
           display: flex; gap: 10px;
@@ -2265,6 +2369,7 @@ const Landing = () => {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
+        /* ================= COMMENTS POP-UP ================= */
         .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
@@ -2345,6 +2450,7 @@ const Landing = () => {
         .pop-body :global(.cmt-time) { color: var(--color-text-secondary); }
         .pop-body :global(.cmt-act) { color: var(--color-text-secondary); font-weight: 600; }
 
+        /* ================= EMPTY ================= */
         .empty-state { text-align: center; padding: 56px 20px; }
         .empty-title {
           font-family: var(--font-serif);
@@ -2352,6 +2458,7 @@ const Landing = () => {
         }
         .empty-desc { font-size: 13px; color: var(--color-text-muted); margin: 0; }
 
+        /* ================= BOTTOM NAV ================= */
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
           background: rgba(255, 255, 255, 0.97);
@@ -2376,17 +2483,22 @@ const Landing = () => {
         .nav-label { font-size: 9px; font-weight: 500; color: var(--color-text-muted); }
         .nav-label.active { color: var(--color-text); font-weight: 600; }
 
+        /* ================= RESPONSIVE ================= */
         @media (max-width: 480px) {
-          .hero-block { padding: 22px 16px 48px; }
+          .hero-block { padding: 22px 16px 68px; }
           .hero-title { font-size: 22px; }
           .hero-desc { font-size: 12.5px; }
-          .search-sticky { padding: 0 16px 10px; }
+
+          .search-sticky { padding: 0 16px 12px; margin-top: -28px; }
+
           .req-spotlight-header { padding: 0 16px; }
-          .req-spotlight-scroll { padding: 4px 16px 8px; }
-          .req-mini { width: 200px; }
+          .req-spotlight-scroll { padding: 4px 16px 12px; }
+          .req-mini { flex: 0 0 220px; width: 220px; min-height: 168px; }
+
           .spotlight-header { padding: 0 16px; }
-          .spotlight-scroll { padding: 4px 16px 8px; }
-          .spot-tile { width: 152px; }
+          .spotlight-scroll { padding: 4px 16px 12px; }
+          .spot-tile { width: 156px; }
+
           .cats-wrap { padding: 0 16px; }
           .tabs-section { padding: 12px 16px 0; }
           .featured-wrap { padding: 0 16px; }

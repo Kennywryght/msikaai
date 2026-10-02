@@ -65,7 +65,6 @@ const Icon = ({
   );
 };
 
-// ★ PHASE 6I: added delivery emoji mappings (ready for 6J notifications)
 const NOTIFICATION_ICONS = {
   message: '💬',
   view: '👁️',
@@ -228,7 +227,6 @@ const Navbar = () => {
     'U'
   ).toUpperCase();
 
-  // ★ PHASE 6I: Deliveries added to Main section
   const drawerNavSections = [
     {
       label: 'Main',
@@ -285,7 +283,8 @@ const Navbar = () => {
             className="logo"
             aria-label="Kumsika home"
           >
-            <Logo variant="full" size={46} clickable={false} />
+            {/* ★ increased from 46 → 54 */}
+            <Logo variant="full" size={54} clickable={false} />
           </Link>
 
           <div className="nav-right">
@@ -488,7 +487,7 @@ const Navbar = () => {
           <aside className="drawer" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
               <div className="drawer-logo">
-                <Logo variant="full" size={42} clickable={false} />
+                <Logo variant="full" size={48} clickable={false} />
               </div>
               <button
                 type="button"

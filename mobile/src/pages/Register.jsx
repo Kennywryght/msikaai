@@ -157,7 +157,7 @@ const Register = () => {
     <div className="register-page">
       <div className="register-card">
         <div className="logo-section">
-          <Logo variant="full" size={140} clickable={false} />
+          <Logo variant="full" size={160} clickable={false} />
           <p className="brand-tagline">Malawi's Smart Marketplace</p>
         </div>
 
@@ -179,7 +179,7 @@ const Register = () => {
             <label className="label">Full Name <span className="required">*</span></label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="user" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
+                <Icon name="user" size={20} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 ref={nameInputRef}
@@ -199,7 +199,7 @@ const Register = () => {
             <label className="label">Email Address <span className="required">*</span></label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="mail" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
+                <Icon name="mail" size={20} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 type="email"
@@ -219,7 +219,7 @@ const Register = () => {
             <label className="label">Phone Number</label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="phone" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
+                <Icon name="phone" size={20} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 type="tel"
@@ -238,7 +238,7 @@ const Register = () => {
             <label className="label">Password <span className="required">*</span></label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="lock" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
+                <Icon name="lock" size={20} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -257,7 +257,7 @@ const Register = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                <Icon name={showPassword ? 'eyeOff' : 'eye'} size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
+                <Icon name={showPassword ? 'eyeOff' : 'eye'} size={20} color="var(--color-text-muted)" strokeWidth={1.75} />
               </button>
             </div>
             <p className="hint-text">Must be at least 6 characters</p>
@@ -267,7 +267,7 @@ const Register = () => {
             <label className="label">Confirm Password <span className="required">*</span></label>
             <div className="input-wrapper">
               <span className="input-icon">
-                <Icon name="lock" size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
+                <Icon name="lock" size={20} color="var(--color-text-muted)" strokeWidth={1.75} />
               </span>
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -290,7 +290,7 @@ const Register = () => {
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
-                <Icon name={showConfirmPassword ? 'eyeOff' : 'eye'} size={18} color="var(--color-text-muted)" strokeWidth={1.75} />
+                <Icon name={showConfirmPassword ? 'eyeOff' : 'eye'} size={20} color="var(--color-text-muted)" strokeWidth={1.75} />
               </button>
             </div>
             {formData.confirmPassword && formData.password !== formData.confirmPassword && (
@@ -386,6 +386,7 @@ const Register = () => {
       <style jsx>{`
         .register-page {
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -393,15 +394,15 @@ const Register = () => {
           background: var(--color-bg);
           background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px);
           background-size: 22px 22px;
-          padding: 24px 16px;
+          padding: 32px 20px;
           font-family: var(--font-sans);
         }
 
         .register-card {
           width: 100%;
-          max-width: 440px;
+          max-width: 500px;
           background: var(--color-surface);
-          padding: 32px 24px;
+          padding: 40px 32px;
           border-radius: var(--radius-2xl);
           border: 1px solid var(--color-border);
           box-shadow: var(--shadow-sm);
@@ -409,73 +410,75 @@ const Register = () => {
 
         .logo-section {
           text-align: center;
-          margin-bottom: 24px;
+          margin-bottom: 28px;
         }
 
         .logo-section :global(.kumsika-logo) {
-          margin: 0 auto 8px;
+          margin: 0 auto 12px;
         }
 
         .brand-tagline {
-          font-size: 11px;
+          font-size: 12.5px;
           color: var(--color-text-muted);
-          font-weight: 500;
+          font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.3px;
+          letter-spacing: 0.4px;
           margin: 0;
         }
 
-        .header { text-align: center; margin-bottom: 20px; }
+        .header { text-align: center; margin-bottom: 26px; }
 
         .title {
-          font-size: 20px;
+          font-size: 26px;
           font-weight: 700;
           color: var(--color-text);
-          margin: 0;
+          margin: 0 0 4px;
+          letter-spacing: -0.02em;
         }
 
         .subtitle {
-          font-size: 13px;
+          font-size: 15px;
           color: var(--color-text-muted);
-          margin: 2px 0 0;
+          margin: 0;
         }
 
         .error-alert {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           background: var(--color-error-bg);
-          padding: 10px 14px;
+          padding: 13px 16px;
           border-radius: var(--radius-lg);
           border: 1px solid var(--color-error);
-          margin-bottom: 16px;
+          margin-bottom: 20px;
         }
 
-        .error-icon { font-size: 14px; }
-        .error-text { flex: 1; font-size: 13px; color: var(--color-error); }
+        .error-icon { font-size: 16px; }
+        .error-text { flex: 1; font-size: 14.5px; color: var(--color-error); line-height: 1.4; }
         .error-close {
           background: none;
           border: none;
-          font-size: 18px;
+          font-size: 22px;
           color: var(--color-error);
           cursor: pointer;
           padding: 0 4px;
+          line-height: 1;
         }
 
         .register-form {
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 18px;
         }
 
         .form-group {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 7px;
         }
 
         .label {
-          font-size: 13px;
+          font-size: 14.5px;
           font-weight: 600;
           color: var(--color-text-secondary);
         }
@@ -490,7 +493,7 @@ const Register = () => {
 
         .input-icon {
           position: absolute;
-          left: 12px;
+          left: 16px;
           display: flex;
           align-items: center;
           pointer-events: none;
@@ -498,10 +501,10 @@ const Register = () => {
 
         .input-field {
           width: 100%;
-          padding: 10px 14px 10px 40px;
+          padding: 15px 16px 15px 48px;
           border: 2px solid var(--color-border);
           border-radius: var(--radius-lg);
-          font-size: 14px;
+          font-size: 15.5px;
           color: var(--color-text);
           outline: none;
           box-sizing: border-box;
@@ -515,42 +518,43 @@ const Register = () => {
           box-shadow: 0 0 0 3px var(--color-accent-tint);
         }
 
-        .input-field::placeholder { color: var(--color-text-muted); }
+        .input-field::placeholder { color: var(--color-text-muted); font-size: 15px; }
         .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
         .input-field.error { border-color: var(--color-error); }
         .input-field.success { border-color: var(--color-success); }
-        .password-input { padding-right: 42px; }
+        .password-input { padding-right: 50px; }
 
         .eye-btn {
           position: absolute;
-          right: 12px;
+          right: 10px;
           background: none;
           border: none;
           cursor: pointer;
-          padding: 4px;
+          padding: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
+          border-radius: var(--radius-md);
         }
 
-        .hint-text { font-size: 12px; color: var(--color-text-muted); }
-        .error-hint { font-size: 12px; color: var(--color-error); }
-        .success-hint { font-size: 12px; color: var(--color-success); }
+        .hint-text { font-size: 13px; color: var(--color-text-muted); margin: 2px 0 0; }
+        .error-hint { font-size: 13px; color: var(--color-error); margin: 2px 0 0; }
+        .success-hint { font-size: 13px; color: var(--color-success); margin: 2px 0 0; }
 
         .radio-group {
           display: flex;
-          gap: 12px;
+          gap: 10px;
           flex-wrap: wrap;
         }
 
         .radio-label {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
           cursor: pointer;
-          font-size: 14px;
+          font-size: 15px;
           color: var(--color-text-secondary);
-          padding: 6px 12px;
+          padding: 10px 16px;
           border: 1px solid var(--color-border);
           border-radius: var(--radius-md);
           transition: all var(--transition-fast);
@@ -562,28 +566,28 @@ const Register = () => {
         }
 
         .radio-input {
-          width: 16px;
-          height: 16px;
+          width: 18px;
+          height: 18px;
           cursor: pointer;
           accent-color: var(--color-accent);
         }
 
-        .radio-text { font-size: 13px; font-weight: 500; }
+        .radio-text { font-size: 14.5px; font-weight: 500; }
 
-        .terms-group { margin: 2px 0; }
+        .terms-group { margin: 4px 0; }
 
         .checkbox-label {
           display: flex;
           align-items: flex-start;
-          gap: 10px;
+          gap: 12px;
           cursor: pointer;
-          font-size: 13px;
+          font-size: 14.5px;
           color: var(--color-text-secondary);
         }
 
         .checkbox-input {
-          width: 18px;
-          height: 18px;
+          width: 20px;
+          height: 20px;
           margin-top: 1px;
           flex-shrink: 0;
           cursor: pointer;
@@ -605,11 +609,11 @@ const Register = () => {
 
         .submit-btn {
           width: 100%;
-          padding: 12px;
+          padding: 16px;
           background: var(--color-accent);
           border: none;
           border-radius: var(--radius-lg);
-          font-size: 15px;
+          font-size: 16.5px;
           font-weight: 700;
           color: var(--color-text-inverse);
           cursor: pointer;
@@ -618,22 +622,22 @@ const Register = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          min-height: 48px;
-          margin-top: 4px;
+          min-height: 58px;
+          margin-top: 6px;
           box-shadow: var(--shadow-accent);
         }
 
         .submit-btn:hover:not(.disabled) {
           background: var(--color-accent-hover);
           transform: translateY(-1px);
-          box-shadow: 0 8px 20px rgba(255, 92, 35, 0.32);
+          box-shadow: 0 10px 24px rgba(255, 92, 35, 0.32);
         }
 
         .submit-btn.disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
         .btn-spinner {
-          width: 20px;
-          height: 20px;
+          width: 24px;
+          height: 24px;
           border: 2px solid rgba(255,255,255,0.2);
           border-top-color: var(--color-text-inverse);
           border-radius: 50%;
@@ -645,7 +649,7 @@ const Register = () => {
         .divider {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
           margin: 4px 0;
         }
 
@@ -656,15 +660,15 @@ const Register = () => {
         }
 
         .divider-text {
-          font-size: 11px;
+          font-size: 12.5px;
           color: var(--color-text-muted);
-          font-weight: 500;
+          font-weight: 600;
           white-space: nowrap;
         }
 
         .footer-text {
           text-align: center;
-          font-size: 13px;
+          font-size: 14.5px;
           color: var(--color-text-muted);
           margin: 0;
         }
@@ -680,19 +684,78 @@ const Register = () => {
           text-decoration: underline;
         }
 
+        /* ================= SMALL MOBILE ================= */
         @media (max-width: 480px) {
-          .register-card { padding: 24px 16px; }
+          .register-page { padding: 20px 16px; }
+          .register-card { padding: 32px 24px; border-radius: var(--radius-xl); }
+          .logo-section { margin-bottom: 22px; }
+          .header { margin-bottom: 22px; }
+          .title { font-size: 24px; }
+          .subtitle { font-size: 14px; }
+          .register-form { gap: 16px; }
+          .input-field { padding: 14px 14px 14px 46px; font-size: 15px; }
           .radio-group { gap: 8px; }
-          .radio-label { padding: 4px 10px; font-size: 13px; }
+          .radio-label { padding: 9px 12px; font-size: 14px; }
+          .radio-text { font-size: 13.5px; }
+          .submit-btn { font-size: 15.5px; min-height: 54px; padding: 14px; }
         }
 
-        @media (max-width: 380px) {
-          .register-card { padding: 20px 14px; }
-          .title { font-size: 18px; }
-          .input-field { font-size: 13px; padding: 8px 12px 8px 36px; }
-          .submit-btn { font-size: 14px; padding: 10px; min-height: 44px; }
-          .radio-group { flex-direction: column; }
-          .radio-label { width: 100%; }
+        /* ================= SHORT PHONES ================= */
+        @media (max-width: 480px) and (max-height: 780px) {
+          .register-page { padding: 14px 12px; }
+          .register-card { padding: 24px 20px; border-radius: var(--radius-lg); }
+          .logo-section { margin-bottom: 16px; }
+          .header { margin-bottom: 16px; }
+          .title { font-size: 22px; }
+          .subtitle { font-size: 13px; }
+          .error-alert { padding: 10px 12px; margin-bottom: 14px; }
+          .error-text { font-size: 13px; }
+          .register-form { gap: 12px; }
+          .form-group { gap: 5px; }
+          .label { font-size: 13.5px; }
+          .input-field { padding: 12px 14px 12px 44px; font-size: 14.5px; }
+          .input-icon { left: 14px; }
+          .password-input { padding-right: 46px; }
+          .hint-text, .error-hint, .success-hint { font-size: 12px; }
+          .radio-label { padding: 8px 11px; font-size: 13.5px; }
+          .radio-input { width: 16px; height: 16px; }
+          .radio-text { font-size: 13px; }
+          .checkbox-label { font-size: 13.5px; gap: 10px; }
+          .checkbox-input { width: 18px; height: 18px; }
+          .submit-btn { font-size: 14.5px; min-height: 48px; padding: 12px; }
+          .divider { margin: 2px 0; }
+          .divider-text { font-size: 11.5px; }
+          .footer-text { font-size: 13.5px; }
+        }
+
+        /* ================= VERY SHORT PHONES ================= */
+        @media (max-width: 480px) and (max-height: 680px) {
+          .register-page { padding: 10px 10px; }
+          .register-card { padding: 18px 16px; border-radius: var(--radius-md); }
+          .logo-section { margin-bottom: 10px; }
+          .logo-section :global(.kumsika-logo) { max-height: 100px; }
+          .brand-tagline { font-size: 11px; }
+          .header { margin-bottom: 12px; }
+          .title { font-size: 20px; }
+          .subtitle { font-size: 12px; }
+          .error-alert { padding: 8px 10px; margin-bottom: 12px; }
+          .error-text { font-size: 12.5px; }
+          .register-form { gap: 10px; }
+          .form-group { gap: 4px; }
+          .label { font-size: 13px; }
+          .input-field { padding: 11px 12px 11px 42px; font-size: 14px; }
+          .input-icon { left: 13px; }
+          .password-input { padding-right: 42px; }
+          .eye-btn { right: 8px; padding: 6px; }
+          .hint-text, .error-hint, .success-hint { font-size: 11.5px; }
+          .radio-group { gap: 6px; }
+          .radio-label { padding: 7px 10px; font-size: 13px; }
+          .radio-text { font-size: 12.5px; }
+          .checkbox-label { font-size: 13px; gap: 8px; }
+          .checkbox-input { width: 17px; height: 17px; }
+          .submit-btn { font-size: 14px; min-height: 44px; padding: 11px; }
+          .divider { margin: 2px 0; gap: 10px; }
+          .footer-text { font-size: 13px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
