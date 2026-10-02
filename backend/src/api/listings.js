@@ -9,10 +9,9 @@ import storageService from '../services/storageService.js';
 import dbService from '../services/dbService.js';
 import { eq, desc, and } from 'drizzle-orm';
 import { listings as listingsTable } from '../db/schema.js';
-// ============================================
-// PHASE 5: IMPORT SEARCH SERVICE
-// ============================================
 import searchService from '../services/searchService.js';
+import { reverseGeocode } from '../services/geocodingService.js';
+import { logger } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -23,16 +22,37 @@ const supabaseAdmin = createClient(
 );
 
 // Configure multer for file uploads
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit per file
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 // ============================================
-// PUBLIC ROUTES (No authentication required)
+// HELPERS
+// ============================================
+const looksLikeCoords = (s) => {
+  if (!s || typeof s !== 'string') return false;
+  return /^near\s+-?\d+\.\d+,\s*-?\d+\.\d+$/i.test(s.trim());
+};
+
+const sanitizeListing = (row) => {
+  if (!row) return row;
+  const { locationLat, locationLng, ...rest } = row;
+
+  const cleanedArea = looksLikeCoords(rest.locationArea) ? null : rest.locationArea;
+  const cleanedName = looksLikeCoords(rest.locationName) ? null : rest.locationName;
+
+  return {
+    ...rest,
+    locationArea: cleanedArea,
+    locationName: cleanedName || cleanedArea || null,
+  };
+};
+
+// ============================================
+// PUBLIC ROUTES
 // ============================================
 
-// GET ALL LISTINGS - Public using Drizzle
 router.get('/', cacheMiddleware(300, keyGenerators.listings), async (req, res) => {
   try {
     const { limit = 20, offset = 0, status = 'active' } = req.query;
@@ -47,21 +67,17 @@ router.get('/', cacheMiddleware(300, keyGenerators.listings), async (req, res) =
 
     return res.json({
       success: true,
-      listings: result.listings,
+      listings: result.listings.map(sanitizeListing),
       total: result.total,
       limit: parseInt(limit),
-      offset: parseInt(offset)
+      offset: parseInt(offset),
     });
   } catch (error) {
     console.error('❌ Fetch listings error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET LISTINGS BY BUSINESS - Public
 router.get('/business/:businessId', cacheMiddleware(300), async (req, res) => {
   try {
     const { businessId } = req.params;
@@ -77,31 +93,18 @@ router.get('/business/:businessId', cacheMiddleware(300), async (req, res) => {
 
     return res.json({
       success: true,
-      listings: result.listings,
+      listings: result.listings.map(sanitizeListing),
       total: result.total,
     });
   } catch (error) {
     console.error('❌ Fetch listings error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// ============================================
-// SEARCH LISTINGS - Public (Database fallback)
-// ============================================
 router.get('/search', cacheMiddleware(180, keyGenerators.search), async (req, res) => {
   try {
-    const { 
-      q, 
-      category, 
-      minPrice, 
-      maxPrice, 
-      limit = 20, 
-      offset = 0 
-    } = req.query;
+    const { q, category, minPrice, maxPrice, limit = 20, offset = 0 } = req.query;
 
     console.log('🔍 Searching listings:', { q, category, minPrice, maxPrice, limit, offset });
 
@@ -114,21 +117,17 @@ router.get('/search', cacheMiddleware(180, keyGenerators.search), async (req, re
 
     return res.json({
       success: true,
-      listings: result.listings,
+      listings: result.listings.map(sanitizeListing),
       total: result.total,
       limit: parseInt(limit),
       offset: parseInt(offset),
     });
   } catch (error) {
     console.error('❌ Search error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET LISTING BY ID - Public
 router.get('/:id', cacheMiddleware(600), async (req, res) => {
   try {
     const { id } = req.params;
@@ -138,50 +137,43 @@ router.get('/:id', cacheMiddleware(600), async (req, res) => {
     const listing = await dbService.getListing(id);
 
     if (!listing) {
-      return res.status(404).json({
-        success: false,
-        error: 'Listing not found'
-      });
+      return res.status(404).json({ success: false, error: 'Listing not found' });
     }
 
-    // Increment view count
     await dbService.incrementViewCount(id);
 
-    return res.json({
-      success: true,
-      listing: listing
-    });
+    return res.json({ success: true, listing: sanitizeListing(listing) });
   } catch (error) {
     console.error('❌ Fetch listing error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // ============================================
-// PROTECTED ROUTES (Authentication required)
+// PROTECTED ROUTES
 // ============================================
 
-// CREATE LISTING - Protected with image upload
+// CREATE LISTING
+// ★ Accepts locationLat / locationLng and reverse-geocodes if no name given
 router.post('/create', authenticateToken, upload.array('images', 5), async (req, res) => {
   try {
-    const { 
-      businessId, 
-      title, 
-      description, 
-      category, 
-      subCategory, 
-      price, 
+    const {
+      businessId,
+      title,
+      description,
+      category,
+      subCategory,
+      price,
       priceType,
       quantity,
       unit,
       status,
       locationArea,
+      locationLat,
+      locationLng,
       deliveryAvailable,
       deliveryFee,
-      contactPhone
+      contactPhone,
     } = req.body;
 
     console.log('📝 Creating listing:', { businessId, title, category });
@@ -189,20 +181,40 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
     if (!businessId || !title) {
       return res.status(400).json({
         success: false,
-        error: 'Business ID and title are required'
+        error: 'Business ID and title are required',
       });
     }
 
-    // Check business exists
     const business = await dbService.getBusiness(businessId);
     if (!business) {
-      return res.status(404).json({
-        success: false,
-        error: 'Business not found'
-      });
+      return res.status(404).json({ success: false, error: 'Business not found' });
     }
 
-    // Upload images using storage service (Cloudinary with Supabase fallback)
+    // ---- Resolve place name ----
+    let resolvedName = (locationArea || '').trim() || null;
+    if (looksLikeCoords(resolvedName)) resolvedName = null;
+
+    const latNum = locationLat != null && locationLat !== '' ? Number(locationLat) : null;
+    const lngNum = locationLng != null && locationLng !== '' ? Number(locationLng) : null;
+
+    if (
+      !resolvedName &&
+      latNum != null &&
+      lngNum != null &&
+      !Number.isNaN(latNum) &&
+      !Number.isNaN(lngNum)
+    ) {
+      try {
+        resolvedName = await reverseGeocode(latNum, lngNum);
+        if (looksLikeCoords(resolvedName)) resolvedName = null;
+      } catch (err) {
+        logger.warn('reverseGeocode failed on createListing', {
+          error: err?.message || err,
+        });
+      }
+    }
+
+    // ---- Images ----
     let imageUrls = [];
     if (req.files && req.files.length > 0) {
       try {
@@ -215,14 +227,22 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
       console.log('⚠️ No images to upload');
     }
 
-    // Parse numeric values
-    const parsedPrice = price !== undefined && price !== '' && price !== null ? parseFloat(price) : null;
-    const parsedDeliveryFee = deliveryFee !== undefined && deliveryFee !== '' && deliveryFee !== null ? parseFloat(deliveryFee) : null;
-    const parsedQuantity = quantity !== undefined && quantity !== '' && quantity !== null ? parseInt(quantity, 10) : null;
+    // ---- Numeric parsing ----
+    const parsedPrice =
+      price !== undefined && price !== '' && price !== null ? parseFloat(price) : null;
+    const parsedDeliveryFee =
+      deliveryFee !== undefined && deliveryFee !== '' && deliveryFee !== null
+        ? parseFloat(deliveryFee)
+        : null;
+    const parsedQuantity =
+      quantity !== undefined && quantity !== '' && quantity !== null
+        ? parseInt(quantity, 10)
+        : null;
 
-    // Validate price range
-    const finalPrice = parsedPrice !== null && parsedPrice <= 99999999.99 ? parsedPrice : null;
-    const finalDeliveryFee = parsedDeliveryFee !== null && parsedDeliveryFee <= 99999999.99 ? parsedDeliveryFee : null;
+    const finalPrice =
+      parsedPrice !== null && parsedPrice <= 99999999.99 ? parsedPrice : null;
+    const finalDeliveryFee =
+      parsedDeliveryFee !== null && parsedDeliveryFee <= 99999999.99 ? parsedDeliveryFee : null;
 
     const listingData = {
       businessId,
@@ -236,7 +256,10 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
       unit: unit || '',
       images: imageUrls,
       status: status || 'active',
-      locationArea: locationArea || '',
+      locationName: resolvedName,
+      locationArea: locationArea || null,
+      locationLat: latNum != null && !Number.isNaN(latNum) ? String(latNum) : null,
+      locationLng: lngNum != null && !Number.isNaN(lngNum) ? String(lngNum) : null,
       deliveryAvailable: deliveryAvailable === true || deliveryAvailable === 'true',
       deliveryFee: finalDeliveryFee,
       contactPhone: contactPhone || '',
@@ -244,11 +267,8 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
 
     const listing = await dbService.createListing(listingData);
 
-    // ============================================
-    // PHASE 5: INDEX IN SEARCH
-    // ============================================
+    // ---- Search indexing ----
     try {
-      // Fetch full listing with business data for indexing
       const fullListing = await dbService.getListing(listing.id);
       if (fullListing) {
         await searchService.indexListing(fullListing);
@@ -256,7 +276,6 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
       }
     } catch (searchError) {
       console.warn('⚠️ Search indexing warning:', searchError.message);
-      // Don't fail the request if search indexing fails
     }
 
     await invalidateCache('listings:');
@@ -267,63 +286,80 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
     return res.status(201).json({
       success: true,
       message: 'Listing created successfully',
-      listing: listing
+      listing: sanitizeListing(listing),
     });
   } catch (error) {
     console.error('❌ Listing creation error:', error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create listing'
+      error: error.message || 'Failed to create listing',
     });
   }
 });
 
-// UPDATE LISTING - Protected
+// UPDATE LISTING
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const updates = { ...req.body };
 
     console.log('🔄 Updating listing:', id);
 
-    // Remove fields that shouldn't be updated
     delete updates.id;
     delete updates.businessId;
     delete updates.createdAt;
     delete updates.viewCount;
     delete updates.contactCount;
 
-    // Parse numeric values
+    // If coords are being updated and no name is given, geocode
+    if (
+      (updates.locationLat !== undefined || updates.locationLng !== undefined) &&
+      !updates.locationArea &&
+      !updates.locationName
+    ) {
+      const latNum = updates.locationLat != null ? Number(updates.locationLat) : null;
+      const lngNum = updates.locationLng != null ? Number(updates.locationLng) : null;
+      if (latNum != null && lngNum != null && !Number.isNaN(latNum) && !Number.isNaN(lngNum)) {
+        try {
+          const name = await reverseGeocode(latNum, lngNum);
+          if (name && !looksLikeCoords(name)) updates.locationName = name;
+        } catch (err) {
+          logger.warn('reverseGeocode failed on updateListing', {
+            error: err?.message || err,
+          });
+        }
+      }
+    }
+
     if (updates.price !== undefined) {
-      const parsedPrice = updates.price !== '' && updates.price !== null ? parseFloat(updates.price) : null;
+      const parsedPrice =
+        updates.price !== '' && updates.price !== null ? parseFloat(updates.price) : null;
       updates.price = parsedPrice !== null && parsedPrice <= 99999999.99 ? parsedPrice : null;
     }
     if (updates.deliveryFee !== undefined) {
-      const parsedFee = updates.deliveryFee !== '' && updates.deliveryFee !== null ? parseFloat(updates.deliveryFee) : null;
+      const parsedFee =
+        updates.deliveryFee !== '' && updates.deliveryFee !== null
+          ? parseFloat(updates.deliveryFee)
+          : null;
       updates.deliveryFee = parsedFee !== null && parsedFee <= 99999999.99 ? parsedFee : null;
     }
     if (updates.quantity !== undefined) {
-      updates.quantity = updates.quantity !== '' && updates.quantity !== null ? parseInt(updates.quantity, 10) : null;
+      updates.quantity =
+        updates.quantity !== '' && updates.quantity !== null
+          ? parseInt(updates.quantity, 10)
+          : null;
     }
 
     const listing = await dbService.updateListing(id, updates);
 
     if (!listing) {
-      return res.status(404).json({
-        success: false,
-        error: 'Listing not found'
-      });
+      return res.status(404).json({ success: false, error: 'Listing not found' });
     }
 
-    // ============================================
-    // PHASE 5: UPDATE IN SEARCH
-    // ============================================
     try {
-      // Fetch full listing with business data for indexing
       const fullListing = await dbService.getListing(id);
       if (fullListing) {
         await searchService.indexListing(fullListing);
-        console.log('🔍 Listing updated in search:', id);
       }
     } catch (searchError) {
       console.warn('⚠️ Search update warning:', searchError.message);
@@ -332,23 +368,18 @@ router.put('/:id', authenticateToken, async (req, res) => {
     await invalidateCache('listings:');
     await invalidateCache(`listing:${id}`);
 
-    console.log('✅ Listing updated:', id);
-
     return res.json({
       success: true,
       message: 'Listing updated successfully',
-      listing: listing
+      listing: sanitizeListing(listing),
     });
   } catch (error) {
     console.error('❌ Update error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// DELETE LISTING - Protected (Soft delete)
+// DELETE LISTING (soft)
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -358,18 +389,11 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const listing = await dbService.updateListing(id, { status: 'inactive' });
 
     if (!listing) {
-      return res.status(404).json({
-        success: false,
-        error: 'Listing not found'
-      });
+      return res.status(404).json({ success: false, error: 'Listing not found' });
     }
 
-    // ============================================
-    // PHASE 5: DELETE FROM SEARCH
-    // ============================================
     try {
       await searchService.deleteListing(id);
-      console.log('🔍 Listing deleted from search:', id);
     } catch (searchError) {
       console.warn('⚠️ Search delete warning:', searchError.message);
     }
@@ -377,30 +401,24 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     await invalidateCache('listings:');
     await invalidateCache(`listing:${id}`);
 
-    console.log('✅ Listing deleted:', id);
-
     return res.json({
       success: true,
       message: 'Listing deleted successfully',
-      listing: listing
+      listing: sanitizeListing(listing),
     });
   } catch (error) {
     console.error('❌ Delete error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// HARD DELETE LISTING - Protected (Admin only - permanently delete)
+// HARD DELETE (admin)
 router.delete('/:id/permanent', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
     console.log('🗑️ Permanently deleting listing:', id);
 
-    // Check if user is admin
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role')
@@ -408,55 +426,37 @@ router.delete('/:id/permanent', authenticateToken, async (req, res) => {
       .single();
 
     if (profile?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Admin access required'
-      });
+      return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
-    // Get listing before deleting
     const listing = await dbService.getListing(id);
     if (!listing) {
-      return res.status(404).json({
-        success: false,
-        error: 'Listing not found'
-      });
+      return res.status(404).json({ success: false, error: 'Listing not found' });
     }
 
-    // Delete from search
     try {
       await searchService.deleteListing(id);
-      console.log('🔍 Listing deleted from search:', id);
     } catch (searchError) {
       console.warn('⚠️ Search delete warning:', searchError.message);
     }
 
-    // Hard delete from database
     const deleted = await dbService.deleteListingPermanent(id);
 
     if (!deleted) {
-      return res.status(404).json({
-        success: false,
-        error: 'Listing not found'
-      });
+      return res.status(404).json({ success: false, error: 'Listing not found' });
     }
 
     await invalidateCache('listings:');
     await invalidateCache(`listing:${id}`);
     await invalidateCache(`business:${listing.businessId}`);
 
-    console.log('✅ Listing permanently deleted:', id);
-
     return res.json({
       success: true,
-      message: 'Listing permanently deleted successfully'
+      message: 'Listing permanently deleted successfully',
     });
   } catch (error) {
     console.error('❌ Permanent delete error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 

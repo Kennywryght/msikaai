@@ -50,6 +50,10 @@ async function tryRefreshSession() {
 const isBlobUrl = (url) =>
   typeof url === 'string' && url.startsWith('blob:');
 
+// ★ PHASE 1: detect raw "Near x, y" fallbacks
+const isCoordLike = (s) =>
+  typeof s === 'string' && /^near\s+-?\d+\.\d+,\s*-?\d+\.\d+$/i.test(s.trim());
+
 const normalizeBusiness = (b) => {
   if (!b) return b;
   const phone = b.phone ?? b.phone_number ?? null;
@@ -75,11 +79,17 @@ const normalizeBusiness = (b) => {
   };
 };
 
+// ★ PHASE 1: also sanitize listing location fields
 const normalizeListing = (raw) => {
   if (!raw) return raw;
 
   const rawImages = Array.isArray(raw.images) ? raw.images : [];
   const images = rawImages.filter((src) => !isBlobUrl(src));
+
+  const rawName = raw.locationName ?? raw.location_name ?? null;
+  const rawArea = raw.locationArea ?? raw.location_area ?? null;
+  const cleanName = isCoordLike(rawName) ? null : rawName;
+  const cleanArea = isCoordLike(rawArea) ? null : rawArea;
 
   return {
     ...raw,
@@ -87,7 +97,8 @@ const normalizeListing = (raw) => {
     business_id: raw.businessId ?? raw.business_id ?? null,
     sub_category: raw.subCategory ?? raw.sub_category ?? null,
     price_type: raw.priceType ?? raw.price_type ?? null,
-    location_area: raw.locationArea ?? raw.location_area ?? null,
+    location_name: cleanName || cleanArea || null,
+    location_area: cleanArea,
     delivery_available:
       raw.deliveryAvailable ?? raw.delivery_available ?? false,
     delivery_fee: raw.deliveryFee ?? raw.delivery_fee ?? null,
@@ -198,13 +209,20 @@ const normalizeRequestAuthor = (author) => {
   };
 };
 
+// ★ PHASE 1: sanitize request location fields
 const normalizeRequest = (raw) => {
   if (!raw) return raw;
+
+  const rawName = raw.locationName ?? raw.location_name ?? null;
+  const rawArea = raw.locationArea ?? raw.location_area ?? null;
+  const cleanName = isCoordLike(rawName) ? null : rawName;
+  const cleanArea = isCoordLike(rawArea) ? null : rawArea;
+
   return {
     ...raw,
     user_id: raw.userId ?? raw.user_id ?? null,
-    location_name: raw.locationName ?? raw.location_name ?? null,
-    location_area: raw.locationArea ?? raw.location_area ?? null,
+    location_name: cleanName || cleanArea || null,
+    location_area: cleanArea,
     budget_min: raw.budgetMin ?? raw.budget_min ?? null,
     budget_max: raw.budgetMax ?? raw.budget_max ?? null,
     responses_count: raw.responsesCount ?? raw.responses_count ?? 0,
@@ -254,7 +272,6 @@ const normalizeDeliveryParty = (party) => {
   };
 };
 
-// ★ PHASE 3: normalize a courier request row
 const normalizeCourierRequest = (raw) => {
   if (!raw) return raw;
   return {
@@ -303,7 +320,6 @@ const normalizeDelivery = (raw) => {
 
     courier_fee: raw.courierFee ?? raw.courier_fee ?? null,
 
-    // ★ PHASE 3: approval fields
     seller_approval_status:
       raw.sellerApprovalStatus ?? raw.seller_approval_status ?? null,
     buyer_approval_status:
@@ -1406,7 +1422,6 @@ export const requestsAPI = {
 
 // ============================================
 // DELIVERIES API
-// ★ PHASE 3: courier request / approve / reject / withdraw
 // ============================================
 export const deliveriesAPI = {
   create: async (data) => {
@@ -1497,7 +1512,6 @@ export const deliveriesAPI = {
     return res;
   },
 
-  // ★ PHASE 3: request to deliver (competitive)
   accept: async (id, note = null) => {
     const res = await api.post(
       `/deliveries/${id}/accept`,
@@ -1513,7 +1527,6 @@ export const deliveriesAPI = {
     return res;
   },
 
-  // ★ PHASE 3: list courier requests for a job
   courierRequests: async (id) => {
     const res = await api.get(`/deliveries/${id}/courier-requests`, {
       cache: false,
@@ -1530,7 +1543,6 @@ export const deliveriesAPI = {
     return res;
   },
 
-  // ★ PHASE 3: approve a specific courier request
   approveCourier: async (id, courierRequestId, reason = null) => {
     const res = await api.post(
       `/deliveries/${id}/approve-courier`,
@@ -1546,7 +1558,6 @@ export const deliveriesAPI = {
     return res;
   },
 
-  // ★ PHASE 3: reject a specific courier request
   rejectCourier: async (id, courierRequestId, reason = null) => {
     const res = await api.post(
       `/deliveries/${id}/reject-courier`,
@@ -1562,7 +1573,6 @@ export const deliveriesAPI = {
     return res;
   },
 
-  // ★ PHASE 3: courier withdraws their own request
   withdrawCourierRequest: (id, requestId) =>
     api.delete(`/deliveries/${id}/courier-request/${requestId}`, {
       cache: false,

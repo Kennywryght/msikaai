@@ -51,7 +51,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 };
 
 /* ============================================================
-   LIVE BURNING FIRE — decorative "NEW" spark
+   LIVE BURNING FIRE
    ============================================================ */
 const BurningFire = ({ size = 16 }) => (
   <span className="burning-fire" style={{ width: size, height: size }} aria-hidden="true">
@@ -195,6 +195,24 @@ const formatRequestBudget = (min, max) => {
   return null;
 };
 
+/**
+ * ★ PHASE 1: hide accidental "Near -13.x, 33.x" fallbacks from the UI.
+ */
+const isCoordLike = (s) => {
+  if (!s || typeof s !== 'string') return false;
+  return /^near\s+-?\d+\.\d+,\s*-?\d+\.\d+$/i.test(s.trim());
+};
+
+const getDisplayLocation = (request) => {
+  if (!request) return null;
+  const name = request.location_name;
+  const area = request.location_area;
+
+  if (name && !isCoordLike(name)) return name;
+  if (area && !isCoordLike(area)) return area;
+  return null;
+};
+
 /* ---------- Photo slider ---------- */
 const PhotoSlider = ({
   images = [],
@@ -260,20 +278,10 @@ const PhotoSlider = ({
 
       {total > 1 && showArrows && (
         <>
-          <button
-            type="button"
-            className="pslider-arrow left"
-            onClick={prev}
-            aria-label="Previous photo"
-          >
+          <button type="button" className="pslider-arrow left" onClick={prev} aria-label="Previous photo">
             <Icon name="chevronLeft" size={14} color="var(--color-text-inverse)" strokeWidth={2.4} />
           </button>
-          <button
-            type="button"
-            className="pslider-arrow right"
-            onClick={next}
-            aria-label="Next photo"
-          >
+          <button type="button" className="pslider-arrow right" onClick={next} aria-label="Next photo">
             <Icon name="chevronRight" size={14} color="var(--color-text-inverse)" strokeWidth={2.4} />
           </button>
         </>
@@ -323,11 +331,7 @@ const ProductCard = ({
         />
 
         {item.category && (
-          <span
-            className="pcard-cat"
-            style={{ background: catColor }}
-            title={item.category}
-          >
+          <span className="pcard-cat" style={{ background: catColor }} title={item.category}>
             {item.category}
           </span>
         )}
@@ -593,6 +597,8 @@ const RequestMiniCard = ({ request, onClick }) => {
   const budget = formatRequestBudget(request.budget_min, request.budget_max);
   const timeAgo = formatTimeAgo(request.created_at);
   const responsesCount = request.responses_count || 0;
+  // ★ PHASE 1: never show raw coords
+  const displayLocation = getDisplayLocation(request);
 
   return (
     <button className="req-mini" onClick={() => onClick(request)} type="button">
@@ -616,10 +622,16 @@ const RequestMiniCard = ({ request, onClick }) => {
       )}
 
       <div className="req-mini-footer">
-        {request.location_area && (
+        {/* ★ PHASE 1: only render location row if it's a real name */}
+        {displayLocation ? (
           <span className="req-mini-loc">
             <Icon name="mapPin" size={10} strokeWidth={2} />
-            {request.location_area}
+            {displayLocation}
+          </span>
+        ) : (
+          <span className="req-mini-loc req-mini-loc-muted">
+            <Icon name="mapPin" size={10} strokeWidth={2} />
+            Location not set
           </span>
         )}
         <span className="req-mini-responses">
@@ -1056,7 +1068,7 @@ const Landing = () => {
         </div>
       </div>
 
-      {/* STICKY SEARCH — ★ PHASE 7A: placeholder hints at Chichewa */}
+      {/* STICKY SEARCH */}
       <div className="search-sticky">
         <div className="search-sticky-inner">
           <form onSubmit={handleSearch} className="search-form">
@@ -1377,7 +1389,6 @@ const Landing = () => {
         }
         @media (min-width: 769px) { .app { padding-bottom: 0; } }
 
-        /* HERO */
         .hero-block {
           position: relative;
           background: linear-gradient(155deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
@@ -1419,7 +1430,6 @@ const Landing = () => {
           margin: 0; max-width: 440px;
         }
 
-        /* SEARCH */
         .search-sticky {
           position: sticky;
           top: 64px;
@@ -1463,65 +1473,38 @@ const Landing = () => {
         }
         .search-btn:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
 
-        /* REQUESTS SPOTLIGHT */
         .req-spotlight {
           max-width: 1200px;
           margin: 10px auto 0;
           padding: 4px 0 4px;
         }
         .req-spotlight-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 0 20px;
-          margin-bottom: 10px;
+          display: flex; align-items: center; gap: 10px;
+          padding: 0 20px; margin-bottom: 10px;
         }
-        .req-spotlight-heading-wrap {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
+        .req-spotlight-heading-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .req-spotlight-heading {
           font-family: var(--font-serif);
-          font-weight: 600;
-          font-size: 16px;
-          margin: 0;
-          color: var(--color-text);
+          font-weight: 600; font-size: 16px;
+          margin: 0; color: var(--color-text);
           letter-spacing: -0.01em;
         }
-        .req-spotlight-sub {
-          font-size: 11px;
-          color: var(--color-text-muted);
-          font-weight: 500;
-        }
+        .req-spotlight-sub { font-size: 11px; color: var(--color-text-muted); font-weight: 500; }
         .req-spotlight-seeall {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          padding: 6px 12px;
-          border-radius: 999px;
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 6px 12px; border-radius: 999px;
           border: 1.5px solid var(--color-border);
           background: var(--color-surface);
           color: var(--color-text);
-          font-size: 11.5px;
-          font-weight: 700;
-          cursor: pointer;
-          font-family: inherit;
+          font-size: 11.5px; font-weight: 700;
+          cursor: pointer; font-family: inherit;
           transition: all 0.2s ease;
-          white-space: nowrap;
-          flex-shrink: 0;
+          white-space: nowrap; flex-shrink: 0;
         }
-        .req-spotlight-seeall:hover {
-          border-color: var(--color-accent);
-          color: var(--color-accent);
-        }
+        .req-spotlight-seeall:hover { border-color: var(--color-accent); color: var(--color-accent); }
         .req-spotlight-scroll {
-          display: flex;
-          gap: 12px;
-          overflow-x: auto;
-          scrollbar-width: none;
+          display: flex; gap: 12px;
+          overflow-x: auto; scrollbar-width: none;
           padding: 4px 20px 8px;
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
@@ -1529,18 +1512,14 @@ const Landing = () => {
         .req-spotlight-scroll::-webkit-scrollbar { display: none; }
 
         .req-mini {
-          flex: 0 0 auto;
-          width: 220px;
+          flex: 0 0 auto; width: 220px;
           scroll-snap-align: start;
           background: var(--color-surface);
           border: 1px solid var(--color-border);
           border-radius: var(--radius-2xl);
           padding: 12px 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          cursor: pointer;
-          font-family: inherit;
+          display: flex; flex-direction: column; gap: 8px;
+          cursor: pointer; font-family: inherit;
           text-align: left;
           transition: all 0.25s ease;
           box-shadow: var(--shadow-xs);
@@ -1550,37 +1529,23 @@ const Landing = () => {
           transform: translateY(-2px);
           box-shadow: var(--shadow-lg);
         }
-        .req-mini-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 6px;
-        }
+        .req-mini-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
         .req-mini-urgency {
-          display: inline-flex;
-          align-items: center;
-          padding: 2px 8px;
-          border-radius: 999px;
-          font-size: 9.5px;
-          font-weight: 700;
+          display: inline-flex; align-items: center;
+          padding: 2px 8px; border-radius: 999px;
+          font-size: 9.5px; font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.04em;
         }
         .req-mini-time {
-          display: inline-flex;
-          align-items: center;
-          gap: 3px;
-          font-size: 10px;
-          color: var(--color-text-muted);
-          white-space: nowrap;
+          display: inline-flex; align-items: center; gap: 3px;
+          font-size: 10px; color: var(--color-text-muted); white-space: nowrap;
         }
         .req-mini-title {
           font-family: var(--font-serif);
-          font-size: 13.5px;
-          font-weight: 600;
+          font-size: 13.5px; font-weight: 600;
           color: var(--color-text);
-          margin: 0;
-          line-height: 1.3;
+          margin: 0; line-height: 1.3;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
@@ -1588,42 +1553,34 @@ const Landing = () => {
           letter-spacing: -0.005em;
         }
         .req-mini-budget {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 11.5px;
-          font-weight: 700;
+          display: inline-flex; align-items: center; gap: 4px;
+          font-size: 11.5px; font-weight: 700;
           color: var(--color-accent);
         }
         .req-mini-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 6px;
+          display: flex; justify-content: space-between;
+          align-items: center; gap: 6px;
           padding-top: 8px;
           border-top: 1px solid var(--color-border);
         }
         .req-mini-loc,
         .req-mini-responses {
-          display: inline-flex;
-          align-items: center;
-          gap: 3px;
-          font-size: 10.5px;
-          color: var(--color-text-muted);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          display: inline-flex; align-items: center; gap: 3px;
+          font-size: 10.5px; color: var(--color-text-muted);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .req-mini-loc { flex: 1; min-width: 0; }
+        .req-mini-loc-muted {
+          color: var(--color-text-muted);
+          font-style: italic;
+          opacity: 0.75;
+        }
 
         .req-mini-cta {
           background: linear-gradient(135deg, var(--color-accent-tint), var(--color-surface));
           border: 1.5px dashed var(--color-accent);
-          justify-content: center;
-          align-items: center;
-          text-align: center;
-          padding: 14px;
-          gap: 8px;
+          justify-content: center; align-items: center;
+          text-align: center; padding: 14px; gap: 8px;
           min-height: 148px;
         }
         .req-mini-cta:hover {
@@ -1631,33 +1588,19 @@ const Landing = () => {
           border-style: solid;
         }
         .req-cta-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
+          width: 44px; height: 44px; border-radius: 50%;
           background: var(--color-surface);
           border: 1.5px solid var(--color-accent);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
-        .req-cta-text {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
+        .req-cta-text { display: flex; flex-direction: column; gap: 2px; }
         .req-cta-title {
           font-family: var(--font-serif);
-          font-size: 13.5px;
-          font-weight: 600;
-          color: var(--color-text);
+          font-size: 13.5px; font-weight: 600; color: var(--color-text);
         }
-        .req-cta-desc {
-          font-size: 11px;
-          color: var(--color-text-muted);
-        }
+        .req-cta-desc { font-size: 11px; color: var(--color-text-muted); }
 
-        /* PHOTO SLIDER */
         .pslider {
           position: absolute; inset: 0;
           overflow: hidden;
@@ -1666,19 +1609,13 @@ const Landing = () => {
           user-select: none;
         }
         .pslider-track {
-          display: flex;
-          height: 100%;
-          width: 100%;
+          display: flex; height: 100%; width: 100%;
           transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
           will-change: transform;
         }
         .pslider-img {
-          flex: 0 0 100%;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center;
-          display: block;
+          flex: 0 0 100%; width: 100%; height: 100%;
+          object-fit: cover; object-position: center; display: block;
           -webkit-user-drag: none;
           background: var(--color-surface-alt);
           image-rendering: -webkit-optimize-contrast;
@@ -1688,8 +1625,7 @@ const Landing = () => {
           display: flex; align-items: center; justify-content: center;
         }
         .pslider-arrow {
-          position: absolute; top: 50%;
-          transform: translateY(-50%);
+          position: absolute; top: 50%; transform: translateY(-50%);
           width: 26px; height: 26px;
           border: none; cursor: pointer;
           border-radius: 999px;
@@ -1705,50 +1641,34 @@ const Landing = () => {
         .pslider-arrow:hover { background: rgba(10, 36, 114, 0.78); }
         .pslider-arrow.left { left: 6px; }
         .pslider-arrow.right { right: 6px; }
-        @media (hover: none) {
-          .pslider-arrow { opacity: 0.7; }
-        }
+        @media (hover: none) { .pslider-arrow { opacity: 0.7; } }
         .pslider-dots {
-          position: absolute;
-          left: 0; right: 0; bottom: 6px;
+          position: absolute; left: 0; right: 0; bottom: 6px;
           display: flex; justify-content: center; align-items: center;
-          gap: 4px;
-          z-index: 3;
+          gap: 4px; z-index: 3;
         }
         .pslider-dot {
-          width: 5px; height: 5px;
-          border-radius: 999px;
+          width: 5px; height: 5px; border-radius: 999px;
           background: rgba(255, 255, 255, 0.55);
           border: none; padding: 0; cursor: pointer;
           transition: all 0.2s ease;
         }
-        .pslider-dot.active {
-          width: 14px;
-          background: var(--color-text-inverse);
-        }
+        .pslider-dot.active { width: 14px; background: var(--color-text-inverse); }
         .pslider-count {
-          position: absolute;
-          right: 8px; top: 8px;
-          padding: 3px 7px;
-          border-radius: var(--radius-sm);
+          position: absolute; right: 8px; top: 8px;
+          padding: 3px 7px; border-radius: var(--radius-sm);
           background: rgba(10, 36, 114, 0.6);
           color: var(--color-text-inverse);
-          font-size: 10px;
-          font-weight: 600;
-          letter-spacing: 0.02em;
-          z-index: 3;
+          font-size: 10px; font-weight: 600;
+          letter-spacing: 0.02em; z-index: 3;
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
         }
 
-        /* LIVE BURNING FIRE */
         .burning-fire {
           position: relative;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          vertical-align: middle;
+          display: inline-flex; align-items: center; justify-content: center;
+          flex-shrink: 0; vertical-align: middle;
         }
         .burning-fire-svg {
           display: block;
@@ -1772,9 +1692,9 @@ const Landing = () => {
           animation: emberRise 2.2s ease-out infinite;
           opacity: 0;
         }
-        .ember-1 { animation-delay: 0s;    }
-        .ember-2 { animation-delay: 0.6s;  }
-        .ember-3 { animation-delay: 1.2s;  }
+        .ember-1 { animation-delay: 0s; }
+        .ember-2 { animation-delay: 0.6s; }
+        .ember-3 { animation-delay: 1.2s; }
         @keyframes flameFlickerOuter {
           0%   { transform: scale(1, 1) rotate(0deg); }
           22%  { transform: scale(1.02, 1.07) rotate(-1.2deg); }
@@ -1804,26 +1724,21 @@ const Landing = () => {
         }
 
         .fresh-live-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          padding: 4px 10px 4px 8px;
-          border-radius: 999px;
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 4px 10px 4px 8px; border-radius: 999px;
           background: var(--color-accent-soft);
           border: 1px solid var(--color-accent);
           box-shadow: 0 1px 3px rgba(255, 92, 35, 0.1);
         }
         .fresh-live-text {
           font-family: var(--font-sans);
-          font-size: 10px;
-          font-weight: 800;
+          font-size: 10px; font-weight: 800;
           letter-spacing: 0.14em;
           color: var(--color-fire);
           text-transform: uppercase;
           line-height: 1;
         }
 
-        /* SPOTLIGHT */
         .spotlight-section {
           max-width: 1200px;
           margin: 6px auto 0;
@@ -1831,8 +1746,7 @@ const Landing = () => {
         }
         .spotlight-header {
           display: flex; align-items: baseline; gap: 10px;
-          padding: 0 20px;
-          margin-bottom: 10px;
+          padding: 0 20px; margin-bottom: 10px;
         }
         .spotlight-heading {
           font-family: var(--font-serif);
@@ -1853,8 +1767,7 @@ const Landing = () => {
         }
         .spotlight-sub {
           font-size: 11px; color: var(--color-text-muted);
-          font-weight: 500;
-          letter-spacing: 0.02em;
+          font-weight: 500; letter-spacing: 0.02em;
           margin-left: auto;
         }
         .spotlight-scroll {
@@ -1865,20 +1778,14 @@ const Landing = () => {
           scroll-behavior: smooth;
         }
         .spotlight-scroll::-webkit-scrollbar { display: none; }
-        .spot-tile-wrap {
-          flex: 0 0 auto;
-          scroll-snap-align: start;
-        }
+        .spot-tile-wrap { flex: 0 0 auto; scroll-snap-align: start; }
         .spot-tile {
-          flex: 0 0 auto;
-          width: 172px;
-          background: transparent;
-          border: none; padding: 0;
+          flex: 0 0 auto; width: 172px;
+          background: transparent; border: none; padding: 0;
           text-align: left; cursor: pointer;
           font-family: inherit;
           transition: transform 0.25s ease;
-          position: relative;
-          display: block;
+          position: relative; display: block;
         }
         .spot-tile:hover { transform: translateY(-2px); }
         .spot-tile.is-premium .spot-media {
@@ -1888,8 +1795,7 @@ const Landing = () => {
             0 0 0 1.5px var(--color-accent);
         }
         .spot-media {
-          position: relative;
-          width: 100%;
+          position: relative; width: 100%;
           aspect-ratio: 4 / 5.6;
           border-radius: var(--radius-2xl);
           overflow: hidden;
@@ -1903,44 +1809,31 @@ const Landing = () => {
           display: flex; align-items: center; justify-content: center;
         }
         .spot-slider {
-          position: absolute; inset: 0;
-          overflow: hidden;
+          position: absolute; inset: 0; overflow: hidden;
           background: var(--color-surface-alt);
         }
         .spot-slider-track {
-          display: flex;
-          height: 100%;
-          width: 100%;
+          display: flex; height: 100%; width: 100%;
           transition: transform 0.55s cubic-bezier(0.25, 0.8, 0.25, 1);
           will-change: transform;
         }
         .spot-slider-img {
-          flex: 0 0 100%;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center;
-          display: block;
+          flex: 0 0 100%; width: 100%; height: 100%;
+          object-fit: cover; object-position: center; display: block;
           -webkit-user-drag: none;
           image-rendering: -webkit-optimize-contrast;
         }
         .spot-slider-dots {
-          position: absolute;
-          left: 0; right: 0; bottom: 8px;
+          position: absolute; left: 0; right: 0; bottom: 8px;
           display: flex; justify-content: center; align-items: center;
-          gap: 4px;
-          z-index: 4;
+          gap: 4px; z-index: 4;
         }
         .spot-slider-dot {
-          width: 5px; height: 5px;
-          border-radius: 999px;
+          width: 5px; height: 5px; border-radius: 999px;
           background: rgba(255, 255, 255, 0.55);
           transition: all 0.25s ease;
         }
-        .spot-slider-dot.active {
-          width: 14px;
-          background: var(--color-text-inverse);
-        }
+        .spot-slider-dot.active { width: 14px; background: var(--color-text-inverse); }
         .spot-cat {
           position: absolute; top: 8px; left: 8px;
           font-size: 9px; font-weight: 700;
@@ -1960,14 +1853,10 @@ const Landing = () => {
           box-shadow: 0 2px 6px rgba(10, 36, 114, 0.25);
           z-index: 5;
         }
-        .spot-info {
-          padding: 10px 2px 0;
-          display: flex; flex-direction: column; gap: 3px;
-        }
+        .spot-info { padding: 10px 2px 0; display: flex; flex-direction: column; gap: 3px; }
         .spot-title {
           font-size: 12.5px; font-weight: 600;
-          color: var(--color-text);
-          line-height: 1.3;
+          color: var(--color-text); line-height: 1.3;
           overflow: hidden; text-overflow: ellipsis;
           display: -webkit-box;
           -webkit-line-clamp: 2;
@@ -1980,12 +1869,7 @@ const Landing = () => {
           letter-spacing: -0.01em;
         }
 
-        /* CATEGORY PILL BAR */
-        .cats-wrap {
-          max-width: 1200px;
-          margin: 14px auto 0;
-          padding: 0 20px;
-        }
+        .cats-wrap { max-width: 1200px; margin: 14px auto 0; padding: 0 20px; }
         .cats-bar {
           display: flex; gap: 6px;
           overflow-x: auto; scrollbar-width: none;
@@ -2003,12 +1887,8 @@ const Landing = () => {
           transition: all 0.2s ease;
           white-space: nowrap;
         }
-        .cat-pill:not(.active):hover {
-          border-color: var(--color-accent);
-          background: var(--color-accent-tint);
-        }
+        .cat-pill:not(.active):hover { border-color: var(--color-accent); background: var(--color-accent-tint); }
 
-        /* TABS */
         .tabs-section {
           display: flex; gap: 22px;
           padding: 14px 20px 0;
@@ -2030,16 +1910,10 @@ const Landing = () => {
           height: 2px; background: var(--color-accent); border-radius: 2px;
         }
 
-        /* FEATURED */
-        .featured-wrap {
-          max-width: 1200px;
-          margin: 16px auto 0;
-          padding: 0 20px;
-        }
+        .featured-wrap { max-width: 1200px; margin: 16px auto 0; padding: 0 20px; }
         .fcard { position: relative; }
         .fcard-media {
-          position: relative;
-          width: 100%;
+          position: relative; width: 100%;
           aspect-ratio: 4 / 3;
           border-radius: var(--radius-3xl);
           overflow: hidden;
@@ -2049,9 +1923,7 @@ const Landing = () => {
             0 22px 44px rgba(10, 36, 114, 0.14);
           transition: transform 0.4s ease, box-shadow 0.4s ease;
         }
-        @media (min-width: 640px) {
-          .fcard-media { aspect-ratio: 16 / 7; }
-        }
+        @media (min-width: 640px) { .fcard-media { aspect-ratio: 16 / 7; } }
         .fcard:hover .fcard-media {
           transform: translateY(-3px);
           box-shadow:
@@ -2062,8 +1934,7 @@ const Landing = () => {
         .fcard-top {
           position: absolute; top: 12px; left: 12px; right: 12px;
           display: flex; gap: 6px; align-items: flex-start;
-          pointer-events: none;
-          z-index: 4;
+          pointer-events: none; z-index: 4;
         }
         .fchip {
           display: inline-flex; align-items: center; gap: 5px;
@@ -2079,24 +1950,18 @@ const Landing = () => {
           text-transform: uppercase;
           letter-spacing: 0.1em;
         }
-        .fchip-spotlight.is-premium {
-          background: var(--color-accent);
-          color: var(--color-text-inverse);
-        }
+        .fchip-spotlight.is-premium { background: var(--color-accent); color: var(--color-text-inverse); }
         .fchip-cat {
           color: var(--color-text-inverse);
           text-transform: none;
           letter-spacing: 0.02em;
-          font-weight: 600;
-          font-size: 10px;
+          font-weight: 600; font-size: 10px;
         }
         .fcard-heart {
-          position: absolute;
-          top: 12px; right: 12px;
+          position: absolute; top: 12px; right: 12px;
           z-index: 5;
           display: inline-flex; align-items: center; gap: 4px;
-          padding: 7px 11px;
-          border: none; cursor: pointer;
+          padding: 7px 11px; border: none; cursor: pointer;
           border-radius: 999px;
           background: rgba(10, 36, 114, 0.55);
           backdrop-filter: blur(8px);
@@ -2107,10 +1972,7 @@ const Landing = () => {
           transition: background 0.2s, transform 0.15s;
         }
         .fcard-heart:hover { background: rgba(10, 36, 114, 0.78); transform: scale(1.04); }
-        .fcard-heart.liked {
-          background: var(--color-accent);
-          box-shadow: var(--shadow-accent);
-        }
+        .fcard-heart.liked { background: var(--color-accent); box-shadow: var(--shadow-accent); }
         .fcard-glass {
           position: absolute;
           left: 12px; right: 12px; bottom: 12px;
@@ -2124,9 +1986,7 @@ const Landing = () => {
           color: var(--color-text-inverse);
           display: flex; flex-direction: column; gap: 8px;
         }
-        .fcard-glass-row {
-          display: flex; align-items: flex-start; gap: 12px;
-        }
+        .fcard-glass-row { display: flex; align-items: flex-start; gap: 12px; }
         .fcard-title {
           flex: 1;
           font-family: var(--font-serif);
@@ -2149,8 +2009,7 @@ const Landing = () => {
         }
         .fcard-meta {
           display: flex; align-items: center; gap: 6px;
-          font-size: 11px;
-          color: rgba(255, 255, 255, 0.8);
+          font-size: 11px; color: rgba(255, 255, 255, 0.8);
           overflow: hidden;
         }
         .fcard-seller {
@@ -2189,23 +2048,14 @@ const Landing = () => {
           transition: background 0.18s, transform 0.15s;
         }
         .fcard-action:hover { background: rgba(255, 255, 255, 0.24); }
-        .fcard-msg {
-          margin-left: auto;
-          background: var(--color-surface); color: var(--color-text);
-        }
+        .fcard-msg { margin-left: auto; background: var(--color-surface); color: var(--color-text); }
         .fcard-msg:hover { background: var(--color-premium-light); }
         .fcard-msg:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* FEED */
-        .section {
-          max-width: 1200px;
-          margin: 22px auto 0;
-          padding: 0 20px;
-        }
+        .section { max-width: 1200px; margin: 22px auto 0; padding: 0 20px; }
         .section-head {
           display: flex; justify-content: space-between; align-items: center;
-          margin-bottom: 12px;
-          gap: 10px;
+          margin-bottom: 12px; gap: 10px;
         }
         .section-title {
           font-family: var(--font-serif);
@@ -2217,8 +2067,7 @@ const Landing = () => {
         .section-title-count {
           font-family: var(--font-sans);
           font-size: 12px; font-weight: 500;
-          color: var(--color-text-muted);
-          margin-left: 2px;
+          color: var(--color-text-muted); margin-left: 2px;
         }
         .filter-btn {
           width: 32px; height: 32px; border-radius: var(--radius-md);
@@ -2237,7 +2086,6 @@ const Landing = () => {
         @media (min-width: 640px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
         @media (min-width: 1024px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
 
-        /* PRODUCT CARD */
         .pcard {
           display: flex; flex-direction: column;
           background: var(--color-surface);
@@ -2256,14 +2104,12 @@ const Landing = () => {
             0 0 0 1px var(--color-border-strong);
         }
         .pcard-media {
-          position: relative;
-          width: 100%;
+          position: relative; width: 100%;
           background: var(--color-surface-alt);
           overflow: hidden;
         }
         .pcard-cat {
-          position: absolute;
-          top: 8px; left: 8px;
+          position: absolute; top: 8px; left: 8px;
           display: inline-flex; align-items: center;
           padding: 3px 7px; border-radius: var(--radius-sm);
           font-size: 9px; font-weight: 700;
@@ -2273,14 +2119,11 @@ const Landing = () => {
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
           max-width: 90%;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
           z-index: 4;
         }
         .pcard-heart {
-          position: absolute;
-          top: 8px; right: 8px;
+          position: absolute; top: 8px; right: 8px;
           width: 30px; height: 30px;
           border: none; cursor: pointer;
           border-radius: 999px;
@@ -2328,8 +2171,7 @@ const Landing = () => {
         .pcard-price-muted {
           font-size: 11.5px;
           color: var(--color-text-muted);
-          font-style: italic;
-          font-weight: 500;
+          font-style: italic; font-weight: 500;
         }
         .pcard-title {
           font-size: 13px; font-weight: 600; line-height: 1.32;
@@ -2342,8 +2184,7 @@ const Landing = () => {
         .pcard-meta {
           display: flex; align-items: center; gap: 5px;
           font-size: 10.5px; color: var(--color-text-muted);
-          overflow: hidden;
-          margin-top: 1px;
+          overflow: hidden; margin-top: 1px;
         }
         .pcard-avatar {
           width: 18px; height: 18px; border-radius: 50%;
@@ -2353,16 +2194,13 @@ const Landing = () => {
         }
         .pcard-seller {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-          max-width: 90px;
-          font-weight: 500;
+          max-width: 90px; font-weight: 500;
         }
         .pcard-dot {
           width: 3px; height: 3px; border-radius: 50%;
           background: var(--color-border-strong); flex-shrink: 0;
         }
-        .pcard-loc {
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
+        .pcard-loc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .pcard-actions {
           display: flex; align-items: center; gap: 4px;
           margin-top: 3px; padding-top: 8px;
@@ -2394,7 +2232,6 @@ const Landing = () => {
         .pcard-msg:hover { background: var(--color-accent); }
         .pcard-msg:disabled { opacity: 0.55; cursor: not-allowed; }
 
-        /* BUSINESSES */
         .biz-section { padding-bottom: 10px; }
         .biz-scroll {
           display: flex; gap: 10px;
@@ -2428,7 +2265,6 @@ const Landing = () => {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
 
-        /* COMMENTS POP-UP */
         .pop-overlay {
           position: fixed; inset: 0;
           z-index: 200;
@@ -2440,10 +2276,8 @@ const Landing = () => {
         }
         @keyframes popFade { from { opacity: 0; } to { opacity: 1; } }
         .pop {
-          width: 100%;
-          max-width: 560px;
-          height: 88vh;
-          max-height: 88vh;
+          width: 100%; max-width: 560px;
+          height: 88vh; max-height: 88vh;
           background: var(--color-surface);
           border-top-left-radius: var(--radius-3xl);
           border-top-right-radius: var(--radius-3xl);
@@ -2457,13 +2291,7 @@ const Landing = () => {
           to { transform: translateY(0); opacity: 1; }
         }
         @media (min-width: 640px) {
-          .pop {
-            height: auto;
-            max-height: 86vh;
-            min-height: 70vh;
-            margin-bottom: 24px;
-            border-radius: var(--radius-3xl);
-          }
+          .pop { height: auto; max-height: 86vh; min-height: 70vh; margin-bottom: 24px; border-radius: var(--radius-3xl); }
         }
         .pop-handle {
           width: 42px; height: 4px;
@@ -2496,8 +2324,7 @@ const Landing = () => {
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .pop-close {
-          width: 30px; height: 30px;
-          border-radius: var(--radius-md);
+          width: 30px; height: 30px; border-radius: var(--radius-md);
           border: 1px solid var(--color-border);
           background: var(--color-surface);
           display: flex; align-items: center; justify-content: center;
@@ -2506,8 +2333,7 @@ const Landing = () => {
         }
         .pop-close:hover { background: var(--color-surface-alt); border-color: var(--color-border-strong); }
         .pop-body {
-          flex: 1;
-          overflow-y: auto;
+          flex: 1; overflow-y: auto;
           -webkit-overflow-scrolling: touch;
           padding: 12px 14px 18px;
           background: var(--color-surface);
@@ -2519,7 +2345,6 @@ const Landing = () => {
         .pop-body :global(.cmt-time) { color: var(--color-text-secondary); }
         .pop-body :global(.cmt-act) { color: var(--color-text-secondary); font-weight: 600; }
 
-        /* EMPTY */
         .empty-state { text-align: center; padding: 56px 20px; }
         .empty-title {
           font-family: var(--font-serif);
@@ -2527,7 +2352,6 @@ const Landing = () => {
         }
         .empty-desc { font-size: 13px; color: var(--color-text-muted); margin: 0; }
 
-        /* BOTTOM NAV */
         .bottom-nav {
           position: fixed; bottom: 0; left: 0; right: 0;
           background: rgba(255, 255, 255, 0.97);

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { businessAPI, aiAPI } from '../services/api';
+import { businessAPI, aiAPI, locationAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 
 // ============================================================
@@ -32,6 +32,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     camera: "M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 13a3 3 0 100-6 3 3 0 000 6z",
     trendingUp: "M23 6l-9.5 9.5-5-5L1 18M17 6h6v6",
     award: "M12 15a7 7 0 100-14 7 7 0 000 14zM8.21 13.89L7 23l5-3 5 3-1.21-9.12",
+    // ★ PHASE 1: crosshair for "use my location"
+    crosshair: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 2v4M12 18v4M2 12h4M18 12h4",
   };
 
   const d = icons[name] || icons.store;
@@ -57,17 +59,6 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 // ============================================================
 // CONSTANTS
 // ============================================================
-const LOCATIONS = [
-  'Mitundu Trading Centre',
-  'Mitundu Bunda',
-  'Mitundu Chimbiri',
-  'Mitundu Motolosi',
-  'Mitundu Nkhoma',
-  'Mitundu Town',
-  'Mitundu Rural',
-  'Other'
-];
-
 const CATEGORIES = [
   'Products',
   'Services',
@@ -130,6 +121,10 @@ const CreateListing = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const titleInputRef = useRef(null);
+
+  // ★ PHASE 1: coords + locating
+  const [coords, setCoords] = useState(null);
+  const [locating, setLocating] = useState(false);
 
   // ★ PHASE 7B: price suggestion state
   const [priceSuggestion, setPriceSuggestion] = useState(null);
@@ -261,6 +256,48 @@ const CreateListing = () => {
     }));
   };
 
+  // ★ PHASE 1: capture coords + reverse-geocode
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      showToast('Geolocation not supported on this device', 'error');
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setCoords({ lat: latitude, lng: longitude });
+
+        try {
+          const res = await locationAPI.reverse(latitude, longitude);
+          const name = res?.data?.name;
+          if (name) {
+            setFormData((prev) => ({ ...prev, locationArea: name }));
+            success(`Location set: ${name}`);
+          } else {
+            const fallback = `Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
+            setFormData((prev) => ({ ...prev, locationArea: fallback }));
+            showToast('Could not resolve a place name — you can edit it', 'warning');
+          }
+        } catch (err) {
+          console.warn('reverse geocode error:', err);
+          const fallback = `Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
+          setFormData((prev) => ({ ...prev, locationArea: fallback }));
+          showToast('Could not resolve a place name — you can edit it', 'warning');
+        } finally {
+          setLocating(false);
+        }
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+        showToast('Could not access your location', 'error');
+        setLocating(false);
+      },
+      { enableHighAccuracy: false, timeout: 8000 }
+    );
+  };
+
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
@@ -345,6 +382,11 @@ const CreateListing = () => {
       formDataToSend.append('unit', formData.unit);
       formDataToSend.append('status', 'active');
       formDataToSend.append('locationArea', formData.locationArea);
+      // ★ PHASE 1: only send coords if user actually captured them
+      if (coords) {
+        formDataToSend.append('locationLat', String(coords.lat));
+        formDataToSend.append('locationLng', String(coords.lng));
+      }
       formDataToSend.append('deliveryAvailable', formData.deliveryAvailable);
       formDataToSend.append('deliveryFee', formData.deliveryFee);
       formDataToSend.append('contactPhone', formData.contactPhone);
@@ -686,21 +728,43 @@ const CreateListing = () => {
             </div>
           </div>
 
-          {/* Location */}
+          {/* ★ PHASE 1: Location with crosshair (replaces dropdown) */}
           <div className="form-group">
-            <label className="form-label">Location <span className="required">*</span></label>
-            <select
-              name="locationArea"
-              value={formData.locationArea}
-              onChange={handleChange}
-              className="form-select"
-              required
-            >
-              <option value="">Select location</option>
-              {LOCATIONS.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
+            <label className="form-label">
+              Location <span className="required">*</span>
+            </label>
+            <div className="input-with-btn">
+              <input
+                type="text"
+                name="locationArea"
+                value={formData.locationArea}
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, locationArea: e.target.value }));
+                  setCoords(null); // manual edit clears captured coords
+                }}
+                className="form-input"
+                placeholder="e.g. Mitundu Trading Centre"
+                required
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                className="icon-inline-btn"
+                onClick={handleUseLocation}
+                disabled={loading || locating}
+                aria-label="Use my location"
+              >
+                <Icon
+                  name="crosshair"
+                  size={18}
+                  color={locating ? 'var(--color-text-muted)' : 'var(--color-primary)'}
+                  strokeWidth={2}
+                />
+              </button>
+            </div>
+            <span className="field-hint">
+              Where can this be picked up or delivered?
+            </span>
           </div>
 
           {/* Delivery */}
@@ -862,7 +926,6 @@ const CreateListing = () => {
           .create-listing { padding-bottom: 40px; }
         }
 
-        /* ===== HEADER ===== */
         .page-header {
           background: var(--color-surface);
           backdrop-filter: blur(12px);
@@ -927,7 +990,6 @@ const CreateListing = () => {
           flex-shrink: 0;
         }
 
-        /* ===== FORM ===== */
         .form-container {
           max-width: 600px;
           margin: 0 auto;
@@ -1010,7 +1072,61 @@ const CreateListing = () => {
           min-width: 0;
         }
 
-        /* ===== UPLOAD ===== */
+        /* ★ PHASE 1: input-with-btn for crosshair */
+        .input-with-btn {
+          display: flex;
+          align-items: stretch;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-xl);
+          background: var(--color-surface);
+          overflow: hidden;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-with-btn:focus-within {
+          border-color: var(--color-accent);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
+        }
+
+        .input-with-btn .form-input {
+          border: none;
+          box-shadow: none;
+          background: transparent;
+          border-radius: 0;
+        }
+
+        .input-with-btn .form-input:focus {
+          box-shadow: none;
+        }
+
+        .icon-inline-btn {
+          width: 46px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.15s ease;
+          flex-shrink: 0;
+        }
+
+        .icon-inline-btn:hover:not(:disabled) {
+          background: var(--color-surface-alt);
+        }
+
+        .icon-inline-btn:disabled {
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
+
+        .field-hint {
+          font-size: 11.5px;
+          color: var(--color-text-muted);
+          margin-top: 6px;
+          display: block;
+        }
+
         .upload-section {
           margin-bottom: 18px;
         }
@@ -1149,11 +1265,8 @@ const CreateListing = () => {
           animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ===== AI PRICE SUGGESTION (Phase 7B) ===== */
         .price-suggestion-chip {
           display: flex;
           align-items: flex-start;
@@ -1193,9 +1306,7 @@ const CreateListing = () => {
           border-color: var(--color-accent-tint);
         }
 
-        .price-suggestion-ready {
-          padding-right: 36px;
-        }
+        .price-suggestion-ready { padding-right: 36px; }
 
         .chip-icon {
           width: 30px;
@@ -1238,9 +1349,7 @@ const CreateListing = () => {
           margin-top: 2px;
         }
 
-        .chip-text {
-          font-size: 12.5px;
-        }
+        .chip-text { font-size: 12.5px; }
 
         .chip-loader {
           width: 14px;
@@ -1268,11 +1377,8 @@ const CreateListing = () => {
           transition: background var(--transition-fast);
         }
 
-        .chip-dismiss:hover {
-          background: rgba(0, 0, 0, 0.06);
-        }
+        .chip-dismiss:hover { background: rgba(0, 0, 0, 0.06); }
 
-        /* ===== AI LISTING QUALITY (Phase 7C) ===== */
         .quality-card {
           border-radius: var(--radius-xl);
           padding: 14px;
@@ -1281,26 +1387,11 @@ const CreateListing = () => {
           background: var(--color-surface);
           transition: all var(--transition-base);
         }
-        .quality-excellent {
-          border-color: var(--color-success);
-          background: var(--color-success-bg);
-        }
-        .quality-good {
-          border-color: var(--color-secondary-hover);
-          background: var(--color-info-bg);
-        }
-        .quality-fair {
-          border-color: var(--color-accent);
-          background: var(--color-accent-soft);
-        }
-        .quality-poor {
-          border-color: var(--color-error);
-          background: var(--color-error-bg);
-        }
-        .quality-loading {
-          border-color: var(--color-border);
-          background: var(--color-surface-alt);
-        }
+        .quality-excellent { border-color: var(--color-success); background: var(--color-success-bg); }
+        .quality-good { border-color: var(--color-secondary-hover); background: var(--color-info-bg); }
+        .quality-fair { border-color: var(--color-accent); background: var(--color-accent-soft); }
+        .quality-poor { border-color: var(--color-error); background: var(--color-error-bg); }
+        .quality-loading { border-color: var(--color-border); background: var(--color-surface-alt); }
 
         .quality-header {
           display: flex;
@@ -1308,12 +1399,7 @@ const CreateListing = () => {
           justify-content: space-between;
           gap: 12px;
         }
-        .quality-header-left {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 0;
-        }
+        .quality-header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
         .quality-score-ring {
           width: 52px;
           height: 52px;
@@ -1333,12 +1419,7 @@ const CreateListing = () => {
           letter-spacing: -0.02em;
           line-height: 1;
         }
-        .quality-header-text {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          min-width: 0;
-        }
+        .quality-header-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
         .quality-title {
           display: flex;
           align-items: center;
@@ -1348,11 +1429,7 @@ const CreateListing = () => {
           color: var(--color-text);
           letter-spacing: 0.01em;
         }
-        .quality-subtitle {
-          font-size: 12px;
-          color: var(--color-text-secondary);
-          line-height: 1.3;
-        }
+        .quality-subtitle { font-size: 12px; color: var(--color-text-secondary); line-height: 1.3; }
         .quality-loader {
           width: 18px;
           height: 18px;
@@ -1404,7 +1481,6 @@ const CreateListing = () => {
           text-align: center;
         }
 
-        /* ===== DELIVERY ===== */
         .delivery-toggle {
           display: flex;
           align-items: center;
@@ -1428,9 +1504,7 @@ const CreateListing = () => {
           user-select: none;
         }
 
-        .checkbox-card input[type="checkbox"] {
-          display: none;
-        }
+        .checkbox-card input[type="checkbox"] { display: none; }
 
         .checkbox-card.checked {
           border-color: var(--color-primary);
@@ -1456,16 +1530,10 @@ const CreateListing = () => {
           border-color: var(--color-primary);
         }
 
-        .checkbox-text {
-          font-size: 13.5px;
-        }
+        .checkbox-text { font-size: 13.5px; }
 
-        .delivery-fee {
-          flex: 1;
-          min-width: 140px;
-        }
+        .delivery-fee { flex: 1; min-width: 140px; }
 
-        /* ===== SUBMIT ===== */
         .submit-btn {
           width: 100%;
           padding: 16px;
@@ -1494,14 +1562,8 @@ const CreateListing = () => {
           box-shadow: 0 14px 30px rgba(255, 92, 35, 0.32);
         }
 
-        .submit-btn:active:not(:disabled) {
-          transform: translateY(0);
-        }
-
-        .submit-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
+        .submit-btn:active:not(:disabled) { transform: translateY(0); }
+        .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .btn-loader {
           width: 22px;
@@ -1512,7 +1574,6 @@ const CreateListing = () => {
           animation: spin 0.8s linear infinite;
         }
 
-        /* ===== BOTTOM NAV ===== */
         .bottom-nav {
           position: fixed;
           bottom: 0;
@@ -1556,22 +1617,10 @@ const CreateListing = () => {
           box-shadow: var(--shadow-primary);
         }
 
-        .nav-btn:hover .nav-icon-wrap:not(.active) {
-          background: var(--color-surface-alt);
-        }
+        .nav-btn:hover .nav-icon-wrap:not(.active) { background: var(--color-surface-alt); }
+        .nav-label { font-size: 9px; font-weight: 500; color: var(--color-text-muted); }
+        .nav-label.active { color: var(--color-text); font-weight: 600; }
 
-        .nav-label {
-          font-size: 9px;
-          font-weight: 500;
-          color: var(--color-text-muted);
-        }
-
-        .nav-label.active {
-          color: var(--color-text);
-          font-weight: 600;
-        }
-
-        /* ===== RESPONSIVE ===== */
         @media (max-width: 480px) {
           .form-container { padding: 16px 12px; }
           .form-row { flex-direction: column; gap: 0; }
@@ -1587,10 +1636,7 @@ const CreateListing = () => {
           .form-container { padding: 12px 10px; }
           .form-input,
           .form-textarea,
-          .form-select {
-            font-size: 13px;
-            padding: 10px 12px;
-          }
+          .form-select { font-size: 13px; padding: 10px 12px; }
           .image-preview-item,
           .image-upload-btn { width: 64px; height: 64px; }
           .submit-btn { font-size: 14px; padding: 14px; min-height: 48px; }

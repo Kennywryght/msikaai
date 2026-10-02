@@ -77,7 +77,7 @@ export const packageSizeEnum = pgEnum('package_size', [
   'bulky',
 ]);
 
-// ★ PHASE 3: approval state per side
+// ★ PHASE 3: per-side approval state
 export const deliveryApprovalStatusEnum = pgEnum('delivery_approval_status', [
   'pending',
   'approved',
@@ -133,6 +133,7 @@ export const businesses = pgTable('businesses', {
 
 // ============================================
 // LISTINGS
+// ★ PHASE 1 (extension): location name + hidden coords
 // ============================================
 export const listings = pgTable('listings', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -147,7 +148,13 @@ export const listings = pgTable('listings', {
   unit: text('unit'),
   images: text('images').array(),
   status: statusEnum('status').default('active'),
+
+  // ★ PHASE 1: human-readable place name + hidden coords
+  locationName: text('location_name'),
   locationArea: text('location_area'),
+  locationLat: decimal('location_lat', { precision: 10, scale: 8 }),
+  locationLng: decimal('location_lng', { precision: 11, scale: 8 }),
+
   deliveryAvailable: boolean('delivery_available').default(false),
   deliveryFee: decimal('delivery_fee', { precision: 10, scale: 2 }),
   contactPhone: text('contact_phone'),
@@ -229,6 +236,7 @@ export const needs = pgTable('needs', {
 
 // ============================================
 // REQUESTS
+// ★ PHASE 1: location name + hidden coords
 // ============================================
 export const requests = pgTable('requests', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -307,7 +315,7 @@ export const requestResponses = pgTable('request_responses', {
 
 // ============================================
 // DELIVERY JOBS
-// ★ PHASE 3: added pending_approval support + approval tracking
+// ★ PHASE 3: pending_approval + approval tracking
 // ============================================
 export const deliveryJobs = pgTable('delivery_jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -380,8 +388,6 @@ export const deliveryJobs = pgTable('delivery_jobs', {
 
 // ============================================
 // ★ PHASE 3: DELIVERY COURIER REQUESTS
-// One row per courier that has asked to take a job.
-// Multiple can be pending simultaneously (competitive model).
 // ============================================
 export const deliveryCourierRequests = pgTable('delivery_courier_requests', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -394,10 +400,7 @@ export const deliveryCourierRequests = pgTable('delivery_courier_requests', {
 
   status: courierRequestStatusEnum('status').default('pending').notNull(),
 
-  // Optional message from courier when requesting
   note: text('note'),
-
-  // Reason shown to courier when rejected
   rejectionReason: text('rejection_reason'),
 
   reviewedBySellerId: uuid('reviewed_by_seller_id').references(() => profiles.id, {
@@ -682,8 +685,6 @@ export const profilesRelations = relations(profiles, ({ many, one }) => ({
 
   deliveryJobsPosted: many(deliveryJobs, { relationName: 'deliveryPoster' }),
   deliveryJobsTaken: many(deliveryJobs, { relationName: 'deliveryCourier' }),
-
-  // ★ PHASE 3
   deliveryCourierRequests: many(deliveryCourierRequests),
 }));
 
@@ -891,11 +892,9 @@ export const deliveryJobsRelations = relations(deliveryJobs, ({ one, many }) => 
     fields: [deliveryJobs.conversationId],
     references: [conversations.id],
   }),
-  // ★ PHASE 3
   courierRequests: many(deliveryCourierRequests),
 }));
 
-// ★ PHASE 3
 export const deliveryCourierRequestsRelations = relations(
   deliveryCourierRequests,
   ({ one }) => ({

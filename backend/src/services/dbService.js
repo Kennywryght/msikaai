@@ -1,7 +1,19 @@
 // backend/src/services/dbService.js
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
-import { eq, and, or, ilike, desc, asc, sql, count, like, inArray, ne } from 'drizzle-orm';
+import {
+  eq,
+  and,
+  or,
+  ilike,
+  desc,
+  asc,
+  sql,
+  count,
+  like,
+  inArray,
+  ne,
+} from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
 
 class DBService {
@@ -11,9 +23,21 @@ class DBService {
   }
 
   // ============================================
+  // ★ PHASE 1: LISTING SANITIZER
+  // ============================================
+  /**
+   * Strip locationLat / locationLng from a listing row before returning
+   * to clients. Coords stay in the DB; the API only exposes the name.
+   */
+  _sanitizeListing(row) {
+    if (!row) return row;
+    const { locationLat, locationLng, ...rest } = row;
+    return rest;
+  }
+
+  // ============================================
   // PROFILES
   // ============================================
-
   async getProfile(userId) {
     try {
       const result = await this.db
@@ -57,7 +81,6 @@ class DBService {
   // ============================================
   // BUSINESSES
   // ============================================
-
   async getBusiness(id) {
     try {
       const result = await this.db
@@ -147,14 +170,13 @@ class DBService {
   // ============================================
   // LISTINGS
   // ============================================
-
   async getListing(id) {
     try {
       const result = await this.db
         .select()
         .from(this.schema.listings)
         .where(eq(this.schema.listings.id, id));
-      return result[0] || null;
+      return this._sanitizeListing(result[0]) || null;
     } catch (error) {
       logger.error('Get listing error:', error);
       throw error;
@@ -179,7 +201,7 @@ class DBService {
       if (!rows[0]) return null;
 
       return {
-        ...rows[0].listing,
+        ...this._sanitizeListing(rows[0].listing),
         businesses: rows[0].business || null,
       };
     } catch (error) {
@@ -216,7 +238,7 @@ class DBService {
         );
 
       return {
-        listings: result,
+        listings: result.map((row) => this._sanitizeListing(row)),
         total: Number(countResult[0]?.count || 0),
       };
     } catch (error) {
@@ -274,7 +296,7 @@ class DBService {
 
       return {
         listings: result.map((row) => ({
-          ...row.listing,
+          ...this._sanitizeListing(row.listing),
           businesses: row.business || null,
         })),
         total: Number(countResult[0]?.count || 0),
@@ -329,7 +351,7 @@ class DBService {
 
       return {
         listings: result.map((row) => ({
-          ...row.listing,
+          ...this._sanitizeListing(row.listing),
           businesses: row.business || null,
         })),
         total: Number(countResult[0]?.count || 0),
@@ -346,7 +368,7 @@ class DBService {
         .insert(this.schema.listings)
         .values(data)
         .returning();
-      return result[0];
+      return this._sanitizeListing(result[0]);
     } catch (error) {
       logger.error('Create listing error:', error);
       throw error;
@@ -360,7 +382,7 @@ class DBService {
         .set({ ...data, updatedAt: new Date() })
         .where(eq(this.schema.listings.id, id))
         .returning();
-      return result[0];
+      return this._sanitizeListing(result[0]);
     } catch (error) {
       logger.error('Update listing error:', error);
       throw error;
@@ -377,7 +399,7 @@ class DBService {
         })
         .where(eq(this.schema.listings.id, id))
         .returning();
-      return result[0];
+      return this._sanitizeListing(result[0]);
     } catch (error) {
       logger.error('Increment view count error:', error);
       throw error;
@@ -387,7 +409,6 @@ class DBService {
   // ============================================
   // SUBSCRIPTIONS
   // ============================================
-
   async getSubscription(userId) {
     try {
       const result = await this.db
@@ -445,7 +466,6 @@ class DBService {
   // ============================================
   // NOTIFICATIONS
   // ============================================
-
   async getNotifications(userId, params = {}) {
     try {
       const { unreadOnly = false, limit = 20, offset = 0 } = params;
@@ -522,7 +542,6 @@ class DBService {
   // ============================================
   // NEEDS (Smart Matching)
   // ============================================
-
   async getNeeds(params = {}) {
     try {
       const { userId, category, status = 'active', limit = 20, offset = 0 } = params;
@@ -591,7 +610,6 @@ class DBService {
   // ============================================
   // ANALYTICS
   // ============================================
-
   async trackEvent(data) {
     try {
       const result = await this.db
@@ -645,7 +663,6 @@ class DBService {
   // ============================================
   // MESSAGING (conversations + messages)
   // ============================================
-
   async findOrCreateConversation(userAId, userBId, listingId = null) {
     try {
       const [p1, p2] = [userAId, userBId].sort();
@@ -757,7 +774,6 @@ class DBService {
         audioUrl,
         durationMs,
         type = 'text',
-        // ★ PHASE 2:
         proposedPrice = null,
         proposalKind = null,
         proposalStatus = null,
@@ -792,12 +808,12 @@ class DBService {
       const c = conversation[0];
       const isSenderP1 = c.participantOneId === senderId;
 
-      // Preview text — proposals get a special preview
       let previewText;
       if (proposedPrice != null) {
-        previewText = proposalKind === 'counter'
-          ? `💰 Counter offer: MK ${Number(proposedPrice).toLocaleString()}`
-          : `💰 Offer: MK ${Number(proposedPrice).toLocaleString()}`;
+        previewText =
+          proposalKind === 'counter'
+            ? `💰 Counter offer: MK ${Number(proposedPrice).toLocaleString()}`
+            : `💰 Offer: MK ${Number(proposedPrice).toLocaleString()}`;
       } else if (text) {
         previewText = text;
       } else if (imageUrl) {
@@ -875,10 +891,6 @@ class DBService {
   // ============================================
   // ★ PHASE 2: NEGOTIATION PROPOSALS
   // ============================================
-
-  /**
-   * Fetch a single message by id.
-   */
   async getMessageById(messageId) {
     try {
       const rows = await this.db
@@ -893,10 +905,6 @@ class DBService {
     }
   }
 
-  /**
-   * Mark all pending proposals in a conversation as superseded,
-   * optionally excluding one message (the new one being created).
-   */
   async supersedeProposals(conversationId, excludeMessageId = null) {
     try {
       const conditions = [
@@ -920,9 +928,6 @@ class DBService {
     }
   }
 
-  /**
-   * Find the latest pending proposal in a conversation.
-   */
   async getLatestPendingProposal(conversationId) {
     try {
       const rows = await this.db
@@ -943,9 +948,6 @@ class DBService {
     }
   }
 
-  /**
-   * Update proposal status (used on accept/decline).
-   */
   async updateProposalStatus(messageId, status) {
     try {
       const result = await this.db
@@ -963,7 +965,6 @@ class DBService {
   // ============================================
   // LISTING LIKES
   // ============================================
-
   async toggleListingLike(listingId, userId) {
     try {
       const existing = await this.db
@@ -1051,7 +1052,6 @@ class DBService {
   // ============================================
   // LISTING COMMENTS
   // ============================================
-
   async createListingComment(listingId, userId, text) {
     try {
       const trimmed = String(text || '').trim();

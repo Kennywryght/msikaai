@@ -44,10 +44,33 @@ const parseAmount = (value) => {
   return n;
 };
 
+/**
+ * ★ PHASE 1 (extension): detect raw fallback strings like
+ * "Near -13.987, 33.456" so we never leak them to clients.
+ */
+const looksLikeCoords = (s) => {
+  if (!s || typeof s !== 'string') return false;
+  return /^near\s+-?\d+\.\d+,\s*-?\d+\.\d+$/i.test(s.trim());
+};
+
+/**
+ * ★ PHASE 1: strip lat/lng from a request row before returning to clients.
+ * Also null out "Near x, y" fallback strings that snuck in via geocoder
+ * failures. If we have a good locationName, expose that; otherwise fall
+ * back to locationArea.
+ */
 const sanitizeRequest = (row) => {
   if (!row) return row;
   const { locationLat, locationLng, ...rest } = row;
-  return rest;
+
+  const cleanedArea = looksLikeCoords(rest.locationArea) ? null : rest.locationArea;
+  const cleanedName = looksLikeCoords(rest.locationName) ? null : rest.locationName;
+
+  return {
+    ...rest,
+    locationArea: cleanedArea,
+    locationName: cleanedName || cleanedArea || null,
+  };
 };
 
 const enrichRequest = async (request, { includeAuthor = true } = {}) => {
@@ -178,6 +201,11 @@ export const createRequest = async (userId, data) => {
         error: err?.message || err,
       });
     }
+  }
+
+  // Never save a "Near x, y" fallback
+  if (looksLikeCoords(resolvedName)) {
+    resolvedName = null;
   }
 
   const [created] = await db
@@ -716,7 +744,7 @@ export const acceptResponse = async (userId, requestId, responseId) => {
 };
 
 // ============================================
-// ★ PHASE 2 ADDENDUM: REJECT RESPONSE
+// REJECT RESPONSE
 // ============================================
 export const rejectResponse = async (userId, requestId, responseId, reason = null) => {
   const [request] = await db
