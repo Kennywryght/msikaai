@@ -32,6 +32,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
     wand: 'M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5',
     copy: 'M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M15 2H9a1 1 0 00-1 1v2a1 1 0 001 1h6a1 1 0 001-1V3a1 1 0 00-1-1z',
     refresh: 'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
+    // ★ PHASE 2
+    tag: 'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01',
   };
   const d = icons[name] || icons.message;
   return (
@@ -63,6 +65,15 @@ const normalizeMessage = (raw) => {
     imageUrl: raw.imageUrl ?? raw.image_url ?? raw.image ?? null,
     audioUrl: raw.audioUrl ?? raw.audio_url ?? raw.audio ?? null,
     durationMs: raw.durationMs ?? raw.duration_ms ?? null,
+    // ★ PHASE 2: proposal fields
+    proposedPrice:
+      raw.proposedPrice != null
+        ? Number(raw.proposedPrice)
+        : raw.proposed_price != null
+        ? Number(raw.proposed_price)
+        : null,
+    proposalKind: raw.proposalKind ?? raw.proposal_kind ?? null,
+    proposalStatus: raw.proposalStatus ?? raw.proposal_status ?? null,
     type:
       raw.type ??
       (raw.imageUrl || raw.image_url
@@ -412,6 +423,62 @@ const VoiceMessage = ({ url, durationHint, isMine }) => {
   );
 };
 
+// ★ PHASE 2: ProposalCard — rendered for messages with a proposedPrice
+const ProposalCard = ({ msg, isMine, onAccept, onDecline, processing }) => {
+  const price = Number(msg.proposedPrice || 0);
+  const status = msg.proposalStatus;
+  const kind = msg.proposalKind === 'counter' ? 'Counter offer' : 'Offer';
+
+  const statusLabel = {
+    pending: 'Awaiting response',
+    accepted: 'Accepted',
+    declined: 'Declined',
+    superseded: 'Superseded',
+    withdrawn: 'Withdrawn',
+  }[status] || '';
+
+  const showButtons = !isMine && status === 'pending';
+
+  return (
+    <div className={`proposal-card ${isMine ? 'mine' : 'theirs'} status-${status || 'pending'}`}>
+      <div className="proposal-header">
+        <span className="proposal-icon">
+          <Icon name="tag" size={13} color="currentColor" strokeWidth={2.2} />
+        </span>
+        <span className="proposal-kind">{kind}</span>
+      </div>
+      <div className="proposal-price">MK {price.toLocaleString()}</div>
+      {msg.text && <div className="proposal-message">{msg.text}</div>}
+      <div className="proposal-status">{statusLabel}</div>
+
+      {showButtons && (
+        <div className="proposal-actions">
+          <button
+            type="button"
+            className="proposal-btn decline"
+            onClick={() => onDecline(msg.id)}
+            disabled={processing}
+          >
+            Decline
+          </button>
+          <button
+            type="button"
+            className="proposal-btn accept"
+            onClick={() => onAccept(msg.id)}
+            disabled={processing}
+          >
+            {processing ? 'Working…' : 'Accept'}
+          </button>
+        </div>
+      )}
+
+      {msg.__showTime && (
+        <div className="proposal-time">{formatTime(msg.createdAt)}</div>
+      )}
+    </div>
+  );
+};
+
 const Chat = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -432,7 +499,9 @@ const Chat = () => {
     typeof window !== 'undefined' ? window.innerWidth : 375
   );
 
-  // ★ PHASE 7D: Sales assistant state
+  // ★ PHASE 2: proposal processing state
+  const [processingProposal, setProcessingProposal] = useState(null);
+
   const [showAssist, setShowAssist] = useState(false);
   const [assistLoading, setAssistLoading] = useState(false);
   const [assist, setAssist] = useState(null);
@@ -738,7 +807,48 @@ const Chat = () => {
     else if (navId === 'profile') navigate('/profile');
   };
 
-  // ★ PHASE 7D: Sales assistant handlers
+  // ★ PHASE 2: proposal handlers
+  const handleAcceptProposal = async (messageId) => {
+    setProcessingProposal(messageId);
+    try {
+      const res = await messagesAPI.acceptProposal(messageId);
+      const updated = res?.data?.message;
+      if (updated) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, ...updated } : m))
+        );
+      }
+      showToast('Offer accepted 🎉', 'success');
+      // Reload to pick up superseded proposals + system message
+      await loadConversation({ silent: true });
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Failed to accept';
+      showToast(msg, 'error');
+    } finally {
+      setProcessingProposal(null);
+    }
+  };
+
+  const handleDeclineProposal = async (messageId) => {
+    if (!window.confirm('Decline this offer?')) return;
+    setProcessingProposal(messageId);
+    try {
+      const res = await messagesAPI.declineProposal(messageId);
+      const updated = res?.data?.message;
+      if (updated) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, ...updated } : m))
+        );
+      }
+      showToast('Offer declined', 'info');
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Failed to decline';
+      showToast(msg, 'error');
+    } finally {
+      setProcessingProposal(null);
+    }
+  };
+
   const openAssist = async () => {
     setShowAssist(true);
     setAssistLoading(true);
@@ -748,7 +858,6 @@ const Chat = () => {
       [...messages].reverse().find((m) => m.senderId !== user?.id && m.text) ||
       messages[messages.length - 1];
 
-    // Build a small history of the last few messages
     const history = messages.slice(-6).map((m) => ({
       role: m.senderId === user?.id ? 'seller' : 'buyer',
       text: m.text || (m.imageUrl ? '[photo]' : m.audioUrl ? '[voice]' : ''),
@@ -824,13 +933,13 @@ const Chat = () => {
     });
   }, [messages]);
 
-  // ★ PHASE 7D: show assistant button when the last message is from the buyer
   const lastMsg = messages[messages.length - 1];
   const showSuggestBtn =
     !!user &&
     !!lastMsg &&
     lastMsg.senderId !== user.id &&
     !!lastMsg.text &&
+    lastMsg.proposedPrice == null &&
     !recorder.isRecording &&
     !uploadingAudio &&
     !uploadingImage;
@@ -956,6 +1065,30 @@ const Chat = () => {
             const isMine = msg.senderId === user?.id;
             const isUploading = msg.__uploading;
             const isAudio = msg.type === 'audio' || !!msg.audioUrl;
+            const isProposal = msg.proposedPrice != null;
+
+            // ★ PHASE 2: proposals get their own card
+            if (isProposal) {
+              return (
+                <React.Fragment key={msg.id}>
+                  {msg.__showDay && (
+                    <div className="day-divider">
+                      <span>{formatDay(msg.createdAt)}</span>
+                    </div>
+                  )}
+                  <div className={`message-row ${isMine ? 'sent' : 'received'}`}>
+                    <ProposalCard
+                      msg={msg}
+                      isMine={isMine}
+                      onAccept={handleAcceptProposal}
+                      onDecline={handleDeclineProposal}
+                      processing={processingProposal === msg.id}
+                    />
+                  </div>
+                </React.Fragment>
+              );
+            }
+
             return (
               <React.Fragment key={msg.id}>
                 {msg.__showDay && (
@@ -1039,7 +1172,6 @@ const Chat = () => {
         </button>
       )}
 
-      {/* ★ PHASE 7D: Suggest reply CTA — only when the buyer sent the last message */}
       {showSuggestBtn && !showAssist && (
         <div className="suggest-cta-wrap">
           <button
@@ -1169,7 +1301,6 @@ const Chat = () => {
         )}
       </div>
 
-      {/* ★ PHASE 7D: Sales Assistant bottom-sheet */}
       {showAssist && (
         <div
           className="assist-overlay"
@@ -1468,9 +1599,6 @@ const Chat = () => {
           background: var(--color-border-strong);
           border-radius: 5px;
         }
-        .messages-container::-webkit-scrollbar-thumb:hover {
-          background: var(--color-text-muted);
-        }
 
         .day-divider {
           display: flex; align-items: center; justify-content: center;
@@ -1628,6 +1756,121 @@ const Chat = () => {
         }
         .message-bubble.received .voice-time { color: var(--color-text-secondary); }
 
+        /* ★ PHASE 2: ProposalCard */
+        .proposal-card {
+          min-width: 240px;
+          max-width: 320px;
+          padding: 14px 16px;
+          border-radius: 18px;
+          border: 1.5px solid var(--color-accent);
+          background: var(--color-accent-soft);
+          color: var(--color-text);
+          box-shadow: var(--shadow-sm);
+          animation: bubbleIn 0.22s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .proposal-card.mine {
+          border-color: var(--color-primary);
+          background: var(--color-primary-tint);
+        }
+        .proposal-card.status-accepted {
+          border-color: var(--color-success);
+          background: var(--color-success-bg);
+        }
+        .proposal-card.status-declined,
+        .proposal-card.status-superseded {
+          border-color: var(--color-border-strong);
+          background: var(--color-surface-alt);
+          opacity: 0.85;
+        }
+        .proposal-header {
+          display: flex; align-items: center; gap: 6px;
+          font-size: 11px; font-weight: 800;
+          color: var(--color-accent-hover);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .proposal-card.mine .proposal-header { color: var(--color-primary); }
+        .proposal-card.status-accepted .proposal-header { color: var(--color-success); }
+        .proposal-card.status-declined .proposal-header,
+        .proposal-card.status-superseded .proposal-header { color: var(--color-text-muted); }
+        .proposal-icon {
+          width: 20px; height: 20px; border-radius: 50%;
+          background: rgba(255, 255, 255, 0.6);
+          display: inline-flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .proposal-price {
+          font-family: var(--font-serif);
+          font-size: 26px;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          color: var(--color-text);
+          line-height: 1.1;
+        }
+        .proposal-message {
+          font-size: 13px;
+          line-height: 1.5;
+          color: var(--color-text-secondary);
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+        .proposal-status {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--color-text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+        .proposal-card.status-accepted .proposal-status { color: var(--color-success); }
+        .proposal-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 6px;
+        }
+        .proposal-btn {
+          flex: 1;
+          padding: 10px 12px;
+          border-radius: var(--radius-lg);
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s;
+          min-height: 40px;
+        }
+        .proposal-btn.decline {
+          background: var(--color-surface);
+          border: 1.5px solid var(--color-error);
+          color: var(--color-error);
+        }
+        .proposal-btn.decline:hover:not(:disabled) {
+          background: var(--color-error-bg);
+        }
+        .proposal-btn.accept {
+          background: var(--color-accent);
+          border: none;
+          color: var(--color-text-inverse);
+          box-shadow: var(--shadow-accent);
+        }
+        .proposal-btn.accept:hover:not(:disabled) {
+          background: var(--color-accent-hover);
+          transform: translateY(-1px);
+        }
+        .proposal-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+          transform: none;
+        }
+        .proposal-time {
+          font-size: 10px;
+          color: var(--color-text-muted);
+          text-align: right;
+          margin-top: 2px;
+        }
+
         .scroll-down-btn {
           position: absolute; right: 16px; bottom: 190px;
           width: 42px; height: 42px; border-radius: 50%;
@@ -1641,7 +1884,6 @@ const Chat = () => {
         .scroll-down-btn:hover { background: var(--color-surface-alt); transform: translateY(-1px); }
         @media (min-width: 769px) { .scroll-down-btn { bottom: 120px; } }
 
-        /* ★ PHASE 7D: Suggest reply CTA */
         .suggest-cta-wrap {
           display: flex;
           justify-content: center;
@@ -1891,7 +2133,6 @@ const Chat = () => {
         }
         .lightbox-close:hover { background: rgba(255, 255, 255, 0.28); }
 
-        /* ★ PHASE 7D: Sales Assistant bottom-sheet */
         .assist-overlay {
           position: fixed; inset: 0;
           z-index: 300;
@@ -2028,9 +2269,7 @@ const Chat = () => {
         .assist-draft-card.primary:hover {
           border-color: var(--color-accent-hover);
         }
-        .assist-draft-card.alt {
-          padding: 10px 12px;
-        }
+        .assist-draft-card.alt { padding: 10px 12px; }
         .assist-draft-label {
           font-size: 10px; font-weight: 700;
           color: var(--color-accent-hover);
@@ -2131,6 +2370,8 @@ const Chat = () => {
           .scroll-down-btn { bottom: 176px; right: 12px; }
           .suggest-cta-wrap { padding: 6px 12px 4px; }
           .suggest-cta { padding: 7px 14px; font-size: 12px; }
+          .proposal-card { min-width: 220px; max-width: 280px; }
+          .proposal-price { font-size: 22px; }
         }
         @media (max-width: 380px) {
           .header-avatar { width: 36px; height: 36px; font-size: 13px; }
@@ -2138,13 +2379,14 @@ const Chat = () => {
           .header-btn { width: 36px; height: 36px; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .message-bubble { animation: none; }
+          .message-bubble, .proposal-card { animation: none; }
           .send-btn:active:not(:disabled),
           .mic-btn:active:not(:disabled),
           .recording-cancel:active,
           .recording-send:active,
           .scroll-down-btn:hover,
-          .suggest-cta:hover { transform: none; }
+          .suggest-cta:hover,
+          .proposal-btn.accept:hover:not(:disabled) { transform: none; }
           .lightbox { animation: none; }
           .header-online, .typing-dot, .recording-dot, .wave-bar { animation: none; }
         }

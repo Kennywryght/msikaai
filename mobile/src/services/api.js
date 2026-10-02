@@ -138,6 +138,14 @@ const normalizeMessage = (m) => {
     image_url: m.imageUrl ?? m.image_url ?? m.image ?? null,
     audio_url: m.audioUrl ?? m.audio_url ?? m.audio ?? null,
     duration_ms: m.durationMs ?? m.duration_ms ?? null,
+    proposed_price:
+      m.proposedPrice != null
+        ? Number(m.proposedPrice)
+        : m.proposed_price != null
+        ? Number(m.proposed_price)
+        : null,
+    proposal_kind: m.proposalKind ?? m.proposal_kind ?? null,
+    proposal_status: m.proposalStatus ?? m.proposal_status ?? null,
     created_at: m.createdAt ?? m.created_at ?? null,
     read_at: m.readAt ?? m.read_at ?? null,
   };
@@ -195,9 +203,8 @@ const normalizeRequest = (raw) => {
   return {
     ...raw,
     user_id: raw.userId ?? raw.user_id ?? null,
+    location_name: raw.locationName ?? raw.location_name ?? null,
     location_area: raw.locationArea ?? raw.location_area ?? null,
-    location_lat: raw.locationLat ?? raw.location_lat ?? null,
-    location_lng: raw.locationLng ?? raw.location_lng ?? null,
     budget_min: raw.budgetMin ?? raw.budget_min ?? null,
     budget_max: raw.budgetMax ?? raw.budget_max ?? null,
     responses_count: raw.responsesCount ?? raw.responses_count ?? 0,
@@ -247,6 +254,26 @@ const normalizeDeliveryParty = (party) => {
   };
 };
 
+// ★ PHASE 3: normalize a courier request row
+const normalizeCourierRequest = (raw) => {
+  if (!raw) return raw;
+  return {
+    ...raw,
+    delivery_id: raw.deliveryId ?? raw.delivery_id ?? null,
+    courier_id: raw.courierId ?? raw.courier_id ?? null,
+    rejection_reason: raw.rejectionReason ?? raw.rejection_reason ?? null,
+    reviewed_by_seller_id:
+      raw.reviewedBySellerId ?? raw.reviewed_by_seller_id ?? null,
+    reviewed_by_buyer_id:
+      raw.reviewedByBuyerId ?? raw.reviewed_by_buyer_id ?? null,
+    seller_reviewed_at: raw.sellerReviewedAt ?? raw.seller_reviewed_at ?? null,
+    buyer_reviewed_at: raw.buyerReviewedAt ?? raw.buyer_reviewed_at ?? null,
+    created_at: raw.createdAt ?? raw.created_at ?? null,
+    updated_at: raw.updatedAt ?? raw.updated_at ?? null,
+    courier: normalizeDeliveryParty(raw.courier),
+  };
+};
+
 const normalizeDelivery = (raw) => {
   if (!raw) return raw;
   return {
@@ -254,28 +281,38 @@ const normalizeDelivery = (raw) => {
 
     poster_id: raw.posterId ?? raw.poster_id ?? null,
     courier_id: raw.courierId ?? raw.courier_id ?? null,
+    pending_courier_id:
+      raw.pendingCourierId ?? raw.pending_courier_id ?? null,
     request_id: raw.requestId ?? raw.request_id ?? null,
     conversation_id: raw.conversationId ?? raw.conversation_id ?? null,
+    buyer_id: raw.buyerId ?? raw.buyer_id ?? null,
 
     package_size: raw.packageSize ?? raw.package_size ?? 'medium',
 
     pickup_location: raw.pickupLocation ?? raw.pickup_location ?? null,
-    pickup_lat: raw.pickupLat ?? raw.pickup_lat ?? null,
-    pickup_lng: raw.pickupLng ?? raw.pickup_lng ?? null,
     pickup_contact_name:
       raw.pickupContactName ?? raw.pickup_contact_name ?? null,
     pickup_contact_phone:
       raw.pickupContactPhone ?? raw.pickup_contact_phone ?? null,
 
     dropoff_location: raw.dropoffLocation ?? raw.dropoff_location ?? null,
-    dropoff_lat: raw.dropoffLat ?? raw.dropoff_lat ?? null,
-    dropoff_lng: raw.dropoffLng ?? raw.dropoff_lng ?? null,
     dropoff_contact_name:
       raw.dropoffContactName ?? raw.dropoff_contact_name ?? null,
     dropoff_contact_phone:
       raw.dropoffContactPhone ?? raw.dropoff_contact_phone ?? null,
 
     courier_fee: raw.courierFee ?? raw.courier_fee ?? null,
+
+    // ★ PHASE 3: approval fields
+    seller_approval_status:
+      raw.sellerApprovalStatus ?? raw.seller_approval_status ?? null,
+    buyer_approval_status:
+      raw.buyerApprovalStatus ?? raw.buyer_approval_status ?? null,
+    seller_approved_at:
+      raw.sellerApprovedAt ?? raw.seller_approved_at ?? null,
+    buyer_approved_at: raw.buyerApprovedAt ?? raw.buyer_approved_at ?? null,
+    courier_requested_at:
+      raw.courierRequestedAt ?? raw.courier_requested_at ?? null,
 
     expires_at: raw.expiresAt ?? raw.expires_at ?? null,
     accepted_at: raw.acceptedAt ?? raw.accepted_at ?? null,
@@ -292,7 +329,15 @@ const normalizeDelivery = (raw) => {
     is_mine: raw.isMine ?? raw.is_mine ?? false,
     is_mine_as_courier:
       raw.isMineAsCourier ?? raw.is_mine_as_courier ?? false,
+    is_buyer: raw.isBuyer ?? raw.is_buyer ?? false,
+    is_pending_courier:
+      raw.isPendingCourier ?? raw.is_pending_courier ?? false,
     can_accept: raw.canAccept ?? raw.can_accept ?? false,
+    can_request_again:
+      raw.canRequestAgain ?? raw.can_request_again ?? false,
+    my_pending_request_id:
+      raw.myPendingRequestId ?? raw.my_pending_request_id ?? null,
+    can_approve: raw.canApprove ?? raw.can_approve ?? false,
     can_confirm: raw.canConfirm ?? raw.can_confirm ?? false,
     can_cancel: raw.canCancel ?? raw.can_cancel ?? false,
     can_pickup: raw.canPickup ?? raw.can_pickup ?? false,
@@ -300,6 +345,13 @@ const normalizeDelivery = (raw) => {
 
     poster: normalizeDeliveryParty(raw.poster),
     courier: normalizeDeliveryParty(raw.courier),
+    pending_courier: normalizeDeliveryParty(raw.pendingCourier),
+
+    courier_requests: Array.isArray(raw.courierRequests)
+      ? raw.courierRequests.map(normalizeCourierRequest)
+      : Array.isArray(raw.courier_requests)
+      ? raw.courier_requests.map(normalizeCourierRequest)
+      : [],
   };
 };
 
@@ -724,6 +776,36 @@ export const messagesAPI = {
       { cache: false }
     ),
 
+  acceptProposal: async (messageId) => {
+    const res = await api.post(
+      `/messages/proposals/${messageId}/accept`,
+      {},
+      { cache: false }
+    );
+    if (res?.data?.message) {
+      return {
+        ...res,
+        data: { ...res.data, message: normalizeMessage(res.data.message) },
+      };
+    }
+    return res;
+  },
+
+  declineProposal: async (messageId) => {
+    const res = await api.post(
+      `/messages/proposals/${messageId}/decline`,
+      {},
+      { cache: false }
+    );
+    if (res?.data?.message) {
+      return {
+        ...res,
+        data: { ...res.data, message: normalizeMessage(res.data.message) },
+      };
+    }
+    return res;
+  },
+
   uploadImage: (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -789,7 +871,6 @@ export const aiAPI = {
   getSuggestions: (q) =>
     api.get('/ai/suggestions', { params: { q }, cacheTTL: 2 * 60 * 1000 }),
 
-  // ★ PHASE 7A
   translateSearch: async (query, opts = {}) => {
     const q = String(query || '').trim();
     if (!q) {
@@ -828,7 +909,6 @@ export const aiAPI = {
     }
   },
 
-  // ★ PHASE 7B
   priceSuggest: async ({ title, category } = {}, opts = {}) => {
     const cleanTitle = String(title || '').trim();
     if (cleanTitle.length < 3) {
@@ -866,10 +946,6 @@ export const aiAPI = {
     }
   },
 
-  // ★ PHASE 7C: Listing Quality Score
-  // input: { listingId } OR { title, description, category, price, images, ... }
-  // Returns: { success, quality: { score, grade, breakdown, tips } }
-  // Never throws — always resolves.
   qualityScore: async (input = {}, opts = {}) => {
     const hasId = !!input?.listingId;
     const title = String(input?.title || '').trim();
@@ -927,10 +1003,6 @@ export const aiAPI = {
     }
   },
 
-  // ★ PHASE 7D: Sales Assistant
-  // input: { buyerMessage, listing?, history?, tone? }
-  // Returns: { success, assist: { draft, alternatives, tone } }
-  // Never throws.
   salesAssist: async (input = {}, opts = {}) => {
     const buyerMessage = String(input?.buyerMessage || '').trim();
     if (!buyerMessage) {
@@ -1013,6 +1085,7 @@ export const locationAPI = {
   nearby: (params) =>
     api.get('/location/nearby', { params, cacheTTL: 10 * 60 * 1000 }),
   update: (data) => api.post('/location/update', data),
+  reverse: (lat, lng) => api.post('/location/reverse', { lat, lng }),
 };
 
 // ============================================
@@ -1301,6 +1374,30 @@ export const requestsAPI = {
     return res;
   },
 
+  reject: async (id, responseId, reason = null) => {
+    const res = await api.post(
+      `/requests/${id}/responses/${responseId}/reject`,
+      { reason },
+      { cache: false }
+    );
+    if (res?.data?.response) {
+      return {
+        ...res,
+        data: { ...res.data, response: normalizeResponse(res.data.response) },
+      };
+    }
+    return res;
+  },
+
+  negotiate: async (id, responseId, { counterPrice, counterMessage }) => {
+    const res = await api.post(
+      `/requests/${id}/responses/${responseId}/negotiate`,
+      { counterPrice, counterMessage },
+      { cache: false }
+    );
+    return res;
+  },
+
   fulfill: (id) =>
     api.post(`/requests/${id}/fulfill`, {}, { cache: false }),
 
@@ -1309,6 +1406,7 @@ export const requestsAPI = {
 
 // ============================================
 // DELIVERIES API
+// ★ PHASE 3: courier request / approve / reject / withdraw
 // ============================================
 export const deliveriesAPI = {
   create: async (data) => {
@@ -1399,8 +1497,13 @@ export const deliveriesAPI = {
     return res;
   },
 
-  accept: async (id) => {
-    const res = await api.post(`/deliveries/${id}/accept`, {}, { cache: false });
+  // ★ PHASE 3: request to deliver (competitive)
+  accept: async (id, note = null) => {
+    const res = await api.post(
+      `/deliveries/${id}/accept`,
+      { note },
+      { cache: false }
+    );
     if (res?.data?.delivery) {
       return {
         ...res,
@@ -1409,6 +1512,61 @@ export const deliveriesAPI = {
     }
     return res;
   },
+
+  // ★ PHASE 3: list courier requests for a job
+  courierRequests: async (id) => {
+    const res = await api.get(`/deliveries/${id}/courier-requests`, {
+      cache: false,
+    });
+    if (Array.isArray(res?.data?.courierRequests)) {
+      return {
+        ...res,
+        data: {
+          ...res.data,
+          courierRequests: res.data.courierRequests.map(normalizeCourierRequest),
+        },
+      };
+    }
+    return res;
+  },
+
+  // ★ PHASE 3: approve a specific courier request
+  approveCourier: async (id, courierRequestId, reason = null) => {
+    const res = await api.post(
+      `/deliveries/${id}/approve-courier`,
+      { courierRequestId, reason },
+      { cache: false }
+    );
+    if (res?.data?.delivery) {
+      return {
+        ...res,
+        data: { ...res.data, delivery: normalizeDelivery(res.data.delivery) },
+      };
+    }
+    return res;
+  },
+
+  // ★ PHASE 3: reject a specific courier request
+  rejectCourier: async (id, courierRequestId, reason = null) => {
+    const res = await api.post(
+      `/deliveries/${id}/reject-courier`,
+      { courierRequestId, reason },
+      { cache: false }
+    );
+    if (res?.data?.delivery) {
+      return {
+        ...res,
+        data: { ...res.data, delivery: normalizeDelivery(res.data.delivery) },
+      };
+    }
+    return res;
+  },
+
+  // ★ PHASE 3: courier withdraws their own request
+  withdrawCourierRequest: (id, requestId) =>
+    api.delete(`/deliveries/${id}/courier-request/${requestId}`, {
+      cache: false,
+    }),
 
   pickup: async (id) => {
     const res = await api.post(`/deliveries/${id}/pickup`, {}, { cache: false });

@@ -1,11 +1,14 @@
 // backend/src/api/messages.js
 import { Router } from 'express';
 import multer from 'multer';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import dbService from '../services/dbService.js';
+import requestsService from '../services/requestsService.js';
 import notificationService from '../services/notificationService.js';
 import pushService from '../services/pushService.js';
 import cloudinaryService from '../services/cloudinaryService.js';
+import { db } from '../db/index.js';
+import { requestResponses, requests, profiles } from '../db/schema.js';
 import { logger } from '../utils/logger.js';
 
 const router = Router();
@@ -14,12 +17,9 @@ const router = Router();
 // Multer setup — memory storage for Cloudinary upload
 // ============================================
 
-// Images (existing)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10 MB
-  },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (allowed.includes(file.mimetype)) {
@@ -30,14 +30,10 @@ const upload = multer({
   },
 });
 
-// ★ Audio (new) — for voice messages
 const audioUpload = multer({
   storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 15 * 1024 * 1024, // 15 MB
-  },
+  limits: { fileSize: 15 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    // Lenient — some browsers report 'application/octet-stream' or 'video/webm' for MediaRecorder blobs
     const isAudio =
       file.mimetype?.startsWith('audio/') ||
       file.mimetype === 'application/octet-stream' ||
@@ -52,7 +48,7 @@ const audioUpload = multer({
 });
 
 // ============================================
-// Helper: verify current user is in a conversation
+// Helpers
 // ============================================
 async function assertParticipant(conversationId, userId) {
   const conversation = await dbService.db
@@ -69,6 +65,19 @@ async function assertParticipant(conversationId, userId) {
 
   return { ok: isParticipant, conversation: c };
 }
+
+const getUserDisplayName = async (userId) => {
+  try {
+    const [row] = await db
+      .select({ fullName: profiles.fullName })
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+      .limit(1);
+    return row?.fullName || 'Someone';
+  } catch {
+    return 'Someone';
+  }
+};
 
 // ============================================
 // GET /api/messages/conversations
@@ -197,6 +206,7 @@ router.get('/conversations/:id', async (req, res) => {
 // ============================================
 // POST /api/messages/conversations/:id
 // Send a message (text, imageUrl, audioUrl, or any combination)
+// ★ PHASE 2: also accepts proposedPrice for negotiation proposals
 // ============================================
 router.post('/conversations/:id', async (req, res) => {
   try {
@@ -208,6 +218,8 @@ router.post('/conversations/:id', async (req, res) => {
       audioUrl,
       durationMs,
       type = 'text',
+      // ★ PHASE 2 — if present, treat as a proposal
+      proposedPrice = null,
     } = req.body;
 
     if (!text && !imageUrl && !audioUrl) {
@@ -228,12 +240,28 @@ router.post('/conversations/:id', async (req, res) => {
       });
     }
 
-    // Resolve type: audio > image > text
-    const resolvedType = audioUrl
-      ? 'audio'
-      : imageUrl
-      ? 'image'
-      : type;
+    const resolvedType = audioUrl ? 'audio' : imageUrl ? 'image' : type;
+
+    // ★ PHASE 2 — if a price is supplied, this is a negotiation proposal
+    let proposalFields = {};
+    if (proposedPrice != null) {
+      const priceNum = parseFloat(proposedPrice);
+      if (Number.isNaN(priceNum) || priceNum <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'proposedPrice must be a positive number',
+        });
+      }
+
+      // Supersede any older pending proposals in this conversation
+      await dbService.supersedeProposals(id);
+
+      proposalFields = {
+        proposedPrice: priceNum,
+        proposalKind: 'counter',
+        proposalStatus: 'pending',
+      };
+    }
 
     const message = await dbService.sendMessage(id, userId, {
       text: text || null,
@@ -241,24 +269,29 @@ router.post('/conversations/:id', async (req, res) => {
       audioUrl: audioUrl || null,
       durationMs: durationMs || null,
       type: resolvedType,
+      ...proposalFields,
     });
 
     const c = check.conversation;
     const otherUserId =
       c.participantOneId === userId ? c.participantTwoId : c.participantOneId;
 
-    const notifBody = audioUrl
-      ? '🎤 Sent you a voice message'
-      : imageUrl
-      ? '📷 Sent you a photo'
-      : (text || '').slice(0, 80);
+    let notifBody;
+    if (proposedPrice != null) {
+      notifBody = `💰 New offer: MK ${Number(proposedPrice).toLocaleString()}`;
+    } else if (audioUrl) {
+      notifBody = '🎤 Sent you a voice message';
+    } else if (imageUrl) {
+      notifBody = '📷 Sent you a photo';
+    } else {
+      notifBody = (text || '').slice(0, 80);
+    }
 
-    // -------- In-app notification --------
     notificationService
       .createNotification({
         userId: otherUserId,
         type: 'info',
-        title: 'New message',
+        title: proposedPrice != null ? 'New offer' : 'New message',
         message: notifBody,
         data: { conversationId: id, messageId: message.id },
       })
@@ -266,15 +299,10 @@ router.post('/conversations/:id', async (req, res) => {
         logger.warn('Notification for message failed:', err.message)
       );
 
-    // -------- Web push notification --------
     pushService
       .sendToUser(otherUserId, {
-        title: 'New message on Kumsika',
-        body: audioUrl
-          ? '🎤 Sent you a voice message'
-          : imageUrl
-          ? '📷 Sent you a photo'
-          : (text || '').slice(0, 100),
+        title: proposedPrice != null ? 'New offer on Kumsika' : 'New message on Kumsika',
+        body: notifBody,
         url: `/chat/${id}`,
         icon: '/logo192.png',
         badge: '/logo192.png',
@@ -287,6 +315,196 @@ router.post('/conversations/:id', async (req, res) => {
   } catch (error) {
     logger.error('Send message error:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// ★ PHASE 2: POST /api/messages/proposals/:messageId/accept
+// Accept a pending proposal. Only the OTHER party can accept it.
+// ============================================
+router.post('/proposals/:messageId/accept', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+
+    const message = await dbService.getMessageById(messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Proposal not found' });
+    }
+    if (!message.proposedPrice) {
+      return res.status(400).json({ success: false, error: 'This message is not a proposal' });
+    }
+    if (message.proposalStatus !== 'pending') {
+      return res.status(409).json({
+        success: false,
+        error: `This proposal is already ${message.proposalStatus}`,
+      });
+    }
+
+    // Cannot accept your own proposal
+    if (message.senderId === userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'You cannot accept your own proposal',
+      });
+    }
+
+    const check = await assertParticipant(message.conversationId, userId);
+    if (!check.ok) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    // Find the associated request response (for updating status)
+    const [responseRow] = await db
+      .select()
+      .from(requestResponses)
+      .where(eq(requestResponses.conversationId, message.conversationId))
+      .limit(1);
+
+    const [requestRow] = responseRow
+      ? await db
+          .select()
+          .from(requests)
+          .where(eq(requests.id, responseRow.requestId))
+          .limit(1)
+      : [null];
+
+    // Supersede all other pending proposals in this conversation
+    await dbService.supersedeProposals(message.conversationId, messageId);
+    await dbService.updateProposalStatus(messageId, 'accepted');
+
+    // Flip the response + request to accepted
+    if (responseRow && requestRow) {
+      // The responderId is whoever submitted the original response.
+      // The accept endpoint (requestsService.acceptResponse) expects the
+      // request owner as userId — so call it with the request owner.
+      try {
+        await requestsService.acceptResponse(
+          requestRow.userId,
+          responseRow.requestId,
+          responseRow.id
+        );
+      } catch (err) {
+        logger.warn('acceptResponse via proposal failed', {
+          error: err?.message || err,
+        });
+      }
+
+      // Notify the other party
+      try {
+        const accepterName = await getUserDisplayName(userId);
+        const otherPartyId = message.senderId;
+        await notificationService.notifyProposalAccepted({
+          recipientId: otherPartyId,
+          requestTitle: requestRow.title,
+          requestId: requestRow.id,
+          conversationId: message.conversationId,
+          acceptedPrice: message.proposedPrice,
+          accepterName,
+        });
+      } catch (err) {
+        logger.warn('notifyProposalAccepted failed', {
+          error: err?.message || err,
+        });
+      }
+    }
+
+    const updated = await dbService.getMessageById(messageId);
+
+    logger.info('Proposal accepted', {
+      messageId,
+      conversationId: message.conversationId,
+      acceptedBy: userId,
+    });
+
+    return res.json({ success: true, message: updated });
+  } catch (error) {
+    logger.error('Accept proposal error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================
+// ★ PHASE 2: POST /api/messages/proposals/:messageId/decline
+// ============================================
+router.post('/proposals/:messageId/decline', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+
+    const message = await dbService.getMessageById(messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, error: 'Proposal not found' });
+    }
+    if (!message.proposedPrice) {
+      return res.status(400).json({ success: false, error: 'This message is not a proposal' });
+    }
+    if (message.proposalStatus !== 'pending') {
+      return res.status(409).json({
+        success: false,
+        error: `This proposal is already ${message.proposalStatus}`,
+      });
+    }
+
+    // Cannot decline your own proposal
+    if (message.senderId === userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'You cannot decline your own proposal',
+      });
+    }
+
+    const check = await assertParticipant(message.conversationId, userId);
+    if (!check.ok) {
+      return res.status(404).json({ success: false, error: 'Conversation not found' });
+    }
+
+    await dbService.updateProposalStatus(messageId, 'declined');
+
+    const [responseRow] = await db
+      .select()
+      .from(requestResponses)
+      .where(eq(requestResponses.conversationId, message.conversationId))
+      .limit(1);
+
+    const [requestRow] = responseRow
+      ? await db
+          .select()
+          .from(requests)
+          .where(eq(requests.id, responseRow.requestId))
+          .limit(1)
+      : [null];
+
+    if (responseRow && requestRow) {
+      try {
+        const declinerName = await getUserDisplayName(userId);
+        await notificationService.notifyProposalDeclined({
+          recipientId: message.senderId,
+          requestTitle: requestRow.title,
+          requestId: requestRow.id,
+          conversationId: message.conversationId,
+          declinedPrice: message.proposedPrice,
+          declinerName,
+        });
+      } catch (err) {
+        logger.warn('notifyProposalDeclined failed', {
+          error: err?.message || err,
+        });
+      }
+    }
+
+    const updated = await dbService.getMessageById(messageId);
+
+    logger.info('Proposal declined', {
+      messageId,
+      conversationId: message.conversationId,
+      declinedBy: userId,
+    });
+
+    return res.json({ success: true, message: updated });
+  } catch (error) {
+    logger.error('Decline proposal error:', error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -338,71 +556,59 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
     });
   } catch (error) {
     logger.error('Chat image upload error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // ============================================
-// ★ POST /api/messages/upload-audio
-// Accepts a multipart form with field "audio"
-// Returns { success, url, publicId, durationSec, bytes, format }
+// POST /api/messages/upload-audio
 // ============================================
-router.post(
-  '/upload-audio',
-  audioUpload.single('audio'),
-  async (req, res) => {
-    try {
-      const userId = req.user.id;
+router.post('/upload-audio', audioUpload.single('audio'), async (req, res) => {
+  try {
+    const userId = req.user.id;
 
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          error: 'No audio file provided (expected field name "audio")',
-        });
-      }
-
-      if (!cloudinaryService.isConfigured) {
-        return res.status(503).json({
-          success: false,
-          error: 'Voice upload is temporarily unavailable',
-        });
-      }
-
-      const result = await cloudinaryService.uploadAudio(req.file, {
-        folder: `chat/${userId}/audio`,
-      });
-
-      if (!result.success) {
-        return res.status(500).json({
-          success: false,
-          error: result.error || 'Audio upload failed',
-        });
-      }
-
-      logger.info(
-        `🎤 Chat audio uploaded by ${userId}: ${result.publicId} (${result.duration}s, ${result.bytes} bytes)`
-      );
-
-      res.json({
-        success: true,
-        url: result.url,
-        publicId: result.publicId,
-        durationSec: Math.round(result.duration || 0),
-        bytes: result.bytes,
-        format: result.format,
-      });
-    } catch (error) {
-      logger.error('Chat audio upload error:', error);
-      res.status(500).json({
+    if (!req.file) {
+      return res.status(400).json({
         success: false,
-        error: error.message,
+        error: 'No audio file provided (expected field name "audio")',
       });
     }
+
+    if (!cloudinaryService.isConfigured) {
+      return res.status(503).json({
+        success: false,
+        error: 'Voice upload is temporarily unavailable',
+      });
+    }
+
+    const result = await cloudinaryService.uploadAudio(req.file, {
+      folder: `chat/${userId}/audio`,
+    });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: result.error || 'Audio upload failed',
+      });
+    }
+
+    logger.info(
+      `🎤 Chat audio uploaded by ${userId}: ${result.publicId} (${result.duration}s, ${result.bytes} bytes)`
+    );
+
+    res.json({
+      success: true,
+      url: result.url,
+      publicId: result.publicId,
+      durationSec: Math.round(result.duration || 0),
+      bytes: result.bytes,
+      format: result.format,
+    });
+  } catch (error) {
+    logger.error('Chat audio upload error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
-);
+});
 
 // ============================================
 // PUT /api/messages/conversations/:id/read

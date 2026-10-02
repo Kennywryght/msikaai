@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
-import { deliveriesAPI } from '../services/api';
+import { deliveriesAPI, locationAPI } from '../services/api';
 
 const PACKAGE_OPTIONS = [
   { value: 'small', label: 'Small', emoji: '✉️', desc: 'Envelope, documents' },
@@ -24,6 +24,7 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.9 }) =>
     phone: 'M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z',
     tag: 'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01',
     send: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
+    crosshair: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 2v4M12 18v4M2 12h4M18 12h4',
   };
   const d = icons[name] || icons.info;
   return (
@@ -73,6 +74,12 @@ export default function CreateDelivery() {
   const [error, setError] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
 
+  // ★ PHASE 1: captured coords + per-field locating flags
+  const [pickupCoords, setPickupCoords] = useState(null);
+  const [dropoffCoords, setDropoffCoords] = useState(null);
+  const [locatingPickup, setLocatingPickup] = useState(false);
+  const [locatingDropoff, setLocatingDropoff] = useState(false);
+
   const validation = useMemo(() => {
     const errors = {};
     if (!title.trim()) errors.title = 'Title is required';
@@ -90,6 +97,51 @@ export default function CreateDelivery() {
 
   const isValid = Object.keys(validation).length === 0;
 
+  // ★ PHASE 1: capture coords + reverse-geocode to a place name
+  const useMyLocation = (which) => {
+    if (!navigator.geolocation) {
+      showError('Geolocation not supported on this device');
+      return;
+    }
+
+    const isPickup = which === 'pickup';
+    const setLocating = isPickup ? setLocatingPickup : setLocatingDropoff;
+    const setCoords = isPickup ? setPickupCoords : setDropoffCoords;
+    const setLocation = isPickup ? setPickupLocation : setDropoffLocation;
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setCoords({ lat: latitude, lng: longitude });
+
+        try {
+          const res = await locationAPI.reverse(latitude, longitude);
+          const name = res?.data?.name;
+          if (name) {
+            setLocation(name);
+            success(`${isPickup ? 'Pickup' : 'Dropoff'} set: ${name}`);
+          } else {
+            setLocation(`Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
+            showError('Could not resolve a place name — you can edit it');
+          }
+        } catch (err) {
+          console.warn('reverse geocode error:', err);
+          setLocation(`Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
+          showError('Could not resolve a place name — you can edit it');
+        } finally {
+          setLocating(false);
+        }
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+        showError('Could not access your location');
+        setLocating(false);
+      },
+      { enableHighAccuracy: false, timeout: 8000 }
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -106,9 +158,14 @@ export default function CreateDelivery() {
         description: description.trim() || null,
         packageSize,
         pickupLocation: pickupLocation.trim(),
+        // ★ PHASE 1: coords only if captured
+        pickupLat: pickupCoords?.lat ?? null,
+        pickupLng: pickupCoords?.lng ?? null,
         pickupContactName: pickupContactName.trim() || null,
         pickupContactPhone: pickupContactPhone.trim() || null,
         dropoffLocation: dropoffLocation.trim(),
+        dropoffLat: dropoffCoords?.lat ?? null,
+        dropoffLng: dropoffCoords?.lng ?? null,
         dropoffContactName: dropoffContactName.trim() || null,
         dropoffContactPhone: dropoffContactPhone.trim() || null,
         courierFee: courierFee !== '' ? parseFloat(courierFee) : null,
@@ -261,14 +318,33 @@ export default function CreateDelivery() {
             <label className="label">
               Pickup location <span className="req">*</span>
             </label>
-            <input
-              type="text"
-              className={`input ${validation.pickupLocation ? 'input-error' : ''}`}
-              placeholder="e.g. Mitundu Market"
-              value={pickupLocation}
-              onChange={(e) => setPickupLocation(e.target.value)}
-              disabled={submitting}
-            />
+            <div className="input-with-btn">
+              <input
+                type="text"
+                className={`input ${validation.pickupLocation ? 'input-error' : ''}`}
+                placeholder="e.g. Mitundu Market"
+                value={pickupLocation}
+                onChange={(e) => {
+                  setPickupLocation(e.target.value);
+                  setPickupCoords(null); // ★ PHASE 1: manual edit clears coords
+                }}
+                disabled={submitting}
+              />
+              <button
+                type="button"
+                className="icon-inline-btn"
+                onClick={() => useMyLocation('pickup')}
+                disabled={submitting || locatingPickup}
+                aria-label="Use my location for pickup"
+              >
+                <Icon
+                  name="crosshair"
+                  size={18}
+                  color={locatingPickup ? '#9CA3AF' : '#1E40AF'}
+                  strokeWidth={2}
+                />
+              </button>
+            </div>
             {validation.pickupLocation && (
               <span className="field-error">{validation.pickupLocation}</span>
             )}
@@ -307,14 +383,33 @@ export default function CreateDelivery() {
             <label className="label">
               Dropoff location <span className="req">*</span>
             </label>
-            <input
-              type="text"
-              className={`input ${validation.dropoffLocation ? 'input-error' : ''}`}
-              placeholder="e.g. Area 47, Lilongwe"
-              value={dropoffLocation}
-              onChange={(e) => setDropoffLocation(e.target.value)}
-              disabled={submitting}
-            />
+            <div className="input-with-btn">
+              <input
+                type="text"
+                className={`input ${validation.dropoffLocation ? 'input-error' : ''}`}
+                placeholder="e.g. Area 47, Lilongwe"
+                value={dropoffLocation}
+                onChange={(e) => {
+                  setDropoffLocation(e.target.value);
+                  setDropoffCoords(null); // ★ PHASE 1: manual edit clears coords
+                }}
+                disabled={submitting}
+              />
+              <button
+                type="button"
+                className="icon-inline-btn"
+                onClick={() => useMyLocation('dropoff')}
+                disabled={submitting || locatingDropoff}
+                aria-label="Use my location for dropoff"
+              >
+                <Icon
+                  name="crosshair"
+                  size={18}
+                  color={locatingDropoff ? '#9CA3AF' : '#1E40AF'}
+                  strokeWidth={2}
+                />
+              </button>
+            </div>
             {validation.dropoffLocation && (
               <span className="field-error">{validation.dropoffLocation}</span>
             )}
@@ -720,6 +815,48 @@ export default function CreateDelivery() {
         }
 
         .pkg-card.active .pkg-desc { color: rgba(255, 255, 255, 0.85); }
+
+        .input-with-btn {
+          display: flex;
+          align-items: stretch;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          background: var(--color-surface-alt);
+          overflow: hidden;
+          transition: border-color 0.2s ease;
+        }
+
+        .input-with-btn:focus-within {
+          border-color: var(--color-primary);
+          background: var(--color-surface);
+        }
+
+        .input-with-btn .input {
+          border: none;
+          background: transparent;
+          border-radius: 0;
+        }
+
+        .icon-inline-btn {
+          width: 46px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.15s ease;
+          flex-shrink: 0;
+        }
+
+        .icon-inline-btn:hover:not(:disabled) {
+          background: var(--color-border);
+        }
+
+        .icon-inline-btn:disabled {
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
 
         .fee-input {
           display: flex;

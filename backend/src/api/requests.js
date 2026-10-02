@@ -28,7 +28,6 @@ const handleError = (res, error, fallbackMessage = 'Request failed') => {
 
 // ============================================
 // POST /api/requests
-// Create a request (auth required)
 // ============================================
 router.post('/', authenticateToken, async (req, res) => {
   try {
@@ -41,7 +40,6 @@ router.post('/', authenticateToken, async (req, res) => {
 
 // ============================================
 // GET /api/requests/mine
-// Own requests (any status). MUST be declared before /:id
 // ============================================
 router.get('/mine', authenticateToken, async (req, res) => {
   try {
@@ -75,7 +73,6 @@ router.get('/mine', authenticateToken, async (req, res) => {
 
 // ============================================
 // GET /api/requests
-// Public feed — optional auth so we know who's viewing
 // ============================================
 router.get('/', optionalAuth, async (req, res) => {
   try {
@@ -101,7 +98,6 @@ router.get('/', optionalAuth, async (req, res) => {
       offset,
     });
 
-    // Tag each request with `isMine` for the current viewer, if any
     const viewerId = req.user?.id;
     const requests = result.requests.map((r) => ({
       ...r,
@@ -116,7 +112,6 @@ router.get('/', optionalAuth, async (req, res) => {
 
 // ============================================
 // GET /api/requests/:id
-// Detail + responses — optional auth
 // ============================================
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
@@ -131,7 +126,6 @@ router.get('/:id', optionalAuth, async (req, res) => {
     const viewerId = req.user?.id;
     const isOwner = viewerId ? detail.userId === viewerId : false;
 
-    // Annotate responses with `isMine` and hide responder identity in some cases
     const responses = (detail.responses || []).map((r) => ({
       ...r,
       isMine: viewerId ? r.responderId === viewerId : false,
@@ -170,7 +164,6 @@ router.post('/:id/respond', authenticateToken, async (req, res) => {
 
 // ============================================
 // DELETE /api/requests/:id/responses/:responseId
-// Withdraw own response
 // ============================================
 router.delete('/:id/responses/:responseId', authenticateToken, async (req, res) => {
   try {
@@ -209,6 +202,53 @@ router.post(
 );
 
 // ============================================
+// ★ PHASE 2 ADDENDUM: reject response
+// ============================================
+router.post(
+  '/:id/responses/:responseId/reject',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { reason } = req.body || {};
+      const result = await requestsService.rejectResponse(
+        req.user.id,
+        req.params.id,
+        req.params.responseId,
+        reason
+      );
+      return res.json({ success: true, response: result });
+    } catch (error) {
+      return handleError(res, error, 'Failed to reject response');
+    }
+  }
+);
+
+// ============================================
+// POST /api/requests/:id/responses/:responseId/negotiate
+// ============================================
+router.post(
+  '/:id/responses/:responseId/negotiate',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const result = await requestsService.negotiateResponse(
+        req.user.id,
+        req.params.id,
+        req.params.responseId,
+        req.body || {}
+      );
+      return res.json({
+        success: true,
+        message: result.message,
+        conversationId: result.conversationId,
+      });
+    } catch (error) {
+      return handleError(res, error, 'Failed to send counter offer');
+    }
+  }
+);
+
+// ============================================
 // POST /api/requests/:id/fulfill
 // ============================================
 router.post('/:id/fulfill', authenticateToken, async (req, res) => {
@@ -222,7 +262,6 @@ router.post('/:id/fulfill', authenticateToken, async (req, res) => {
 
 // ============================================
 // DELETE /api/requests/:id
-// Owner only
 // ============================================
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {

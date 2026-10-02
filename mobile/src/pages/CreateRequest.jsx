@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
-import { requestsAPI } from '../services/api';
+import { requestsAPI, locationAPI } from '../services/api';
 
 // ============================================================
 // CONSTANTS
@@ -105,6 +105,9 @@ const CreateRequest = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [locating, setLocating] = useState(false);
 
+  // ★ PHASE 1: captured coords (hidden from UI, sent to backend)
+  const [coords, setCoords] = useState(null); // { lat, lng }
+
   // ============================================================
   // VALIDATION
   // ============================================================
@@ -150,16 +153,28 @@ const CreateRequest = () => {
 
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        // We don't reverse-geocode here — just prefill a hint
+      async (pos) => {
         const { latitude, longitude } = pos.coords;
-        if (!locationArea) {
-          setLocationArea(
-            `Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`
-          );
+        setCoords({ lat: latitude, lng: longitude });
+
+        // ★ PHASE 1: reverse-geocode on the backend
+        try {
+          const res = await locationAPI.reverse(latitude, longitude);
+          const name = res?.data?.name;
+          if (name) {
+            setLocationArea(name);
+            success(`Location set: ${name}`);
+          } else {
+            setLocationArea(`Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
+            showToast('Could not resolve a place name — you can edit it', 'warning');
+          }
+        } catch (err) {
+          console.warn('reverse geocode error:', err);
+          setLocationArea(`Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
+          showToast('Could not resolve a place name — you can edit it', 'warning');
+        } finally {
+          setLocating(false);
         }
-        success('Location captured');
-        setLocating(false);
       },
       (err) => {
         console.warn('Geolocation error:', err);
@@ -186,6 +201,9 @@ const CreateRequest = () => {
         description: description.trim() || null,
         category,
         locationArea: locationArea.trim() || null,
+        // ★ PHASE 1: only send coords if the user actually captured them
+        locationLat: coords?.lat ?? null,
+        locationLng: coords?.lng ?? null,
         budgetMin: budgetMin !== '' ? parseFloat(budgetMin) : null,
         budgetMax: budgetMax !== '' ? parseFloat(budgetMax) : null,
         urgency,
@@ -383,7 +401,10 @@ const CreateRequest = () => {
                 className="input"
                 placeholder="e.g. Mitundu, Lilongwe"
                 value={locationArea}
-                onChange={(e) => setLocationArea(e.target.value)}
+                onChange={(e) => {
+                  setLocationArea(e.target.value);
+                  setCoords(null); // ★ PHASE 1: manual edit invalidates captured coords
+                }}
                 disabled={submitting}
               />
               <button

@@ -34,6 +34,9 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.9 }) =>
     alert: 'M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01',
     shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
     tag: 'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01',
+    // ★ PHASE 3
+    users: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
+    userCheck: 'M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 7a4 4 0 100 8 4 4 0 000-8zM17 11l2 2 4-4',
   };
   const d = icons[name] || icons.truck;
   return (
@@ -79,6 +82,22 @@ const formatFee = (fee) => {
   return `MK ${Number(fee).toLocaleString()}`;
 };
 
+// ★ PHASE 3: helper — is this courier request still awaiting this reviewer?
+const needsSellerApproval = (req, delivery) => {
+  if (req.status !== 'pending') return false;
+  if (req.reviewed_by_seller_id) return false;
+  return delivery.seller_approval_status !== 'approved' ||
+    delivery.pending_courier_id !== req.courier_id;
+};
+
+const needsBuyerApproval = (req, delivery) => {
+  if (req.status !== 'pending') return false;
+  if (!delivery.buyer_id) return false;
+  if (req.reviewed_by_buyer_id) return false;
+  return delivery.buyer_approval_status !== 'approved' ||
+    delivery.pending_courier_id !== req.courier_id;
+};
+
 export default function DeliveryDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -91,6 +110,9 @@ export default function DeliveryDetail() {
     error,
     mutating,
     accept,
+    approveCourier,
+    rejectCourier,
+    withdrawRequest,
     markPickedUp,
     markDelivered,
     confirm,
@@ -99,17 +121,67 @@ export default function DeliveryDetail() {
 
   const [confirmCancelModal, setConfirmCancelModal] = useState(false);
   const [confirmDeliveryModal, setConfirmDeliveryModal] = useState(false);
+  // ★ PHASE 3: reject reason modal
+  const [rejectTarget, setRejectTarget] = useState(null); // { courierRequestId, courierName }
+  const [rejectReason, setRejectReason] = useState('');
+  // ★ PHASE 3: request-to-deliver note modal
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestNote, setRequestNote] = useState('');
 
   const handleAccept = async () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: `/deliveries/${id}` } });
       return;
     }
+    setShowRequestModal(true);
+  };
+
+  const handleSubmitRequest = async () => {
     try {
-      await accept();
-      success('Delivery accepted! 🚚');
+      await accept(requestNote.trim() || null);
+      success('Request sent — waiting for approval 📨');
+      setShowRequestModal(false);
+      setRequestNote('');
     } catch (err) {
-      showError(err?.response?.data?.error || err?.message || 'Failed to accept');
+      showError(err?.response?.data?.error || err?.message || 'Failed to request');
+    }
+  };
+
+  const handleApproveCourier = async (courierRequestId) => {
+    try {
+      const result = await approveCourier(courierRequestId);
+      const fullyApproved = result?.data?.fullyApproved;
+      success(fullyApproved ? 'Courier assigned 🚚' : 'Approval recorded');
+    } catch (err) {
+      showError(err?.response?.data?.error || err?.message || 'Failed to approve');
+    }
+  };
+
+  const handleOpenReject = (courierRequestId, courierName) => {
+    setRejectTarget({ courierRequestId, courierName });
+    setRejectReason('');
+  };
+
+  const handleSubmitReject = async () => {
+    if (!rejectTarget) return;
+    try {
+      await rejectCourier(rejectTarget.courierRequestId, rejectReason.trim() || null);
+      success('Courier request declined');
+      setRejectTarget(null);
+      setRejectReason('');
+    } catch (err) {
+      showError(err?.response?.data?.error || err?.message || 'Failed to decline');
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!delivery?.my_pending_request_id) return;
+    if (!window.confirm('Withdraw your request to deliver this job?')) return;
+    try {
+      await withdrawRequest(delivery.my_pending_request_id);
+      success('Request withdrawn');
+    } catch (err) {
+      showError(err?.response?.data?.error || err?.message || 'Failed to withdraw');
     }
   };
 
@@ -223,8 +295,14 @@ export default function DeliveryDetail() {
   const status = delivery.effective_status || delivery.status || 'open';
   const isPoster = delivery.is_mine;
   const isCourier = delivery.is_mine_as_courier;
+  const isBuyer = delivery.is_buyer;
   const poster = delivery.poster;
   const courier = delivery.courier;
+  const canApprove = delivery.can_approve;
+  const courierRequests = delivery.courier_requests || [];
+
+  // Filter to still-pending requests (show all pending, with badges if you approved)
+  const pendingRequests = courierRequests.filter((r) => r.status === 'pending');
 
   return (
     <div className="page">
@@ -248,6 +326,7 @@ export default function DeliveryDetail() {
             <DeliveryStatusBadge status={status} size="md" />
             {isPoster && <span className="pill mine-pill">Yours</span>}
             {isCourier && <span className="pill courier-pill">Your job</span>}
+            {isBuyer && !isPoster && <span className="pill buyer-pill">You're the buyer</span>}
           </div>
 
           <h1 className="title">{delivery.title}</h1>
@@ -324,6 +403,7 @@ export default function DeliveryDetail() {
           </div>
         </div>
 
+        {/* Poster card */}
         <div className="party-card">
           <div className="party-avatar" style={{ background: TIER_COLORS[poster?.trust?.tier ?? 0] }}>
             {initialsOf(poster?.full_name || 'Poster')}
@@ -358,6 +438,106 @@ export default function DeliveryDetail() {
           </button>
         </div>
 
+        {/* ★ PHASE 3: Courier requests panel — only visible to poster/buyer when pending */}
+        {canApprove && pendingRequests.length > 0 && (
+          <div className="courier-requests-panel">
+            <div className="panel-header">
+              <Icon name="users" size={16} color="var(--color-primary)" strokeWidth={2.2} />
+              <h3 className="panel-title">
+                {pendingRequests.length} courier{pendingRequests.length === 1 ? '' : 's'} want{pendingRequests.length === 1 ? 's' : ''} this job
+              </h3>
+            </div>
+
+            <div className="courier-list">
+              {pendingRequests.map((req) => {
+                const c = req.courier || {};
+                const sellerNeeds = isPoster && needsSellerApproval(req, delivery);
+                const buyerNeeds = isBuyer && needsBuyerApproval(req, delivery);
+                const iApproved =
+                  (isPoster && !!req.reviewed_by_seller_id) ||
+                  (isBuyer && !!req.reviewed_by_buyer_id);
+                const awaitingOther = (isPoster || isBuyer) && !sellerNeeds && !buyerNeeds && !iApproved;
+                const iAmReviewer = isPoster || isBuyer;
+                const canActOnThis = sellerNeeds || buyerNeeds;
+
+                return (
+                  <div key={req.id} className="courier-row">
+                    <div
+                      className="courier-avatar"
+                      style={{ background: TIER_COLORS[c.trust?.tier ?? 0] }}
+                    >
+                      {initialsOf(c.full_name || 'Courier')}
+                    </div>
+                    <div className="courier-info">
+                      <span className="courier-name">{c.full_name || 'Courier'}</span>
+                      <div className="courier-meta">
+                        {c.trust?.deliveries_completed_count != null && (
+                          <span className="courier-stat">
+                            <Icon name="truck" size={10} strokeWidth={2.4} />
+                            {c.trust.deliveries_completed_count} deliveries
+                          </span>
+                        )}
+                        {c.trust?.trust_score != null && (
+                          <span className="courier-stat">
+                            <Icon name="shield" size={10} strokeWidth={2.4} />
+                            {c.trust.trust_score}
+                          </span>
+                        )}
+                      </div>
+                      {req.note && <p className="courier-note">"{req.note}"</p>}
+                      {iApproved && (
+                        <span className="courier-approved-chip">
+                          <Icon name="check" size={10} strokeWidth={3} />
+                          You approved
+                        </span>
+                      )}
+                      {awaitingOther && (
+                        <span className="courier-waiting-chip">
+                          <Icon name="clock" size={10} strokeWidth={2.4} />
+                          Waiting for the other party
+                        </span>
+                      )}
+                    </div>
+
+                    {iAmReviewer && canActOnThis && (
+                      <div className="courier-actions">
+                        <button
+                          className="courier-btn reject"
+                          onClick={() => handleOpenReject(req.id, c.full_name || 'Courier')}
+                          disabled={mutating}
+                          aria-label="Reject"
+                        >
+                          <Icon name="x" size={14} strokeWidth={2.6} />
+                        </button>
+                        <button
+                          className="courier-btn approve"
+                          onClick={() => handleApproveCourier(req.id)}
+                          disabled={mutating}
+                          aria-label="Approve"
+                        >
+                          <Icon name="check" size={14} color="#FFFFFF" strokeWidth={2.6} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {isBuyer && !isPoster && (
+              <p className="panel-hint">
+                Both you and the poster must approve the same courier to assign them.
+              </p>
+            )}
+            {isPoster && delivery.buyer_id && (
+              <p className="panel-hint">
+                Both you and the buyer must approve the same courier to assign them.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Assigned courier card */}
         {courier && (
           <div className="party-card">
             <div className="party-avatar" style={{ background: TIER_COLORS[courier?.trust?.tier ?? 0] }}>
@@ -369,7 +549,7 @@ export default function DeliveryDetail() {
               <div className="party-trust">
                 {courier?.trust && (
                   <TrustBadge
-                    label={`${courier.trust.deliveriesCompletedCount || 0} deliveries`}
+                    label={`${courier.trust.deliveries_completed_count || 0} deliveries`}
                     color="#10B981"
                     size="sm"
                   />
@@ -382,7 +562,8 @@ export default function DeliveryDetail() {
         <div className="timeline">
           {[
             { key: 'created_at', label: 'Posted', icon: 'clock' },
-            { key: 'accepted_at', label: 'Accepted', icon: 'check' },
+            { key: 'courier_requested_at', label: 'Courier requested', icon: 'users' },
+            { key: 'accepted_at', label: 'Assigned', icon: 'check' },
             { key: 'picked_up_at', label: 'Picked up', icon: 'truck' },
             { key: 'delivered_at', label: 'Delivered', icon: 'check' },
             { key: 'confirmed_at', label: 'Confirmed', icon: 'check' },
@@ -413,14 +594,46 @@ export default function DeliveryDetail() {
           </div>
         )}
 
-        {/* Actions */}
-        {status === 'open' && !isPoster && (
+        {/* ============================== */}
+        {/* ACTION BUTTONS */}
+        {/* ============================== */}
+
+        {/* Courier sees "Request to deliver" if open */}
+        {status === 'open' && !isPoster && !isBuyer && (
           <button className="btn-primary btn-full" onClick={handleAccept} disabled={mutating}>
-            {mutating ? 'Accepting…' : 'Accept this delivery 🚚'}
+            {mutating ? 'Sending…' : 'Request to deliver 🚚'}
           </button>
         )}
 
-        {status === 'open' && isPoster && (
+        {/* Courier sees "Pending approval" banner if they have a pending request */}
+        {status === 'pending_approval' && delivery.my_pending_request_id && (
+          <>
+            <div className="info-card warning">
+              <Icon name="clock" size={16} color="#92400E" strokeWidth={2} />
+              <span>
+                Your request is pending. The poster
+                {delivery.buyer_id ? ' and buyer' : ''} must approve you.
+              </span>
+            </div>
+            <button
+              className="btn-secondary btn-full"
+              onClick={handleWithdraw}
+              disabled={mutating}
+            >
+              Withdraw request
+            </button>
+          </>
+        )}
+
+        {/* Courier sees "Request again" if they were rejected but the job is still open */}
+        {status === 'open' && delivery.can_request_again && (
+          <button className="btn-primary btn-full" onClick={handleAccept} disabled={mutating}>
+            Request to deliver again 🚚
+          </button>
+        )}
+
+        {/* Poster sees cancel while job is open or pending */}
+        {(status === 'open' || status === 'pending_approval') && isPoster && (
           <button
             className="btn-secondary btn-full"
             onClick={() => setConfirmCancelModal(true)}
@@ -430,6 +643,7 @@ export default function DeliveryDetail() {
           </button>
         )}
 
+        {/* Assigned courier progress */}
         {status === 'accepted' && isCourier && (
           <button className="btn-primary btn-full" onClick={handlePickup} disabled={mutating}>
             {mutating ? 'Updating…' : 'Mark as picked up 📦'}
@@ -484,7 +698,90 @@ export default function DeliveryDetail() {
         )}
       </div>
 
-      {/* Cancel confirm */}
+      {/* ===================== MODALS ===================== */}
+
+      {/* Request-to-deliver note modal */}
+      {showRequestModal && (
+        <div className="modal-overlay" onClick={() => !mutating && setShowRequestModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon-wrap approve">
+              <Icon name="truck" size={28} color="#10B981" strokeWidth={2.4} />
+            </div>
+            <h3 className="modal-title">Request to deliver?</h3>
+            <p className="modal-desc">
+              The poster {delivery.buyer_id ? 'and buyer ' : ''}will review your request.
+              You can add a short note (optional).
+            </p>
+            <textarea
+              className="modal-textarea"
+              value={requestNote}
+              onChange={(e) => setRequestNote(e.target.value.slice(0, 400))}
+              placeholder="e.g. I'm near the pickup point, can start now"
+              rows={3}
+              maxLength={400}
+              disabled={mutating}
+            />
+            <div className="modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => setShowRequestModal(false)}
+                disabled={mutating}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={handleSubmitRequest}
+                disabled={mutating}
+              >
+                {mutating ? 'Sending…' : 'Send request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject courier modal */}
+      {rejectTarget && (
+        <div className="modal-overlay" onClick={() => !mutating && setRejectTarget(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon-wrap reject">
+              <Icon name="x" size={28} color="#DC2626" strokeWidth={2.4} />
+            </div>
+            <h3 className="modal-title">Decline this courier?</h3>
+            <p className="modal-desc">
+              {rejectTarget.courierName} will be notified. Add an optional reason.
+            </p>
+            <input
+              type="text"
+              className="modal-input"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value.slice(0, 300))}
+              placeholder="Reason (optional)"
+              maxLength={300}
+              disabled={mutating}
+            />
+            <div className="modal-actions">
+              <button
+                className="btn-secondary"
+                onClick={() => setRejectTarget(null)}
+                disabled={mutating}
+              >
+                Keep
+              </button>
+              <button
+                className="btn-danger"
+                onClick={handleSubmitReject}
+                disabled={mutating}
+              >
+                {mutating ? 'Declining…' : 'Decline courier'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel job modal */}
       {confirmCancelModal && (
         <div className="modal-overlay" onClick={() => setConfirmCancelModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -495,7 +792,9 @@ export default function DeliveryDetail() {
             <p className="modal-desc">
               {delivery.courier_id
                 ? "Your courier will be notified. You can't undo this."
-                : "This job will be removed from the public board."}
+                : delivery.pending_courier_id
+                ? 'All pending courier requests will be declined.'
+                : 'This job will be removed from the public board.'}
             </p>
             <div className="modal-actions">
               <button
@@ -602,8 +901,35 @@ export default function DeliveryDetail() {
         .modal-desc {
           font-size: 13.5px;
           color: var(--color-text-secondary);
-          margin: 0 0 24px;
+          margin: 0 0 20px;
           line-height: 1.6;
+        }
+
+        .modal-input,
+        .modal-textarea {
+          width: 100%;
+          padding: 12px 14px;
+          border: 1.5px solid var(--color-border);
+          border-radius: var(--radius-lg);
+          background: var(--color-surface-alt);
+          font-size: 14.5px;
+          color: var(--color-text);
+          font-family: inherit;
+          outline: none;
+          margin-bottom: 20px;
+          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+          box-sizing: border-box;
+        }
+        .modal-input:focus,
+        .modal-textarea:focus {
+          border-color: var(--color-accent);
+          background: var(--color-surface);
+          box-shadow: 0 0 0 3px var(--color-accent-tint);
+        }
+        .modal-textarea {
+          resize: vertical;
+          min-height: 80px;
+          line-height: 1.5;
         }
 
         .modal-actions {
@@ -737,6 +1063,11 @@ const sharedStyles = `
   .courier-pill {
     background: #DBEAFE;
     color: #1E40AF;
+  }
+
+  .buyer-pill {
+    background: #FEF3C7;
+    color: #92400E;
   }
 
   .title {
@@ -937,6 +1268,184 @@ const sharedStyles = `
     cursor: not-allowed;
   }
 
+  /* ★ PHASE 3: Courier requests panel */
+  .courier-requests-panel {
+    background: var(--color-surface);
+    border: 1.5px solid var(--color-accent-tint);
+    border-radius: var(--radius-2xl);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title {
+    font-family: var(--font-serif);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
+  }
+
+  .courier-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .courier-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+  }
+
+  .courier-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #FFFFFF;
+    flex-shrink: 0;
+  }
+
+  .courier-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .courier-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+
+  .courier-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .courier-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+
+  .courier-note {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  .courier-approved-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 3px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #D1FAE5;
+    color: #065F46;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    align-self: flex-start;
+  }
+
+  .courier-waiting-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 3px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #FEF3C7;
+    color: #92400E;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    align-self: flex-start;
+  }
+
+  .courier-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .courier-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    border: 1.5px solid transparent;
+  }
+
+  .courier-btn.reject {
+    background: var(--color-surface);
+    border-color: var(--color-error);
+    color: var(--color-error);
+  }
+
+  .courier-btn.reject:hover:not(:disabled) {
+    background: var(--color-error-bg);
+    transform: scale(0.96);
+  }
+
+  .courier-btn.approve {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #FFFFFF;
+    box-shadow: var(--shadow-accent);
+  }
+
+  .courier-btn.approve:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    transform: scale(1.04);
+  }
+
+  .courier-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .panel-hint {
+    font-size: 11.5px;
+    color: var(--color-text-muted);
+    margin: 0;
+    padding-top: 4px;
+    border-top: 1px solid var(--color-border);
+    line-height: 1.4;
+  }
+
   .timeline {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -1128,6 +1637,7 @@ const sharedStyles = `
     .content { padding: 16px 12px; }
     .hero { padding: 16px; }
     .title { font-size: 20px; }
+    .courier-actions { flex-direction: column; }
   }
 
   @media (prefers-reduced-motion: reduce) {

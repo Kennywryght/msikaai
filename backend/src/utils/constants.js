@@ -83,16 +83,32 @@ export const REQUEST_STATUSES = {
 
 export const REQUEST_RESPONSE_STATUSES = {
   PENDING: 'pending',
+  NEGOTIATING: 'negotiating',
   ACCEPTED: 'accepted',
   REJECTED: 'rejected',
   WITHDRAWN: 'withdrawn',
 };
 
+export const PROPOSAL_STATUSES = {
+  PENDING: 'pending',
+  ACCEPTED: 'accepted',
+  DECLINED: 'declined',
+  SUPERSEDED: 'superseded',
+  WITHDRAWN: 'withdrawn',
+};
+
+export const PROPOSAL_KINDS = {
+  INITIAL: 'initial',
+  COUNTER: 'counter',
+};
+
 // ============================================
-// ★ PHASE 6A: DELIVERY
+// DELIVERY
+// ★ PHASE 3: added PENDING_APPROVAL
 // ============================================
 export const DELIVERY_STATUSES = {
   OPEN: 'open',
+  PENDING_APPROVAL: 'pending_approval',
   ACCEPTED: 'accepted',
   PICKED_UP: 'picked_up',
   DELIVERED: 'delivered',
@@ -101,7 +117,29 @@ export const DELIVERY_STATUSES = {
   EXPIRED: 'expired',
 };
 
-export const DELIVERY_ACTIVE_STATUSES = ['open', 'accepted', 'picked_up', 'delivered'];
+export const DELIVERY_ACTIVE_STATUSES = [
+  'open',
+  'pending_approval',
+  'accepted',
+  'picked_up',
+  'delivered',
+];
+
+// ★ PHASE 3: courier request states
+export const COURIER_REQUEST_STATUSES = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  WITHDRAWN: 'withdrawn',
+  AUTO_REJECTED: 'auto_rejected',
+};
+
+// ★ PHASE 3: per-side approval states
+export const DELIVERY_APPROVAL_STATUSES = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+};
 
 export const PACKAGE_SIZES = {
   SMALL: 'small',
@@ -139,8 +177,12 @@ export default {
   VERIFICATION_STATUSES,
   REQUEST_STATUSES,
   REQUEST_RESPONSE_STATUSES,
+  PROPOSAL_STATUSES,
+  PROPOSAL_KINDS,
   DELIVERY_STATUSES,
   DELIVERY_ACTIVE_STATUSES,
+  COURIER_REQUEST_STATUSES,
+  DELIVERY_APPROVAL_STATUSES,
   PACKAGE_SIZES,
   PACKAGE_SIZE_LABELS,
   DELIVERY_EXPIRY_HOURS,

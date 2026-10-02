@@ -25,7 +25,6 @@ class NotificationService {
         created_at: new Date().toISOString(),
       };
 
-      // Optional JSONB payload (best-effort — column may not exist)
       if (data) insertRow.data = data;
 
       const { data: inserted, error } = await supabase
@@ -178,7 +177,7 @@ class NotificationService {
   }
 
   // ============================================
-  // ★ PHASE 5K: REQUEST NOTIFICATIONS
+  // REQUEST NOTIFICATIONS
   // ============================================
   async notifyRequestResponse({
     requestOwnerId,
@@ -229,11 +228,34 @@ class NotificationService {
     }
   }
 
-  async notifyRequestFulfilled({
+  // ★ PHASE 2 ADDENDUM
+  async notifyResponseRejected({
     responderId,
     requestId,
     requestTitle,
+    reason = null,
   }) {
+    try {
+      const body = reason
+        ? `Your response to "${requestTitle}" was declined. Reason: ${reason}`
+        : `Your response to "${requestTitle}" was declined.`;
+
+      await this.createNotification(
+        responderId,
+        'request_rejected',
+        'Response declined',
+        body,
+        `/requests/${requestId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyResponseRejected error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  async notifyRequestFulfilled({ responderId, requestId, requestTitle }) {
     try {
       await this.createNotification(
         responderId,
@@ -251,19 +273,95 @@ class NotificationService {
   }
 
   // ============================================
-  // ★ PHASE 6J: DELIVERY NOTIFICATIONS
+  // NEGOTIATION NOTIFICATIONS
   // ============================================
-
-  /**
-   * Courier accepted a delivery job.
-   * Fires to the POSTER (the person who needs the delivery).
-   */
-  async notifyDeliveryAccepted({
-    posterId,
-    deliveryId,
-    deliveryTitle,
-    courierName,
+  async notifyCounterOfferReceived({
+    responderId,
+    requestId,
+    requestTitle,
+    ownerName,
+    counterPrice,
+    conversationId,
   }) {
+    try {
+      const priceStr = Number(counterPrice).toLocaleString();
+      await this.createNotification(
+        responderId,
+        'counter_offer',
+        'Counter offer received 💰',
+        `${ownerName || 'The request owner'} countered with MK ${priceStr} for "${requestTitle}".`,
+        conversationId ? `/chat/${conversationId}` : `/requests/${requestId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyCounterOfferReceived error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  async notifyProposalAccepted({
+    recipientId,
+    requestId,
+    requestTitle,
+    conversationId,
+    acceptedPrice,
+    accepterName,
+  }) {
+    try {
+      const priceStr = acceptedPrice ? Number(acceptedPrice).toLocaleString() : null;
+      const body = priceStr
+        ? `${accepterName || 'They'} accepted your offer of MK ${priceStr} for "${requestTitle}".`
+        : `${accepterName || 'They'} accepted your offer for "${requestTitle}".`;
+
+      await this.createNotification(
+        recipientId,
+        'proposal_accepted',
+        'Offer accepted 🎉',
+        body,
+        conversationId ? `/chat/${conversationId}` : `/requests/${requestId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyProposalAccepted error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  async notifyProposalDeclined({
+    recipientId,
+    requestId,
+    requestTitle,
+    conversationId,
+    declinedPrice,
+    declinerName,
+  }) {
+    try {
+      const priceStr = declinedPrice ? Number(declinedPrice).toLocaleString() : null;
+      const body = priceStr
+        ? `${declinerName || 'They'} declined your offer of MK ${priceStr} for "${requestTitle}".`
+        : `${declinerName || 'They'} declined your offer for "${requestTitle}".`;
+
+      await this.createNotification(
+        recipientId,
+        'proposal_declined',
+        'Offer declined',
+        body,
+        conversationId ? `/chat/${conversationId}` : `/requests/${requestId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyProposalDeclined error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  // ============================================
+  // DELIVERY NOTIFICATIONS (Phase 6J)
+  // ============================================
+  async notifyDeliveryAccepted({ posterId, deliveryId, deliveryTitle, courierName }) {
     try {
       await this.createNotification(
         posterId,
@@ -280,16 +378,7 @@ class NotificationService {
     }
   }
 
-  /**
-   * Courier marked the package picked up.
-   * Fires to the POSTER.
-   */
-  async notifyDeliveryPickedUp({
-    posterId,
-    deliveryId,
-    deliveryTitle,
-    courierName,
-  }) {
+  async notifyDeliveryPickedUp({ posterId, deliveryId, deliveryTitle, courierName }) {
     try {
       await this.createNotification(
         posterId,
@@ -306,16 +395,7 @@ class NotificationService {
     }
   }
 
-  /**
-   * Poster confirmed the delivery.
-   * Fires to the COURIER.
-   */
-  async notifyDeliveryConfirmed({
-    courierId,
-    deliveryId,
-    deliveryTitle,
-    posterName,
-  }) {
+  async notifyDeliveryConfirmed({ courierId, deliveryId, deliveryTitle, posterName }) {
     try {
       await this.createNotification(
         courierId,
@@ -328,6 +408,116 @@ class NotificationService {
       return { success: true };
     } catch (error) {
       console.error('notifyDeliveryConfirmed error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  // ============================================
+  // ★ PHASE 3: COURIER APPROVAL NOTIFICATIONS
+  // ============================================
+
+  /**
+   * Fires to the seller + buyer when a courier requests a job.
+   * Called once per reviewer (they each get their own row).
+   */
+  async notifyCourierRequestReceived({
+    reviewerId,
+    deliveryId,
+    deliveryTitle,
+    courierName,
+    isBuyer = false,
+  }) {
+    try {
+      const role = isBuyer ? 'buyer' : 'seller';
+      await this.createNotification(
+        reviewerId,
+        'courier_request',
+        `New courier request (${role})`,
+        `${courierName || 'A courier'} wants to deliver "${deliveryTitle}". Review their request.`,
+        `/deliveries/${deliveryId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyCourierRequestReceived error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  /**
+   * Fires to the courier when their request is approved and they become assigned.
+   */
+  async notifyCourierApproved({
+    courierId,
+    deliveryId,
+    deliveryTitle,
+    approvedBy,
+  }) {
+    try {
+      await this.createNotification(
+        courierId,
+        'courier_approved',
+        'You got the job! 🎉',
+        `Your request for "${deliveryTitle}" was approved. Head to pickup.`,
+        `/deliveries/${deliveryId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyCourierApproved error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  /**
+   * Fires to the courier when their request is rejected.
+   */
+  async notifyCourierRejected({
+    courierId,
+    deliveryId,
+    deliveryTitle,
+    reason = null,
+  }) {
+    try {
+      const body = reason
+        ? `Your request for "${deliveryTitle}" was declined. Reason: ${reason}`
+        : `Your request for "${deliveryTitle}" was declined.`;
+
+      await this.createNotification(
+        courierId,
+        'courier_rejected',
+        'Courier request declined',
+        body,
+        `/deliveries/${deliveryId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyCourierRejected error:', error?.message || error);
+      return { success: false, error: error?.message };
+    }
+  }
+
+  /**
+   * Fires to a courier whose request was auto-rejected because someone else got the job.
+   */
+  async notifyCourierRequestAutoRejected({
+    courierId,
+    deliveryId,
+    deliveryTitle,
+  }) {
+    try {
+      await this.createNotification(
+        courierId,
+        'courier_auto_rejected',
+        'Job taken by another courier',
+        `"${deliveryTitle}" was assigned to another courier. Check other jobs on the board.`,
+        `/deliveries/${deliveryId}`
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error('notifyCourierRequestAutoRejected error:', error?.message || error);
       return { success: false, error: error?.message };
     }
   }

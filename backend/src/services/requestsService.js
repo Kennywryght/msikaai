@@ -15,6 +15,8 @@ import {
   incrementFulfilledRequests,
 } from './trustScoreService.js';
 import notificationService from './notificationService.js';
+import { reverseGeocode } from './geocodingService.js';
+import dbService from './dbService.js';
 
 // ============================================
 // CONSTANTS
@@ -40,6 +42,12 @@ const parseAmount = (value) => {
   const n = parseFloat(value);
   if (Number.isNaN(n) || n < 0) return null;
   return n;
+};
+
+const sanitizeRequest = (row) => {
+  if (!row) return row;
+  const { locationLat, locationLng, ...rest } = row;
+  return rest;
 };
 
 const enrichRequest = async (request, { includeAuthor = true } = {}) => {
@@ -73,12 +81,10 @@ const enrichRequest = async (request, { includeAuthor = true } = {}) => {
       .where(eq(trustScores.userId, request.userId))
       .limit(1);
 
-    author = profileRow
-      ? { ...profileRow, trust: trustRow || null }
-      : null;
+    author = profileRow ? { ...profileRow, trust: trustRow || null } : null;
   }
 
-  return { ...request, author };
+  return { ...sanitizeRequest(request), author };
 };
 
 const effectiveStatus = (row) => {
@@ -93,7 +99,6 @@ const effectiveStatus = (row) => {
   return row.status;
 };
 
-// Small helper: fetch a user's display name
 const getUserDisplayName = async (userId) => {
   try {
     const [row] = await db
@@ -163,6 +168,18 @@ export const createRequest = async (userId, data) => {
     ? urgency
     : 'medium';
 
+  let resolvedName = (locationArea || '').trim() || null;
+
+  if (!resolvedName && locationLat != null && locationLng != null) {
+    try {
+      resolvedName = await reverseGeocode(locationLat, locationLng);
+    } catch (err) {
+      logger.warn('reverseGeocode failed on createRequest', {
+        error: err?.message || err,
+      });
+    }
+  }
+
   const [created] = await db
     .insert(requests)
     .values({
@@ -170,6 +187,7 @@ export const createRequest = async (userId, data) => {
       title: cleanTitle,
       description: cleanDescription || null,
       category: category || 'Other',
+      locationName: resolvedName,
       locationArea: locationArea || null,
       locationLat: locationLat != null ? String(locationLat) : null,
       locationLng: locationLng != null ? String(locationLng) : null,
@@ -235,10 +253,7 @@ export const listRequests = async (filters = {}) => {
   if (search && typeof search === 'string' && search.trim()) {
     const term = `%${search.trim()}%`;
     conditions.push(
-      or(
-        ilike(requests.title, term),
-        ilike(requests.description, term)
-      )
+      or(ilike(requests.title, term), ilike(requests.description, term))
     );
   }
 
@@ -309,7 +324,7 @@ export const listRequests = async (filters = {}) => {
   }
 
   const enriched = rows.map((r) => ({
-    ...r,
+    ...sanitizeRequest(r),
     author: authorMap[r.userId]
       ? { ...authorMap[r.userId], trust: trustMap[r.userId] || null }
       : null,
@@ -388,7 +403,11 @@ export const getRequestById = async (requestId, { includeResponses = true } = {}
       : null,
   }));
 
-  return { ...enriched, effectiveStatus: effectiveStatus(enriched), responses };
+  return {
+    ...sanitizeRequest(enriched),
+    effectiveStatus: effectiveStatus(enriched),
+    responses,
+  };
 };
 
 // ============================================
@@ -455,13 +474,43 @@ export const respondToRequest = async (userId, requestId, data) => {
     })
     .where(eq(requests.id, requestId));
 
+  if (offeredPriceNum != null) {
+    try {
+      const conversation = await dbService.findOrCreateConversation(
+        request.userId,
+        userId,
+        null
+      );
+
+      await db
+        .update(requestResponses)
+        .set({ conversationId: conversation.id, updatedAt: new Date() })
+        .where(eq(requestResponses.id, created.id));
+
+      await dbService.sendMessage(conversation.id, userId, {
+        text: cleanMessage,
+        type: 'text',
+        proposedPrice: offeredPriceNum,
+        proposalKind: 'initial',
+        proposalStatus: 'pending',
+      });
+
+      created.conversationId = conversation.id;
+    } catch (err) {
+      logger.warn('Failed to seed initial proposal', {
+        requestId,
+        responderId: userId,
+        error: err?.message || err,
+      });
+    }
+  }
+
   try {
     await incrementResponses(userId);
   } catch (err) {
     logger.warn('incrementResponses failed', { userId, error: err.message });
   }
 
-  // ★ PHASE 5K: notify the request owner
   try {
     const responderName = await getUserDisplayName(userId);
     await notificationService.notifyRequestResponse({
@@ -494,7 +543,7 @@ export const withdrawResponse = async (userId, responseId) => {
 
   if (!row) throw new Error('Response not found');
   if (row.responderId !== userId) throw new Error('Not your response');
-  if (row.status !== 'pending') {
+  if (row.status !== 'pending' && row.status !== 'negotiating') {
     throw new Error(`Cannot withdraw a response that is ${row.status}`);
   }
 
@@ -507,6 +556,17 @@ export const withdrawResponse = async (userId, responseId) => {
     })
     .where(eq(requestResponses.id, responseId))
     .returning();
+
+  if (row.conversationId) {
+    try {
+      await dbService.supersedeProposals(row.conversationId);
+    } catch (err) {
+      logger.warn('Failed to supersede proposals on withdraw', {
+        responseId,
+        error: err?.message || err,
+      });
+    }
+  }
 
   await db
     .update(requests)
@@ -541,38 +601,40 @@ export const acceptResponse = async (userId, requestId, responseId) => {
 
   if (!response) throw new Error('Response not found');
   if (response.requestId !== requestId) throw new Error('Response does not belong to this request');
-  if (response.status !== 'pending') {
+  if (response.status !== 'pending' && response.status !== 'negotiating') {
     throw new Error(`This response is already ${response.status}`);
   }
 
   const [p1, p2] = [userId, response.responderId].sort();
 
-  let conversationId = null;
+  let conversationId = response.conversationId;
 
-  const existingConvo = await db
-    .select()
-    .from(conversations)
-    .where(
-      and(
-        eq(conversations.participantOneId, p1),
-        eq(conversations.participantTwoId, p2)
+  if (!conversationId) {
+    const existingConvo = await db
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.participantOneId, p1),
+          eq(conversations.participantTwoId, p2)
+        )
       )
-    )
-    .limit(1);
+      .limit(1);
 
-  if (existingConvo.length > 0) {
-    conversationId = existingConvo[0].id;
-  } else {
-    const [created] = await db
-      .insert(conversations)
-      .values({
-        participantOneId: p1,
-        participantTwoId: p2,
-        lastMessageText: null,
-        lastMessageAt: new Date(),
-      })
-      .returning();
-    conversationId = created.id;
+    if (existingConvo.length > 0) {
+      conversationId = existingConvo[0].id;
+    } else {
+      const [createdConvo] = await db
+        .insert(conversations)
+        .values({
+          participantOneId: p1,
+          participantTwoId: p2,
+          lastMessageText: null,
+          lastMessageAt: new Date(),
+        })
+        .returning();
+      conversationId = createdConvo.id;
+    }
   }
 
   const [updated] = await db
@@ -596,7 +658,7 @@ export const acceptResponse = async (userId, requestId, responseId) => {
     .where(
       and(
         eq(requestResponses.requestId, requestId),
-        eq(requestResponses.status, 'pending'),
+        inArray(requestResponses.status, ['pending', 'negotiating']),
         sql`${requestResponses.id} <> ${responseId}`
       )
     );
@@ -610,6 +672,20 @@ export const acceptResponse = async (userId, requestId, responseId) => {
     .where(eq(requests.id, requestId));
 
   try {
+    const pendingProposal = await dbService.getLatestPendingProposal(conversationId);
+    if (pendingProposal) {
+      await dbService.supersedeProposals(conversationId, pendingProposal.id);
+      await dbService.updateProposalStatus(pendingProposal.id, 'accepted');
+    }
+  } catch (err) {
+    logger.warn('Failed to update proposal status on accept', {
+      requestId,
+      responseId,
+      error: err?.message || err,
+    });
+  }
+
+  try {
     await db.insert(messages).values({
       conversationId,
       senderId: userId,
@@ -620,7 +696,6 @@ export const acceptResponse = async (userId, requestId, responseId) => {
     logger.warn('Failed to seed system message', { error: err.message });
   }
 
-  // ★ PHASE 5K: notify the responder
   try {
     await notificationService.notifyResponseAccepted({
       responderId: response.responderId,
@@ -641,6 +716,190 @@ export const acceptResponse = async (userId, requestId, responseId) => {
 };
 
 // ============================================
+// ★ PHASE 2 ADDENDUM: REJECT RESPONSE
+// ============================================
+export const rejectResponse = async (userId, requestId, responseId, reason = null) => {
+  const [request] = await db
+    .select()
+    .from(requests)
+    .where(eq(requests.id, requestId))
+    .limit(1);
+
+  if (!request) throw new Error('Request not found');
+  if (request.userId !== userId) throw new Error('Only the request owner can reject');
+
+  const [response] = await db
+    .select()
+    .from(requestResponses)
+    .where(eq(requestResponses.id, responseId))
+    .limit(1);
+
+  if (!response) throw new Error('Response not found');
+  if (response.requestId !== requestId) {
+    throw new Error('Response does not belong to this request');
+  }
+  if (response.status === 'accepted') {
+    throw new Error('Cannot reject an already accepted response');
+  }
+  if (response.status === 'rejected') {
+    return response;
+  }
+
+  const [updated] = await db
+    .update(requestResponses)
+    .set({
+      status: 'rejected',
+      rejectedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(requestResponses.id, responseId))
+    .returning();
+
+  if (response.conversationId) {
+    try {
+      await dbService.supersedeProposals(response.conversationId);
+    } catch (err) {
+      logger.warn('Failed to supersede proposals on reject', {
+        responseId,
+        error: err?.message || err,
+      });
+    }
+  }
+
+  try {
+    await notificationService.notifyResponseRejected({
+      responderId: response.responderId,
+      requestId,
+      requestTitle: request.title,
+      reason: reason || null,
+    });
+  } catch (err) {
+    logger.warn('notifyResponseRejected failed', {
+      requestId,
+      responseId,
+      error: err?.message || err,
+    });
+  }
+
+  logger.info('Response rejected', { requestId, responseId, userId });
+  return updated;
+};
+
+// ============================================
+// NEGOTIATE
+// ============================================
+export const negotiateResponse = async (userId, requestId, responseId, data) => {
+  const { counterPrice, counterMessage } = data || {};
+
+  const [request] = await db
+    .select()
+    .from(requests)
+    .where(eq(requests.id, requestId))
+    .limit(1);
+
+  if (!request) throw new Error('Request not found');
+  if (request.userId !== userId) throw new Error('Only the request owner can negotiate');
+
+  const [response] = await db
+    .select()
+    .from(requestResponses)
+    .where(eq(requestResponses.id, responseId))
+    .limit(1);
+
+  if (!response) throw new Error('Response not found');
+  if (response.requestId !== requestId) {
+    throw new Error('Response does not belong to this request');
+  }
+  if (response.status !== 'pending' && response.status !== 'negotiating') {
+    throw new Error(`Cannot negotiate — this response is already ${response.status}`);
+  }
+
+  const priceNum = parseAmount(counterPrice);
+  if (priceNum == null || priceNum <= 0) {
+    throw new Error('A valid counter price is required');
+  }
+
+  const cleanMessage = (counterMessage || '').trim().slice(0, MAX_MESSAGE_LENGTH);
+
+  const [p1, p2] = [userId, response.responderId].sort();
+
+  let conversationId = response.conversationId;
+  if (!conversationId) {
+    const existingConvo = await db
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.participantOneId, p1),
+          eq(conversations.participantTwoId, p2)
+        )
+      )
+      .limit(1);
+
+    if (existingConvo.length > 0) {
+      conversationId = existingConvo[0].id;
+    } else {
+      const [createdConvo] = await db
+        .insert(conversations)
+        .values({
+          participantOneId: p1,
+          participantTwoId: p2,
+          lastMessageText: null,
+          lastMessageAt: new Date(),
+        })
+        .returning();
+      conversationId = createdConvo.id;
+    }
+  }
+
+  await db
+    .update(requestResponses)
+    .set({
+      status: 'negotiating',
+      conversationId,
+      updatedAt: new Date(),
+    })
+    .where(eq(requestResponses.id, responseId));
+
+  await dbService.supersedeProposals(conversationId);
+
+  const message = await dbService.sendMessage(conversationId, userId, {
+    text: cleanMessage || `Counter offer: MK ${priceNum.toLocaleString()}`,
+    type: 'text',
+    proposedPrice: priceNum,
+    proposalKind: 'counter',
+    proposalStatus: 'pending',
+  });
+
+  try {
+    const ownerName = await getUserDisplayName(userId);
+    await notificationService.notifyCounterOfferReceived({
+      responderId: response.responderId,
+      requestId,
+      requestTitle: request.title,
+      ownerName,
+      counterPrice: priceNum,
+      conversationId,
+    });
+  } catch (err) {
+    logger.warn('notifyCounterOfferReceived failed', {
+      requestId,
+      responseId,
+      error: err?.message || err,
+    });
+  }
+
+  logger.info('Counter offer sent', {
+    requestId,
+    responseId,
+    conversationId,
+    counterPrice: priceNum,
+  });
+
+  return { response, message, conversationId };
+};
+
+// ============================================
 // FULFILL
 // ============================================
 export const markFulfilled = async (userId, requestId) => {
@@ -653,12 +912,8 @@ export const markFulfilled = async (userId, requestId) => {
   if (!request) throw new Error('Request not found');
   if (request.userId !== userId) throw new Error('Only the owner can mark this fulfilled');
 
-  if (request.status === 'fulfilled') {
-    return request;
-  }
-  if (request.status === 'cancelled') {
-    throw new Error('Request is cancelled');
-  }
+  if (request.status === 'fulfilled') return request;
+  if (request.status === 'cancelled') throw new Error('Request is cancelled');
 
   const [updated] = await db
     .update(requests)
@@ -684,7 +939,6 @@ export const markFulfilled = async (userId, requestId) => {
   if (acceptedRows.length > 0) {
     const responderId = acceptedRows[0].responderId;
 
-    // Trust score bump
     try {
       await incrementFulfilledRequests(responderId);
     } catch (err) {
@@ -694,7 +948,6 @@ export const markFulfilled = async (userId, requestId) => {
       });
     }
 
-    // ★ PHASE 5K: notify the responder
     try {
       await notificationService.notifyRequestFulfilled({
         responderId,
@@ -727,12 +980,8 @@ export const cancelRequest = async (userId, requestId) => {
   if (!request) throw new Error('Request not found');
   if (request.userId !== userId) throw new Error('Only the owner can cancel');
 
-  if (request.status === 'fulfilled') {
-    throw new Error('Cannot cancel a fulfilled request');
-  }
-  if (request.status === 'cancelled') {
-    return request;
-  }
+  if (request.status === 'fulfilled') throw new Error('Cannot cancel a fulfilled request');
+  if (request.status === 'cancelled') return request;
 
   const [updated] = await db
     .update(requests)
@@ -794,6 +1043,8 @@ export default {
   respondToRequest,
   withdrawResponse,
   acceptResponse,
+  rejectResponse,
+  negotiateResponse,
   markFulfilled,
   cancelRequest,
   expireStaleRequests,

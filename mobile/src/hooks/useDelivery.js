@@ -58,10 +58,53 @@ export function useDelivery(id) {
     }
   };
 
-  const accept = useCallback(() => {
-    if (!id) return null;
-    return run(() => deliveriesAPI.accept(id));
+  // ★ PHASE 3: request to deliver (competitive)
+  const accept = useCallback(
+    (note = null) => {
+      if (!id) return null;
+      return run(() => deliveriesAPI.accept(id, note));
+    },
+    [id]
+  );
+
+  // ★ PHASE 3: list courier requests
+  const loadCourierRequests = useCallback(async () => {
+    if (!id) return [];
+    try {
+      const res = await deliveriesAPI.courierRequests(id);
+      return res?.data?.courierRequests || [];
+    } catch (err) {
+      console.warn('Failed to load courier requests:', err?.message);
+      return [];
+    }
   }, [id]);
+
+  // ★ PHASE 3: approve a specific courier request
+  const approveCourier = useCallback(
+    (courierRequestId, reason = null) => {
+      if (!id) return null;
+      return run(() => deliveriesAPI.approveCourier(id, courierRequestId, reason));
+    },
+    [id]
+  );
+
+  // ★ PHASE 3: reject a specific courier request
+  const rejectCourier = useCallback(
+    (courierRequestId, reason = null) => {
+      if (!id) return null;
+      return run(() => deliveriesAPI.rejectCourier(id, courierRequestId, reason));
+    },
+    [id]
+  );
+
+  // ★ PHASE 3: withdraw my own request
+  const withdrawRequest = useCallback(
+    (courierRequestId) => {
+      if (!id) return null;
+      return run(() => deliveriesAPI.withdrawCourierRequest(id, courierRequestId));
+    },
+    [id]
+  );
 
   const markPickedUp = useCallback(() => {
     if (!id) return null;
@@ -78,14 +121,17 @@ export function useDelivery(id) {
     return run(() => deliveriesAPI.confirm(id));
   }, [id]);
 
-  const cancel = useCallback((reason) => {
-    if (!id) return null;
-    setMutating(true);
-    return deliveriesAPI
-      .remove(id, reason)
-      .then((result) => result)
-      .finally(() => setMutating(false));
-  }, [id]);
+  const cancel = useCallback(
+    (reason) => {
+      if (!id) return null;
+      setMutating(true);
+      return deliveriesAPI
+        .remove(id, reason)
+        .then((result) => result)
+        .finally(() => setMutating(false));
+    },
+    [id]
+  );
 
   return {
     delivery,
@@ -94,6 +140,10 @@ export function useDelivery(id) {
     mutating,
     refresh: load,
     accept,
+    loadCourierRequests,
+    approveCourier,
+    rejectCourier,
+    withdrawRequest,
     markPickedUp,
     markDelivered,
     confirm,

@@ -49,16 +49,19 @@ export const requestStatusEnum = pgEnum('request_status', [
   'cancelled',
 ]);
 
+// ★ PHASE 2: added 'negotiating'
 export const requestResponseStatusEnum = pgEnum('request_response_status', [
   'pending',
+  'negotiating',
   'accepted',
   'rejected',
   'withdrawn',
 ]);
 
-// ★ PHASE 6A: delivery enums
+// ★ PHASE 3: added 'pending_approval'
 export const deliveryStatusEnum = pgEnum('delivery_status', [
   'open',
+  'pending_approval',
   'accepted',
   'picked_up',
   'delivered',
@@ -72,6 +75,22 @@ export const packageSizeEnum = pgEnum('package_size', [
   'medium',
   'large',
   'bulky',
+]);
+
+// ★ PHASE 3: approval state per side
+export const deliveryApprovalStatusEnum = pgEnum('delivery_approval_status', [
+  'pending',
+  'approved',
+  'rejected',
+]);
+
+// ★ PHASE 3: courier request state
+export const courierRequestStatusEnum = pgEnum('courier_request_status', [
+  'pending',
+  'approved',
+  'rejected',
+  'withdrawn',
+  'auto_rejected',
 ]);
 
 // ============================================
@@ -221,6 +240,7 @@ export const requests = pgTable('requests', {
   description: text('description'),
   category: text('category').default('Other'),
 
+  locationName: text('location_name'),
   locationArea: text('location_area'),
   locationLat: decimal('location_lat', { precision: 10, scale: 8 }),
   locationLng: decimal('location_lng', { precision: 11, scale: 8 }),
@@ -286,22 +306,20 @@ export const requestResponses = pgTable('request_responses', {
 }));
 
 // ============================================
-// ★ PHASE 6A: DELIVERY JOBS
+// DELIVERY JOBS
+// ★ PHASE 3: added pending_approval support + approval tracking
 // ============================================
 export const deliveryJobs = pgTable('delivery_jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
 
-  // Poster (the person who needs a delivery)
   posterId: uuid('poster_id')
     .notNull()
     .references(() => profiles.id, { onDelete: 'cascade' }),
 
-  // Courier (assigned when accepted)
   courierId: uuid('courier_id').references(() => profiles.id, {
     onDelete: 'set null',
   }),
 
-  // Optional links back to requests / listings / conversations
   requestId: uuid('request_id').references(() => requests.id, {
     onDelete: 'set null',
   }),
@@ -309,32 +327,36 @@ export const deliveryJobs = pgTable('delivery_jobs', {
     onDelete: 'set null',
   }),
 
-  // Content
   title: text('title').notNull(),
   description: text('description'),
   packageSize: packageSizeEnum('package_size').default('medium').notNull(),
 
-  // Pickup
   pickupLocation: text('pickup_location').notNull(),
   pickupLat: decimal('pickup_lat', { precision: 10, scale: 8 }),
   pickupLng: decimal('pickup_lng', { precision: 11, scale: 8 }),
   pickupContactName: text('pickup_contact_name'),
   pickupContactPhone: text('pickup_contact_phone'),
 
-  // Dropoff
   dropoffLocation: text('dropoff_location').notNull(),
   dropoffLat: decimal('dropoff_lat', { precision: 10, scale: 8 }),
   dropoffLng: decimal('dropoff_lng', { precision: 11, scale: 8 }),
   dropoffContactName: text('dropoff_contact_name'),
   dropoffContactPhone: text('dropoff_contact_phone'),
 
-  // Fee (off-platform settlement — informational only)
   courierFee: decimal('courier_fee', { precision: 10, scale: 2 }),
 
-  // Status
   status: deliveryStatusEnum('status').default('open').notNull(),
 
-  // Lifecycle timestamps
+  // ★ PHASE 3: approvals for the currently-pending courier
+  pendingCourierId: uuid('pending_courier_id').references(() => profiles.id, {
+    onDelete: 'set null',
+  }),
+  sellerApprovalStatus: deliveryApprovalStatusEnum('seller_approval_status'),
+  buyerApprovalStatus: deliveryApprovalStatusEnum('buyer_approval_status'),
+  sellerApprovedAt: timestamp('seller_approved_at'),
+  buyerApprovedAt: timestamp('buyer_approved_at'),
+  courierRequestedAt: timestamp('courier_requested_at'),
+
   expiresAt: timestamp('expires_at'),
   acceptedAt: timestamp('accepted_at'),
   pickedUpAt: timestamp('picked_up_at'),
@@ -342,7 +364,6 @@ export const deliveryJobs = pgTable('delivery_jobs', {
   confirmedAt: timestamp('confirmed_at'),
   cancelledAt: timestamp('cancelled_at'),
 
-  // Optional: cancellation reason
   cancelReason: text('cancel_reason'),
 
   createdAt: timestamp('created_at').defaultNow(),
@@ -354,6 +375,49 @@ export const deliveryJobs = pgTable('delivery_jobs', {
   createdIdx: index('delivery_jobs_created_idx').on(table.createdAt),
   expiresIdx: index('delivery_jobs_expires_idx').on(table.expiresAt),
   packageSizeIdx: index('delivery_jobs_package_size_idx').on(table.packageSize),
+  pendingCourierIdx: index('delivery_jobs_pending_courier_idx').on(table.pendingCourierId),
+}));
+
+// ============================================
+// ★ PHASE 3: DELIVERY COURIER REQUESTS
+// One row per courier that has asked to take a job.
+// Multiple can be pending simultaneously (competitive model).
+// ============================================
+export const deliveryCourierRequests = pgTable('delivery_courier_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  deliveryId: uuid('delivery_id')
+    .notNull()
+    .references(() => deliveryJobs.id, { onDelete: 'cascade' }),
+  courierId: uuid('courier_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+
+  status: courierRequestStatusEnum('status').default('pending').notNull(),
+
+  // Optional message from courier when requesting
+  note: text('note'),
+
+  // Reason shown to courier when rejected
+  rejectionReason: text('rejection_reason'),
+
+  reviewedBySellerId: uuid('reviewed_by_seller_id').references(() => profiles.id, {
+    onDelete: 'set null',
+  }),
+  reviewedByBuyerId: uuid('reviewed_by_buyer_id').references(() => profiles.id, {
+    onDelete: 'set null',
+  }),
+  sellerReviewedAt: timestamp('seller_reviewed_at'),
+  buyerReviewedAt: timestamp('buyer_reviewed_at'),
+
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  uniqueCourierRequestIdx: uniqueIndex('delivery_courier_requests_unique_idx')
+    .on(table.deliveryId, table.courierId),
+  deliveryStatusIdx: index('delivery_courier_requests_delivery_idx')
+    .on(table.deliveryId, table.status),
+  courierIdx: index('delivery_courier_requests_courier_idx')
+    .on(table.courierId, table.createdAt),
 }));
 
 // ============================================
@@ -442,6 +506,7 @@ export const conversations = pgTable('conversations', {
 
 // ============================================
 // MESSAGES
+// ★ PHASE 2: negotiation proposal columns
 // ============================================
 export const messages = pgTable('messages', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -458,12 +523,17 @@ export const messages = pgTable('messages', {
   audioUrl: text('audio_url'),
   durationMs: integer('duration_ms'),
 
+  proposedPrice: decimal('proposed_price', { precision: 10, scale: 2 }),
+  proposalKind: text('proposal_kind'),
+  proposalStatus: text('proposal_status'),
+
   readAt: timestamp('read_at'),
   deliveredAt: timestamp('delivered_at').defaultNow(),
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => ({
   conversationIdx: index('messages_conversation_idx')
     .on(table.conversationId, table.createdAt),
+  proposalStatusIdx: index('messages_proposal_status_idx').on(table.proposalStatus),
 }));
 
 // ============================================
@@ -528,7 +598,6 @@ export const trustScores = pgTable('trust_scores', {
   premiumPurchases: integer('premium_purchases').default(0).notNull(),
   fulfilledRequestsCount: integer('fulfilled_requests_count').default(0).notNull(),
 
-  // ★ PHASE 6A: deliveries completed counter
   deliveriesCompletedCount: integer('deliveries_completed_count').default(0).notNull(),
 
   averageRating: decimal('average_rating', { precision: 3, scale: 2 })
@@ -611,9 +680,11 @@ export const profilesRelations = relations(profiles, ({ many, one }) => ({
   requests: many(requests),
   requestResponses: many(requestResponses),
 
-  // ★ PHASE 6A: delivery relations
   deliveryJobsPosted: many(deliveryJobs, { relationName: 'deliveryPoster' }),
   deliveryJobsTaken: many(deliveryJobs, { relationName: 'deliveryCourier' }),
+
+  // ★ PHASE 3
+  deliveryCourierRequests: many(deliveryCourierRequests),
 }));
 
 export const businessesRelations = relations(businesses, ({ one, many }) => ({
@@ -796,8 +867,7 @@ export const requestResponsesRelations = relations(requestResponses, ({ one }) =
   }),
 }));
 
-// ★ PHASE 6A relations
-export const deliveryJobsRelations = relations(deliveryJobs, ({ one }) => ({
+export const deliveryJobsRelations = relations(deliveryJobs, ({ one, many }) => ({
   poster: one(profiles, {
     fields: [deliveryJobs.posterId],
     references: [profiles.id],
@@ -808,6 +878,11 @@ export const deliveryJobsRelations = relations(deliveryJobs, ({ one }) => ({
     references: [profiles.id],
     relationName: 'deliveryCourier',
   }),
+  pendingCourier: one(profiles, {
+    fields: [deliveryJobs.pendingCourierId],
+    references: [profiles.id],
+    relationName: 'deliveryPendingCourier',
+  }),
   request: one(requests, {
     fields: [deliveryJobs.requestId],
     references: [requests.id],
@@ -816,7 +891,34 @@ export const deliveryJobsRelations = relations(deliveryJobs, ({ one }) => ({
     fields: [deliveryJobs.conversationId],
     references: [conversations.id],
   }),
+  // ★ PHASE 3
+  courierRequests: many(deliveryCourierRequests),
 }));
+
+// ★ PHASE 3
+export const deliveryCourierRequestsRelations = relations(
+  deliveryCourierRequests,
+  ({ one }) => ({
+    delivery: one(deliveryJobs, {
+      fields: [deliveryCourierRequests.deliveryId],
+      references: [deliveryJobs.id],
+    }),
+    courier: one(profiles, {
+      fields: [deliveryCourierRequests.courierId],
+      references: [profiles.id],
+    }),
+    reviewedBySeller: one(profiles, {
+      fields: [deliveryCourierRequests.reviewedBySellerId],
+      references: [profiles.id],
+      relationName: 'courierRequestSellerReviewer',
+    }),
+    reviewedByBuyer: one(profiles, {
+      fields: [deliveryCourierRequests.reviewedByBuyerId],
+      references: [profiles.id],
+      relationName: 'courierRequestBuyerReviewer',
+    }),
+  })
+);
 
 // ============================================
 // EXPORTS
@@ -842,4 +944,5 @@ export default {
   requests,
   requestResponses,
   deliveryJobs,
+  deliveryCourierRequests,
 };

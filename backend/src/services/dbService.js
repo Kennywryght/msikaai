@@ -1,7 +1,7 @@
 // backend/src/services/dbService.js
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
-import { eq, and, or, ilike, desc, asc, sql, count, like, inArray } from 'drizzle-orm';
+import { eq, and, or, ilike, desc, asc, sql, count, like, inArray, ne } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
 
 class DBService {
@@ -161,10 +161,6 @@ class DBService {
     }
   }
 
-  /**
-   * Fetches a single listing AND its business (with user_id) in one call.
-   * Useful for ListingDetails where we need to know the seller.
-   */
   async getListingWithBusiness(id) {
     try {
       const rows = await this.db
@@ -650,10 +646,6 @@ class DBService {
   // MESSAGING (conversations + messages)
   // ============================================
 
-  /**
-   * Find or create a conversation between two users.
-   * Normalizes participant order so the unique index is consistent.
-   */
   async findOrCreateConversation(userAId, userBId, listingId = null) {
     try {
       const [p1, p2] = [userAId, userBId].sort();
@@ -692,9 +684,6 @@ class DBService {
     }
   }
 
-  /**
-   * Get all conversations for a user, with the other participant's profile.
-   */
   async getUserConversations(userId, params = {}) {
     try {
       const { limit = 50, offset = 0 } = params;
@@ -737,11 +726,6 @@ class DBService {
     }
   }
 
-  /**
-   * Get messages inside a conversation.
-   * Uses .select() with no column filter, so all columns (including
-   * audio_url and duration_ms) come back automatically.
-   */
   async getConversationMessages(conversationId, params = {}) {
     try {
       const { limit = 100, offset = 0 } = params;
@@ -762,19 +746,21 @@ class DBService {
   }
 
   /**
-   * Insert a message, update the conversation's last-message fields,
-   * and bump the recipient's unread count.
-   *
-   * Now supports: text, imageUrl, audioUrl, durationMs.
+   * ★ PHASE 2: extended to accept proposal fields.
+   * Normal messages leave proposal fields null.
    */
   async sendMessage(conversationId, senderId, content) {
     try {
       const {
         text,
         imageUrl,
-        audioUrl,      // ★ NEW
-        durationMs,    // ★ NEW
+        audioUrl,
+        durationMs,
         type = 'text',
+        // ★ PHASE 2:
+        proposedPrice = null,
+        proposalKind = null,
+        proposalStatus = null,
       } = content;
 
       const inserted = await this.db
@@ -784,9 +770,12 @@ class DBService {
           senderId,
           text: text || null,
           imageUrl: imageUrl || null,
-          audioUrl: audioUrl || null,        // ★ NEW
-          durationMs: durationMs || null,    // ★ NEW
+          audioUrl: audioUrl || null,
+          durationMs: durationMs || null,
           type,
+          proposedPrice: proposedPrice != null ? String(proposedPrice) : null,
+          proposalKind: proposalKind || null,
+          proposalStatus: proposalStatus || null,
         })
         .returning();
 
@@ -803,14 +792,21 @@ class DBService {
       const c = conversation[0];
       const isSenderP1 = c.participantOneId === senderId;
 
-      // Preview text shown in the conversation list — audio gets a speaker emoji
-      const previewText = text
-        ? text
-        : imageUrl
-        ? '[image]'
-        : audioUrl
-        ? '[voice message]'
-        : '';
+      // Preview text — proposals get a special preview
+      let previewText;
+      if (proposedPrice != null) {
+        previewText = proposalKind === 'counter'
+          ? `💰 Counter offer: MK ${Number(proposedPrice).toLocaleString()}`
+          : `💰 Offer: MK ${Number(proposedPrice).toLocaleString()}`;
+      } else if (text) {
+        previewText = text;
+      } else if (imageUrl) {
+        previewText = '[image]';
+      } else if (audioUrl) {
+        previewText = '[voice message]';
+      } else {
+        previewText = '';
+      }
 
       await this.db
         .update(this.schema.conversations)
@@ -834,9 +830,6 @@ class DBService {
     }
   }
 
-  /**
-   * Mark a conversation as read for the given user.
-   */
   async markConversationRead(conversationId, userId) {
     try {
       const conversation = await this.db
@@ -880,15 +873,99 @@ class DBService {
   }
 
   // ============================================
-  // LISTING LIKES
+  // ★ PHASE 2: NEGOTIATION PROPOSALS
   // ============================================
 
   /**
-   * Toggle a like. Returns the new state + total count.
+   * Fetch a single message by id.
    */
+  async getMessageById(messageId) {
+    try {
+      const rows = await this.db
+        .select()
+        .from(this.schema.messages)
+        .where(eq(this.schema.messages.id, messageId))
+        .limit(1);
+      return rows[0] || null;
+    } catch (error) {
+      logger.error('Get message by id error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark all pending proposals in a conversation as superseded,
+   * optionally excluding one message (the new one being created).
+   */
+  async supersedeProposals(conversationId, excludeMessageId = null) {
+    try {
+      const conditions = [
+        eq(this.schema.messages.conversationId, conversationId),
+        eq(this.schema.messages.proposalStatus, 'pending'),
+      ];
+      if (excludeMessageId) {
+        conditions.push(ne(this.schema.messages.id, excludeMessageId));
+      }
+
+      const result = await this.db
+        .update(this.schema.messages)
+        .set({ proposalStatus: 'superseded' })
+        .where(and(...conditions))
+        .returning({ id: this.schema.messages.id });
+
+      return result.length;
+    } catch (error) {
+      logger.error('Supersede proposals error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find the latest pending proposal in a conversation.
+   */
+  async getLatestPendingProposal(conversationId) {
+    try {
+      const rows = await this.db
+        .select()
+        .from(this.schema.messages)
+        .where(
+          and(
+            eq(this.schema.messages.conversationId, conversationId),
+            eq(this.schema.messages.proposalStatus, 'pending')
+          )
+        )
+        .orderBy(desc(this.schema.messages.createdAt))
+        .limit(1);
+      return rows[0] || null;
+    } catch (error) {
+      logger.error('Get latest pending proposal error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update proposal status (used on accept/decline).
+   */
+  async updateProposalStatus(messageId, status) {
+    try {
+      const result = await this.db
+        .update(this.schema.messages)
+        .set({ proposalStatus: status })
+        .where(eq(this.schema.messages.id, messageId))
+        .returning();
+      return result[0] || null;
+    } catch (error) {
+      logger.error('Update proposal status error:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // LISTING LIKES
+  // ============================================
+
   async toggleListingLike(listingId, userId) {
     try {
-      // Check if the like exists
       const existing = await this.db
         .select()
         .from(this.schema.listingLikes)
@@ -928,10 +1005,6 @@ class DBService {
     }
   }
 
-  /**
-   * Batch: get like counts for many listings + whether current user has liked each.
-   * Used by Landing / Search / CategoryBrowse when rendering many cards.
-   */
   async getLikeStatesForListings(listingIds, userId = null) {
     try {
       if (!listingIds || listingIds.length === 0) {
@@ -979,9 +1052,6 @@ class DBService {
   // LISTING COMMENTS
   // ============================================
 
-  /**
-   * Create a comment. Enforces non-empty, trims text.
-   */
   async createListingComment(listingId, userId, text) {
     try {
       const trimmed = String(text || '').trim();
@@ -1004,9 +1074,6 @@ class DBService {
     }
   }
 
-  /**
-   * Get comments for a listing, joined with the commenter's profile.
-   */
   async getListingComments(listingId, params = {}) {
     try {
       const { limit = 50, offset = 0 } = params;
@@ -1051,9 +1118,6 @@ class DBService {
     }
   }
 
-  /**
-   * Batch: get comment counts for many listings.
-   */
   async getCommentCountsForListings(listingIds) {
     try {
       if (!listingIds || listingIds.length === 0) return {};
@@ -1078,9 +1142,6 @@ class DBService {
     }
   }
 
-  /**
-   * Delete a comment (only the owner can delete their own).
-   */
   async deleteListingComment(commentId, userId) {
     try {
       const rows = await this.db

@@ -28,7 +28,6 @@ const handleError = (res, error, fallbackMessage = 'Request failed') => {
 
 // ============================================
 // POST /api/deliveries
-// Create a new delivery job (auth required)
 // ============================================
 router.post('/', authenticateToken, async (req, res) => {
   try {
@@ -41,7 +40,6 @@ router.post('/', authenticateToken, async (req, res) => {
 
 // ============================================
 // GET /api/deliveries/mine
-// Jobs I posted (as poster). MUST be before /:id
 // ============================================
 router.get('/mine', authenticateToken, async (req, res) => {
   try {
@@ -61,7 +59,6 @@ router.get('/mine', authenticateToken, async (req, res) => {
 
 // ============================================
 // GET /api/deliveries/active
-// Jobs I accepted (as courier)
 // ============================================
 router.get('/active', authenticateToken, async (req, res) => {
   try {
@@ -80,7 +77,6 @@ router.get('/active', authenticateToken, async (req, res) => {
 
 // ============================================
 // GET /api/deliveries/earnings
-// Courier earnings summary
 // ============================================
 router.get('/earnings', authenticateToken, async (req, res) => {
   try {
@@ -93,7 +89,6 @@ router.get('/earnings', authenticateToken, async (req, res) => {
 
 // ============================================
 // GET /api/deliveries
-// Public job board — optional auth
 // ============================================
 router.get('/', optionalAuth, async (req, res) => {
   try {
@@ -124,7 +119,10 @@ router.get('/', optionalAuth, async (req, res) => {
       ...d,
       isMine: viewerId ? d.posterId === viewerId : false,
       isMineAsCourier: viewerId ? d.courierId === viewerId : false,
-      canAccept: viewerId ? d.posterId !== viewerId && d.status === 'open' : false,
+      canAccept:
+        viewerId && d.posterId !== viewerId && d.status === 'open'
+          ? true
+          : false,
     }));
 
     return res.json({ success: true, ...result, deliveries });
@@ -135,7 +133,6 @@ router.get('/', optionalAuth, async (req, res) => {
 
 // ============================================
 // GET /api/deliveries/:id
-// Detail — optional auth
 // ============================================
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
@@ -148,6 +145,19 @@ router.get('/:id', optionalAuth, async (req, res) => {
     const viewerId = req.user?.id;
     const isPoster = viewerId ? delivery.posterId === viewerId : false;
     const isCourier = viewerId ? delivery.courierId === viewerId : false;
+    const isBuyer = viewerId && delivery.buyerId ? delivery.buyerId === viewerId : false;
+    const isPendingCourier = viewerId
+      ? delivery.pendingCourierId === viewerId
+      : false;
+
+    // Has the viewer already got a pending request on this job?
+    const myPendingRequest = viewerId
+      ? (delivery.courierRequests || []).find(
+          (cr) => cr.courierId === viewerId && cr.status === 'pending'
+        ) || null
+      : null;
+
+    const canApprove = (isPoster || isBuyer) && delivery.status === 'pending_approval';
 
     return res.json({
       success: true,
@@ -155,13 +165,24 @@ router.get('/:id', optionalAuth, async (req, res) => {
         ...delivery,
         isMine: isPoster,
         isMineAsCourier: isCourier,
-        canAccept: viewerId
-          ? !isPoster && delivery.status === 'open'
-          : false,
+        isBuyer,
+        isPendingCourier,
+        canAccept:
+          viewerId && !isPoster && !isBuyer && delivery.status === 'open'
+            ? true
+            : false,
+        canRequestAgain:
+          viewerId &&
+          !isPoster &&
+          !isBuyer &&
+          (delivery.status === 'open' || delivery.status === 'pending_approval')
+            ? !myPendingRequest
+            : false,
+        myPendingRequestId: myPendingRequest?.id || null,
+        canApprove,
         canConfirm: isPoster && delivery.status === 'delivered',
         canCancel:
-          isPoster &&
-          ['open', 'accepted'].includes(delivery.status),
+          isPoster && ['open', 'pending_approval', 'accepted'].includes(delivery.status),
         canPickup: isCourier && delivery.status === 'accepted',
         canDeliver: isCourier && delivery.status === 'picked_up',
       },
@@ -173,20 +194,105 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
 // ============================================
 // POST /api/deliveries/:id/accept
-// Courier accepts the job
+// ★ PHASE 3: courier requests to deliver (competitive)
 // ============================================
 router.post('/:id/accept', authenticateToken, async (req, res) => {
   try {
-    const delivery = await deliveriesService.acceptDelivery(req.user.id, req.params.id);
-    return res.json({ success: true, delivery });
+    const { note } = req.body || {};
+    const result = await deliveriesService.acceptDelivery(req.user.id, req.params.id, {
+      note,
+    });
+    return res.json({ success: true, ...result });
   } catch (error) {
-    return handleError(res, error, 'Failed to accept delivery');
+    return handleError(res, error, 'Failed to request delivery');
   }
 });
 
 // ============================================
+// GET /api/deliveries/:id/courier-requests
+// ============================================
+router.get('/:id/courier-requests', authenticateToken, async (req, res) => {
+  try {
+    const requests = await deliveriesService.listCourierRequests(req.params.id);
+    return res.json({ success: true, courierRequests: requests });
+  } catch (error) {
+    return handleError(res, error, 'Failed to load courier requests');
+  }
+});
+
+// ============================================
+// ★ PHASE 3: POST /api/deliveries/:id/approve-courier
+// Body: { courierRequestId, reason? }
+// ============================================
+router.post('/:id/approve-courier', authenticateToken, async (req, res) => {
+  try {
+    const { courierRequestId, reason } = req.body || {};
+    if (!courierRequestId) {
+      return res.status(400).json({
+        success: false,
+        error: 'courierRequestId is required',
+      });
+    }
+    const result = await deliveriesService.approveCourier(
+      req.user.id,
+      req.params.id,
+      courierRequestId,
+      { reason }
+    );
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return handleError(res, error, 'Failed to approve courier');
+  }
+});
+
+// ============================================
+// ★ PHASE 3: POST /api/deliveries/:id/reject-courier
+// Body: { courierRequestId, reason? }
+// ============================================
+router.post('/:id/reject-courier', authenticateToken, async (req, res) => {
+  try {
+    const { courierRequestId, reason } = req.body || {};
+    if (!courierRequestId) {
+      return res.status(400).json({
+        success: false,
+        error: 'courierRequestId is required',
+      });
+    }
+    const result = await deliveriesService.rejectCourier(
+      req.user.id,
+      req.params.id,
+      courierRequestId,
+      { reason }
+    );
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return handleError(res, error, 'Failed to reject courier');
+  }
+});
+
+// ============================================
+// ★ PHASE 3: DELETE /api/deliveries/:id/courier-request/:requestId
+// Courier withdraws their own request
+// ============================================
+router.delete(
+  '/:id/courier-request/:requestId',
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const result = await deliveriesService.withdrawCourierRequest(
+        req.user.id,
+        req.params.id,
+        req.params.requestId
+      );
+      return res.json({ success: true, ...result });
+    } catch (error) {
+      return handleError(res, error, 'Failed to withdraw request');
+    }
+  }
+);
+
+// ============================================
 // POST /api/deliveries/:id/pickup
-// Courier marks picked up
 // ============================================
 router.post('/:id/pickup', authenticateToken, async (req, res) => {
   try {
@@ -199,7 +305,6 @@ router.post('/:id/pickup', authenticateToken, async (req, res) => {
 
 // ============================================
 // POST /api/deliveries/:id/deliver
-// Courier marks delivered
 // ============================================
 router.post('/:id/deliver', authenticateToken, async (req, res) => {
   try {
@@ -212,7 +317,6 @@ router.post('/:id/deliver', authenticateToken, async (req, res) => {
 
 // ============================================
 // POST /api/deliveries/:id/confirm
-// Poster confirms delivery
 // ============================================
 router.post('/:id/confirm', authenticateToken, async (req, res) => {
   try {
@@ -225,7 +329,6 @@ router.post('/:id/confirm', authenticateToken, async (req, res) => {
 
 // ============================================
 // DELETE /api/deliveries/:id
-// Poster cancels (before pickup)
 // ============================================
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
