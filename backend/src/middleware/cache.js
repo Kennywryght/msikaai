@@ -260,8 +260,10 @@ export const keyGenerators = {
   },
 
   search: (req) => {
-    const { q, category, minPrice, maxPrice, limit, offset } = req.query;
-    return `search:${q || 'all'}:${category || 'all'}:${minPrice || 0}:${maxPrice || 999999}:${limit || 20}:${offset || 0}`;
+    const { q, category, minPrice, maxPrice, location, limit, offset } = req.query;
+    // normalize the free text so "Chimanga " and "chimanga" share a cache entry
+    const nq = String(q || 'all').toLowerCase().trim().replace(/\s+/g, ' ');
+    return `search:${nq}:${category || 'all'}:${minPrice || 0}:${maxPrice || 999999}:${location || 'all'}:${limit || 20}:${offset || 0}`;
   },
 
   analytics: (req) => {

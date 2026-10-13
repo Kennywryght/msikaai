@@ -6,6 +6,12 @@ import { listingsAPI, businessAPI, messagesAPI, interactionsAPI, requestsAPI } f
 import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
 import RoleChoiceBlock from '../components/RoleChoiceBlock';
+import AppTour, { startAppTour } from '../components/AppTour';
+import {
+  normalizeImageList,
+  getThumbnailUrl,
+  handleImageError,
+} from '../utils/imageUtils';
 
 /* ---------- Icons ---------- */
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '', fill = 'none' }) => {
@@ -145,6 +151,59 @@ const SPOTLIGHT_TILE_ADVANCE_MS = 9000; // how long a whole tile stays before sc
 
 const REQUESTS_SPOTLIGHT_LIMIT = 5;
 
+// ★ PERF: small first page, more on demand
+const LISTINGS_PAGE_SIZE = 12;
+const BUSINESSES_LIMIT = 12;
+
+// ★ PERF: thumbnail widths (CSS px; DPR applied in getThumbnailUrl)
+const THUMB_W = {
+  card: 240,
+  featured: 640,
+  spotlight: 180,
+  logo: 48,
+  popThumb: 56,
+};
+
+/* ---------- useInView: true once the element nears the viewport ---------- */
+const useInView = ({ rootMargin = '200px', disabled = false } = {}) => {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(disabled);
+
+  useEffect(() => {
+    if (disabled || inView) return;
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') { setInView(true); return; }
+
+    const obs = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setInView(true);
+        obs.disconnect();
+      }
+    }, { rootMargin });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [disabled, inView, rootMargin]);
+
+  return [ref, inView || disabled];
+};
+
+/* ---------- which slide indices may load: current ± 1 (wrapping) ---------- */
+const useUnlockedSlides = (active, total, enabled) => {
+  const [unlocked, setUnlocked] = useState(() => new Set());
+  useEffect(() => {
+    if (!enabled || !total) return;
+    const want = [active, (active + 1) % total, (active - 1 + total) % total];
+    setUnlocked((prev) => {
+      if (want.every((i) => prev.has(i))) return prev;
+      const next = new Set(prev);
+      want.forEach((i) => next.add(i));
+      return next;
+    });
+  }, [active, total, enabled]);
+  return unlocked;
+};
+
 const URGENCY_META = {
   low: { label: 'Low', color: '#6B7280', bg: '#F3F4F6' },
   medium: { label: 'Medium', color: '#0EA5E9', bg: '#E0F2FE' },
@@ -224,11 +283,20 @@ const PhotoSlider = ({
   showDots = true,
   onImageClick,
   eager = false,
+  thumbWidth = THUMB_W.card,
 }) => {
   const [idx, setIdx] = useState(0);
   const startXRef = useRef(null);
-  const total = images.length;
+  // ★ normalize: valid http(s) only, placeholder when nothing usable
+  const srcs = useMemo(
+    () => normalizeImageList(images, { fallback: true }).map((s) => getThumbnailUrl(s, { width: thumbWidth })),
+    [images, thumbWidth]
+  );
+  const total = srcs.length;
   const safeIdx = total ? Math.min(idx, total - 1) : 0;
+  // ★ lazy: nothing mounts until the card nears the viewport, then only active ± 1
+  const [viewRef, inView] = useInView({ disabled: eager });
+  const unlocked = useUnlockedSlides(safeIdx, total, inView);
 
   const go = useCallback((n) => {
     if (!total) return;
@@ -248,33 +316,30 @@ const PhotoSlider = ({
     startXRef.current = null;
   };
 
-  if (!total) {
-    return (
-      <div className={`pslider ${className}`}>
-        <div className="pslider-empty">
-          <Icon name="store" size={26} color="var(--color-text-muted)" strokeWidth={1.3} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
+      ref={viewRef}
       className={`pslider ${className}`}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
       <div className="pslider-track" style={{ transform: `translateX(-${safeIdx * 100}%)` }}>
-        {images.map((src, i) => (
-          <img
-            key={i}
-            src={src}
-            alt={`${alt} ${i + 1}`}
-            className="pslider-img"
-            loading={eager && i === 0 ? 'eager' : 'lazy'}
-            draggable={false}
-            onClick={onImageClick}
-          />
+        {srcs.map((src, i) => (
+          unlocked.has(i) ? (
+            <img
+              key={i}
+              src={src}
+              alt={`${alt} ${i + 1}`}
+              className="pslider-img"
+              loading={eager && i === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              draggable={false}
+              onClick={onImageClick}
+              onError={handleImageError}
+            />
+          ) : (
+            <div key={i} className="pslider-img" aria-hidden="true" onClick={onImageClick} />
+          )
         ))}
       </div>
 
@@ -291,7 +356,7 @@ const PhotoSlider = ({
 
       {total > 1 && showDots && (
         <div className="pslider-dots" onClick={(e) => e.stopPropagation()}>
-          {images.map((_, i) => (
+          {srcs.map((_, i) => (
             <button
               key={i}
               type="button"
@@ -323,7 +388,7 @@ const ProductCard = ({
   const aspect = ASPECT_RATIOS[index % ASPECT_RATIOS.length];
 
   return (
-    <article className="pcard">
+    <article className="pcard" data-tour={index === 0 ? 'listing-card' : undefined}>
       <div className="pcard-media" style={{ aspectRatio: aspect }}>
         <PhotoSlider
           images={item.images || []}
@@ -442,6 +507,7 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
           alt={item.title}
           className="fcard-slider"
           onImageClick={() => onOpen(item)}
+          thumbWidth={THUMB_W.featured}
           eager
         />
 
@@ -531,9 +597,14 @@ const FeaturedCard = ({ item, user, openingChatId, likeState, commentCount, onLi
 const SpotlightTile = ({ item, index, onOpen, onCycleComplete, isActiveTile }) => {
   const catColor = getCategoryColor(item.category);
   const premium = isPremium(item);
-  const images = (item.images || []).filter(Boolean);
+  const images = useMemo(
+    () => normalizeImageList(item.images).map((s) => getThumbnailUrl(s, { width: THUMB_W.spotlight })),
+    [item.images]
+  );
   const [idx, setIdx] = useState(0);
   const total = images.length;
+  const [viewRef, inView] = useInView({ rootMargin: '100px 300px' });
+  const unlocked = useUnlockedSlides(Math.min(idx, Math.max(total - 1, 0)), total, inView);
 
   // Only cycle when this tile is the currently-active spotlight tile
   useEffect(() => {
@@ -564,7 +635,7 @@ const SpotlightTile = ({ item, index, onOpen, onCycleComplete, isActiveTile }) =
   }, [isActiveTile, idx, total, onCycleComplete]);
 
   return (
-    <button className={`spot-tile ${premium ? 'is-premium' : ''}`} onClick={() => onOpen(item)}>
+    <button ref={viewRef} className={`spot-tile ${premium ? 'is-premium' : ''}`} onClick={() => onOpen(item)}>
       <div className="spot-media">
         {total > 0 ? (
           <div className="spot-slider">
@@ -573,14 +644,20 @@ const SpotlightTile = ({ item, index, onOpen, onCycleComplete, isActiveTile }) =
               style={{ transform: `translateX(-${Math.min(idx, total - 1) * 100}%)` }}
             >
               {images.map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt={`${item.title} ${i + 1}`}
-                  className="spot-slider-img"
-                  loading="lazy"
-                  draggable={false}
-                />
+                unlocked.has(i) ? (
+                  <img
+                    key={i}
+                    src={src}
+                    alt={`${item.title} ${i + 1}`}
+                    className="spot-slider-img"
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                    onError={handleImageError}
+                  />
+                ) : (
+                  <div key={i} className="spot-slider-img" aria-hidden="true" />
+                )
               ))}
             </div>
             {total > 1 && (
@@ -679,9 +756,14 @@ const Landing = () => {
   const [allListings, setAllListings] = useState([]);
   const [featuredBusinesses, setFeaturedBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasMoreListings, setHasMoreListings] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [activeTab, setActiveTab] = useState('all');
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'price_asc' | 'price_desc'
+  const [deliveryOnly, setDeliveryOnly] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [openingChatId, setOpeningChatId] = useState(null);
   const [commentsListing, setCommentsListing] = useState(null);
 
@@ -732,20 +814,33 @@ const Landing = () => {
     }
 
     let mounted = true;
+    let cancelIdle = () => {};
+
+    const fetchBusinesses = () =>
+      businessAPI.getAll({ limit: BUSINESSES_LIMIT })
+        .then((r) => (r.data?.businesses || []).map((b) => ({ ...b, logo_url: normalizeImageList(b.logo_url ?? b.logoUrl)[0] || null })))
+        .catch(() => []);
+
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [listingsRes, bizRes] = await Promise.all([
-          listingsAPI.search({ limit: 50 }).catch(() => ({ data: { listings: [] } })),
-          businessAPI.getAll({ limit: 20 }).catch(() => ({ data: { businesses: [] } })),
-        ]);
+        // ★ PERF: first render only needs the first page of listings
+        const listingsRes = await listingsAPI
+          .search({ limit: LISTINGS_PAGE_SIZE, offset: 0 })
+          .catch(() => ({ data: { listings: [] } }));
         if (!mounted) return;
 
-        let listingsData = listingsRes.data?.listings || [];
-        const businessesData = bizRes.data?.businesses || [];
+        const listingsData = listingsRes.data?.listings || [];
+        const total = Number(listingsRes.data?.total);
+        setHasMoreListings(
+          Number.isFinite(total) ? listingsData.length < total : listingsData.length >= LISTINGS_PAGE_SIZE
+        );
 
-        if (listingsData.length === 0 && businessesData.length > 0) {
-          listingsData = businessesData.map((b) => ({
+        if (listingsData.length === 0) {
+          // No listings → businesses are the feed, so they're needed now.
+          const businessesData = await fetchBusinesses();
+          if (!mounted) return;
+          setAllListings(businessesData.map((b) => ({
             id: `biz-${b.id}`,
             title: b.business_name,
             description: b.description || '',
@@ -758,11 +853,24 @@ const Landing = () => {
             location_area: b.location_text || '',
             delivery_available: b.delivery_available || false,
             business_id: b.id,
-          }));
-        }
-        if (mounted) {
-          setAllListings(listingsData);
+          })));
           setFeaturedBusinesses(businessesData);
+          return;
+        }
+
+        setAllListings(listingsData);
+
+        // ★ PERF: "Businesses near you" sits at the bottom — defer until idle.
+        const loadBiz = async () => {
+          const businessesData = await fetchBusinesses();
+          if (mounted) setFeaturedBusinesses(businessesData);
+        };
+        if (typeof window.requestIdleCallback === 'function') {
+          const h = window.requestIdleCallback(loadBiz, { timeout: 3000 });
+          cancelIdle = () => window.cancelIdleCallback?.(h);
+        } else {
+          const t = setTimeout(loadBiz, 1500);
+          cancelIdle = () => clearTimeout(t);
         }
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -772,8 +880,32 @@ const Landing = () => {
       }
     };
     fetchData();
-    return () => { mounted = false; };
+    return () => { mounted = false; cancelIdle(); };
   }, [isAuthenticated]);
+
+  const loadMoreListings = useCallback(async () => {
+    if (loadingMore || !hasMoreListings) return;
+    setLoadingMore(true);
+    try {
+      const offset = allListings.filter((l) => !l.is_business).length;
+      const res = await listingsAPI.search({ limit: LISTINGS_PAGE_SIZE, offset });
+      const page = res.data?.listings || [];
+      const total = Number(res.data?.total);
+      setAllListings((prev) => {
+        const seen = new Set(prev.map((l) => l.id));
+        return [...prev, ...page.filter((l) => !seen.has(l.id))];
+      });
+      setHasMoreListings(
+        page.length > 0 &&
+        (Number.isFinite(total) ? offset + page.length < total : page.length >= LISTINGS_PAGE_SIZE)
+      );
+    } catch (err) {
+      console.warn('Load more failed:', err?.message);
+      showToast('Could not load more listings', 'error');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [allListings, hasMoreListings, loadingMore, showToast]);
 
   useEffect(() => {
     let mounted = true;
@@ -799,17 +931,27 @@ const Landing = () => {
     return () => { mounted = false; };
   }, []);
 
+  // ★ PERF: only request interactions for listings we haven't fetched yet
+  const interactionsFetchedRef = useRef(new Set());
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
     const realListingIds = allListings
       .filter((item) => !item.is_business && item.id && !String(item.id).startsWith('biz-'))
-      .map((item) => item.id);
+      .map((item) => item.id)
+      .filter((id) => !interactionsFetchedRef.current.has(id));
 
     if (realListingIds.length === 0) return;
+    realListingIds.forEach((id) => interactionsFetchedRef.current.add(id));
 
-    let cancelled = false;
-
+    // Not cancelled on deps change: a "load more" re-run must not drop this
+    // in-flight batch (its ids are already marked fetched). Unmount only.
     (async () => {
       try {
         const [likesRes, countsRes] = await Promise.all([
@@ -817,7 +959,7 @@ const Landing = () => {
           interactionsAPI.getCommentCounts(realListingIds).catch(() => ({ data: {} })),
         ]);
 
-        if (cancelled) return;
+        if (!mountedRef.current) return;
 
         const counts = likesRes?.data?.counts || {};
         const userLikes = likesRes?.data?.userLikes || {};
@@ -829,14 +971,14 @@ const Landing = () => {
             liked: !!userLikes[id],
           };
         }
-        setLikeStates(nextLikeState);
-        setCommentCounts(countsRes?.data?.counts || {});
+        // merge — don't clobber optimistic likes on already-loaded cards
+        setLikeStates((prev) => ({ ...nextLikeState, ...prev }));
+        setCommentCounts((prev) => ({ ...(countsRes?.data?.counts || {}), ...prev }));
       } catch (err) {
         console.warn('Failed to load interactions:', err?.message);
+        realListingIds.forEach((id) => interactionsFetchedRef.current.delete(id));
       }
     })();
-
-    return () => { cancelled = true; };
   }, [allListings, isAuthenticated]);
 
   const handleLike = useCallback(async (e, item) => {
@@ -903,18 +1045,32 @@ const Landing = () => {
 
   const baseFiltered = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    return allListings.filter((item) => {
+    // Live preview while typing: any word of 3+ letters may match. Submitting
+    // the search runs the full bilingual sentence search on /search.
+    const words = query.split(/\s+/).filter((w) => w.length >= 3);
+    const needles = words.length ? words : query ? [query] : [];
+    const filtered = allListings.filter((item) => {
       const categoryMatch = selectedCategory === 'All' || item.category?.toLowerCase().includes(selectedCategory.toLowerCase());
-      const searchMatch = !query ||
-        item.title?.toLowerCase().includes(query) ||
-        item.category?.toLowerCase().includes(query) ||
-        item.businesses?.business_name?.toLowerCase().includes(query);
+      const hay = `${item.title || ''} ${item.category || ''} ${item.businesses?.business_name || ''}`.toLowerCase();
+      const searchMatch = !needles.length || needles.some((w) => hay.includes(w));
       let tabMatch = true;
       if (activeTab === 'goods') tabMatch = !isService(item);
       else if (activeTab === 'services') tabMatch = isService(item);
-      return categoryMatch && searchMatch && tabMatch;
+      const deliveryMatch = !deliveryOnly || !!item.delivery_available;
+      return categoryMatch && searchMatch && tabMatch && deliveryMatch;
     });
-  }, [allListings, selectedCategory, searchQuery, activeTab, isService]);
+    if (sortBy === 'newest') return filtered; // API order: boosted first, then newest
+    // "On request" (no price) always sorts last
+    const priceOf = (l) => (l.price != null && l.price !== '' ? Number(l.price) : null);
+    return [...filtered].sort((a, b) => {
+      const pa = priceOf(a);
+      const pb = priceOf(b);
+      if (pa == null && pb == null) return 0;
+      if (pa == null) return 1;
+      if (pb == null) return -1;
+      return sortBy === 'price_asc' ? pa - pb : pb - pa;
+    });
+  }, [allListings, selectedCategory, searchQuery, activeTab, isService, deliveryOnly, sortBy]);
 
   const spotlight = useMemo(() => {
     const premium = baseFiltered.filter(isPremium);
@@ -1086,13 +1242,19 @@ const Landing = () => {
             Find what you need, <em>right here.</em>
           </h1>
           <p className="hero-desc">Local goods, services, and tradespeople — a step from your door.</p>
+          <button type="button" className="hero-tour-btn" onClick={startAppTour}>
+            <Icon name="sparkle" size={13} color="currentColor" strokeWidth={2} />
+            How Kumsika works
+          </button>
         </div>
       </div>
+
+      <AppTour ready={!loading} />
 
       {/* ★ STICKY SEARCH — now properly floats over the hero bottom edge */}
       <div className="search-sticky">
         <div className="search-sticky-inner">
-          <form onSubmit={handleSearch} className="search-form">
+          <form onSubmit={handleSearch} className="search-form" data-tour="search">
             <div className="search-wrapper">
               <Icon name="search" size={17} color="var(--color-text-muted)" strokeWidth={1.75} />
               <input
@@ -1113,7 +1275,7 @@ const Landing = () => {
 
       {/* REQUESTS SPOTLIGHT */}
       {spotlightRequests.length > 0 && (
-        <div className="req-spotlight">
+        <div className="req-spotlight" data-tour="requests">
           <div className="req-spotlight-header">
             <div className="req-spotlight-heading-wrap">
               <h2 className="req-spotlight-heading">
@@ -1157,7 +1319,7 @@ const Landing = () => {
 
       {/* SPOTLIGHT */}
       {spotlight.length > 0 && (
-        <div className="spotlight-section">
+        <div className="spotlight-section" data-tour="spotlight">
           <div className="spotlight-header">
             <h2 className="spotlight-heading">
               Spotlight
@@ -1193,7 +1355,7 @@ const Landing = () => {
       )}
 
       {/* CATEGORY PILL BAR */}
-      <div className="cats-wrap">
+      <div className="cats-wrap" data-tour="categories">
         <div className="cats-bar">
           {CATEGORIES.map((cat) => {
             const active = selectedCategory === cat.label;
@@ -1288,9 +1450,57 @@ const Landing = () => {
                   {freshListings.length > 0 ? 'More from Mitundu' : 'All listings'}
                   <span className="section-title-count">{otherListings.length}</span>
                 </h2>
-                <button className="filter-btn" onClick={() => {}} aria-label="Filter">
-                  <Icon name="filter" size={14} color="var(--color-text)" strokeWidth={1.9} />
-                </button>
+                <div className="filter-wrap">
+                  <button
+                    className={`filter-btn ${sortBy !== 'newest' || deliveryOnly ? 'is-active' : ''}`}
+                    onClick={() => setFilterOpen((o) => !o)}
+                    aria-label="Sort and filter"
+                    aria-expanded={filterOpen}
+                  >
+                    <Icon name="filter" size={14} color="var(--color-text)" strokeWidth={1.9} />
+                  </button>
+                  {filterOpen && (
+                    <div className="filter-panel" role="dialog" aria-label="Sort and filter">
+                      <div className="filter-label">Sort by</div>
+                      {[
+                        { id: 'newest', label: 'Newest' },
+                        { id: 'price_asc', label: 'Price: low to high' },
+                        { id: 'price_desc', label: 'Price: high to low' },
+                      ].map((opt) => (
+                        <label key={opt.id} className="filter-option">
+                          <input
+                            type="radio"
+                            name="landing-sort"
+                            checked={sortBy === opt.id}
+                            onChange={() => setSortBy(opt.id)}
+                          />
+                          {opt.label}
+                        </label>
+                      ))}
+                      <div className="filter-label">Filter</div>
+                      <label className="filter-option">
+                        <input
+                          type="checkbox"
+                          checked={deliveryOnly}
+                          onChange={(e) => setDeliveryOnly(e.target.checked)}
+                        />
+                        Delivery available
+                      </label>
+                      <div className="filter-actions">
+                        <button
+                          type="button"
+                          className="filter-reset"
+                          onClick={() => { setSortBy('newest'); setDeliveryOnly(false); }}
+                        >
+                          Reset
+                        </button>
+                        <button type="button" className="filter-done" onClick={() => setFilterOpen(false)}>
+                          Done
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </header>
               <div className="grid">
                 {otherListings.map((item, i) => (
@@ -1310,6 +1520,19 @@ const Landing = () => {
                 ))}
               </div>
             </section>
+          )}
+
+          {hasMoreListings && (
+            <div className="load-more-wrap">
+              <button
+                type="button"
+                className="load-more-btn"
+                onClick={loadMoreListings}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading…' : 'Load more'}
+              </button>
+            </div>
           )}
         </>
       ) : (
@@ -1334,7 +1557,15 @@ const Landing = () => {
             {featuredBusinesses.map((biz) => (
               <button key={biz.id} className="biz-card" onClick={() => handleBusinessClick(biz)}>
                 <div className="biz-logo">
-                  {biz.logo_url ? <img src={biz.logo_url} alt={biz.business_name} /> : <Icon name="store" size={16} color="var(--color-text-muted)" strokeWidth={1.5} />}
+                  {biz.logo_url ? (
+                    <img
+                      src={getThumbnailUrl(biz.logo_url, { width: THUMB_W.logo })}
+                      alt={biz.business_name}
+                      loading="lazy"
+                      decoding="async"
+                      onError={handleImageError}
+                    />
+                  ) : <Icon name="store" size={16} color="var(--color-text-muted)" strokeWidth={1.5} />}
                 </div>
                 <div className="biz-text">
                   <div className="biz-name">{biz.business_name}</div>
@@ -1354,7 +1585,11 @@ const Landing = () => {
             <div className="pop-preview">
               <div className="pop-thumb">
                 {commentsListing.images?.length ? (
-                  <img src={commentsListing.images[0]} alt={commentsListing.title} />
+                  <img
+                    src={getThumbnailUrl(normalizeImageList(commentsListing.images, { fallback: true })[0], { width: THUMB_W.popThumb })}
+                    alt={commentsListing.title}
+                    onError={handleImageError}
+                  />
                 ) : (
                   <div className="pop-thumb-fallback">
                     <Icon name="store" size={18} color="var(--color-text-muted)" strokeWidth={1.5} />
@@ -1395,7 +1630,7 @@ const Landing = () => {
           ].map((item) => {
             const active = item.id === 'home';
             return (
-              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)}>
+              <button key={item.id} className="nav-btn" onClick={() => handleBottomNav(item.id)} data-tour={`nav-${item.id}`}>
                 <div className={`nav-icon-wrap ${active ? 'active' : ''}`}>
                   <Icon name={item.icon} size={19} color={active ? 'var(--color-text-inverse)' : 'var(--color-text-muted)'} strokeWidth={1.75} />
                 </div>
@@ -2451,6 +2686,49 @@ const Landing = () => {
         .pop-body :global(.cmt-act) { color: var(--color-text-secondary); font-weight: 600; }
 
         /* ================= EMPTY ================= */
+        .hero-tour-btn {
+          display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+          padding: 6px 12px; border-radius: 999px; cursor: pointer;
+          border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.12);
+          color: var(--color-text-inverse); font: inherit; font-size: 12.5px; font-weight: 600;
+          position: relative; z-index: 1;
+        }
+        .hero-tour-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+        .filter-wrap { position: relative; }
+        .filter-btn.is-active { border-color: var(--color-accent); box-shadow: 0 0 0 2px var(--color-accent-tint); }
+        .filter-panel {
+          position: absolute; right: 0; top: calc(100% + 8px); z-index: 30;
+          width: 220px; padding: 12px; border-radius: var(--radius-xl);
+          background: var(--color-surface); border: 1px solid var(--color-border);
+          box-shadow: var(--shadow-md);
+        }
+        .filter-label {
+          font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+          color: var(--color-text-muted); margin: 4px 0 6px;
+        }
+        .filter-label + .filter-option { margin-top: 0; }
+        .filter-option {
+          display: flex; align-items: center; gap: 8px; padding: 6px 2px;
+          font-size: 13px; color: var(--color-text); cursor: pointer;
+        }
+        .filter-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
+        .filter-reset, .filter-done {
+          flex: 1; padding: 8px; border-radius: var(--radius-lg); font: inherit; font-size: 12.5px;
+          font-weight: 600; cursor: pointer;
+        }
+        .filter-reset { background: transparent; border: 1px solid var(--color-border); color: var(--color-text); }
+        .filter-done { background: var(--color-primary); border: 1px solid var(--color-primary); color: var(--color-text-inverse); }
+
+        .load-more-wrap { display: flex; justify-content: center; margin: 20px auto 0; padding: 0 20px; }
+        .load-more-btn {
+          padding: 10px 22px; border-radius: var(--radius-xl);
+          border: 1px solid var(--color-border); background: var(--color-surface);
+          color: var(--color-text); font: inherit; font-size: 13px; font-weight: 600;
+          cursor: pointer;
+        }
+        .load-more-btn:disabled { opacity: 0.6; cursor: default; }
+
         .empty-state { text-align: center; padding: 56px 20px; }
         .empty-title {
           font-family: var(--font-serif);

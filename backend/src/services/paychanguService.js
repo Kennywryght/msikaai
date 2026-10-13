@@ -28,8 +28,12 @@ class PayChanguService {
     this.publicKey = process.env.PAYCHANGU_PUBLIC_KEY || '';
 
     this.available = Boolean(this.secretKey);
+    // Dry-run approves every payment, so it must never run in production.
+    this.dryRunAllowed = process.env.NODE_ENV !== 'production';
 
-    if (!this.available) {
+    if (!this.available && !this.dryRunAllowed) {
+      logger.error('❌ PAYCHANGU_SECRET_KEY missing in production — payments are disabled.');
+    } else if (!this.available) {
       logger.warn(
         '⚠️ PayChangu not configured (PAYCHANGU_SECRET_KEY missing). ' +
         'Payment routes will run in dry-run mode.'
@@ -60,6 +64,7 @@ class PayChanguService {
     description,
   }) {
     if (!this.available) {
+      if (!this.dryRunAllowed) return { success: false, error: 'Payments are not configured' };
       return this._dryRunInitiate({ txRef, amount, currency });
     }
 
@@ -138,6 +143,7 @@ class PayChanguService {
   // ============================================================
   async verifyPayment(txRef) {
     if (!this.available) {
+      if (!this.dryRunAllowed) return { success: false, error: 'Payments are not configured' };
       return this._dryRunVerify(txRef);
     }
 
@@ -235,7 +241,10 @@ class PayChanguService {
         return true;
       }
 
-      if (signatureHeader === this.webhookSecret) {
+      // Some PayChangu setups send the shared secret itself; compare in constant time.
+      const a = Buffer.from(String(signatureHeader), 'utf8');
+      const b = Buffer.from(this.webhookSecret, 'utf8');
+      if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
         return true;
       }
 

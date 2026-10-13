@@ -36,6 +36,7 @@ const VerifyPhone = () => {
   const [requestId, setRequestId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [delivery, setDelivery] = useState(null); // 'sms' | 'console' (dev)
 
   const handleSubmitPhone = async (e) => {
     e.preventDefault();
@@ -52,8 +53,9 @@ const VerifyPhone = () => {
       const data = res?.data || {};
       if (data.success && data.requestId) {
         setRequestId(data.requestId);
+        setDelivery(data.delivery || 'sms');
         setStep('otp');
-        success('OTP sent — check the server console 📱');
+        success(data.delivery === 'console' ? 'OTP sent — check the server console (dev) 📱' : 'Code sent by SMS 📱');
       } else {
         setError(data.error || 'Failed to send OTP');
       }
@@ -101,7 +103,8 @@ const VerifyPhone = () => {
       if (data.success && data.requestId) {
         setRequestId(data.requestId);
         setOtp('');
-        success('New OTP sent — check the server console');
+        setDelivery(data.delivery || 'sms');
+        success(data.delivery === 'console' ? 'New OTP sent — check the server console (dev)' : 'New code sent by SMS');
       }
     } catch (err) {
       setError(err?.response?.data?.error || 'Failed to resend');
@@ -169,8 +172,8 @@ const VerifyPhone = () => {
             {step === 'otp' && (
               <form onSubmit={handleConfirmOtp} className="form">
                 <p className="otp-info">
-                  Enter the 6-digit code sent to <strong>{phone}</strong>. The OTP
-                  is printed in the server console (stub SMS).
+                  Enter the 6-digit code sent to <strong>{phone}</strong>.
+                  {delivery === 'console' && ' (Dev mode: the code is printed in the server console.)'}
                 </p>
                 <label className="label">Verification code</label>
                 <input
@@ -197,8 +200,7 @@ const VerifyPhone = () => {
             <div className="info-card">
               <Icon name="info" size={16} color="#1E40AF" strokeWidth={1.9} />
               <span>
-                Real SMS delivery will be enabled in a later phase. For now, the
-                OTP appears in your backend logs.
+                The code expires after 10 minutes. You can request a new one once a minute.
               </span>
             </div>
           </>

@@ -1,10 +1,22 @@
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { checkBusinessAccess } from '../utils/authz.js';
 
 dotenv.config();
 
 const router = Router();
+
+// Exports contain a business's full data — owner (or admin) only.
+router.use('/:kind/:businessId', async (req, res, next) => {
+  try {
+    const access = await checkBusinessAccess(req.user?.id, req.params.businessId);
+    if (!access.ok) return res.status(access.status).json({ success: false, error: access.error });
+    next();
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to check permissions' });
+  }
+});
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY

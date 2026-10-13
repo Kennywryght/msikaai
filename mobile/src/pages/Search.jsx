@@ -1,8 +1,9 @@
 // mobile/src/pages/Search.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { listingsAPI, messagesAPI, aiAPI } from '../services/api';
+import { listingsAPI, messagesAPI } from '../services/api';
 import SocialShare from '../components/SocialShare';
+import SearchInterpretation, { SearchExamples } from '../components/SearchInterpretation';
 import { useToast } from '../components/ToastContainer';
 import { useAuth } from '../context/AuthContext';
 
@@ -61,9 +62,8 @@ const Search = () => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [openingChatId, setOpeningChatId] = useState(null);
 
-  // ★ PHASE 7A: translation state
-  const [translation, setTranslation] = useState(null); // { original, translated, detectedLanguage, confidence }
-  const [translating, setTranslating] = useState(false);
+  // How the server understood the (Chichewa / English / mixed) query
+  const [interpretation, setInterpretation] = useState(null);
 
   const searchInputRef = useRef(null);
 
@@ -88,68 +88,13 @@ const Search = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ★ PHASE 7A: translate before searching
-  const translateAndSearch = async (query) => {
-    const trimmed = String(query || '').trim();
-    if (!trimmed) {
-      setTranslation(null);
-      return { searchTerms: [], translated: '' };
-    }
-
-    // Skip translation for very short non-Chichewa queries — no need to spend
-    // an AI call on "a", "hi", etc.
-    if (trimmed.length < 3) {
-      return { searchTerms: [trimmed], translated: trimmed };
-    }
-
-    setTranslating(true);
-    try {
-      const res = await aiAPI.translateSearch(trimmed);
-      const data = res?.data || {};
-      const translated = data.translated || trimmed;
-      const keywords = Array.isArray(data.keywords) && data.keywords.length > 0
-        ? data.keywords
-        : [trimmed, translated].filter(Boolean);
-
-      // Only surface the translation chip if it actually changed something
-      const lang = data.detectedLanguage || 'unknown';
-      const confidence = Number(data.confidence) || 0;
-      if (lang !== 'en' && translated.toLowerCase() !== trimmed.toLowerCase()) {
-        setTranslation({
-          original: trimmed,
-          translated,
-          detectedLanguage: lang,
-          confidence,
-        });
-      } else {
-        setTranslation(null);
-      }
-
-      return { searchTerms: keywords, translated };
-    } catch (err) {
-      console.warn('translateAndSearch failed:', err?.message || err);
-      setTranslation(null);
-      return { searchTerms: [trimmed], translated: trimmed };
-    } finally {
-      setTranslating(false);
-    }
-  };
-
+  // The server parses whole sentences in Chichewa, English or both
+  // (dictionary + optional AI), so we send the query exactly as typed.
   const performSearch = async (page = 0, query = searchQuery) => {
     setLoading(true);
     try {
-      // ★ PHASE 7A: Translate the query first
-      const { searchTerms } = await translateAndSearch(query);
-
       const params = { limit: 20, offset: page * 20 };
-
-      if (searchTerms.length > 0) {
-        // Join keywords so the search engine can match ANY of them
-        params.q = searchTerms.join(' ');
-      } else if (query?.trim()) {
-        params.q = query.trim();
-      }
-
+      if (query?.trim()) params.q = query.trim();
       if (selectedCategory && selectedCategory !== 'All') params.category = selectedCategory;
       if (minPrice) params.minPrice = parseFloat(minPrice);
       if (maxPrice) params.maxPrice = parseFloat(maxPrice);
@@ -157,13 +102,21 @@ const Search = () => {
       const response = await listingsAPI.search(params);
       setResults(response.data.listings || []);
       setTotalResults(response.data.total || 0);
+      setInterpretation(params.q ? response.data.interpretation || null : null);
     } catch (err) {
       console.error('Search error:', err);
       setResults([]);
+      setInterpretation(null);
       showToast('Search failed. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const runExample = (example) => {
+    setSearchQuery(example);
+    navigate(`/search?q=${encodeURIComponent(example)}`, { replace: true });
+    performSearch(0, example);
   };
 
   const handleSearch = (e) => {
@@ -181,7 +134,7 @@ const Search = () => {
     setMaxPrice('');
     setResults([]);
     setTotalResults(0);
-    setTranslation(null);
+    setInterpretation(null);
     navigate('/search', { replace: true });
     if (searchInputRef.current) searchInputRef.current.focus();
   };
@@ -273,38 +226,23 @@ const Search = () => {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search in English or Chichewa…"
+                placeholder='e.g. "Ndikufuna chimanga" or "plumber near Mitundu"'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="search-input"
                 autoComplete="off"
+                enterKeyHint="search"
+                aria-label="Search in Chichewa or English"
+                data-tour="search-page-input"
               />
-              <button type="submit" className="search-btn" disabled={translating}>
+              <button type="submit" className="search-btn" disabled={loading}>
                 <Icon name="search" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
-                {translating ? 'Translating…' : 'Search'}
+                {loading ? 'Searching…' : 'Search'}
               </button>
             </div>
           </form>
 
-          {/* ★ PHASE 7A: Translation chip */}
-          {translation && (
-            <div className="translation-chip">
-              <Icon name="globe" size={14} color="#1E40AF" strokeWidth={2} />
-              <span className="translation-text">
-                Showing results for <strong>{translation.translated}</strong>
-              </span>
-              <span className="translation-original">
-                (from "{translation.original}")
-              </span>
-            </div>
-          )}
-
-          {translating && !translation && (
-            <div className="translation-chip translating">
-              <div className="translation-spinner" />
-              <span className="translation-text">Translating your search…</span>
-            </div>
-          )}
+          <SearchInterpretation interpretation={interpretation} />
 
           <button className="filter-toggle" onClick={() => setShowFilters(!showFilters)}>
             <Icon name="filter" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
@@ -425,18 +363,20 @@ const Search = () => {
             <Icon name="search" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
             <h3 className="empty-title">No results found</h3>
             <p className="empty-text">
-              {translation
-                ? `We translated "${translation.original}" to "${translation.translated}" but found nothing. Try different keywords.`
+              {interpretation?.concepts?.length
+                ? 'Nothing matches yet. Try fewer words, a different word for the item, or remove the price limit.'
                 : 'Try adjusting your search or filters'}
             </p>
+            <SearchExamples onPick={runExample} />
           </div>
         ) : (
           <div className="empty-state">
             <Icon name="search" size={48} color="var(--color-border-strong)" strokeWidth={1.5} />
             <h3 className="empty-title">Search for products and services</h3>
             <p className="empty-text">
-              Try English or Chichewa — e.g. "chimanga", "maize", "plumber", "zovala"
+              Type the way you speak — Chichewa, English, or both in one sentence.
             </p>
+            <SearchExamples onPick={runExample} />
           </div>
         )}
       </div>

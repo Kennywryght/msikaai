@@ -3,6 +3,8 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '../utils/logger.js';
 import paychanguService from '../services/paychanguService.js';
+import smsService from '../services/smsService.js';
+import { isAdmin } from '../utils/authz.js';
 
 const router = express.Router();
 
@@ -80,9 +82,9 @@ const NOTIFICATIONS = {
 
 const sendWhatsAppNotification = async (message) => {
   try {
-    logger.info(`📱 WhatsApp Notification: ${message}`);
-    // TODO: wire Twilio / Africa's Talking / WATI when budget allows
-    return true;
+    // No WhatsApp provider wired yet (needs a Twilio/WATI account); log only.
+    logger.info(`📱 WhatsApp Notification (log only): ${message}`);
+    return false;
   } catch (error) {
     logger.error('WhatsApp notification error:', error);
     return false;
@@ -91,9 +93,14 @@ const sendWhatsAppNotification = async (message) => {
 
 const sendTNMNotification = async (message, phoneNumber) => {
   try {
-    logger.info(`📱 TNM SMS Notification to ${phoneNumber}: ${message}`);
-    // TODO: wire Africa's Talking SMS when budget allows
-    return true;
+    if (!smsService.isConfigured) {
+      logger.info(`📱 [SMS not configured] Admin notification to ${phoneNumber}: ${message}`);
+      return false;
+    }
+    // SMS has no markdown; strip WhatsApp-style *bold* markers.
+    const result = await smsService.send(phoneNumber, message.replace(/\*/g, ''));
+    if (!result.success) logger.warn('Admin SMS notification failed:', result.error);
+    return result.success;
   } catch (error) {
     logger.error('TNM SMS notification error:', error);
     return false;
@@ -175,8 +182,23 @@ async function grantEntitlement({ payment, now }) {
     }
 
     if (kind === 'boost') {
-      const days = parseInt(String(payment.plan).replace('boost_', ''), 10) || 7;
-      const premiumUntil = new Date(now);
+      if (!payment.listing_id) {
+        return { success: false, error: 'Boost payment has no listing_id' };
+      }
+      const days =
+        Number(payment.duration_days) ||
+        parseInt(String(payment.plan).replace('boost_', ''), 10) || // legacy rows
+        7;
+
+      // Renewal while still boosted extends from the current end date.
+      const { data: current } = await supabase
+        .from('listings')
+        .select('premium_until')
+        .eq('id', payment.listing_id)
+        .single();
+      const currentEnd = current?.premium_until ? new Date(current.premium_until) : null;
+      const base = currentEnd && currentEnd > now ? currentEnd : new Date(now);
+      const premiumUntil = new Date(base);
       premiumUntil.setDate(premiumUntil.getDate() + days);
 
       const { error } = await supabase
@@ -200,6 +222,74 @@ async function grantEntitlement({ payment, now }) {
     logger.error('grantEntitlement exception:', err);
     return { success: false, error: err.message };
   }
+}
+
+// ============================================
+// SETTLE A PAYMENT (shared by /verify and /webhook)
+//
+//  1. Ask PayChangu (server-to-server) whether it succeeded.
+//  2. Check the charged amount covers what we asked for.
+//  3. Atomically claim the row (pending → completed). Only the caller
+//     that wins the claim grants, so verify + webhook racing can't
+//     double-grant (e.g. extend a boost twice).
+//  4. If the grant fails, release the claim so a retry can finish it.
+// ============================================
+async function settlePayment(payment) {
+  if (payment.status === 'completed') return { ok: true, alreadyProcessed: true };
+
+  const verification = await paychanguService.verifyPayment(payment.payment_id);
+  if (!verification.success) {
+    return { ok: false, httpStatus: 502, error: verification.error || 'Verification failed' };
+  }
+  if (verification.status !== 'success') {
+    return { ok: false, pending: verification.status === 'pending', status: verification.status };
+  }
+
+  const expected = Number(payment.amount) || 0;
+  if (verification.amount != null && Number(verification.amount) + 0.5 < expected) {
+    logger.error('💳 Amount mismatch — not granting', {
+      paymentId: payment.payment_id, expected, charged: verification.amount,
+    });
+    await supabase
+      .from('payments')
+      .update({ status: 'amount_mismatch', updated_at: new Date().toISOString() })
+      .eq('payment_id', payment.payment_id);
+    return { ok: false, httpStatus: 402, error: 'Paid amount does not match. Please contact support.' };
+  }
+
+  const now = new Date();
+  const { data: claimed, error: claimError } = await supabase
+    .from('payments')
+    .update({ status: 'completed', updated_at: now.toISOString() })
+    .eq('payment_id', payment.payment_id)
+    .neq('status', 'completed')
+    .select('id');
+  if (claimError) {
+    logger.error('Payment claim error:', claimError);
+    return { ok: false, httpStatus: 500, error: 'Could not record payment' };
+  }
+  if (!claimed?.length) return { ok: true, alreadyProcessed: true };
+
+  const granted = await grantEntitlement({ payment, now });
+  if (!granted.success) {
+    await supabase
+      .from('payments')
+      .update({ status: 'pending', updated_at: new Date().toISOString() })
+      .eq('payment_id', payment.payment_id);
+    return { ok: false, httpStatus: 500, error: granted.error };
+  }
+
+  sendPaymentNotification({
+    userId: payment.user_id,
+    plan: payment.plan,
+    amount: payment.amount,
+    currency: payment.currency,
+    method: payment.method,
+    paymentId: payment.payment_id,
+    kind: payment.kind || 'subscription',
+  }).catch((err) => logger.warn('Notification failed:', err.message));
+
+  return { ok: true };
 }
 
 // ============================================
@@ -318,23 +408,32 @@ router.post('/initiate', async (req, res) => {
     const [firstName, ...restName] = (profile?.full_name || 'Kumsika User').split(' ');
     const lastName = restName.join(' ') || 'User';
 
-    // Best-effort insert of the intent row before calling PayChangu.
-    const { error: insertError } = await supabase
-      .from('payments')
-      .insert({
-        user_id: userId,
-        plan: kind === 'subscription' ? plan : `boost_${durationDays || 7}`,
-        amount,
-        currency,
-        method: 'paychangu',
-        payment_id: paymentId,
-        status: 'pending',
-        kind,
-        listing_id: listingId || null,
-      });
+    // The intent row MUST exist before the user is sent to checkout —
+    // /verify and /webhook look it up to grant the entitlement. If it
+    // can't be written, the user would pay and receive nothing.
+    // (plan is a free/basic/pro/business enum, so boosts leave it at its
+    // default and carry their duration in duration_days.)
+    const row = {
+      user_id: userId,
+      amount,
+      currency,
+      method: 'paychangu',
+      payment_id: paymentId,
+      status: 'pending',
+      kind,
+      listing_id: kind === 'boost' ? listingId : null,
+      duration_days: kind === 'boost' ? (Number(durationDays) || 7) : null,
+    };
+    if (kind === 'subscription') row.plan = plan;
+
+    const { error: insertError } = await supabase.from('payments').insert(row);
 
     if (insertError) {
-      logger.warn('Payment record insert warning:', insertError.message);
+      logger.error('Payment record insert failed:', insertError.message);
+      return res.status(500).json({
+        success: false,
+        error: 'Could not start payment. You have not been charged — please try again.',
+      });
     }
 
     const callbackUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment/callback`;
@@ -413,73 +512,28 @@ router.post('/verify', async (req, res) => {
       return res.status(403).json({ success: false, error: 'Not your payment' });
     }
 
-    if (payment.status === 'completed') {
+    const result = await settlePayment(payment);
+    const kind = payment.kind || 'subscription';
+
+    if (result.alreadyProcessed) {
       return res.json({
-        success: true,
-        status: 'success',
-        message: 'Payment already verified',
-        plan: payment.plan,
-        kind: payment.kind || 'subscription',
-        alreadyProcessed: true,
+        success: true, status: 'success', message: 'Payment already verified',
+        plan: payment.plan, kind, alreadyProcessed: true,
       });
     }
-
-    // Server-side truth check with PayChangu
-    const verification = await paychanguService.verifyPayment(paymentId);
-
-    if (!verification.success) {
-      return res.status(502).json({
-        success: false,
-        error: verification.error || 'Verification failed',
-      });
+    if (result.pending) {
+      return res.json({ success: false, status: result.status, message: 'Payment not yet completed' });
     }
-
-    if (verification.status !== 'success') {
-      return res.json({
-        success: false,
-        status: verification.status,
-        message: 'Payment not yet completed',
-      });
+    if (!result.ok) {
+      return res.status(result.httpStatus || 500).json({ success: false, error: result.error });
     }
-
-    // Mark payment complete
-    const now = new Date();
-    const { error: updateError } = await supabase
-      .from('payments')
-      .update({ status: 'completed', updated_at: now.toISOString() })
-      .eq('payment_id', paymentId);
-
-    if (updateError) {
-      logger.error('Payment status update error:', updateError);
-    }
-
-    // Grant the entitlement
-    const granted = await grantEntitlement({ payment, now });
-
-    if (!granted.success) {
-      return res.status(500).json({
-        success: false,
-        error: granted.error,
-      });
-    }
-
-    // Fire-and-forget notification
-    sendPaymentNotification({
-      userId: payment.user_id,
-      plan: payment.plan,
-      amount: payment.amount,
-      currency: payment.currency,
-      method: payment.method,
-      paymentId,
-      kind: payment.kind || 'subscription',
-    }).catch((err) => logger.warn('Notification failed:', err.message));
 
     return res.json({
       success: true,
       status: 'success',
       message: 'Payment verified',
       plan: payment.plan,
-      kind: payment.kind || 'subscription',
+      kind,
     });
   } catch (error) {
     logger.error('Payment verification error:', error);
@@ -544,34 +598,16 @@ router.post('/webhook', async (req, res) => {
       return res.status(200).json({ received: true, unknownTxRef: true });
     }
 
-    if (payment.status === 'completed') {
-      logger.info(`Webhook for already-completed payment: ${txRef}`);
+    // The webhook is only a trigger: settlePayment re-checks status and
+    // amount with PayChangu's API, so a signed "failed" event grants nothing.
+    const result = await settlePayment(payment);
+    if (result.alreadyProcessed) {
       return res.status(200).json({ received: true, alreadyProcessed: true });
     }
-
-    const now = new Date();
-    await supabase
-      .from('payments')
-      .update({ status: 'completed', updated_at: now.toISOString() })
-      .eq('payment_id', txRef);
-
-    const granted = await grantEntitlement({ payment, now });
-
-    if (!granted.success) {
-      logger.error('Webhook grant failed:', granted.error);
-      return res.status(200).json({ received: true, granted: false });
+    if (!result.ok) {
+      logger.warn(`Webhook not settled for ${txRef}:`, result.error || result.status);
+      return res.status(200).json({ received: true, granted: false, status: result.status });
     }
-
-    sendPaymentNotification({
-      userId: payment.user_id,
-      plan: payment.plan,
-      amount: payment.amount,
-      currency: payment.currency,
-      method: payment.method,
-      paymentId: txRef,
-      kind: payment.kind || 'subscription',
-    }).catch((err) => logger.warn('Notification failed:', err.message));
-
     return res.status(200).json({ received: true, granted: true });
   } catch (error) {
     logger.error('Webhook handler error:', error);
@@ -589,6 +625,9 @@ router.post('/webhook', async (req, res) => {
 router.get('/subscription/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user?.id) {
+      return res.status(403).json({ success: false, error: 'You can only view your own subscription' });
+    }
 
     const { data, error } = await supabase
       .from('subscriptions')
@@ -684,14 +723,18 @@ router.get('/subscription/:userId', async (req, res) => {
 // compatibility and for admins to grant plans manually. Should
 // not be called by the frontend.
 // ============================================
+// Manual grant without payment — admins only.
 router.post('/upgrade', async (req, res) => {
-  logger.warn(
-    '⚠️ /api/payment/upgrade called directly — this bypasses payment. ' +
-    'Should only be used by admins for manual grants.'
-  );
-
   try {
+    if (!(await isAdmin(req.user?.id))) {
+      return res.status(403).json({ success: false, error: 'Admin access required' });
+    }
+
     const { plan, userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'userId is required' });
+    }
+    logger.warn('⚠️ Manual subscription grant', { by: req.user.id, userId, plan });
 
     if (!PLANS[plan]) {
       return res.status(400).json({
@@ -749,6 +792,9 @@ router.post('/upgrade', async (req, res) => {
 router.get('/can-create-listing/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.user?.id) {
+      return res.status(403).json({ success: false, error: 'You can only view your own subscription' });
+    }
 
     const { data, error } = await supabase
       .from('subscriptions')

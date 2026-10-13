@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { aiAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
+import SearchInterpretation from '../components/SearchInterpretation';
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -66,9 +67,9 @@ const AISearch = () => {
   const [suggestedCategory, setSuggestedCategory] = useState('');
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
 
-  // ★ PHASE 7A: translation state
-  const [translation, setTranslation] = useState(null); // { original, translated, detectedLanguage, confidence }
-  const [translating, setTranslating] = useState(false);
+  // How the server understood the query (see SearchInterpretation)
+  const [translation, setTranslation] = useState(null);
+  const translating = false;
 
   const searchRef = useRef();
 
@@ -98,70 +99,24 @@ const AISearch = () => {
     await performSearch(query.trim());
   };
 
-  // ★ PHASE 7A: translate before hitting the AI search
-  const translateQuery = async (searchQuery) => {
-    const trimmed = String(searchQuery || '').trim();
-    if (!trimmed || trimmed.length < 3) {
-      setTranslation(null);
-      return { searchTerms: [trimmed], translated: trimmed };
-    }
-
-    setTranslating(true);
-    try {
-      const res = await aiAPI.translateSearch(trimmed);
-      const data = res?.data || {};
-      const translated = data.translated || trimmed;
-      const keywords = Array.isArray(data.keywords) && data.keywords.length > 0
-        ? data.keywords
-        : [trimmed, translated].filter(Boolean);
-
-      const lang = data.detectedLanguage || 'unknown';
-      const confidence = Number(data.confidence) || 0;
-
-      if (lang !== 'en' && translated.toLowerCase() !== trimmed.toLowerCase()) {
-        setTranslation({
-          original: trimmed,
-          translated,
-          detectedLanguage: lang,
-          confidence,
-        });
-      } else {
-        setTranslation(null);
-      }
-
-      return { searchTerms: keywords, translated };
-    } catch (err) {
-      console.warn('translateQuery failed:', err?.message || err);
-      setTranslation(null);
-      return { searchTerms: [trimmed], translated: trimmed };
-    } finally {
-      setTranslating(false);
-    }
-  };
-
   const performSearch = async (searchQuery) => {
     setLoading(true);
     setErrorMsg('');
     setShowSuggestions(false);
     setAiResponse(null);
     setRelatedSearches([]);
+    setTranslation(null);
 
     try {
-      // ★ PHASE 7A: translate first
-      const { searchTerms } = await translateQuery(searchQuery);
-
-      // Send the joined keywords to AI search — the search backend can
-      // match on any of them.
-      const combinedQuery = searchTerms.length > 0
-        ? searchTerms.join(' ')
-        : searchQuery;
-
+      // The server parses the full sentence (Chichewa / English / mixed),
+      // so send it exactly as typed.
       const response = await aiAPI.search({
-        query: combinedQuery,
+        query: searchQuery,
         location: 'Malawi',
       });
 
       if (response.data.success) {
+        setTranslation(response.data.interpretation || null);
         setResults(response.data.results || []);
         setAiResponse(response.data.ai_response || null);
         setRelatedSearches(response.data.related_searches || []);
@@ -312,22 +267,7 @@ const AISearch = () => {
             )}
           </form>
 
-          {/* ★ PHASE 7A: translation chip */}
-          {translation && (
-            <div className="translation-chip">
-              <Icon name="globe" size={14} color="#1E40AF" strokeWidth={2} />
-              <span className="translation-text">
-                Translated: <strong>{translation.original}</strong> → <strong>{translation.translated}</strong>
-              </span>
-            </div>
-          )}
-
-          {translating && !translation && (
-            <div className="translation-chip translating">
-              <div className="translation-spinner" />
-              <span className="translation-text">Translating your query…</span>
-            </div>
-          )}
+          <SearchInterpretation interpretation={translation} />
         </div>
 
         {errorMsg && (
@@ -420,8 +360,8 @@ const AISearch = () => {
             <Icon name="search" size={40} color="var(--color-border-strong)" strokeWidth={1.5} />
             <h3 className="empty-title">No results found for "{query}"</h3>
             <p className="empty-text">
-              {translation
-                ? `We translated it to "${translation.translated}" but found nothing. Try different keywords.`
+              {translation?.concepts?.length
+                ? 'Nothing matches yet. Try fewer words or a different word for the item.'
                 : 'Try using different keywords or check your spelling'}
             </p>
           </div>

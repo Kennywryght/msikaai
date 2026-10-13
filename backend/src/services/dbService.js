@@ -15,6 +15,7 @@ import {
   ne,
 } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
+import { parseQuery, describeInterpretation } from './bilingualSearch.js';
 
 class DBService {
   constructor() {
@@ -32,7 +33,19 @@ class DBService {
   _sanitizeListing(row) {
     if (!row) return row;
     const { locationLat, locationLng, ...rest } = row;
-    return rest;
+    // A boost is only "premium" until it expires.
+    const until = rest.premiumUntil ? new Date(rest.premiumUntil) : null;
+    const boostActive = !!rest.isPremium && !!until && until > new Date();
+    return { ...rest, isPremium: boostActive };
+  }
+
+  // Active boosts first, then newest.
+  _listingOrder() {
+    const l = this.schema.listings;
+    return [
+      desc(sql`(coalesce(${l.isPremium}, false) and ${l.premiumUntil} > now())`),
+      desc(l.createdAt),
+    ];
   }
 
   // ============================================
@@ -225,7 +238,7 @@ class DBService {
         )
         .limit(limit)
         .offset(offset)
-        .orderBy(desc(this.schema.listings.createdAt));
+        .orderBy(...this._listingOrder());
 
       const countResult = await this.db
         .select({ count: sql`count(*)` })
@@ -287,7 +300,7 @@ class DBService {
         .where(and(...conditions))
         .limit(limit)
         .offset(offset)
-        .orderBy(desc(this.schema.listings.createdAt));
+        .orderBy(...this._listingOrder());
 
       const countResult = await this.db
         .select({ count: sql`count(*)` })
@@ -307,54 +320,90 @@ class DBService {
     }
   }
 
+  /**
+   * Bilingual ranked search.
+   * @param {string|null} query  free text (parsed here if params.parsed is absent)
+   * @param {object} params      { parsed, category, location, minPrice, maxPrice,
+   *                               deliveryOnly, limit, offset }
+   * Explicit params override what the sentence implied.
+   */
   async searchListings(query, params = {}) {
     try {
       const { category, location, limit = 20, offset = 0 } = params;
+      const parsed = params.parsed || (query ? parseQuery(query) : null);
+      const l = this.schema.listings;
+      const b = this.schema.businesses;
 
-      const conditions = [eq(this.schema.listings.status, 'active')];
+      const escLike = (t) => t.replace(/[\\%_]/g, '\\$&');
+      const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Short words match whole words only ("ana" must not hit "banana").
+      const termMatch = (col, t) =>
+        t.length <= 4 && !/\s/.test(t)
+          ? sql`${col} ~* ${`\\m${escRe(t)}(s|es)?\\M`}`
+          : sql`${col} ilike ${`%${escLike(t)}%`}`;
+      const anyTerm = (col, terms) => or(...terms.map((t) => termMatch(col, t)));
 
-      if (query) {
-        conditions.push(
-          or(
-            ilike(this.schema.listings.title, `%${query}%`),
-            ilike(this.schema.listings.description, `%${query}%`),
-            ilike(this.schema.listings.category, `%${query}%`)
-          )
-        );
-      }
-      if (category) {
-        conditions.push(eq(this.schema.listings.category, category));
-      }
-      if (location) {
-        conditions.push(ilike(this.schema.listings.locationArea, `%${location}%`));
+      const doc = sql`concat_ws(' ', ${l.title}, ${l.description}, ${l.category}, ${l.subCategory}, ${b.businessName}, ${b.category})`;
+      const concepts = (parsed?.concepts || []).filter((c) => c.terms?.length);
+
+      const conditions = [eq(l.status, 'active')];
+      if (concepts.length) conditions.push(anyTerm(doc, concepts.flatMap((c) => c.terms)));
+
+      const minPrice = params.minPrice ?? parsed?.minPrice ?? null;
+      const maxPrice = params.maxPrice ?? parsed?.maxPrice ?? null;
+      if (minPrice != null) conditions.push(sql`${l.price} >= ${minPrice}`);
+      if (maxPrice != null) conditions.push(sql`${l.price} <= ${maxPrice}`);
+      if (params.deliveryOnly ?? parsed?.deliveryOnly) conditions.push(eq(l.deliveryAvailable, true));
+      if (category) conditions.push(eq(l.category, category));
+      if (location) conditions.push(ilike(l.locationArea, `%${escLike(location)}%`));
+
+      // A location from the sentence is a soft boost, unless it's all we have.
+      const softLoc = !location && parsed?.location ? escLike(parsed.location) : null;
+      if (softLoc && !concepts.length) {
+        conditions.push(or(ilike(l.locationArea, `%${softLoc}%`), ilike(l.locationName, `%${softLoc}%`)));
       }
 
+      // relevance: per concept, 3 if in the title, else 1 if anywhere else
+      const parts = concepts.map(
+        (c) => sql`(case when ${anyTerm(l.title, c.terms)} then 3 when ${anyTerm(doc, c.terms)} then 1 else 0 end)`
+      );
+      if (softLoc) {
+        parts.push(sql`(case when ${l.locationArea} ilike ${`%${softLoc}%`} or ${l.locationName} ilike ${`%${softLoc}%`} then 2 else 0 end)`);
+      }
+      const score = parts.length ? sql.join(parts, sql` + `) : sql`0`;
+
+      const order = [desc(sql`relevance`)];
+      if (parsed?.sort === 'price_asc') order.push(sql`${l.price} asc nulls last`);
+      order.push(...this._listingOrder());
+
+      const where = and(...conditions);
       const result = await this.db
         .select({
-          listing: this.schema.listings,
-          business: this.schema.businesses,
+          listing: l,
+          business: b,
+          relevance: sql`(${score})`.mapWith(Number).as('relevance'),
         })
-        .from(this.schema.listings)
-        .leftJoin(
-          this.schema.businesses,
-          eq(this.schema.listings.businessId, this.schema.businesses.id)
-        )
-        .where(and(...conditions))
+        .from(l)
+        .leftJoin(b, eq(l.businessId, b.id))
+        .where(where)
+        .orderBy(...order)
         .limit(limit)
-        .offset(offset)
-        .orderBy(desc(this.schema.listings.createdAt));
+        .offset(offset);
 
       const countResult = await this.db
         .select({ count: sql`count(*)` })
-        .from(this.schema.listings)
-        .where(and(...conditions));
+        .from(l)
+        .leftJoin(b, eq(l.businessId, b.id))
+        .where(where);
 
       return {
         listings: result.map((row) => ({
           ...this._sanitizeListing(row.listing),
           businesses: row.business || null,
+          relevance: row.relevance,
         })),
         total: Number(countResult[0]?.count || 0),
+        interpretation: parsed ? describeInterpretation(parsed) : null,
       };
     } catch (error) {
       logger.error('Search listings error:', error);
@@ -1052,17 +1101,36 @@ class DBService {
   // ============================================
   // LISTING COMMENTS
   // ============================================
-  async createListingComment(listingId, userId, text) {
+  async createListingComment(listingId, userId, text, parentId = null) {
     try {
       const trimmed = String(text || '').trim();
       if (!trimmed) throw new Error('Comment text is required');
       if (trimmed.length > 1000) throw new Error('Comment is too long (max 1000 characters)');
+
+      let resolvedParentId = null;
+      if (parentId) {
+        const parent = await this.db
+          .select({
+            id: this.schema.listingComments.id,
+            listingId: this.schema.listingComments.listingId,
+            parentId: this.schema.listingComments.parentId,
+          })
+          .from(this.schema.listingComments)
+          .where(eq(this.schema.listingComments.id, parentId))
+          .limit(1);
+        if (!parent[0] || parent[0].listingId !== listingId) {
+          throw new Error('Parent comment not found');
+        }
+        // Replies stay one level deep: replying to a reply attaches to its root.
+        resolvedParentId = parent[0].parentId || parent[0].id;
+      }
 
       const inserted = await this.db
         .insert(this.schema.listingComments)
         .values({
           listingId,
           userId,
+          parentId: resolvedParentId,
           text: trimmed,
         })
         .returning();
@@ -1076,7 +1144,7 @@ class DBService {
 
   async getListingComments(listingId, params = {}) {
     try {
-      const { limit = 50, offset = 0 } = params;
+      const { limit = 50, offset = 0, userId = null } = params;
 
       const rows = await this.db
         .select({
@@ -1098,9 +1166,14 @@ class DBService {
         .limit(limit)
         .offset(offset);
 
+      const ids = rows.map((row) => row.comment.id);
+      const { counts: likeCounts, liked } = await this.getCommentLikeStates(ids, userId);
+
       const comments = rows.map((row) => ({
         ...row.comment,
         user: row.user,
+        likes: likeCounts[row.comment.id] || 0,
+        likedByMe: !!liked[row.comment.id],
       }));
 
       const countResult = await this.db
@@ -1162,6 +1235,286 @@ class DBService {
       logger.error('Delete listing comment error:', error);
       throw error;
     }
+  }
+
+  // ============================================
+  // PRICE BOARD
+  // Aggregates active, priced listings from the last `days` days into
+  // category → item rows with a min/max price range, vendor count and a
+  // trend (avg of the last 7 days vs the 7 days before).
+  // ============================================
+  async getPriceBoard({ days = 14, location = null, maxItemsPerCategory = 12 } = {}) {
+    const l = this.schema.listings;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const conds = [
+      eq(l.status, 'active'),
+      sql`${l.price} is not null`,
+      sql`coalesce(${l.updatedAt}, ${l.createdAt}) >= ${since}`,
+    ];
+    if (location) conds.push(ilike(l.locationArea, `%${location}%`));
+
+    const rows = await this.db
+      .select({
+        title: l.title,
+        unit: l.unit,
+        category: l.category,
+        price: l.price,
+        businessId: l.businessId,
+        createdAt: l.createdAt,
+        updatedAt: l.updatedAt,
+      })
+      .from(l)
+      .where(and(...conds))
+      .orderBy(desc(l.updatedAt))
+      .limit(5000);
+
+    const normalize = (s) =>
+      String(s || '').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+    const categories = new Map();
+    let latest = 0;
+
+    for (const r of rows) {
+      const price = Number(r.price);
+      if (!Number.isFinite(price) || price <= 0) continue;
+      const catName = (r.category || 'Other').trim() || 'Other';
+      const unit = (r.unit || '').trim();
+      const key = `${normalize(r.title)}|${normalize(unit)}`;
+      const ts = new Date(r.updatedAt || r.createdAt || 0).getTime();
+      latest = Math.max(latest, ts);
+
+      if (!categories.has(catName)) categories.set(catName, { vendors: new Set(), items: new Map() });
+      const cat = categories.get(catName);
+      cat.vendors.add(r.businessId);
+
+      if (!cat.items.has(key)) {
+        cat.items.set(key, {
+          name: unit ? `${r.title.trim()}, ${unit}` : r.title.trim(),
+          min: price, max: price, vendors: new Set(), recent: [], prior: [],
+        });
+      }
+      const item = cat.items.get(key);
+      item.min = Math.min(item.min, price);
+      item.max = Math.max(item.max, price);
+      item.vendors.add(r.businessId);
+      (ts >= weekAgo ? item.recent : item.prior).push(price);
+    }
+
+    const avg = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : null);
+
+    const result = [...categories.entries()].map(([name, cat]) => {
+      const items = [...cat.items.values()]
+        .map((it) => {
+          const a = avg(it.recent);
+          const b = avg(it.prior);
+          let trend = 'stable';
+          let change = 0;
+          if (a != null && b != null && b > 0) {
+            change = Math.round(a - b);
+            if (Math.abs(a - b) / b >= 0.02) trend = a > b ? 'up' : 'down';
+          }
+          return {
+            name: it.name,
+            minPrice: it.min,
+            maxPrice: it.max,
+            vendorCount: it.vendors.size,
+            trend,
+            change,
+          };
+        })
+        .sort((x, y) => y.vendorCount - x.vendorCount || x.name.localeCompare(y.name))
+        .slice(0, maxItemsPerCategory);
+      return { name, vendorCount: cat.vendors.size, items };
+    }).sort((x, y) => y.vendorCount - x.vendorCount || x.name.localeCompare(y.name));
+
+    return {
+      categories: result,
+      lastUpdated: latest ? new Date(latest).toISOString() : null,
+      windowDays: days,
+    };
+  }
+
+  // ============================================
+  // COMMENT LIKES
+  // ============================================
+
+  async getCommentLikeStates(commentIds, userId = null) {
+    const ids = (commentIds || []).filter(Boolean);
+    if (!ids.length) return { counts: {}, liked: {} };
+    const t = this.schema.commentLikes;
+
+    const countRows = await this.db
+      .select({ commentId: t.commentId, count: sql`count(*)::int` })
+      .from(t)
+      .where(inArray(t.commentId, ids))
+      .groupBy(t.commentId);
+
+    const counts = {};
+    for (const r of countRows) counts[r.commentId] = Number(r.count) || 0;
+
+    const liked = {};
+    if (userId) {
+      const mine = await this.db
+        .select({ commentId: t.commentId })
+        .from(t)
+        .where(and(inArray(t.commentId, ids), eq(t.userId, userId)));
+      for (const r of mine) liked[r.commentId] = true;
+    }
+    return { counts, liked };
+  }
+
+  /** Idempotent: like=true inserts (no-op if present), like=false deletes. */
+  async setCommentLike(commentId, userId, like) {
+    const t = this.schema.commentLikes;
+
+    const exists = await this.db
+      .select({ id: this.schema.listingComments.id })
+      .from(this.schema.listingComments)
+      .where(eq(this.schema.listingComments.id, commentId))
+      .limit(1);
+    if (!exists[0]) throw new Error('Comment not found');
+
+    if (like) {
+      await this.db.insert(t).values({ commentId, userId }).onConflictDoNothing();
+    } else {
+      await this.db.delete(t).where(and(eq(t.commentId, commentId), eq(t.userId, userId)));
+    }
+
+    const { counts } = await this.getCommentLikeStates([commentId]);
+    return { liked: !!like, count: counts[commentId] || 0 };
+  }
+
+  // ============================================
+  // REVIEWS
+  // ============================================
+
+  async getReviews({ listingId = null, businessId = null, limit = 50, offset = 0 } = {}) {
+    const r = this.schema.reviews;
+    const p = this.schema.profiles;
+    const where = listingId ? eq(r.listingId, listingId) : eq(r.businessId, businessId);
+
+    const rows = await this.db
+      .select({
+        review: r,
+        reviewer: { id: p.id, fullName: p.fullName, avatarUrl: p.avatarUrl },
+      })
+      .from(r)
+      .leftJoin(p, eq(r.reviewerId, p.id))
+      .where(where)
+      .orderBy(desc(r.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const agg = await this.db
+      .select({ count: sql`count(*)::int`, avg: sql`coalesce(avg(${r.rating}), 0)::float` })
+      .from(r)
+      .where(where);
+
+    return {
+      reviews: rows.map((row) => ({ ...row.review, reviewer: row.reviewer })),
+      total: Number(agg[0]?.count || 0),
+      averageRating: Math.round((Number(agg[0]?.avg) || 0) * 10) / 10,
+    };
+  }
+
+  async getReview(id) {
+    const rows = await this.db
+      .select()
+      .from(this.schema.reviews)
+      .where(eq(this.schema.reviews.id, id))
+      .limit(1);
+    return rows[0] || null;
+  }
+
+  /** Create, or update the reviewer's existing review of the same listing. */
+  async upsertListingReview({ listingId, businessId, reviewerId, rating, comment }) {
+    const r = this.schema.reviews;
+    const existing = await this.db
+      .select({ id: r.id })
+      .from(r)
+      .where(and(eq(r.listingId, listingId), eq(r.reviewerId, reviewerId)))
+      .limit(1);
+
+    if (existing[0]) {
+      const [updated] = await this.db
+        .update(r)
+        .set({ rating, comment, updatedAt: new Date() })
+        .where(eq(r.id, existing[0].id))
+        .returning();
+      return { review: updated, created: false };
+    }
+
+    const [created] = await this.db
+      .insert(r)
+      .values({ listingId, businessId, reviewerId, rating, comment })
+      .returning();
+    return { review: created, created: true };
+  }
+
+  async updateReview(id, patch) {
+    const [updated] = await this.db
+      .update(this.schema.reviews)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(this.schema.reviews.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteReview(id) {
+    await this.db.delete(this.schema.reviews).where(eq(this.schema.reviews.id, id));
+  }
+
+  /**
+   * Refresh businesses.rating / review_count for one business and the
+   * owner's trust_scores.average_rating / total_reviews (across all of the
+   * owner's businesses). Returns the owner's user id.
+   */
+  async refreshReviewAggregates(businessId) {
+    const r = this.schema.reviews;
+    const b = this.schema.businesses;
+
+    const [bizAgg] = await this.db
+      .select({ count: sql`count(*)::int`, avg: sql`coalesce(avg(${r.rating}), 0)::float` })
+      .from(r)
+      .where(eq(r.businessId, businessId));
+
+    const [biz] = await this.db
+      .update(b)
+      .set({
+        rating: String((Number(bizAgg?.avg) || 0).toFixed(2)),
+        reviewCount: Number(bizAgg?.count || 0),
+        updatedAt: new Date(),
+      })
+      .where(eq(b.id, businessId))
+      .returning({ userId: b.userId });
+
+    const ownerId = biz?.userId;
+    if (!ownerId) return null;
+
+    const [ownerAgg] = await this.db
+      .select({ count: sql`count(*)::int`, avg: sql`coalesce(avg(${r.rating}), 0)::float` })
+      .from(r)
+      .innerJoin(b, eq(r.businessId, b.id))
+      .where(eq(b.userId, ownerId));
+
+    await this.db
+      .insert(this.schema.trustScores)
+      .values({
+        userId: ownerId,
+        averageRating: String((Number(ownerAgg?.avg) || 0).toFixed(2)),
+        totalReviews: Number(ownerAgg?.count || 0),
+      })
+      .onConflictDoUpdate({
+        target: this.schema.trustScores.userId,
+        set: {
+          averageRating: String((Number(ownerAgg?.avg) || 0).toFixed(2)),
+          totalReviews: Number(ownerAgg?.count || 0),
+          updatedAt: new Date(),
+        },
+      });
+
+    return ownerId;
   }
 }
 

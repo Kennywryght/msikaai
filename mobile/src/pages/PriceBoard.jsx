@@ -1,8 +1,9 @@
 // mobile/src/pages/PriceBoard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
+import { listingsAPI } from '../services/api';
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -48,61 +49,48 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 };
 
 // ============================================================
-// MOCK BOARD DATA
+// BOARD DATA — aggregated server-side from active listings
+// (GET /api/listings/price-board)
 // ============================================================
-const BOARD_DATA = {
-  date: 'Monday, 8 September 2025',
-  location: 'Mitundu Trading Centre',
-  lastUpdated: '7:40 AM',
-  categories: [
-    {
-      id: 'produce',
-      name: 'Produce',
-      emoji: '🥬',
-      vendorCount: 6,
-      items: [
-        { name: 'Tomatoes, basket', price: 'MK500 - MK700', trend: 'up', change: '+MK50' },
-        { name: 'Maize, 50kg bag', price: 'MK340 - MK360', trend: 'stable', change: '0' },
-        { name: 'Onions, per kg', price: 'MK800', trend: 'down', change: '-MK30' },
-        { name: 'Cabbage, head', price: 'MK400', trend: 'stable', change: '0' },
-        { name: 'Potatoes, 10kg', price: 'MK1,200', trend: 'up', change: '+MK100' },
-      ]
-    },
-    {
-      id: 'grains',
-      name: 'Grains & Cereals',
-      emoji: '🌾',
-      vendorCount: 4,
-      items: [
-        { name: 'Maize flour, 5kg', price: 'MK450 - MK500', trend: 'up', change: '+MK20' },
-        { name: 'Rice, per kg', price: 'MK1,800', trend: 'stable', change: '0' },
-        { name: 'Beans, per kg', price: 'MK1,500', trend: 'up', change: '+MK100' },
-      ]
-    },
-    {
-      id: 'clothing',
-      name: 'Clothing',
-      emoji: '👕',
-      vendorCount: 3,
-      items: [
-        { name: 'Secondhand shirts', price: 'MK1,000 - MK2,500', trend: 'stable', change: '0' },
-        { name: 'School shoes', price: 'MK4,500', trend: 'up', change: '+MK200' },
-        { name: 'Chitenje fabric, 2m', price: 'MK3,000', trend: 'stable', change: '0' },
-      ]
-    },
-    {
-      id: 'services',
-      name: 'Services',
-      emoji: '🔧',
-      vendorCount: 4,
-      items: [
-        { name: 'Electrician, home visit', price: 'MK5,000', trend: 'stable', change: '0' },
-        { name: 'Tailoring, per item', price: 'MK1,500 - MK3,000', trend: 'up', change: '+MK500' },
-        { name: 'Plumber, per hour', price: 'MK4,000', trend: 'stable', change: '0' },
-      ]
-    },
-  ],
-};
+const BOARD_LOCATION = 'Mitundu Trading Centre';
+
+const CATEGORY_EMOJI = [
+  [/produce|veg|fruit|food|tomato/i, '🥬'],
+  [/grain|cereal|maize|rice|flour/i, '🌾'],
+  [/dairy|egg|milk/i, '🥚'],
+  [/meat|fish|chicken/i, '🐟'],
+  [/cloth|fashion|shoe|chitenje/i, '👕'],
+  [/service|repair|plumb|electric|tailor|hair/i, '🔧'],
+  [/hardware|tool|build/i, '🔨'],
+  [/household|home|kitchen/i, '🏠'],
+  [/farm|seed|fert/i, '🌱'],
+];
+const emojiFor = (name) => (CATEGORY_EMOJI.find(([re]) => re.test(name)) || [null, '✨'])[1];
+
+const mk = (n) => `MK${Math.round(Number(n) || 0).toLocaleString()}`;
+
+const toBoard = (payload) => ({
+  categories: (payload?.categories || []).map((c) => ({
+    id: c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    name: c.name,
+    emoji: emojiFor(c.name),
+    vendorCount: c.vendorCount,
+    items: (c.items || []).map((i) => ({
+      name: i.name,
+      price: i.minPrice === i.maxPrice ? mk(i.minPrice) : `${mk(i.minPrice)} - ${mk(i.maxPrice)}`,
+      trend: i.trend,
+      change: i.change > 0 ? `+${mk(i.change)}` : i.change < 0 ? `-${mk(-i.change)}` : '0',
+      vendorCount: i.vendorCount,
+    })),
+  })),
+  lastUpdated: payload?.lastUpdated || null,
+  windowDays: payload?.windowDays || 14,
+});
+
+const fmtTime = (iso) =>
+  iso
+    ? new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+    : '—';
 
 // ============================================================
 // MAIN COMPONENT
@@ -114,7 +102,9 @@ const PriceBoard = () => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [activeCategory, setActiveCategory] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(BOARD_DATA.lastUpdated);
+  const [board, setBoard] = useState({ categories: [], lastUpdated: null, windowDays: 14 });
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   const isMobile = windowWidth <= 768;
 
@@ -124,12 +114,27 @@ const PriceBoard = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const loadBoard = useCallback(async (fresh = false) => {
+    try {
+      const res = await listingsAPI.getPriceBoard({ fresh });
+      setBoard(toBoard(res?.data));
+      setLoadError(null);
+      return true;
+    } catch (err) {
+      setLoadError(err?.response?.data?.error || 'Could not load market prices');
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBoard().finally(() => setLoading(false));
+  }, [loadBoard]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setLastUpdated(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
+    const ok = await loadBoard(true);
     setRefreshing(false);
-    success('Board updated!');
+    if (ok) success('Board updated!');
   };
 
   const handlePostStock = () => {
@@ -141,8 +146,9 @@ const PriceBoard = () => {
   };
 
   const handleShare = async () => {
-    const shareText = `Today's Market Board - ${BOARD_DATA.date}\n\n` +
-      BOARD_DATA.categories.map(cat =>
+    const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const shareText = `Today's Market Board - ${today}\n\n` +
+      board.categories.map(cat =>
         `${cat.name}:\n${cat.items.map(i => `  • ${i.name}: ${i.price}`).join('\n')}`
       ).join('\n\n') +
       `\n\nView on Kumsika: ${window.location.href}`;
@@ -174,8 +180,8 @@ const PriceBoard = () => {
   };
 
   const filteredCategories = activeCategory === 'all'
-    ? BOARD_DATA.categories
-    : BOARD_DATA.categories.filter(c => c.id === activeCategory);
+    ? board.categories
+    : board.categories.filter(c => c.id === activeCategory);
 
   return (
     <div className="price-board">
@@ -210,12 +216,12 @@ const PriceBoard = () => {
           <div className="header-meta">
             <span className="meta-item">
               <Icon name="mapPin" size={12} color="var(--color-text-muted)" strokeWidth={1.75} />
-              {BOARD_DATA.location}
+              {BOARD_LOCATION}
             </span>
             <span className="meta-divider">•</span>
             <span className="meta-item">
               <Icon name="clock" size={12} color="var(--color-text-muted)" strokeWidth={1.75} />
-              Updated {lastUpdated}
+              Updated {fmtTime(board.lastUpdated)}
             </span>
           </div>
         </div>
@@ -229,7 +235,7 @@ const PriceBoard = () => {
         >
           All
         </button>
-        {BOARD_DATA.categories.map(cat => (
+        {board.categories.map(cat => (
           <button
             key={cat.id}
             className={`filter-chip ${activeCategory === cat.id ? 'active' : ''}`}
@@ -243,6 +249,13 @@ const PriceBoard = () => {
 
       {/* Board Content */}
       <div className="board-content">
+        {loading && <p className="board-status">Loading market prices…</p>}
+        {!loading && loadError && <p className="board-status">{loadError}</p>}
+        {!loading && !loadError && board.categories.length === 0 && (
+          <p className="board-status">
+            No priced listings in the last {board.windowDays} days yet. Post your stock to start the board.
+          </p>
+        )}
         {filteredCategories.map(category => (
           <div key={category.id} className="category-section">
             <div className="category-header">
@@ -258,6 +271,9 @@ const PriceBoard = () => {
                 <div key={idx} className="item-row">
                   <div className="item-info">
                     <span className="item-name">{item.name}</span>
+                    {item.vendorCount > 1 && (
+                      <span className="board-item-vendors">{item.vendorCount} sellers</span>
+                    )}
                   </div>
                   <div className="item-price-wrap">
                     <span className="item-price">{item.price}</span>
@@ -301,7 +317,7 @@ const PriceBoard = () => {
       {/* Info Footer */}
       <div className="info-footer">
         <Icon name="info" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
-        <span>Prices are updated throughout the day by local vendors</span>
+        <span>Price ranges come from sellers' active listings over the last {board.windowDays} days; trends compare this week with last week</span>
       </div>
 
       {/* Bottom Nav */}
@@ -328,6 +344,14 @@ const PriceBoard = () => {
       )}
 
       <style jsx>{`
+        .board-status {
+          text-align: center; color: var(--color-text-muted); font-size: 14px;
+          padding: 32px 16px; margin: 0;
+        }
+        .board-item-vendors {
+          display: block; font-size: 11px; color: var(--color-text-muted); margin-top: 2px;
+        }
+
         .price-board {
           min-height: 100vh;
           background: var(--color-bg);

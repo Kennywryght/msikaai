@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { rejectForeignUserId } from '../utils/authz.js';
 
 dotenv.config();
 
@@ -28,9 +29,12 @@ router.get('/user/:userId', async (req, res) => {
       });
     }
 
+    // Your own profile: everything. Someone else's: public fields only
+    // (no email/phone/role).
+    const isSelf = userId === req.user?.id;
     const { data, error } = await supabaseAdmin
       .from('profiles')
-      .select('*')
+      .select(isSelf ? '*' : 'id, full_name, avatar_url, location_text, created_at')
       .eq('id', userId)
       .maybeSingle();
 
@@ -70,7 +74,9 @@ router.get('/user/:userId', async (req, res) => {
 // ============================================
 router.put('/update', async (req, res) => {
   try {
-    const { userId, fullName, phone, avatar_url, location_text } = req.body;
+    const { fullName, phone, avatar_url, location_text } = req.body;
+    if (rejectForeignUserId(req, res, req.body.userId)) return;
+    const userId = req.user.id;
 
     console.log('🔄 Updating profile for user:', userId);
 
@@ -125,7 +131,9 @@ router.put('/update', async (req, res) => {
 // ============================================
 router.put('/business/update', async (req, res) => {
   try {
-    const { userId, businessName, category, description, phone, address, logo_url } = req.body;
+    const { businessName, category, description, phone, address, logo_url } = req.body;
+    if (rejectForeignUserId(req, res, req.body.userId)) return;
+    const userId = req.user.id;
 
     console.log('🔄 Updating business for user:', userId);
 

@@ -416,17 +416,34 @@ const Settings = () => {
 
             <button
               className="settings-item"
-              onClick={() => showToast('Report submitted', 'success')}
+              onClick={() => navigate('/landing?tour=1')}
+            >
+              <div className="item-icon-wrap" style={{ background: 'var(--color-primary-tint)' }}>
+                <Icon name="info" size={18} color="var(--color-primary)" strokeWidth={1.9} />
+              </div>
+              <div className="item-content">
+                <span className="item-label">Take the app tour</span>
+                <span className="item-desc">A one-minute walkthrough · English or Chichewa</span>
+              </div>
+              <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
+            </button>
+
+            {/* Opens the user's mail app with context filled in (there is no in-app ticket system). */}
+            <a
+              className="settings-item"
+              href={`mailto:support@kumsika.com?subject=${encodeURIComponent('Problem report')}&body=${encodeURIComponent(
+                `What happened:\n\n\nPage: ${typeof window !== 'undefined' ? window.location.origin : ''}\nDevice: ${typeof navigator !== 'undefined' ? navigator.userAgent : ''}`
+              )}`}
             >
               <div className="item-icon-wrap" style={{ background: 'var(--color-accent-tint)' }}>
                 <Icon name="messageCircle" size={18} color="var(--color-accent)" strokeWidth={1.9} />
               </div>
               <div className="item-content">
                 <span className="item-label">Report a Problem</span>
-                <span className="item-desc">Let us know what's wrong</span>
+                <span className="item-desc">Email us what went wrong</span>
               </div>
               <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
-            </button>
+            </a>
 
             <Link to="/about" className="settings-item">
               <div className="item-icon-wrap" style={{ background: 'var(--color-secondary-tint)' }}>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { trustAPI } from '../services/api';
+import { trustAPI, adminAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 
 // ============================================================
@@ -111,47 +111,39 @@ const AdminDashboard = () => {
     }
   };
 
+  // Server-side aggregate (service role) — revenue comes from paid `payments`
+  // rows, which is where PayChangu subscriptions and boosts are recorded.
   const loadDashboardData = async () => {
     try {
-      const { count: usersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: listingsCount } = await supabase
-        .from('listings')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: ordersCount } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true });
-
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('status', 'completed');
-
-      const totalRevenue = ordersData?.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0) || 0;
-
-      const { data: recentOrders } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      const { data: recentUsers } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
+      const res = await adminAPI.getStats();
+      const s = res?.data?.stats || {};
 
       setStats({
-        users: usersCount || 0,
-        projects: listingsCount || 0,
-        orders: ordersCount || 0,
-        revenue: totalRevenue,
-        recentOrders: recentOrders || [],
-        recentUsers: recentUsers || []
+        users: s.users || 0,
+        projects: s.activeListings || 0,
+        orders: s.paidPayments || 0,
+        revenue: s.revenue || 0,
+        activeBoosts: s.activeBoosts || 0,
+        recentOrders: (res?.data?.recentPayments || []).map((p) => ({
+          id: p.id,
+          ref: p.paymentId,
+          status: p.status,
+          kind: p.kind || 'subscription',
+          total_amount: Number(p.amount) || 0,
+          email: p.userEmail,
+          created_at: p.createdAt,
+        })),
+        recentUsers: (res?.data?.recentUsers || []).map((u) => ({
+          id: u.id,
+          email: u.email,
+          full_name: u.fullName,
+          role: u.role,
+          created_at: u.createdAt,
+        })),
       });
+      if (typeof s.pendingVerifications === 'number') {
+        setPendingVerifications(s.pendingVerifications);
+      }
     } catch (err) {
       console.error('Error loading dashboard data:', err);
       showToast('Error loading data', 'error');
@@ -312,7 +304,9 @@ const AdminDashboard = () => {
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.projects.toLocaleString()}</div>
-              <div className="stat-label">Listings</div>
+              <div className="stat-label">
+                Active listings{stats.activeBoosts ? ` · ${stats.activeBoosts} boosted` : ''}
+              </div>
             </div>
           </div>
           <div className="stat-card">
@@ -321,7 +315,7 @@ const AdminDashboard = () => {
             </div>
             <div className="stat-info">
               <div className="stat-value">{stats.orders.toLocaleString()}</div>
-              <div className="stat-label">Orders</div>
+              <div className="stat-label">Paid payments</div>
             </div>
           </div>
           <div className="stat-card">
@@ -341,22 +335,24 @@ const AdminDashboard = () => {
             <div className="card-header">
               <h3 className="card-title">
                 <Icon name="clock" size={18} color="var(--color-accent)" strokeWidth={1.75} />
-                Recent Orders
+                Recent Payments
               </h3>
-              <span className="card-count">{stats.recentOrders.length}</span>
+              <Link to="/admin/reports" className="card-count">All</Link>
             </div>
             {stats.recentOrders.length === 0 ? (
-              <p className="empty-state">No orders recorded yet.</p>
+              <p className="empty-state">No payments recorded yet.</p>
             ) : (
               <div className="activity-list">
                 {stats.recentOrders.map((order, index) => {
-                  const isCompleted = order.status === 'completed';
-                  const isCancelled = order.status === 'cancelled';
+                  const isCompleted = order.status === 'completed' || order.status === 'success';
+                  const isCancelled = order.status === 'cancelled' || order.status === 'failed';
 
                   return (
                     <div key={order.id} className={`activity-item ${index === stats.recentOrders.length - 1 ? 'last' : ''}`}>
                       <div className="activity-info">
-                        <div className="activity-name">Order #{order.id?.slice(0, 8) || 'N/A'}</div>
+                        <div className="activity-name">
+                          {order.kind === 'boost' ? 'Boost' : 'Subscription'} · {order.email || order.ref || 'N/A'}
+                        </div>
                         <div className="activity-meta">
                           {formatCurrency(order.total_amount)}
                           {order.created_at && ` • ${formatDate(order.created_at)}`}
@@ -378,7 +374,7 @@ const AdminDashboard = () => {
                 <Icon name="users" size={18} color="var(--color-primary)" strokeWidth={1.75} />
                 Recent Users
               </h3>
-              <span className="card-count">{stats.recentUsers.length}</span>
+              <Link to="/admin/users" className="card-count">All</Link>
             </div>
             {stats.recentUsers.length === 0 ? (
               <p className="empty-state">No users registered yet.</p>

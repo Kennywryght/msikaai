@@ -1,8 +1,10 @@
 // mobile/src/pages/RatingReview.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
+import { listingsAPI, reviewsAPI } from '../services/api';
+import { getThumbnailUrl, handleImageError } from '../utils/imageUtils';
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -70,21 +72,35 @@ const QUICK_TAGS = [
   { id: 'late', label: '⏳ Late pickup', type: 'negative' },
 ];
 
-const MOCK_TRANSACTION = {
-  id: 'txn-1',
-  type: 'purchase',
-  listing: { title: 'Fresh Tomatoes, basket', price: 650, emoji: '🍅', image: null },
-  vendor: { name: 'Grace M.', initials: 'GM', color: '#F59E0B', rating: 4.8, totalReviews: 47, memberSince: '2024' },
-  completedAt: 'Today, 5:30 PM',
-  pickupLocation: 'Mitundu Trading Centre',
+const initialsOf = (name) =>
+  String(name || 'S')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join('') || 'S';
+
+// Folded into the saved comment so tags/recommendation survive without
+// extra columns, e.g. "Friendly seller · As described · Would recommend\n\n<text>"
+const composeComment = (tagIds, wouldRecommend, text) => {
+  const tagLabels = QUICK_TAGS
+    .filter((t) => tagIds.includes(t.id))
+    .map((t) => t.label.replace(/^\S+\s/, ''));
+  if (wouldRecommend === true) tagLabels.push('Would recommend');
+  if (wouldRecommend === false) tagLabels.push('Would not recommend');
+  return [tagLabels.join(' · '), text.trim()].filter(Boolean).join('\n\n');
 };
 
 const RatingReview = () => {
-  const { id } = useParams();
+  // Route is /rating-review/:transactionId; the id is the listing being reviewed.
+  const params = useParams();
+  const listingId = params.listingId || params.transactionId || params.id;
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
   const { showToast, success } = useToast();
+
+  const [listing, setListing] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -95,7 +111,6 @@ const RatingReview = () => {
   const [submitted, setSubmitted] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
 
-  const transaction = MOCK_TRANSACTION;
   const isMobile = windowWidth <= 768;
 
   useEffect(() => {
@@ -103,6 +118,51 @@ const RatingReview = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [listingRes, reviewsRes] = await Promise.all([
+          listingsAPI.getById(listingId),
+          reviewsAPI.getByListing(listingId).catch(() => null),
+        ]);
+        if (cancelled) return;
+        const l = listingRes?.data?.listing;
+        if (!l) { setLoadError('Listing not found'); return; }
+        setListing(l);
+
+        const mine = reviewsRes?.data?.reviews?.find((r) => r.reviewer_id === user?.id);
+        if (mine) {
+          setRating(mine.rating);
+          setComment(mine.comment || '');
+        }
+      } catch (err) {
+        if (!cancelled) setLoadError(err?.response?.data?.error || 'Could not load listing');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [listingId, user?.id]);
+
+  const vendorName = listing?.businesses?.business_name || 'the seller';
+  const vendorRating = Number(listing?.businesses?.rating) || 0;
+  const vendorReviews = listing?.businesses?.review_count ?? listing?.businesses?.reviewCount ?? 0;
+  const isOwnListing = !!user?.id && listing?.businesses?.user_id === user.id;
+  const transaction = {
+    listing: {
+      title: listing?.title || '',
+      price: listing?.price,
+      image: listing?.images?.[0] ? getThumbnailUrl(listing.images[0], { width: 64 }) : null,
+    },
+    vendor: {
+      name: vendorName,
+      initials: initialsOf(vendorName),
+      color: '#F59E0B',
+      rating: vendorRating ? vendorRating.toFixed(1) : '—',
+      totalReviews: vendorReviews,
+    },
+    completedAt: listing?.location_name || listing?.location_area || '',
+  };
 
   const handleTagToggle = (tagId) => {
     setSelectedTags(prev =>
@@ -119,10 +179,19 @@ const RatingReview = () => {
     }
 
     setSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    setSubmitting(false);
-    setSubmitted(true);
-    success('Review submitted! Thank you ⭐');
+    try {
+      await reviewsAPI.create({
+        listingId,
+        rating,
+        comment: composeComment(selectedTags, wouldRecommend, comment),
+      });
+      setSubmitted(true);
+      success('Review submitted! Thank you ⭐');
+    } catch (err) {
+      showToast(err?.response?.data?.error || 'Failed to submit review', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSkip = () => {
@@ -137,10 +206,33 @@ const RatingReview = () => {
     else if (navId === 'profile') navigate('/profile');
   };
 
-  const formatPrice = (price) => `MK ${price.toLocaleString()}`;
+  const formatPrice = (price) =>
+    price != null && price !== '' ? `MK ${Number(price).toLocaleString()}` : 'Price on request';
 
   const currentRating = hoverRating || rating;
   const ratingInfo = RATING_LABELS[currentRating] || { label: 'Tap a star to rate', emoji: '⭐', color: 'var(--color-text-muted)' };
+
+  if (loadError || !listing || isOwnListing) {
+    const msg = loadError
+      ? loadError
+      : isOwnListing
+      ? "You can't review your own listing."
+      : 'Loading…';
+    return (
+      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, color: 'var(--color-text-muted)', fontFamily: 'var(--font-sans)' }}>
+        <p style={{ margin: 0 }}>{msg}</p>
+        {(loadError || isOwnListing) && (
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            style={{ padding: '10px 20px', borderRadius: 12, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)', font: 'inherit', cursor: 'pointer' }}
+          >
+            Go back
+          </button>
+        )}
+      </div>
+    );
+  }
 
   // Submitted state
   if (submitted) {
@@ -166,8 +258,8 @@ const RatingReview = () => {
               />
             ))}
           </div>
-          <button className="success-btn" onClick={() => navigate(-1)}>
-            Back to Dashboard
+          <button className="success-btn" onClick={() => navigate(`/listing/${listingId}`, { replace: true })}>
+            Back to listing
           </button>
         </div>
 
@@ -296,15 +388,26 @@ const RatingReview = () => {
         <div className="transaction-card">
           <div className="transaction-main">
             <div className="transaction-image">
-              <span className="transaction-emoji">{transaction.listing.emoji}</span>
+              {transaction.listing.image ? (
+                <img
+                  src={transaction.listing.image}
+                  alt={transaction.listing.title}
+                  onError={handleImageError}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
+                />
+              ) : (
+                <Icon name="store" size={24} color="var(--color-text-muted)" strokeWidth={1.5} />
+              )}
             </div>
             <div className="transaction-info">
               <h3 className="transaction-title">{transaction.listing.title}</h3>
               <span className="transaction-price">{formatPrice(transaction.listing.price)}</span>
-              <span className="transaction-time">
-                <Icon name="clock" size={10} color="var(--color-text-muted)" strokeWidth={1.75} />
-                {transaction.completedAt}
-              </span>
+              {transaction.completedAt && (
+                <span className="transaction-time">
+                  <Icon name="clock" size={10} color="var(--color-text-muted)" strokeWidth={1.75} />
+                  {transaction.completedAt}
+                </span>
+              )}
             </div>
           </div>
 
@@ -438,7 +541,7 @@ const RatingReview = () => {
         {/* Trust Note */}
         <div className="trust-note">
           <Icon name="shield" size={14} color="var(--color-primary)" strokeWidth={1.75} />
-          <span>Your review will be shown publicly on {transaction.vendor.name}'s profile</span>
+          <span>Your review will be shown publicly on this listing and counts toward {transaction.vendor.name}'s rating</span>
         </div>
 
         {/* Submit */}

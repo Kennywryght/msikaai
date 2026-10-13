@@ -4,9 +4,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// ✅ Fixed: URL-encoded password
-const DATABASE_URL = process.env.DATABASE_URL || 
-  "postgresql://postgres.wywiyswqrowzxvbcygsy:kids04D10.100%25@aws-0-us-east-1.pooler.supabase.com:5432/postgres?pgbouncer=true";
+// Credentials come only from the environment (backend/.env locally).
+// Never commit a connection string here.
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  throw new Error('DATABASE_URL is not set — add it to backend/.env');
+}
 
 export default defineConfig({
   schema: './src/db/schema.js',

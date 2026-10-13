@@ -505,7 +505,7 @@ const ListingDetails = () => {
           })
           .catch(() => {});
       }
-      success('✅ Review submitted successfully!');
+      success(reviews.some((r) => r.reviewer_id === user?.id) ? '✅ Review updated!' : '✅ Review submitted successfully!');
       setShowReviewForm(false);
       setReviewData({ rating: 5, comment: '' });
       fetchListingDetails();
@@ -1194,14 +1194,26 @@ const ListingDetails = () => {
             <h3 className="section-title">
               <Icon name="star" size={20} color="var(--color-accent)" strokeWidth={1.75} />
               Reviews ({reviews.length})
+              {reviews.length > 0 && (
+                <span className="review-date">
+                  {' · '}
+                  {(reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.length).toFixed(1)}/5
+                </span>
+              )}
             </h3>
-            {isAuthenticated && (
+            {isAuthenticated && !isOwnListing && (
               <button
                 className="btn-write-review"
-                onClick={() => setShowReviewForm(!showReviewForm)}
+                onClick={() => {
+                  const mine = reviews.find((r) => r.reviewer_id === user?.id);
+                  if (!showReviewForm && mine) {
+                    setReviewData({ rating: mine.rating, comment: mine.comment || '' });
+                  }
+                  setShowReviewForm(!showReviewForm);
+                }}
               >
                 <Icon name="pencil" size={14} color="var(--color-text-inverse)" strokeWidth={1.75} />
-                Write review
+                {reviews.some((r) => r.reviewer_id === user?.id) ? 'Edit your review' : 'Write review'}
               </button>
             )}
           </div>
@@ -1249,10 +1261,11 @@ const ListingDetails = () => {
                     {renderStars(review.rating)} {review.rating}/5
                   </span>
                   <span className="review-date">
-                    {new Date(review.created_at).toLocaleDateString()}
+                    {review.reviewer?.full_name || 'Buyer'}
+                    {review.created_at ? ` · ${new Date(review.created_at).toLocaleDateString()}` : ''}
                   </span>
                 </div>
-                <p className="review-comment">{review.comment}</p>
+                {review.comment && <p className="review-comment">{review.comment}</p>}
               </div>
             ))
           ) : (

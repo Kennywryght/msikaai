@@ -65,6 +65,9 @@ import paymentRoutes from './api/payment.js';
 import searchRoutes from './api/search.js';
 import messagesRoutes from './api/messages.js';
 import interactionsRoutes from './api/interactions.js';
+import commentsRoutes from './api/comments.js';
+import reviewsRoutes from './api/reviews.js';
+import adminRoutes from './api/admin.js';
 
 // ★ PHASE 3C: Trust routes
 import trustRoutes from './api/trust.js';
@@ -232,6 +235,11 @@ try {
 // ============================================
 // SECURITY & PERFORMANCE
 // ============================================
+// Behind Render/Vercel's proxy, req.ip is the proxy unless we trust its
+// X-Forwarded-For hop. Without this every user shares one rate-limit bucket.
+// TRUST_PROXY = number of proxy hops in front of the app (default 1; 0 = none).
+app.set('trust proxy', Number.parseInt(process.env.TRUST_PROXY ?? '1', 10) || false);
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -317,9 +325,10 @@ app.use((req, res, next) => {
   if (req.originalUrl === '/api/payment/webhook') {
     return express.raw({ type: '*/*', limit: '1mb' })(req, res, next);
   }
-  return express.json({ limit: '50mb' })(req, res, next);
+  // Files go through multer (multipart); JSON bodies stay small.
+  return express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' })(req, res, next);
 });
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.JSON_BODY_LIMIT || '1mb' }));
 
 app.use(logHttpRequest);
 
@@ -329,7 +338,7 @@ app.use(logHttpRequest);
 const rateLimitCommon = {
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { trustProxy: false, xForwardedForHeader: false },
+  // req.ip is the real client IP now that 'trust proxy' is set above.
   keyGenerator: (req) => req.ip,
 };
 
@@ -682,6 +691,11 @@ app.use('/api/payment', (req, res, next) => {
 }, paymentRoutes);
 
 app.use('/api/interactions', interactionsRoutes);
+app.use('/api/comments', commentsRoutes);
+app.use('/api/reviews', reviewsRoutes);
+// Admin router enforces role itself; the inline /api/admin/* routes above
+// are registered first and keep working.
+app.use('/api/admin', authenticateToken, adminRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -15,7 +15,13 @@ export const useToast = () => {
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const showToast = useCallback(({ message, title, type = 'info', duration = 3000, position = 'bottom-right' }) => {
+  // Accepts both showToast({ message, type, ... }) and the positional form
+  // showToast(message, type, options) that most pages use.
+  const showToast = useCallback((arg, typeArg, options = {}) => {
+    const opts = typeof arg === 'object' && arg !== null
+      ? arg
+      : { ...options, message: arg, type: typeArg ?? options.type };
+    const { message, title, type = 'info', duration = 3000, position = 'bottom-right' } = opts;
     const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, message, title, type, duration, position }]);
   }, []);
