@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { businessAPI } from '../services/api';
+import { businessAPI, listingsAPI, invalidateCache } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 
 // ============================================================
@@ -160,15 +160,42 @@ const PostStock = () => {
       return;
     }
 
+    const price = Number(formData.price);
+    if (!Number.isFinite(price) || price <= 0) {
+      showToast('Please enter a valid price', 'warning');
+      return;
+    }
+    if (!selectedBusiness) {
+      showToast('Set up your business profile before posting stock', 'warning');
+      navigate('/profile-setup');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      // Posted as a regular listing; the Price Board aggregates active listings.
+      const category = QUICK_CATEGORIES.find((c) => c.id === formData.category)?.label || 'Other';
+      const res = await listingsAPI.createWithImages(
+        {
+          businessId: selectedBusiness,
+          title: formData.itemName.trim(),
+          description: formData.note.trim(),
+          category,
+          price,
+          priceType: 'fixed',
+          quantity: formData.quantity ? parseInt(formData.quantity, 10) : undefined,
+          unit: formData.unit,
+          status: 'active',
+        },
+        photo ? [photo] : []
+      );
+      if (res?.data?.success === false) throw new Error(res.data.error || 'Failed');
+      invalidateCache('/listings');
       setSubmitted(true);
       success('Posted to Today\'s Board! 🎉');
     } catch (err) {
       console.error('Error posting stock:', err);
-      showToast('Failed to post stock. Please try again.', 'error');
+      showToast(err?.response?.data?.error || 'Failed to post stock. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -419,7 +446,7 @@ const PostStock = () => {
           </div>
           <h1 className="page-title">Post Today's Stock</h1>
           <p className="page-subtitle">
-            Share what you have available today. Auto-expires at end of day.
+            Share what you have available today. It's posted as a listing and shows on the Price Board for 2 weeks.
           </p>
         </div>
       </div>

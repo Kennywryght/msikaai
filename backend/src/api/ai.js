@@ -6,6 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 import groqService from '../services/groqService.js';
 import geminiService from '../services/geminiService.js';
 import aiService from '../services/aiService.js';
+import dbService from '../services/dbService.js';
+import { parseQuery, mergeTranslatedTerms } from '../services/bilingualSearch.js';
 import { logger } from '../utils/logger.js';
 
 dotenv.config();
@@ -279,143 +281,72 @@ router.post('/search', async (req, res) => {
       logger.error('Groq search error:', error.message);
     }
 
-    let searchTerms = [];
-    let suggestedCategory = category || 'All';
+    // Bilingual parse of the full sentence; Groq's terms (if any) only add to it.
+    let parsed = parseQuery(String(query));
+    const aiTerms = Array.isArray(aiResults?.searchTerms) ? aiResults.searchTerms : [];
+    if (aiTerms.length) parsed = mergeTranslatedTerms(parsed, aiTerms);
+    const suggestedCategory = aiResults?.category || category || 'All';
 
-    if (aiResults) {
-      searchTerms = aiResults.searchTerms || [query];
-      suggestedCategory = aiResults.category || category || 'All';
-    } else {
-      searchTerms = [query];
-    }
+    const { listings: rows, interpretation } = await dbService.searchListings(null, {
+      parsed,
+      category: category && category !== 'All' ? category : undefined,
+      limit: 20,
+      offset: 0,
+    });
 
-    let dbQuery = supabase
-      .from('listings')
-      .select(`
-        *,
-        businesses:business_id (
-          id,
-          business_name,
-          category,
-          phone,
-          address,
-          rating,
-          logo_url
-        )
-      `)
-      .eq('status', 'active')
-      .limit(30);
+    const maxRelevance = Math.max(1, ...rows.map((r) => r.relevance || 0));
+    const results = rows.map((r) => toAISearchItem(r, query, maxRelevance));
 
-    if (searchTerms.length > 0) {
-      const searchQuery = searchTerms.join(' ');
-      dbQuery = dbQuery.textSearch('search_vector', searchQuery, {
-        config: 'english',
-        type: 'websearch',
-      });
-    }
-
-    if (suggestedCategory && suggestedCategory !== 'All') {
-      dbQuery = dbQuery.eq('category', suggestedCategory);
-    }
-
-    const { data, error } = await dbQuery;
-
-    if (error) {
-      logger.error('Database search error:', error);
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          businesses:business_id (
-            id,
-            business_name,
-            category,
-            phone,
-            address,
-            rating,
-            logo_url
-          )
-        `)
-        .eq('status', 'active')
-        .ilike('title', `%${query}%`)
-        .limit(20);
-
-      if (!fallbackError && fallbackData) {
-        return res.json({
-          success: true,
-          results: fallbackData,
-          total: fallbackData.length,
-          query: query,
-          ai_processed: false,
-          method: 'fallback',
-        });
-      }
-
-      return res.status(500).json({
-        success: false,
-        error: error.message,
-      });
-    }
-
-    const enhancedResults = data.map((item) => ({
-      ...item,
-      ai_summary: getAISummary(item, query),
-      ai_enhanced: true,
-    }));
-
-    const response = {
+    res.json({
       success: true,
-      results: enhancedResults.slice(0, 20),
-      total: enhancedResults.length,
-      query: query,
-      ai_processed: true,
-      method: searchMethod,
+      results,
+      total: results.length,
+      query,
+      ai_processed: !!aiResults,
+      method: searchMethod === 'groq-ai' ? 'groq-ai+bilingual' : 'bilingual',
       ai_response: aiResults?.response || null,
       related_searches: aiResults?.relatedSearches || [],
       suggested_category: suggestedCategory,
-    };
-
-    res.json(response);
+      interpretation,
+    });
   } catch (error) {
     logger.error('❌ AI Search error:', error);
-
-    try {
-      const { data, error: fallbackError } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          businesses:business_id (
-            id,
-            business_name,
-            category,
-            phone,
-            address,
-            rating,
-            logo_url
-          )
-        `)
-        .eq('status', 'active')
-        .ilike('title', `%${req.body.query}%`)
-        .limit(20);
-
-      if (fallbackError) throw fallbackError;
-
-      res.json({
-        success: true,
-        results: data || [],
-        total: data?.length || 0,
-        query: req.body.query,
-        ai_processed: false,
-        method: 'fallback',
-      });
-    } catch (fallbackErr) {
-      res.status(500).json({
-        success: false,
-        error: error.message,
-      });
-    }
+    res.status(500).json({ success: false, error: 'Search failed. Please try again.' });
   }
 });
+
+// dbService row (camelCase) → the snake_case shape AISearch.jsx renders
+function toAISearchItem(r, query, maxRelevance) {
+  const b = r.businesses;
+  const item = {
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    category: r.category,
+    price: r.price,
+    price_type: r.priceType,
+    images: (r.images || []).filter((s) => typeof s === 'string' && /^https?:\/\/\S+$/i.test(s.trim())),
+    location_area: r.locationArea,
+    location_name: r.locationName,
+    delivery_available: r.deliveryAvailable,
+    is_premium: r.isPremium,
+    created_at: r.createdAt,
+    relevance_score: Math.round(((r.relevance || 0) / maxRelevance) * 100) / 100,
+    businesses: b
+      ? {
+          id: b.id,
+          user_id: b.userId,
+          business_name: b.businessName,
+          category: b.category,
+          phone: b.phone,
+          address: b.address,
+          rating: b.rating,
+          logo_url: b.logoUrl,
+        }
+      : null,
+  };
+  return { ...item, ai_summary: getAISummary(item, query), ai_enhanced: true };
+}
 
 // ============================================
 // 2. AI SUGGESTIONS

@@ -215,11 +215,19 @@ class RedisService {
       return 0;
     }
     try {
-      const keys = await this.client.keys(`*${pattern}*`);
-      if (keys.length > 0) {
-        await this.client.del(...keys);
-      }
-      return keys.length;
+      // SCAN instead of KEYS: KEYS walks the whole keyspace in one blocking
+      // call and stalls every other Redis client while it runs.
+      let cursor = '0';
+      let count = 0;
+      do {
+        const [next, keys] = await this.client.scan(cursor, 'MATCH', `*${pattern}*`, 'COUNT', 500);
+        cursor = next;
+        if (keys.length > 0) {
+          await this.client.unlink(...keys);
+          count += keys.length;
+        }
+      } while (cursor !== '0');
+      return count;
     } catch (error) {
       logger.error('Redis invalidate pattern error:', error.message);
       return 0;

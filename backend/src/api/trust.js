@@ -16,6 +16,7 @@ import { logger } from '../utils/logger.js';
 import { authenticateToken } from '../middleware/auth.js';
 import trustScoreService from '../services/trustScoreService.js';
 import storageService from '../services/storageService.js';
+import smsService, { normalizeMsisdn } from '../services/smsService.js';
 import {
   TRUST_TIERS,
   VERIFICATION_TYPES,
@@ -206,14 +207,46 @@ router.post('/recompute', authenticateToken, async (req, res) => {
 
 // ============================================
 // POST /api/trust/verify-phone
-// Step 1: submit phone, receive OTP (logged to console for now)
+// Step 1: submit phone, receive OTP by SMS.
+// Without SMS credentials the OTP is printed to the server console, but only
+// outside production — in production the request fails instead.
 // ============================================
 router.post('/verify-phone', authenticateToken, async (req, res) => {
   try {
-    const { phone } = req.body;
+    const phone = normalizeMsisdn(req.body?.phone);
 
-    if (!phone || typeof phone !== 'string' || phone.length < 9) {
+    if (!phone) {
       return res.status(400).json({ success: false, error: 'Valid phone number required' });
+    }
+
+    const isProd = process.env.NODE_ENV === 'production';
+    if (!smsService.isConfigured && isProd) {
+      return res.status(503).json({
+        success: false,
+        error: 'Phone verification is temporarily unavailable. Please try again later.',
+      });
+    }
+
+    // Throttle: one code per user per 60s (each SMS costs money).
+    const [latest] = await db
+      .select({ createdAt: verificationRequests.createdAt })
+      .from(verificationRequests)
+      .where(
+        and(
+          eq(verificationRequests.userId, req.user.id),
+          eq(verificationRequests.type, VERIFICATION_TYPES.PHONE)
+        )
+      )
+      .orderBy(desc(verificationRequests.createdAt))
+      .limit(1);
+    const sinceLast = latest?.createdAt ? Date.now() - new Date(latest.createdAt).getTime() : Infinity;
+    if (sinceLast < 60 * 1000) {
+      const wait = Math.ceil((60 * 1000 - sinceLast) / 1000);
+      return res.status(429).json({
+        success: false,
+        error: `Please wait ${wait}s before requesting another code.`,
+        retryAfter: wait,
+      });
     }
 
     await db
@@ -243,17 +276,35 @@ router.post('/verify-phone', authenticateToken, async (req, res) => {
       })
       .returning();
 
-    logger.info('📱 [STUB SMS] Phone OTP generated', {
-      userId: req.user.id,
-      phone,
-      otp,
-    });
-    console.log(`\n📱 [STUB SMS] OTP for ${phone}: ${otp}\n`);
+    let delivery = 'sms';
+    if (smsService.isConfigured) {
+      const sent = await smsService.send(
+        phone,
+        `Your Kumsika verification code is ${otp}. It expires in 10 minutes. Don't share it with anyone.`
+      );
+      if (!sent.success) {
+        await db
+          .update(verificationRequests)
+          .set({ status: VERIFICATION_STATUSES.EXPIRED, updatedAt: new Date() })
+          .where(eq(verificationRequests.id, request.id));
+        return res.status(502).json({
+          success: false,
+          error: "We couldn't send the SMS. Check the number and try again.",
+        });
+      }
+      logger.info('📱 Phone OTP sent', { userId: req.user.id, phone });
+    } else {
+      // Dev fallback only (blocked in production above). Not written to the
+      // persistent logger so OTPs don't land in log files.
+      delivery = 'console';
+      console.log(`\n📱 [DEV SMS] OTP for ${phone}: ${otp}\n`);
+    }
 
     return res.json({
       success: true,
       requestId: request.id,
-      message: 'OTP sent (stub: check server console)',
+      delivery,
+      message: delivery === 'sms' ? `Code sent to ${phone}` : 'OTP printed to server console (dev mode)',
       expiresAt,
     });
   } catch (error) {

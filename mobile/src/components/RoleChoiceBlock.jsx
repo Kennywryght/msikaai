@@ -100,7 +100,7 @@ const RoleChoiceBlock = () => {
 
   // ---------- Render ----------
   return (
-    <div className="role-block-wrap">
+    <div className="role-block-wrap" data-tour="role-choice">
       <div className="role-block">
         <button
           className="dismiss-btn"

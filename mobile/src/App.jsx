@@ -53,6 +53,7 @@ import VerifyBusiness from './pages/VerifyBusiness';
 
 // Phase 3I
 import AdminVerifications from './pages/AdminVerifications';
+import AdminManage from './pages/AdminManage';
 
 // Phase 5F + 5H
 import Requests from './pages/Requests';
@@ -243,6 +244,9 @@ function AppRoutes() {
 
       {/* Admin — specific route first, then wildcard */}
       <Route path="/admin/verifications" element={<AdminRoute><Layout><AdminVerifications /></Layout></AdminRoute>} />
+      <Route path="/admin/users" element={<AdminRoute><Layout><AdminManage section="users" /></Layout></AdminRoute>} />
+      <Route path="/admin/listings" element={<AdminRoute><Layout><AdminManage section="listings" /></Layout></AdminRoute>} />
+      <Route path="/admin/reports" element={<AdminRoute><Layout><AdminManage section="reports" /></Layout></AdminRoute>} />
       <Route path="/admin/*" element={<AdminRoute><Layout><AdminDashboard /></Layout></AdminRoute>} />
 
       <Route path="/profile" element={<ProtectedRoute><Layout><EditProfile /></Layout></ProtectedRoute>} />

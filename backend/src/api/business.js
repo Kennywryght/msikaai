@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import dotenv from 'dotenv';
 import dbService from '../services/dbService.js';
+import { checkBusinessAccess, pick, rejectForeignUserId } from '../utils/authz.js';
 
 dotenv.config();
 
@@ -39,7 +40,6 @@ const ALLOWED_CATEGORIES = [
 router.post('/create', async (req, res) => {
   try {
     const {
-      userId,
       businessName,
       category,
       description,
@@ -47,6 +47,10 @@ router.post('/create', async (req, res) => {
       address,
       locationText,
     } = req.body;
+
+    // Owner is always the caller; a different userId in the body is refused.
+    if (rejectForeignUserId(req, res, req.body.userId)) return;
+    const userId = req.user.id;
 
     console.log('🏪 Creating business:', {
       businessName,
@@ -249,15 +253,27 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = { ...req.body };
+
+    const access = await checkBusinessAccess(req.user.id, id);
+    if (!access.ok) {
+      return res.status(access.status).json({ success: false, error: access.error });
+    }
+
+    // Owner-editable fields only — verified/rating/reviewCount/status are
+    // set by verification, reviews and moderation, never by the owner.
+    const updates = pick(req.body || {}, [
+      ['businessName', 'business_name'], ['category'], ['description'], ['phone'],
+      ['address'], ['locationText', 'location_text'], ['logoUrl', 'logo_url'],
+      ['deliveryAvailable', 'delivery_available'],
+    ]);
+    if (access.admin) {
+      Object.assign(updates, pick(req.body || {}, [['status'], ['verified']]));
+    }
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ success: false, error: 'No editable fields provided' });
+    }
 
     console.log('🔄 Updating business:', id);
-
-    // Remove immutable fields
-    delete updates.id;
-    delete updates.userId;
-    delete updates.createdAt;
-    delete updates.updatedAt;
 
     // Validate category if present in updates
     if (updates.category !== undefined) {
@@ -351,6 +367,11 @@ router.get('/', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+
+    const access = await checkBusinessAccess(req.user.id, id);
+    if (!access.ok) {
+      return res.status(access.status).json({ success: false, error: access.error });
+    }
 
     console.log('🗑️ Deleting business:', id);
 

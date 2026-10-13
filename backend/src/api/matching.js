@@ -2,6 +2,7 @@
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { checkBusinessAccess, rejectForeignUserId } from '../utils/authz.js';
 
 dotenv.config();
 
@@ -16,8 +17,7 @@ const supabaseAdmin = createClient(
 // ============================================
 router.post('/needs', async (req, res) => {
   try {
-    const { 
-      userId,
+    const {
       title,
       description,
       category,
@@ -27,10 +27,13 @@ router.post('/needs', async (req, res) => {
       urgency = 'medium'
     } = req.body;
 
-    if (!userId || !title) {
+    if (rejectForeignUserId(req, res, req.body.userId)) return;
+    const userId = req.user.id;
+
+    if (!title) {
       return res.status(400).json({
         success: false,
-        error: 'User ID and title are required'
+        error: 'Title is required'
       });
     }
 
@@ -145,6 +148,11 @@ router.get('/business-needs/:businessId', async (req, res) => {
     const { businessId } = req.params;
     const { limit = 10 } = req.query;
 
+    const access = await checkBusinessAccess(req.user.id, businessId);
+    if (!access.ok) {
+      return res.status(access.status).json({ success: false, error: access.error });
+    }
+
     // Get business details
     const { data: business, error: bizError } = await supabaseAdmin
       .from('businesses')
@@ -166,8 +174,7 @@ router.get('/business-needs/:businessId', async (req, res) => {
         *,
         profiles:user_id (
           full_name,
-          phone,
-          email
+          phone
         )
       `)
       .eq('status', 'active');
@@ -272,11 +279,12 @@ router.get('/needs', async (req, res) => {
 router.put('/needs/:id/close', async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId } = req.body;
+    if (rejectForeignUserId(req, res, req.body?.userId)) return;
+    const userId = req.user.id;
 
     const { data, error } = await supabaseAdmin
       .from('needs')
-      .update({ 
+      .update({
         status: 'fulfilled',
         fulfilled_at: new Date().toISOString()
       })

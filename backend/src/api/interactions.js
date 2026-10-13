@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import dbService from '../services/dbService.js';
 import { logger } from '../utils/logger.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -51,16 +51,17 @@ router.post('/comments/counts', async (req, res) => {
 
 // ============================================
 // GET /api/interactions/comments/:listingId
-// List comments for a listing (public)
+// List comments for a listing (public; signed-in users also get likedByMe)
 // ============================================
-router.get('/comments/:listingId', async (req, res) => {
+router.get('/comments/:listingId', optionalAuth, async (req, res) => {
   try {
     const { listingId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
 
     const result = await dbService.getListingComments(listingId, {
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10),
+      limit: Math.min(parseInt(limit, 10) || 50, 200),
+      offset: parseInt(offset, 10) || 0,
+      userId: req.user?.id || null,
     });
 
     res.json({ success: true, ...result });
@@ -121,14 +122,15 @@ router.post('/likes/:listingId', authenticateToken, async (req, res) => {
 
 // ============================================
 // POST /api/interactions/comments/:listingId
-// Body: { text }
-// Create a comment (auth required)
+// Body: { text, parentId? }
+// Create a comment or a reply (auth required)
 // ============================================
 router.post('/comments/:listingId', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { listingId } = req.params;
     const { text } = req.body;
+    const parentId = req.body.parentId ?? req.body.parent_id ?? null;
 
     if (!text || !String(text).trim()) {
       return res.status(400).json({
@@ -137,12 +139,13 @@ router.post('/comments/:listingId', authenticateToken, async (req, res) => {
       });
     }
 
-    const comment = await dbService.createListingComment(listingId, userId, text);
+    const comment = await dbService.createListingComment(listingId, userId, text, parentId);
 
-    res.status(201).json({ success: true, comment });
+    res.status(201).json({ success: true, comment: { ...comment, likes: 0, likedByMe: false } });
   } catch (error) {
     logger.error('Create comment error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    const status = /not found|too long|required/i.test(error.message) ? 400 : 500;
+    res.status(status).json({ success: false, error: error.message });
   }
 });
 

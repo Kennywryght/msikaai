@@ -1,5 +1,5 @@
 // backend/src/services/trustScoreService.js
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import {
   trustScores,
@@ -50,7 +50,8 @@ const gatherInputs = async (userId) => {
   const premiumRows = await db
     .select({ count: sql`count(*)::int` })
     .from(payments)
-    .where(and(eq(payments.userId, userId), eq(payments.status, 'success')));
+    // payment.js marks paid rows 'completed'; 'success' kept for older rows.
+    .where(and(eq(payments.userId, userId), inArray(payments.status, ['completed', 'success'])));
 
   const premiumPurchases = premiumRows[0]?.count ?? 0;
 

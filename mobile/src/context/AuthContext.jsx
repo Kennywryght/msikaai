@@ -9,6 +9,23 @@ import React, {
 } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useToast } from '../components/ToastContainer';
+import cacheService from '../services/cacheService';
+
+// The API response cache is persisted in localStorage and keyed by URL only,
+// so per-user responses (/auth/me, /messages/conversations, …) must not
+// survive into another account's session.
+const LAST_USER_KEY = 'kumsika:last_user_id';
+const resetCacheForUser = (userId) => {
+  try {
+    if (localStorage.getItem(LAST_USER_KEY) !== (userId || '')) {
+      cacheService.clear();
+      if (userId) localStorage.setItem(LAST_USER_KEY, userId);
+      else localStorage.removeItem(LAST_USER_KEY);
+    }
+  } catch {
+    cacheService.clear();
+  }
+};
 
 const AuthContext = createContext();
 
@@ -192,6 +209,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (event === 'SIGNED_IN') {
+        resetCacheForUser(session?.user?.id);
         setSession(session);
         setIsAuthenticated(true);
         setIsAnonymous(isAnonymousUser(session?.user));
@@ -313,6 +331,7 @@ export const AuthProvider = ({ children }) => {
   // CLEAR AUTH STATE
   // ============================================================
   const clearAuth = () => {
+    resetCacheForUser(null);
     setUser(null);
     setSession(null);
     setIsAuthenticated(false);

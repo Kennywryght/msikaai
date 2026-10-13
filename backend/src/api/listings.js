@@ -12,6 +12,24 @@ import { listings as listingsTable } from '../db/schema.js';
 import searchService from '../services/searchService.js';
 import { reverseGeocode } from '../services/geocodingService.js';
 import { logger } from '../utils/logger.js';
+import { checkBusinessAccess, checkListingAccess, pick } from '../utils/authz.js';
+import { parseQuery, mergeTranslatedTerms } from '../services/bilingualSearch.js';
+import aiService from '../services/aiService.js';
+
+// Statuses a seller may set; 'suspended' is admin-only (moderation).
+const OWNER_STATUSES = ['active', 'inactive', 'pending'];
+const ALL_STATUSES = [...OWNER_STATUSES, 'suspended'];
+
+// Fields a seller may edit. Boost (isPremium/premiumUntil), featured,
+// counters and ownership are deliberately absent.
+const EDITABLE_LISTING_FIELDS = [
+  ['title'], ['description'], ['category'], ['subCategory', 'sub_category'],
+  ['price'], ['priceType', 'price_type'], ['quantity'], ['unit'], ['images'],
+  ['status'], ['locationArea', 'location_area'], ['locationName', 'location_name'],
+  ['locationLat', 'location_lat'], ['locationLng', 'location_lng'],
+  ['deliveryAvailable', 'delivery_available'], ['deliveryFee', 'delivery_fee'],
+  ['contactPhone', 'contact_phone'],
+];
 
 dotenv.config();
 
@@ -35,6 +53,39 @@ const looksLikeCoords = (s) => {
   return /^near\s+-?\d+\.\d+,\s*-?\d+\.\d+$/i.test(s.trim());
 };
 
+// Only persisted, absolute http(s) image URLs are valid. Rejects blob: (client
+// previews that were never uploaded), data:, relative paths and empty values.
+const isValidImageUrl = (src) => {
+  if (typeof src !== 'string') return false;
+  const s = src.trim();
+  if (!s) return false;
+  try {
+    const u = new URL(s);
+    return (u.protocol === 'http:' || u.protocol === 'https:') && !!u.hostname;
+  } catch {
+    return false;
+  }
+};
+
+const sanitizeImages = (images) => {
+  let list = images;
+  if (typeof list === 'string') {
+    try { list = JSON.parse(list); } catch { list = [list]; }
+  }
+  if (!Array.isArray(list)) return [];
+  return [...new Set(list.map((s) => (typeof s === 'string' ? s.trim() : s)).filter(isValidImageUrl))];
+};
+
+const MAX_PAGE_SIZE = 50;
+const parseLimit = (v, def = 20) => {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, MAX_PAGE_SIZE) : def;
+};
+const parseOffset = (v) => {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+
 const sanitizeListing = (row) => {
   if (!row) return row;
   const { locationLat, locationLng, ...rest } = row;
@@ -44,6 +95,7 @@ const sanitizeListing = (row) => {
 
   return {
     ...rest,
+    images: sanitizeImages(rest.images),
     locationArea: cleanedArea,
     locationName: cleanedName || cleanedArea || null,
   };
@@ -61,16 +113,16 @@ router.get('/', cacheMiddleware(300, keyGenerators.listings), async (req, res) =
 
     const result = await dbService.getListings({
       status,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: parseLimit(limit),
+      offset: parseOffset(offset),
     });
 
     return res.json({
       success: true,
       listings: result.listings.map(sanitizeListing),
       total: result.total,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: parseLimit(limit),
+      offset: parseOffset(offset),
     });
   } catch (error) {
     console.error('❌ Fetch listings error:', error);
@@ -105,22 +157,42 @@ router.get('/business/:businessId', cacheMiddleware(300), async (req, res) => {
 router.get('/search', cacheMiddleware(180, keyGenerators.search), async (req, res) => {
   try {
     const { q, category, minPrice, maxPrice, limit = 20, offset = 0 } = req.query;
+    const num = (v) => (v !== undefined && v !== '' && Number.isFinite(Number(v)) ? Number(v) : undefined);
 
-    console.log('🔍 Searching listings:', { q, category, minPrice, maxPrice, limit, offset });
+    // Chichewa / English / mixed sentence → concepts + price/delivery/location intent
+    let parsed = q ? parseQuery(String(q)) : null;
+    if (parsed && parsed.unknown.length && parsed.language !== 'en' && aiService.getAvailableProvider()) {
+      // Dictionary missed some words: ask the AI translator, but never let it
+      // hold up search for more than ~1.5s (results are cached for 24h).
+      try {
+        const ai = await Promise.race([
+          aiService.translateChichewaQuery(parsed.original),
+          new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
+        ]);
+        const words = ai ? [ai.translated, ...(ai.keywords || [])].filter(Boolean) : [];
+        if (words.length) parsed = mergeTranslatedTerms(parsed, words);
+      } catch (err) {
+        logger.warn('Search AI translation skipped:', err?.message);
+      }
+    }
 
-    const result = await dbService.searchListings(q, {
+    const result = await dbService.searchListings(null, {
+      parsed,
       category,
       location: req.query.location,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      minPrice: num(minPrice),
+      maxPrice: num(maxPrice),
+      limit: parseLimit(limit),
+      offset: parseOffset(offset),
     });
 
     return res.json({
       success: true,
       listings: result.listings.map(sanitizeListing),
       total: result.total,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      interpretation: result.interpretation,
+      limit: parseLimit(limit),
+      offset: parseOffset(offset),
     });
   } catch (error) {
     console.error('❌ Search error:', error);
@@ -128,7 +200,22 @@ router.get('/search', cacheMiddleware(180, keyGenerators.search), async (req, re
   }
 });
 
-router.get('/:id', cacheMiddleware(600), async (req, res) => {
+// GET /api/listings/price-board?days=14&location=Mitundu
+// Market price ranges aggregated from active listings (public, cached 5 min).
+router.get('/price-board', cacheMiddleware(300), async (req, res) => {
+  try {
+    const days = Math.min(Math.max(parseInt(req.query.days, 10) || 14, 1), 60);
+    const location = req.query.location ? String(req.query.location).slice(0, 80) : null;
+    const board = await dbService.getPriceBoard({ days, location });
+    return res.json({ success: true, ...board });
+  } catch (error) {
+    console.error('❌ Price board error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Keyed as listing:<id> so invalidateCache(`listing:${id}`) on update/delete/review hits it.
+router.get('/:id', cacheMiddleware(600, (req) => `listing:${req.params.id}`), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -185,9 +272,15 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
       });
     }
 
-    const business = await dbService.getBusiness(businessId);
-    if (!business) {
-      return res.status(404).json({ success: false, error: 'Business not found' });
+    const access = await checkBusinessAccess(req.user.id, businessId);
+    if (!access.ok) {
+      return res.status(access.status).json({ success: false, error: access.error });
+    }
+    if (String(title).trim().length > 200) {
+      return res.status(400).json({ success: false, error: 'Title is too long (max 200 characters)' });
+    }
+    if (status && !OWNER_STATUSES.includes(status)) {
+      return res.status(400).json({ success: false, error: `status must be one of ${OWNER_STATUSES.join(', ')}` });
     }
 
     // ---- Resolve place name ----
@@ -301,15 +394,38 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = { ...req.body };
+
+    const access = await checkListingAccess(req.user.id, id);
+    if (!access.ok) {
+      return res.status(access.status).json({ success: false, error: access.error });
+    }
+
+    const updates = pick(req.body || {}, EDITABLE_LISTING_FIELDS);
+    if (access.admin && req.body?.featured !== undefined) updates.featured = !!req.body.featured;
+
+    if (updates.status !== undefined) {
+      const allowed = access.admin ? ALL_STATUSES : OWNER_STATUSES;
+      if (!allowed.includes(updates.status)) {
+        return res.status(400).json({ success: false, error: `status must be one of ${allowed.join(', ')}` });
+      }
+    }
+    // A listing suspended by moderation stays locked for its owner.
+    if (!access.admin && access.listing.status === 'suspended') {
+      return res.status(403).json({ success: false, error: 'This listing was suspended by an admin' });
+    }
+    if (updates.deliveryAvailable !== undefined) {
+      updates.deliveryAvailable = updates.deliveryAvailable === true || updates.deliveryAvailable === 'true';
+    }
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ success: false, error: 'No editable fields provided' });
+    }
 
     console.log('🔄 Updating listing:', id);
 
-    delete updates.id;
-    delete updates.businessId;
-    delete updates.createdAt;
-    delete updates.viewCount;
-    delete updates.contactCount;
+    // Never persist blob:/empty/invalid image URLs sent by the client
+    if (updates.images !== undefined) {
+      updates.images = sanitizeImages(updates.images);
+    }
 
     // If coords are being updated and no name is given, geocode
     if (
@@ -383,6 +499,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const access = await checkListingAccess(req.user.id, id);
+    if (!access.ok) {
+      return res.status(access.status).json({ success: false, error: access.error });
+    }
 
     console.log('🗑️ Deleting listing:', id);
 

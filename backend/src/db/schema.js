@@ -129,7 +129,10 @@ export const businesses = pgTable('businesses', {
   deliveryAvailable: boolean('delivery_available').default(false),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => ({
+  userIdx: index('businesses_user_idx').on(table.userId),
+  statusIdx: index('businesses_status_idx').on(table.status, table.createdAt),
+}));
 
 // ============================================
 // LISTINGS
@@ -161,10 +164,19 @@ export const listings = pgTable('listings', {
   viewCount: integer('view_count').default(0),
   contactCount: integer('contact_count').default(0),
   featured: boolean('featured').default(false),
+  // ★ Spotlight boost (set by payment grant; active only while premium_until > now)
+  isPremium: boolean('is_premium').default(false),
+  premiumUntil: timestamp('premium_until'),
   searchVector: text('search_vector'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => ({
+  // feed / search: WHERE status = 'active' ORDER BY created_at DESC
+  statusCreatedIdx: index('listings_status_created_idx').on(table.status, table.createdAt),
+  businessIdx: index('listings_business_idx').on(table.businessId, table.status),
+  categoryIdx: index('listings_category_idx').on(table.category, table.status),
+  premiumUntilIdx: index('listings_premium_until_idx').on(table.premiumUntil),
+}));
 
 // ============================================
 // SUBSCRIPTIONS
@@ -194,7 +206,9 @@ export const notifications = pgTable('notifications', {
   read: boolean('read').default(false),
   data: jsonb('data'),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => ({
+  userCreatedIdx: index('notifications_user_created_idx').on(table.userId, table.createdAt),
+}));
 
 // ============================================
 // PUSH SUBSCRIPTIONS
@@ -232,7 +246,9 @@ export const needs = pgTable('needs', {
   status: statusEnum('status').default('active'),
   fulfilledAt: timestamp('fulfilled_at'),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => ({
+  statusCreatedIdx: index('needs_status_created_idx').on(table.status, table.createdAt),
+}));
 
 // ============================================
 // REQUESTS
@@ -451,7 +467,11 @@ export const analyticsEvents = pgTable('analytics_events', {
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at').defaultNow(),
-});
+}, (table) => ({
+  listingIdx: index('analytics_events_listing_idx').on(table.listingId, table.createdAt),
+  businessIdx: index('analytics_events_business_idx').on(table.businessId, table.createdAt),
+  userIdx: index('analytics_events_user_idx').on(table.userId, table.createdAt),
+}));
 
 // ============================================
 // PAYMENTS
@@ -465,10 +485,18 @@ export const payments = pgTable('payments', {
   method: text('method'),
   paymentId: text('payment_id').unique(),
   status: text('status').default('pending'),
+  // ★ 'subscription' | 'boost'. For boosts, plan stays at its default and
+  //   the purchased listing + duration live in the columns below.
+  kind: text('kind').default('subscription'),
+  listingId: uuid('listing_id').references(() => listings.id, { onDelete: 'set null' }),
+  durationDays: integer('duration_days'),
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => ({
+  userIdx: index('payments_user_idx').on(table.userId),
+  statusCreatedIdx: index('payments_status_created_idx').on(table.status, table.createdAt),
+}));
 
 // ============================================
 // SESSIONS
@@ -569,6 +597,8 @@ export const listingComments = pgTable('listing_comments', {
   userId: uuid('user_id')
     .notNull()
     .references(() => profiles.id, { onDelete: 'cascade' }),
+  // ★ replies: one level deep; deleting a comment removes its replies
+  parentId: uuid('parent_id').references(() => listingComments.id, { onDelete: 'cascade' }),
   text: text('text').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -576,6 +606,50 @@ export const listingComments = pgTable('listing_comments', {
   listingIdx: index('listing_comments_listing_idx')
     .on(table.listingId, table.createdAt),
   userIdx: index('listing_comments_user_idx').on(table.userId),
+  parentIdx: index('listing_comments_parent_idx').on(table.parentId),
+}));
+
+// ============================================
+// COMMENT LIKES
+// ============================================
+export const commentLikes = pgTable('comment_likes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  commentId: uuid('comment_id')
+    .notNull()
+    .references(() => listingComments.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  uniqueLike: uniqueIndex('comment_likes_comment_user_idx')
+    .on(table.commentId, table.userId),
+  commentIdx: index('comment_likes_comment_idx').on(table.commentId),
+}));
+
+// ============================================
+// REVIEWS
+// One review per reviewer per listing. business_id is denormalized so
+// business ratings can be aggregated without a join.
+// ============================================
+export const reviews = pgTable('reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  listingId: uuid('listing_id').references(() => listings.id, { onDelete: 'cascade' }),
+  businessId: uuid('business_id')
+    .notNull()
+    .references(() => businesses.id, { onDelete: 'cascade' }),
+  reviewerId: uuid('reviewer_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  rating: integer('rating').notNull(),
+  comment: text('comment'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  uniqueListingReviewer: uniqueIndex('reviews_listing_reviewer_idx')
+    .on(table.listingId, table.reviewerId),
+  businessIdx: index('reviews_business_idx').on(table.businessId, table.createdAt),
+  reviewerIdx: index('reviews_reviewer_idx').on(table.reviewerId),
 }));
 
 // ============================================

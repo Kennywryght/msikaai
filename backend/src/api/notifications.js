@@ -3,6 +3,7 @@ import { Router } from 'express';
 import notificationService from '../services/notificationService.js';
 import pushService from '../services/pushService.js';
 import { logger } from '../utils/logger.js';
+import { rejectForeignUserId } from '../utils/authz.js';
 
 const router = Router();
 
@@ -96,10 +97,13 @@ router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { limit = 20 } = req.query;
+    if (userId !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'You can only read your own notifications' });
+    }
 
     const result = await notificationService.getUserNotifications(
       userId,
-      parseInt(limit)
+      Math.min(parseInt(limit, 10) || 20, 100)
     );
 
     if (!result.success) {
@@ -122,14 +126,8 @@ router.get('/user/:userId', async (req, res) => {
 router.put('/:id/read', async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID is required',
-      });
-    }
+    if (rejectForeignUserId(req, res, req.body?.userId)) return;
+    const userId = req.user.id;
 
     const result = await notificationService.markAsRead(id, userId);
 
@@ -152,14 +150,8 @@ router.put('/:id/read', async (req, res) => {
 // ============================================
 router.put('/all/read', async (req, res) => {
   try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID is required',
-      });
-    }
+    if (rejectForeignUserId(req, res, req.body?.userId)) return;
+    const userId = req.user.id;
 
     const result = await notificationService.markAllAsRead(userId);
 
@@ -183,14 +175,8 @@ router.put('/all/read', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID is required',
-      });
-    }
+    if (rejectForeignUserId(req, res, req.body?.userId)) return;
+    const userId = req.user.id;
 
     const result = await notificationService.deleteNotification(id, userId);
 

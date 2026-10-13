@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 import { listingsAPI, messagesAPI } from '../services/api';
+import SearchInterpretation, { SearchExamples } from '../components/SearchInterpretation';
 
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
@@ -73,6 +74,7 @@ const SearchResults = () => {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   const [loading, setLoading] = useState(false);
   const [openingChatId, setOpeningChatId] = useState(null);
+  const [interpretation, setInterpretation] = useState(null);
   const searchInputRef = useRef(null);
   const isMobile = windowWidth <= 768;
 
@@ -87,9 +89,11 @@ const SearchResults = () => {
     try {
       const res = await listingsAPI.search({ q: query, limit: 50 });
       setListings(res.data?.listings || []);
+      setInterpretation(res.data?.interpretation || null);
     } catch (err) {
       console.error('Search error:', err);
       setListings([]);
+      setInterpretation(null);
       showToast('Search failed', 'error');
     } finally {
       setLoading(false);
@@ -295,8 +299,15 @@ const SearchResults = () => {
       </div>
 
       <div className="main-content">
+        {hasQuery && !loading && <SearchInterpretation interpretation={interpretation} />}
         {!hasQuery ? (
           <div className="discover-section">
+            <SearchExamples
+              onPick={(ex) => {
+                setSearchQuery(ex);
+                navigate(`/search-results?q=${encodeURIComponent(ex)}`, { replace: true });
+              }}
+            />
             {recentSearches.length > 0 && (
               <div className="recent-section">
                 <div className="section-header">

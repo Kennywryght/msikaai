@@ -1,7 +1,7 @@
 // mobile/src/components/CommentSection.jsx
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { interactionsAPI } from '../services/api';
+import { interactionsAPI, commentsAPI } from '../services/api';
 import { useToast } from './ToastContainer';
 
 /* ============================================================
@@ -109,32 +109,15 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
       onCountChangeRef.current?.(0);
       return;
     }
-    console.log('[CommentSection] Fetching comments for listingId:', listingId);
     setLoading(true);
     try {
       const res = await interactionsAPI.getComments(listingId, { limit: 100 });
-
-      console.log('[CommentSection] raw response:', res);
-      console.log('[CommentSection] res.data:', res?.data);
-      console.log('[CommentSection] res.data.comments:', res?.data?.comments);
-      console.log(
-        '[CommentSection] comments count:',
-        Array.isArray(res?.data?.comments) ? res.data.comments.length : 'NOT AN ARRAY'
-      );
-      if (Array.isArray(res?.data?.comments) && res.data.comments[0]) {
-        console.log('[CommentSection] first comment shape:', res.data.comments[0]);
-        console.log('[CommentSection] first comment keys:', Object.keys(res.data.comments[0]));
-      }
-
       const data = res?.data?.comments || [];
       const list = Array.isArray(data) ? data : [];
       setComments(list);
       onCountChangeRef.current?.(list.length);
     } catch (err) {
-      console.error('[CommentSection] fetchComments error:', err);
-      console.error('[CommentSection] error status:', err?.response?.status);
-      console.error('[CommentSection] error response data:', err?.response?.data);
-      console.error('[CommentSection] error message:', err?.message);
+      console.error('[CommentSection] fetchComments error:', err?.response?.status, err?.message);
       setComments([]);
     } finally {
       setLoading(false);
@@ -209,11 +192,7 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
     }
 
     try {
-      console.log('[CommentSection] Submitting comment for listingId:', listingId, 'content:', content);
-      const res = await interactionsAPI.createComment(listingId, content);
-      console.log('[CommentSection] createComment response:', res);
-      console.log('[CommentSection] createComment res.data:', res?.data);
-      console.log('[CommentSection] createComment res.data.comment:', res?.data?.comment);
+      const res = await interactionsAPI.createComment(listingId, content, parentId);
       const saved = res?.data?.comment;
       if (saved) {
         setComments((prev) =>
@@ -234,9 +213,7 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
         return prev;
       });
     } catch (err) {
-      console.error('[CommentSection] addComment error:', err);
-      console.error('[CommentSection] addComment error status:', err?.response?.status);
-      console.error('[CommentSection] addComment error data:', err?.response?.data);
+      console.error('[CommentSection] addComment error:', err?.response?.status, err?.message);
       setComments((prev) => prev.filter((c) => c.id !== optimistic.id));
       if (parentId) setReplyDraft(content);
       else setDraft(content);
@@ -265,13 +242,27 @@ const CommentSection = ({ listingId, compact = false, onCountChange }) => {
     );
 
     try {
-      const { commentsAPI } = await import('../services/api');
-      if (wasLiked) await commentsAPI.unlike(comment.id);
-      else await commentsAPI.like(comment.id);
+      const res = wasLiked
+        ? await commentsAPI.unlike(comment.id)
+        : await commentsAPI.like(comment.id);
+      const { liked, count } = res?.data || {};
+      if (typeof count === 'number') {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === comment.id ? { ...c, liked_by_me: !!liked, likes: count } : c
+          )
+        );
+      }
     } catch (err) {
-      // Comment likes are not yet persisted on the backend. Keep the
-      // optimistic UI state so the button doesn't yank back on every click.
-      console.warn('likeComment not persisted (endpoint not implemented):', err?.message);
+      console.warn('likeComment failed:', err?.message);
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === comment.id
+            ? { ...c, liked_by_me: wasLiked, likes: comment.likes ?? 0 }
+            : c
+        )
+      );
+      showToast('Could not update like', 'error');
     } finally {
       setLikingIds((p) => {
         const next = { ...p };

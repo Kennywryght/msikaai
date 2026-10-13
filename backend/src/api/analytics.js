@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import analyticsService from '../services/analyticsService.js';
+import { checkBusinessAccess } from '../utils/authz.js';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
@@ -104,9 +105,14 @@ router.get('/business/:businessId', async (req, res) => {
     const { businessId } = req.params;
     const { days = 30 } = req.query;
 
+    const access = await checkBusinessAccess(req.user?.id, businessId);
+    if (!access.ok) {
+      return res.status(access.status).json({ success: false, error: access.error });
+    }
+
     const result = await analyticsService.getBusinessAnalytics(
       businessId,
-      parseInt(days)
+      Math.min(Math.max(parseInt(days, 10) || 30, 1), 365)
     );
 
     if (!result.success) {
@@ -149,10 +155,40 @@ router.get('/popular', async (req, res) => {
 // ============================================
 // GET USER ACTIVITY
 // ============================================
+// ============================================
+// TRACK USER ACTIVITY
+// Body: { action, metadata? } — always recorded for the caller; a userId in
+// the body is ignored so users can't write events for each other.
+// ============================================
+router.post('/user-activity', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const action = String(req.body?.action || '').trim().slice(0, 64);
+    if (!action) {
+      return res.status(400).json({ success: false, error: 'action is required' });
+    }
+    const metadata =
+      req.body?.metadata && typeof req.body.metadata === 'object' ? req.body.metadata : {};
+
+    const result = await analyticsService.trackUserActivity(userId, action, metadata);
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+    res.json(result);
+  } catch (error) {
+    console.error('Track user activity error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     const { limit = 50 } = req.query;
+
+    if (userId !== req.user?.id) {
+      return res.status(403).json({ success: false, error: 'You can only view your own activity' });
+    }
 
     const result = await analyticsService.getUserActivity(
       userId,

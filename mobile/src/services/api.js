@@ -2,10 +2,14 @@
 import axios from 'axios';
 import { supabase } from '../lib/supabase';
 import cacheService from './cacheService';
+import { normalizeImageList, normalizeImageUrl } from '../utils/imageUtils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-console.log('🔍 API URL:', API_URL);
+// Request/response tracing only in dev builds.
+const debug = import.meta.env.DEV ? (...args) => console.log(...args) : () => {};
+
+debug('🔍 API URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -47,9 +51,6 @@ async function tryRefreshSession() {
 // RESPONSE NORMALIZERS
 // ============================================
 
-const isBlobUrl = (url) =>
-  typeof url === 'string' && url.startsWith('blob:');
-
 // ★ PHASE 1: detect raw "Near x, y" fallbacks
 const isCoordLike = (s) =>
   typeof s === 'string' && /^near\s+-?\d+\.\d+,\s*-?\d+\.\d+$/i.test(s.trim());
@@ -64,7 +65,7 @@ const normalizeBusiness = (b) => {
     ...b,
     user_id: b.userId ?? b.user_id ?? null,
     business_name: b.businessName ?? b.business_name ?? null,
-    logo_url: b.logoUrl ?? b.logo_url ?? null,
+    logo_url: normalizeImageUrl(b.logoUrl ?? b.logo_url),
     whatsapp_number: whatsapp,
     phone,
     address: b.address ?? null,
@@ -83,8 +84,9 @@ const normalizeBusiness = (b) => {
 const normalizeListing = (raw) => {
   if (!raw) return raw;
 
-  const rawImages = Array.isArray(raw.images) ? raw.images : [];
-  const images = rawImages.filter((src) => !isBlobUrl(src));
+  // Drops blob:, empty and non-http(s) URLs. Placeholder fallback is applied
+  // at render time so `images.length` still means "has real photos".
+  const images = normalizeImageList(raw.images);
 
   const rawName = raw.locationName ?? raw.location_name ?? null;
   const rawArea = raw.locationArea ?? raw.location_area ?? null;
@@ -378,7 +380,7 @@ api.interceptors.request.use(
   async (config) => {
     const token = await getAccessToken();
 
-    console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
+    debug(`📤 ${config.method?.toUpperCase()} ${config.url}`);
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -389,7 +391,7 @@ api.interceptors.request.use(
       const cachedData = cacheService.get(cacheKey);
 
       if (cachedData) {
-        console.log(`📦 Cache hit for: ${config.url}`);
+        debug(`📦 Cache hit for: ${config.url}`);
         return Promise.reject({
           __cached: true,
           data: cachedData,
@@ -413,7 +415,7 @@ api.interceptors.request.use(
 // ============================================
 api.interceptors.response.use(
   (response) => {
-    console.log(
+    debug(
       `✅ ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`
     );
 
@@ -526,6 +528,27 @@ export const businessAPI = {
 export const listingsAPI = {
   create: (data) => api.post('/listings/create', data),
 
+  // fields: plain object of listing fields; files: File[] (max 5)
+  createWithImages: (fields, files = []) => {
+    const form = new FormData();
+    Object.entries(fields).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') form.append(k, String(v));
+    });
+    files.slice(0, 5).forEach((f) => form.append('images', f));
+    return api.post('/listings/create', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      cache: false,
+      timeout: 120 * 1000,
+    });
+  },
+
+  // fresh=true skips the 5-min client cache (manual refresh)
+  getPriceBoard: ({ days, location, fresh = false } = {}) =>
+    api.get('/listings/price-board', {
+      params: { days, location },
+      ...(fresh ? { cache: false } : { cacheTTL: 5 * 60 * 1000 }),
+    }),
+
   getByBusiness: async (businessId, params) => {
     const res = await api.get(`/listings/business/${businessId}`, {
       params,
@@ -586,55 +609,8 @@ export const listingsAPI = {
     return res;
   },
 
-  like: (id) => api.post(`/listings/${id}/like`, {}, { cache: false }),
-  unlike: (id) => api.delete(`/listings/${id}/like`, { cache: false }),
-  getLikes: (id, params) =>
-    api.get(`/listings/${id}/likes`, { params, cacheTTL: 60 * 1000 }),
-
-  getComments: async (id, params) => {
-    const res = await api.get(`/listings/${id}/comments`, {
-      params,
-      cache: false,
-    });
-    const raw = res?.data?.comments || res?.data || [];
-    if (Array.isArray(raw)) {
-      return {
-        ...res,
-        data: { comments: raw.map(normalizeComment) },
-      };
-    }
-    return res;
-  },
-  addComment: async (id, content, parentId = null) => {
-    const res = await api.post(
-      `/listings/${id}/comments`,
-      { content, parent_id: parentId },
-      { cache: false }
-    );
-    const saved = res?.data?.comment || res?.data;
-    if (saved) {
-      return { ...res, data: { comment: normalizeComment(saved) } };
-    }
-    return res;
-  },
-  updateComment: (id, commentId, content) =>
-    api.put(`/listings/${id}/comments/${commentId}`, { content }, { cache: false }),
-  deleteComment: (id, commentId) =>
-    api.delete(`/listings/${id}/comments/${commentId}`, { cache: false }),
-
-  boost: (id, opts = {}) =>
-    api.post(
-      `/listings/${id}/boost`,
-      {
-        duration_days: opts.durationDays ?? 7,
-        payment_ref: opts.paymentRef ?? null,
-      },
-      { cache: false }
-    ),
-  unboost: (id) =>
-    api.delete(`/listings/${id}/boost`, { cache: false }),
-  getBoostStatus: (id) =>
-    api.get(`/listings/${id}/boost`, { cache: false }),
+  // Likes & comments: see interactionsAPI / commentsAPI.
+  // Boosts are bought through paymentAPI.initiatePayment({ kind: 'boost' }).
 };
 
 // ============================================
@@ -707,10 +683,10 @@ export const interactionsAPI = {
     };
   },
 
-  createComment: async (listingId, text) => {
+  createComment: async (listingId, text, parentId = null) => {
     const res = await api.post(
       `/interactions/comments/${listingId}`,
-      { text },
+      { text, parentId },
       { cache: false }
     );
     const saved = res?.data?.comment;
@@ -727,17 +703,13 @@ export const interactionsAPI = {
 // ============================================
 // COMMENTS API
 // ============================================
+// Replies come back with the listing's comments (parent_id), so only
+// like/unlike are comment-scoped. Both return { liked, count }.
 export const commentsAPI = {
-  getById: (commentId) =>
-    api.get(`/comments/${commentId}`, { cache: false }),
   like: (commentId) =>
     api.post(`/comments/${commentId}/like`, {}, { cache: false }),
   unlike: (commentId) =>
     api.delete(`/comments/${commentId}/like`, { cache: false }),
-  getReplies: (commentId, params) =>
-    api.get(`/comments/${commentId}/replies`, { params, cache: false }),
-  report: (commentId, data) =>
-    api.post(`/comments/${commentId}/report`, data),
 };
 
 // ============================================
@@ -868,14 +840,61 @@ export const paymentAPI = {
 // ============================================
 // REVIEWS API
 // ============================================
+const normalizeReview = (r) => {
+  if (!r) return r;
+  return {
+    ...r,
+    listing_id: r.listingId ?? r.listing_id ?? null,
+    business_id: r.businessId ?? r.business_id ?? null,
+    reviewer_id: r.reviewerId ?? r.reviewer_id ?? null,
+    created_at: r.createdAt ?? r.created_at ?? null,
+    updated_at: r.updatedAt ?? r.updated_at ?? null,
+    reviewer: r.reviewer
+      ? {
+          ...r.reviewer,
+          full_name: r.reviewer.fullName ?? r.reviewer.full_name ?? null,
+          avatar_url: r.reviewer.avatarUrl ?? r.reviewer.avatar_url ?? null,
+        }
+      : null,
+  };
+};
+
+const withReviews = (res) => ({
+  ...res,
+  data: {
+    ...res.data,
+    reviews: Array.isArray(res?.data?.reviews) ? res.data.reviews.map(normalizeReview) : [],
+    total: Number(res?.data?.total || 0),
+    average_rating: Number(res?.data?.averageRating || 0),
+  },
+});
+
 export const reviewsAPI = {
-  create: (data) => api.post('/reviews/create', data),
-  getByBusiness: (businessId) =>
-    api.get(`/reviews/business/${businessId}`, { cacheTTL: 5 * 60 * 1000 }),
-  getByListing: (listingId) =>
-    api.get(`/reviews/listing/${listingId}`, { cacheTTL: 5 * 60 * 1000 }),
-  update: (id, data) => api.put(`/reviews/${id}`, data),
-  delete: (id) => api.delete(`/reviews/${id}`),
+  // Posting again for the same listing updates your existing review.
+  create: async (data) => {
+    const res = await api.post('/reviews/create', data, { cache: false });
+    return { ...res, data: { ...res.data, review: normalizeReview(res?.data?.review) } };
+  },
+  getByBusiness: async (businessId, params) =>
+    withReviews(await api.get(`/reviews/business/${businessId}`, { params, cache: false })),
+  getByListing: async (listingId, params) =>
+    withReviews(await api.get(`/reviews/listing/${listingId}`, { params, cache: false })),
+  update: (id, data) => api.put(`/reviews/${id}`, data, { cache: false }),
+  delete: (id) => api.delete(`/reviews/${id}`, { cache: false }),
+};
+
+// ============================================
+// ADMIN API (admin role required server-side)
+// ============================================
+export const adminAPI = {
+  getStats: () => api.get('/admin/stats', { cache: false }),
+  getUsers: (params) => api.get('/admin/users', { params, cache: false }),
+  setUserRole: (userId, role) =>
+    api.put(`/admin/users/${userId}/role`, { role }, { cache: false }),
+  getListings: (params) => api.get('/admin/listings', { params, cache: false }),
+  setListingStatus: (id, status) =>
+    api.put(`/admin/listings/${id}/status`, { status }, { cache: false }),
+  getPayments: (params) => api.get('/admin/payments', { params, cache: false }),
 };
 
 // ============================================
@@ -1171,7 +1190,6 @@ export const notificationsAPI = {
     api.put('/notifications/all/read', { userId }),
   deleteNotification: (id, userId) =>
     api.delete(`/notifications/${id}`, { data: { userId } }),
-  create: (data) => api.post('/notifications/create', data),
 
   getPushPublicKey: () =>
     api.get('/notifications/push/public-key', { cacheTTL: 60 * 60 * 1000 }),
