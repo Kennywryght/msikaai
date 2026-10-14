@@ -17,6 +17,7 @@ const L = {
     ai: 'AI-assisted',
     nothing: "We couldn't pick out a product or service from that. Try naming the item, e.g. \"chimanga\" or \"plumber\".",
     tryLabel: 'Try a sentence in Chichewa or English:',
+    relaxed: 'Nothing matched your price or delivery limit exactly, so these are the closest results.',
   },
   ny: {
     understood: 'Tamva kuti mukufuna',
@@ -30,6 +31,7 @@ const L = {
     ai: 'Mothandizidwa ndi AI',
     nothing: 'Sitinapeze katundu kapena ntchito m\'mawu amenewo. Yesani kutchula chinthucho, mwachitsanzo "chimanga" kapena "plumber".',
     tryLabel: 'Yesani chiganizo mu Chichewa kapena Chingerezi:',
+    relaxed: 'Palibe zogwirizana ndendende ndi mtengo kapena kubweretsa komwe mwanena, ndiye takuonetsani zapafupi.',
   },
 };
 
@@ -40,6 +42,8 @@ export const SEARCH_EXAMPLES = [
   'Kodi pali wokonza magetsi?',
   'cheap tomatoes with delivery',
   'zovala za ana',
+  'Ndikufuna ana a nkhuku',
+  'Ndili ndi vuto la madzi mnyumba mwanga',
 ];
 
 const fmt = (n) => Number(n).toLocaleString();
@@ -50,9 +54,11 @@ const SearchInterpretation = ({ interpretation }) => {
   const t = L[language] || L.en;
   if (!interpretation) return null;
 
-  const { concepts = [], minPrice, maxPrice, sort, deliveryOnly, location, aiUsed } = interpretation;
+  const { concepts = [], minPrice, maxPrice, sort, deliveryOnly, location, aiUsed, relaxed } = interpretation;
+  // Leftover words we didn't understand aren't "understood" — hide them when real items were found.
+  const understood = concepts.some((c) => c.source !== 'raw') ? concepts.filter((c) => c.source !== 'raw') : concepts;
   const chips = [];
-  for (const c of concepts) {
+  for (const c of understood) {
     const showFrom = c.matched && c.matched.toLowerCase() !== String(c.label).toLowerCase();
     chips.push({ key: `c-${c.label}`, text: c.label, from: showFrom ? c.matched : null, kind: 'concept' });
   }
@@ -84,6 +90,7 @@ const SearchInterpretation = ({ interpretation }) => {
               </span>
             ))}
           </div>
+          {relaxed?.length > 0 && <p className="si-relaxed">{t.relaxed}</p>}
         </>
       )}
       <style jsx>{`
@@ -107,6 +114,7 @@ const SearchInterpretation = ({ interpretation }) => {
         .si-filter { color: var(--color-text-secondary, #475569); }
         .si-from { font-weight: 400; font-style: italic; opacity: 0.8; text-transform: none; }
         .si-nothing { margin: 0; color: var(--color-text-secondary, #475569); }
+        .si-relaxed { margin: 8px 0 0; font-size: 12px; color: var(--color-warning, #B45309); }
       `}</style>
     </div>
   );

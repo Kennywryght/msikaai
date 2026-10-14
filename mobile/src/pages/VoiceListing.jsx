@@ -50,6 +50,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 // ============================================================
 // SOUND WAVE COMPONENT
 // ============================================================
+const RECORDING_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+
 const SoundWave = ({ isRecording, audioLevel }) => {
   const [bars, setBars] = useState(Array(20).fill(5));
 
@@ -186,17 +188,18 @@ const VoiceListing = () => {
       // Start audio visualization
       updateAudioLevel();
 
-      mediaRecorder.current = new MediaRecorder(stream, {
-        mimeType: 'audio/webm'
-      });
+      // Safari/iOS can't record webm; use whatever this browser supports.
+      const mimeType = RECORDING_TYPES.find((t) => window.MediaRecorder?.isTypeSupported?.(t));
+      mediaRecorder.current = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       audioChunks.current = [];
 
       mediaRecorder.current.ondataavailable = (event) => {
-        audioChunks.current.push(event.data);
+        if (event.data?.size) audioChunks.current.push(event.data);
       };
 
       mediaRecorder.current.onstop = () => {
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+        const type = (mediaRecorder.current.mimeType || mimeType || 'audio/webm').split(';')[0];
+        const audioBlob = new Blob(audioChunks.current, { type });
         processAudio(audioBlob);
         // Clean up audio context
         if (animationFrame.current) {
@@ -257,7 +260,8 @@ const VoiceListing = () => {
     setProcessing(true);
     try {
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
+      const ext = { 'audio/mp4': 'm4a', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav' }[audioBlob.type] || 'webm';
+      formData.append('audio', audioBlob, `recording.${ext}`);
       formData.append('language', language);
 
       const response = await voiceAPI.processVoice(formData);
@@ -300,7 +304,6 @@ const VoiceListing = () => {
     try {
       const response = await voiceAPI.createListing({
         businessId: selectedBusiness,
-        userId: user.id,
         language: language,
         listingData: listingData,
         transcript: transcript
@@ -317,8 +320,9 @@ const VoiceListing = () => {
         showToast(response.data.error || 'Failed to create listing', 'error');
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to create listing');
-      showToast(err.message || 'Failed to create listing', 'error');
+      const msg = err.response?.data?.error || err.message || 'Failed to create listing';
+      setErrorMsg(msg);
+      showToast(msg, 'error');
     } finally {
       setProcessing(false);
     }

@@ -384,7 +384,7 @@ const CategoryBrowse = () => {
         .category-browse { min-height: 100vh; background: var(--color-bg); background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px); background-size: 22px 22px; font-family: var(--font-sans); color: var(--color-text); padding-bottom: 100px; }
         @media (min-width: 769px) { .category-browse { padding-bottom: 40px; } }
 
-        .browse-header { background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 14px 16px 16px; position: sticky; top: 0; z-index: 10; }
+        .browse-header { background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 14px 16px 16px; position: sticky; top: var(--app-nav-height, 68px); z-index: 10; }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; max-width: 1200px; margin-left: auto; margin-right: auto; }
         .header-actions { display: flex; gap: 8px; }
         .header-btn { width: 38px; height: 38px; border-radius: var(--radius-lg); border: none; background: var(--color-surface-alt); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
@@ -459,6 +459,9 @@ const CategoryBrowse = () => {
         .mini-badge.delivery { background: var(--color-success-bg); }
 
         .listing-location { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* ellipsis has to be on the text itself, not the flex row */
+        .listing-vendor span, .listing-location span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .listing-vendor svg, .listing-location svg { flex-shrink: 0; }
         .listings-grid.list .listing-location { font-size: 11px; }
 
         .listing-message-btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100%; padding: 8px 10px; margin-top: 6px; background: var(--color-primary); border: none; border-radius: var(--radius-md); font-size: 12px; font-weight: 600; color: var(--color-text-inverse); font-family: inherit; cursor: pointer; transition: background 0.2s; }

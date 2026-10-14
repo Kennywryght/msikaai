@@ -19,49 +19,49 @@
 // ------------------------------------------------------------
 const LEXICON = [
   // Grains, staples & produce
-  { id: 'maize', en: ['maize', 'corn'], ny: ['chimanga'], cat: 'Food' },
-  { id: 'flour', en: ['flour', 'maize flour', 'mgaiwa'], ny: ['ufa', 'mgaiwa'], cat: 'Food' },
-  { id: 'rice', en: ['rice'], ny: ['mpunga'], cat: 'Food' },
-  { id: 'beans', en: ['beans'], ny: ['nyemba'], cat: 'Food' },
-  { id: 'groundnuts', en: ['groundnuts', 'peanuts', 'g-nuts'], ny: ['mtedza'], cat: 'Food' },
-  { id: 'soya', en: ['soya', 'soy'], ny: ['soya'], cat: 'Food' },
-  { id: 'tomatoes', en: ['tomatoes'], ny: ['matimati', 'tomato'], cat: 'Food' },
-  { id: 'onions', en: ['onions'], ny: ['anyezi'], cat: 'Food' },
-  { id: 'cabbage', en: ['cabbage'], ny: ['kabichi', 'kabeji'], cat: 'Food' },
-  { id: 'vegetables', en: ['vegetables', 'greens', 'veggies', 'rape'], ny: ['ndiwo', 'masamba', 'mpiru'], cat: 'Food' },
-  { id: 'potatoes', en: ['potatoes', 'sweet potatoes', 'irish potatoes'], ny: ['mbatata', 'kachewere'], cat: 'Food' },
-  { id: 'cassava', en: ['cassava'], ny: ['chinangwa'], cat: 'Food' },
-  { id: 'bananas', en: ['bananas'], ny: ['nthochi'], cat: 'Food' },
-  { id: 'mangoes', en: ['mangoes'], ny: ['mango'], cat: 'Food' },
-  { id: 'oranges', en: ['oranges'], ny: ['malalanje'], cat: 'Food' },
-  { id: 'pumpkin', en: ['pumpkin'], ny: ['dzungu', 'maungu'], cat: 'Food' },
-  { id: 'fruit', en: ['fruit', 'fruits'], ny: ['zipatso', 'chipatso'], cat: 'Food' },
-  { id: 'eggs', en: ['eggs'], ny: ['mazira', 'dzira'], cat: 'Food' },
-  { id: 'milk', en: ['milk', 'dairy'], ny: ['mkaka'], cat: 'Food' },
-  { id: 'meat', en: ['meat'], ny: ['nyama'], cat: 'Food' },
-  { id: 'beef', en: ['beef', 'cow', 'cattle'], ny: ["ng'ombe", 'ngombe'], cat: 'Food' },
-  { id: 'goat', en: ['goat', 'goats'], ny: ['mbuzi'], cat: 'Food' },
-  { id: 'pork', en: ['pork', 'pig', 'pigs'], ny: ['nkhumba'], cat: 'Food' },
-  { id: 'chicken', en: ['chicken', 'chickens', 'poultry', 'broiler'], ny: ['nkhuku'], cat: 'Food' },
-  { id: 'fish', en: ['fish', 'chambo', 'usipa', 'kapenta'], ny: ['nsomba', 'chambo', 'usipa', 'utaka'], cat: 'Food' },
-  { id: 'salt', en: ['salt'], ny: ['mchere'], cat: 'Food' },
-  { id: 'sugar', en: ['sugar'], ny: ['shuga'], cat: 'Food' },
-  { id: 'oil', en: ['cooking oil', 'oil'], ny: ['mafuta'], cat: 'Food' },
-  { id: 'bread', en: ['bread'], ny: ['buledi', 'mkate'], cat: 'Food' },
-  { id: 'tea', en: ['tea'], ny: ['tiyi'], cat: 'Food' },
-  { id: 'food', en: ['food', 'groceries', 'grocery'], ny: ['chakudya', 'zakudya'], cat: 'Food' },
+  { id: 'maize', en: ['maize', 'corn'], ny: ['chimanga'], cat: 'Food & Groceries' },
+  { id: 'flour', en: ['flour', 'maize flour', 'mgaiwa'], ny: ['ufa', 'mgaiwa'], cat: 'Food & Groceries' },
+  { id: 'rice', en: ['rice'], ny: ['mpunga'], cat: 'Food & Groceries' },
+  { id: 'beans', en: ['beans'], ny: ['nyemba'], cat: 'Food & Groceries' },
+  { id: 'groundnuts', en: ['groundnuts', 'peanuts', 'g-nuts'], ny: ['mtedza'], cat: 'Food & Groceries' },
+  { id: 'soya', en: ['soya', 'soy'], ny: ['soya'], cat: 'Food & Groceries' },
+  { id: 'tomatoes', en: ['tomatoes'], ny: ['matimati', 'tomato'], cat: 'Food & Groceries' },
+  { id: 'onions', en: ['onions'], ny: ['anyezi'], cat: 'Food & Groceries' },
+  { id: 'cabbage', en: ['cabbage'], ny: ['kabichi', 'kabeji'], cat: 'Food & Groceries' },
+  { id: 'vegetables', en: ['vegetables', 'greens', 'veggies', 'rape'], ny: ['ndiwo', 'masamba', 'mpiru'], cat: 'Food & Groceries' },
+  { id: 'potatoes', en: ['potatoes', 'sweet potatoes', 'irish potatoes'], ny: ['mbatata', 'kachewere'], cat: 'Food & Groceries' },
+  { id: 'cassava', en: ['cassava'], ny: ['chinangwa'], cat: 'Food & Groceries' },
+  { id: 'bananas', en: ['bananas'], ny: ['nthochi'], cat: 'Food & Groceries' },
+  { id: 'mangoes', en: ['mangoes'], ny: ['mango'], cat: 'Food & Groceries' },
+  { id: 'oranges', en: ['oranges'], ny: ['malalanje'], cat: 'Food & Groceries' },
+  { id: 'pumpkin', en: ['pumpkin'], ny: ['dzungu', 'maungu'], cat: 'Food & Groceries' },
+  { id: 'fruit', en: ['fruit', 'fruits'], ny: ['zipatso', 'chipatso'], cat: 'Food & Groceries' },
+  { id: 'eggs', en: ['eggs'], ny: ['mazira', 'dzira'], cat: 'Food & Groceries' },
+  { id: 'milk', en: ['milk', 'dairy'], ny: ['mkaka'], cat: 'Food & Groceries' },
+  { id: 'meat', en: ['meat'], ny: ['nyama'], cat: 'Food & Groceries' },
+  { id: 'beef', en: ['beef', 'cow', 'cattle'], ny: ["ng'ombe", 'ngombe'], cat: 'Food & Groceries' },
+  { id: 'goat', en: ['goat', 'goats'], ny: ['mbuzi'], cat: 'Food & Groceries' },
+  { id: 'pork', en: ['pork', 'pig', 'pigs'], ny: ['nkhumba'], cat: 'Food & Groceries' },
+  { id: 'chicken', en: ['chicken', 'chickens', 'poultry', 'broiler'], ny: ['nkhuku'], cat: 'Food & Groceries' },
+  { id: 'fish', en: ['fish', 'chambo', 'usipa', 'kapenta'], ny: ['nsomba', 'chambo', 'usipa', 'utaka'], cat: 'Food & Groceries' },
+  { id: 'salt', en: ['salt'], ny: ['mchere'], cat: 'Food & Groceries' },
+  { id: 'sugar', en: ['sugar'], ny: ['shuga'], cat: 'Food & Groceries' },
+  { id: 'oil', en: ['cooking oil', 'oil'], ny: ['mafuta'], cat: 'Food & Groceries' },
+  { id: 'bread', en: ['bread'], ny: ['buledi', 'mkate'], cat: 'Food & Groceries' },
+  { id: 'tea', en: ['tea'], ny: ['tiyi'], cat: 'Food & Groceries' },
+  { id: 'food', en: ['food', 'groceries', 'grocery'], ny: ['chakudya', 'zakudya'], cat: 'Food & Groceries' },
   { id: 'tobacco', en: ['tobacco'], ny: ['fodya'], cat: 'Farm Inputs' },
   { id: 'fertilizer', en: ['fertilizer', 'fertiliser', 'urea'], ny: ['feteleza', 'fetereza'], cat: 'Farm Inputs' },
   { id: 'seeds', en: ['seeds', 'seed'], ny: ['mbewu', 'njere'], cat: 'Farm Inputs' },
   { id: 'hoe', en: ['hoe'], ny: ['khasu', 'makasu'], cat: 'Farm Inputs' },
 
   // Clothing (+ who it's for)
-  { id: 'clothes', en: ['clothes', 'clothing'], ny: ['zovala', 'chovala', 'malaya'], cat: 'Clothing' },
-  { id: 'shoes', en: ['shoes', 'sandals', 'sneakers'], ny: ['nsapato', 'masapato'], cat: 'Clothing' },
-  { id: 'chitenje', en: ['chitenje', 'fabric', 'wrapper', 'cloth'], ny: ['chitenje', 'zitenje', 'nsalu'], cat: 'Clothing' },
-  { id: 'dress', en: ['dress', 'dresses'], ny: ['diresi'], cat: 'Clothing' },
-  { id: 'trousers', en: ['trousers', 'pants', 'jeans'], ny: ['buluku', 'mabuluku'], cat: 'Clothing' },
-  { id: 'shirt', en: ['shirt', 'shirts', 't-shirt'], ny: ['malaya', 'sheti'], cat: 'Clothing' },
+  { id: 'clothes', en: ['clothes', 'clothing'], ny: ['zovala', 'chovala', 'malaya'], cat: 'Clothing & Fashion' },
+  { id: 'shoes', en: ['shoes', 'sandals', 'sneakers'], ny: ['nsapato', 'masapato'], cat: 'Clothing & Fashion' },
+  { id: 'chitenje', en: ['chitenje', 'fabric', 'wrapper', 'cloth'], ny: ['chitenje', 'zitenje', 'nsalu'], cat: 'Clothing & Fashion' },
+  { id: 'dress', en: ['dress', 'dresses'], ny: ['diresi'], cat: 'Clothing & Fashion' },
+  { id: 'trousers', en: ['trousers', 'pants', 'jeans'], ny: ['buluku', 'mabuluku'], cat: 'Clothing & Fashion' },
+  { id: 'shirt', en: ['shirt', 'shirts', 't-shirt'], ny: ['malaya', 'sheti'], cat: 'Clothing & Fashion' },
   { id: 'women', en: ['women', 'ladies', 'female', 'womens'], ny: ['akazi', 'azimayi', 'achikazi', 'zachikazi', 'amayi'] },
   { id: 'men', en: ['men', 'mens', 'gents', 'male'], ny: ['amuna', 'achimuna', 'zachimuna', 'abambo'] },
   { id: 'children', en: ['children', 'kids', 'baby', 'babies'], ny: ['ana', 'mwana', 'zaana', 'makanda'] },
@@ -71,27 +71,27 @@ const LEXICON = [
   { id: 'radio', en: ['radio'], ny: ['wailesi'], cat: 'Electronics' },
   { id: 'tv', en: ['tv', 'television'], ny: ['tivi', 'kanema'], cat: 'Electronics' },
   { id: 'solar', en: ['solar', 'solar panel', 'battery'], ny: ['sola', 'batire'], cat: 'Electronics' },
-  { id: 'chair', en: ['chair', 'chairs'], ny: ['mpando', 'mipando'], cat: 'Home & Garden' },
-  { id: 'table', en: ['table', 'tables'], ny: ['tebulo', 'gome'], cat: 'Home & Garden' },
-  { id: 'bed', en: ['bed', 'beds', 'mattress'], ny: ['bedi', 'matiresi'], cat: 'Home & Garden' },
-  { id: 'pots', en: ['pot', 'pots', 'cooking pot'], ny: ['mphika', 'miphika', 'poto'], cat: 'Home & Garden' },
-  { id: 'plates', en: ['plates', 'dishes'], ny: ['mbale'], cat: 'Home & Garden' },
-  { id: 'charcoal', en: ['charcoal'], ny: ['makala'], cat: 'Home & Garden' },
-  { id: 'firewood', en: ['firewood', 'wood'], ny: ['nkhuni'], cat: 'Home & Garden' },
-  { id: 'bicycle', en: ['bicycle', 'bike'], ny: ['njinga'], cat: 'Transport' },
-  { id: 'motorbike', en: ['motorbike', 'motorcycle'], ny: ['njinga yamoto', 'njinga ya moto'], cat: 'Transport' },
-  { id: 'car', en: ['car', 'cars', 'vehicle'], ny: ['galimoto', 'magalimoto'], cat: 'Transport' },
+  { id: 'chair', en: ['chair', 'chairs'], ny: ['mpando', 'mipando'], cat: 'Products' },
+  { id: 'table', en: ['table', 'tables'], ny: ['tebulo', 'gome'], cat: 'Products' },
+  { id: 'bed', en: ['bed', 'beds', 'mattress'], ny: ['bedi', 'matiresi'], cat: 'Products' },
+  { id: 'pots', en: ['pot', 'pots', 'cooking pot'], ny: ['mphika', 'miphika', 'poto'], cat: 'Products' },
+  { id: 'plates', en: ['plates', 'dishes'], ny: ['mbale'], cat: 'Products' },
+  { id: 'charcoal', en: ['charcoal'], ny: ['makala'], cat: 'Products' },
+  { id: 'firewood', en: ['firewood', 'wood'], ny: ['nkhuni'], cat: 'Products' },
+  { id: 'bicycle', en: ['bicycle', 'bike'], ny: ['njinga'], cat: 'Vehicles & Parts' },
+  { id: 'motorbike', en: ['motorbike', 'motorcycle'], ny: ['njinga yamoto', 'njinga ya moto'], cat: 'Vehicles & Parts' },
+  { id: 'car', en: ['car', 'cars', 'vehicle'], ny: ['galimoto', 'magalimoto'], cat: 'Vehicles & Parts' },
 
   // Building & hardware
-  { id: 'cement', en: ['cement'], ny: ['simenti', 'saimenti'], cat: 'Hardware' },
-  { id: 'bricks', en: ['bricks', 'blocks'], ny: ['njerwa'], cat: 'Hardware' },
-  { id: 'ironsheets', en: ['iron sheets', 'roofing sheets', 'roofing'], ny: ['malata'], cat: 'Hardware' },
-  { id: 'timber', en: ['timber', 'planks'], ny: ['matabwa', 'thabwa'], cat: 'Hardware' },
-  { id: 'nails', en: ['nails'], ny: ['misomali', 'msomali'], cat: 'Hardware' },
-  { id: 'paint', en: ['paint'], ny: ['penti'], cat: 'Hardware' },
-  { id: 'door', en: ['door', 'doors'], ny: ['chitseko', 'zitseko'], cat: 'Hardware' },
-  { id: 'window', en: ['window', 'windows'], ny: ['windo', 'zenera', 'mawindo'], cat: 'Hardware' },
-  { id: 'tools', en: ['tools', 'hammer', 'spanner'], ny: ['zida', 'nyundo'], cat: 'Hardware' },
+  { id: 'cement', en: ['cement'], ny: ['simenti', 'saimenti'], cat: 'Construction Materials' },
+  { id: 'bricks', en: ['bricks', 'blocks'], ny: ['njerwa'], cat: 'Construction Materials' },
+  { id: 'ironsheets', en: ['iron sheets', 'roofing sheets', 'roofing'], ny: ['malata'], cat: 'Construction Materials' },
+  { id: 'timber', en: ['timber', 'planks'], ny: ['matabwa', 'thabwa'], cat: 'Construction Materials' },
+  { id: 'nails', en: ['nails'], ny: ['misomali', 'msomali'], cat: 'Construction Materials' },
+  { id: 'paint', en: ['paint'], ny: ['penti'], cat: 'Construction Materials' },
+  { id: 'door', en: ['door', 'doors'], ny: ['chitseko', 'zitseko'], cat: 'Construction Materials' },
+  { id: 'window', en: ['window', 'windows'], ny: ['windo', 'zenera', 'mawindo'], cat: 'Construction Materials' },
+  { id: 'tools', en: ['tools', 'hammer', 'spanner'], ny: ['zida', 'nyundo'], cat: 'Construction Materials' },
 
   // Services
   { id: 'plumber', en: ['plumber', 'plumbing', 'pipes', 'pipe'], ny: ['mipope', 'mapaipi', 'wokonza mipope'], cat: 'Services', service: true },
@@ -109,7 +109,76 @@ const LEXICON = [
   { id: 'tutor', en: ['tutor', 'teacher', 'lessons', 'tuition'], ny: ['mphunzitsi', 'maphunziro'], cat: 'Services', service: true },
   { id: 'catering', en: ['catering', 'cook', 'caterer'], ny: ['ophika', 'kuphika'], cat: 'Services', service: true },
   { id: 'phonerepair', en: ['phone repair'], ny: ['kukonza foni', 'wokonza foni'], cat: 'Services', service: true },
+  { id: 'welder', en: ['welder', 'welding'], ny: ['wowotcherera', 'kuwotcherera', 'owotcherera'], cat: 'Services', service: true },
+  { id: 'driver', en: ['driver', 'drivers'], ny: ['dalaivala', 'woyendetsa', 'oyendetsa'], cat: 'Services', service: true },
+  { id: 'guard', en: ['guard', 'security guard', 'watchman'], ny: ['mlonda', 'alonda'], cat: 'Services', service: true },
+  { id: 'househelp', en: ['maid', 'house help', 'housemaid', 'nanny'], ny: ['wantchito', 'antchito', 'wosamalira ana'], cat: 'Services', service: true },
+  { id: 'jobs', en: ['job', 'jobs', 'vacancy', 'employment'], ny: ['ntchito', 'ganyu'], cat: 'Services' },
+  { id: 'grainmill', en: ['maize mill', 'grinding mill', 'hammer mill', 'milling'], ny: ['chigayo', 'zigayo', 'kugaya'], cat: 'Services', service: true },
+  { id: 'shoerepair', en: ['shoe repair', 'cobbler'], ny: ['wokonza nsapato', 'kukonza nsapato'], cat: 'Services', service: true },
+  { id: 'maths', en: ['maths', 'mathematics', 'math'], ny: ['masamu'], cat: 'Services', service: true },
+
+  // More food, farming & livestock
+  { id: 'chicks', en: ['chicks', 'day old chicks', 'baby chickens'], ny: ['ana a nkhuku', 'ana ankhuku', 'tiana ta nkhuku', 'anapiye'], cat: 'Farm Inputs' },
+  { id: 'livestock', en: ['livestock', 'animals'], ny: ['ziweto', 'chiweto'], cat: 'Farm Inputs' },
+  { id: 'sheep', en: ['sheep'], ny: ['nkhosa'], cat: 'Farm Inputs' },
+  { id: 'ducks', en: ['ducks', 'duck'], ny: ['abakha', 'bakha'], cat: 'Farm Inputs' },
+  { id: 'rabbits', en: ['rabbits', 'rabbit'], ny: ['akalulu', 'kalulu'], cat: 'Farm Inputs' },
+  { id: 'guineafowl', en: ['guinea fowl'], ny: ['nkhanga'], cat: 'Farm Inputs' },
+  { id: 'feed', en: ['animal feed', 'feed', 'bran', 'chicken feed'], ny: ['madeya', 'chakudya cha ziweto', 'chakudya cha nkhuku'], cat: 'Farm Inputs' },
+  { id: 'pesticide', en: ['pesticide', 'pesticides', 'insecticide', 'chemicals'], ny: ['mankhwala opha tizilombo', 'mankhwala a mbewu'], cat: 'Farm Inputs' },
+  { id: 'peas', en: ['pigeon peas', 'peas', 'cowpeas'], ny: ['nandolo', 'khobwe'], cat: 'Food & Groceries' },
+  { id: 'millet', en: ['millet', 'sorghum'], ny: ['mapira', 'mawere', 'mchewere'], cat: 'Food & Groceries' },
+  { id: 'okra', en: ['okra'], ny: ['therere'], cat: 'Food & Groceries' },
+  { id: 'pumpkinleaves', en: ['pumpkin leaves'], ny: ['nkhwani'], cat: 'Food & Groceries' },
+  { id: 'sugarcane', en: ['sugar cane', 'sugarcane'], ny: ['nzimbe'], cat: 'Food & Groceries' },
+  { id: 'honey', en: ['honey'], ny: ['uchi'], cat: 'Food & Groceries' },
+  { id: 'driedfish', en: ['dried fish', 'dry fish'], ny: ['nsomba zouma', 'nsomba youma'], cat: 'Food & Groceries' },
+  { id: 'nsima', en: ['nsima', 'lunch', 'meals', 'restaurant'], ny: ['nsima', 'chakudya chamasana', 'chakudya cha masana', 'malo odyera'], cat: 'Food & Groceries' },
+  { id: 'drinks', en: ['drinks', 'soft drinks', 'soda', 'juice'], ny: ['zakumwa', 'chakumwa', 'thobwa', 'sobo'], cat: 'Food & Groceries' },
+
+  // Household & personal
+  { id: 'soap', en: ['soap', 'detergent', 'washing powder'], ny: ['sopo'], cat: 'Products' },
+  { id: 'blanket', en: ['blanket', 'blankets'], ny: ['bulangete', 'bulangeti', 'mabulangete'], cat: 'Products' },
+  { id: 'mosquitonet', en: ['mosquito net', 'mosquito nets', 'net'], ny: ['neti', 'masikito', 'neti ya udzudzu'], cat: 'Products' },
+  { id: 'bucket', en: ['bucket', 'buckets', 'basin'], ny: ['chidebe', 'zidebe', 'ndowa', 'beseni'], cat: 'Products' },
+  { id: 'kitchen', en: ['kitchen', 'kitchenware', 'utensils', 'cooking utensils'], ny: ['khitchini', 'ziwiya', 'zipangizo za kukhitchini'], cat: 'Products' },
+  { id: 'medicine', en: ['medicine', 'medicines', 'pharmacy', 'drugs'], ny: ['mankhwala'], cat: 'Products' },
+  { id: 'cosmetics', en: ['cosmetics', 'lotion', 'perfume', 'makeup'], ny: ['mafuta odzola', 'zodzola'], cat: 'Products' },
+  { id: 'bag', en: ['handbag', 'backpack', 'school bag'], ny: ['chikwama', 'zikwama'], cat: 'Clothing & Fashion' },
+  { id: 'uniform', en: ['uniform', 'school uniform'], ny: ['yunifolomu'], cat: 'Clothing & Fashion' },
+  { id: 'wedding', en: ['wedding', 'bridal', 'wedding dress'], ny: ['ukwati', 'chinkhoswe', 'diresi laukwati'], cat: 'Clothing & Fashion' },
+
+  // Electronics & energy
+  { id: 'laptop', en: ['laptop', 'computer', 'laptops'], ny: ['kompyuta', 'laputopu', 'makompyuta'], cat: 'Electronics' },
+  { id: 'charger', en: ['charger', 'chargers', 'cable'], ny: ['chaja', 'macharger'], cat: 'Electronics' },
+  { id: 'fuel', en: ['fuel', 'petrol', 'diesel', 'paraffin'], ny: ['petulo', 'dizilo', 'palafini', 'mafuta a galimoto', 'mafuta agalimoto'], cat: 'Vehicles & Parts' },
+  { id: 'spareparts', en: ['spare parts', 'spares', 'tyres', 'tires'], ny: ['zipangizo za galimoto', 'matayala', 'tayala'], cat: 'Vehicles & Parts' },
+
+  // Property & accommodation
+  { id: 'house', en: ['house', 'houses', 'home'], ny: ['nyumba', 'manyumba'], cat: 'Other' },
+  { id: 'rent', en: ['rent', 'rental', 'for rent', 'to let'], ny: ['yobwereka', 'kubwereka', 'yolipira', 'lendi', 'renti'], cat: 'Other' },
+  { id: 'room', en: ['room', 'rooms'], ny: ['chipinda', 'zipinda'], cat: 'Other' },
+  { id: 'lodge', en: ['lodge', 'accommodation', 'guest house', 'guesthouse', 'hostel'], ny: ['malo ogona', 'logde', 'gesthausi'], cat: 'Services' },
+  { id: 'land', en: ['land', 'plot', 'plots', 'farm land'], ny: ['munda', 'minda', 'puloti', 'malo omangapo'], cat: 'Other' },
+  { id: 'water', en: ['water', 'borehole', 'water tank', 'tank'], ny: ['madzi', 'chitsime', 'thanki'], cat: 'Products' },
 ];
+
+// Word forms that should map onto an existing concept (filled in below the
+// lexicon so the main table stays readable).
+const EXTRA_FORMS = {
+  phone: ['samsung', 'tecno', 'itel', 'iphone', 'infinix', 'nokia', 'huawei'],
+  oil: ['mafuta ophikira', 'mafuta ophikila'],
+  tools: ['zipangizo', 'chipangizo'],
+  tutor: ['ophunzitsa', 'wophunzitsa', 'aphunzitsi', 'mphunzitsi'],
+  water: ['madzi akumwa'],
+  plumber: ['vuto la madzi', 'mipope ya madzi'],
+  hair: ['wondimetera', 'ondimetera', 'kumetera', 'ometera', 'wometa', 'wokonza tsitsi'],
+};
+for (const [id, forms] of Object.entries(EXTRA_FORMS)) {
+  const c = LEXICON.find((x) => x.id === id);
+  if (c) c.ny.push(...forms.filter((f) => !c.ny.includes(f)));
+}
 
 // Filler words that carry no product meaning.
 const STOPWORDS_NY = new Set([
@@ -122,7 +191,36 @@ const STOPWORDS_NY = new Set([
   'malo', 'zogulitsa', 'katundu', 'muli', 'mungandipezere', 'mungathe', 'ndingapeze', 'ndipeze',
   'yemwe', 'omwe', 'zomwe', 'chomwe', 'mtengo', 'ndalama', 'lero', 'msanga', 'tsopano',
   'yatsopano', 'zatsopano', 'chatsopano', 'watsopano', 'latsopano',
+  // people, pronouns & possessives
+  'munthu', 'anthu', 'winawake', 'wina', 'ena', 'enanso', 'iwo', 'iye',
+  'yanga', 'wanga', 'zanga', 'changa', 'langa', 'mwanga', 'kwanga', 'panga', 'yake', 'wake', 'chake',
+  'yako', 'wako', 'zako', 'yathu', 'wathu', 'zathu', 'chathu', 'yanu', 'wanu', 'zanu', 'chanu',
+  'amene', 'yemwe', 'omwe', 'zimene', 'zomwe', 'chimene', 'komwe', 'pomwe', 'momwe',
+  // question / helper words
+  'angati', 'zingati', 'zingati', 'chingati', 'ingati', 'kuti', 'liti', 'bwanji', 'nanga', 'kapena',
+  'ndili', 'tili', 'muli', 'ali', 'ndiri', 'ndikupempha', 'pempho', 'thandizo', 'ndithandizeni',
+  'chabwino', 'yabwino', 'wabwino', 'labwino', 'zabwinozabwino', 'odalirika', 'wodalirika',
+  'odziwa', 'wodziwa', 'akatswiri', 'katswiri', 'mwachangu', 'mwamsanga', 'pompano', 'chifukwa',
+  'vuto', 'mavuto', 'nawo', 'nazo', 'nacho', 'nayo', 'naye', 'basi', 'chonchi', 'choncho',
+  // numbers & units (quantities aren't what to search for)
+  'modzi', 'mmodzi', 'imodzi', 'chimodzi', 'limodzi', 'ziwiri', 'awiri', 'iwiri', 'ziwiri',
+  'zitatu', 'atatu', 'itatu', 'zinayi', 'anayi', 'zisanu', 'asanu', 'khumi', 'makumi', 'zana', 'chikwi', 'zikwi',
+  'matumba', 'thumba', 'makilogalamu', 'kilogalamu', 'makilo', 'kilo', 'malita', 'lita', 'malitala',
+  'yogulitsa', 'chogulitsa', 'logulitsa', 'zinthu', 'chinthu', 'zamoyo', 'wamoyo', 'yamoyo',
+  // time
+  'mawa', 'masana', 'madzulo', 'mmawa', 'usiku', 'sabata', 'mwezi',
 ]);
+
+// "want / need / find / buy / sell" verb forms in any person or tense:
+// ndimafuna, ndinkafuna, ndikusowa, mukundipezera, tikugula, angandigulitse …
+const NY_FILLER_VERB = /^(?:ndi|ti|mu|a|u|ndima|ndinka|ndika|tika|muka)?(?:ku|ma|na|nka|dza|nga|ka|zi)?(?:ndi|ti|mu|wa|ku)?(?:funa|funafuna|funika|sowa|sowek|saka|sakasaka|pez|pezer|pezek|gul|gulits|yang.?an|thandiz|tumiz|bweret)[a-z]*$/;
+
+// Chichewa prefixes that sit in front of a noun: locatives (mnyumba,
+// kukhitchini), concords (yamagetsi, zachimanga), relatives (yotsika, zouma).
+const NY_PREFIXES = ['kwa', 'cha', 'zo', 'yo', 'wo', 'cho', 'lo', 'ko', 'po', 'mo', 'za', 'ya', 'wa', 'la',
+  'ka', 'ma', 'mu', 'ku', 'pa', 'ta', 'ti', 'zi', 'mi', 'o', 'a', 'm'];
+// Enclitics: "nso" (also), "tu"/"di" (emphasis)
+const NY_SUFFIXES = ['nso', 'tu', 'di'];
 const STOPWORDS_EN = new Set([
   'i', 'im', 'me', 'my', 'we', 'you', 'need', 'needs', 'want', 'wants', 'looking', 'look', 'search',
   'searching', 'find', 'for', 'a', 'an', 'the', 'some', 'any', 'to', 'buy', 'buying', 'sell', 'selling',
@@ -131,14 +229,19 @@ const STOPWORDS_EN = new Set([
   'services', 'shop', 'store', 'available', 'today', 'now', 'urgent', 'urgently', 'price', 'prices',
   'from', 'that', 'this', 'it', 'do', 'does', 'have', 'has', 'sells', 'offer', 'offers', 'near', 'nearby',
   'around', 'like', 'just', 'very', 'really', 'also', 'mk', 'kwacha', 'per', 'each', 'new', 'brand',
+  'person', 'people', 'guy', 'guys', 'help', 'hire', 'someone', 'my', 'our', 'your', 'how', 'much', 'many',
+  'bags', 'bag', 'kg', 'kgs', 'litres', 'liters', 'pieces', 'pcs', 'one', 'two', 'three', 'four', 'five', 'ten',
 ]);
 
 // Intent phrases (matched before tokenizing; longest first).
-const CHEAP_PHRASES = ['mtengo wotsika', 'otsika mtengo', 'wotsika mtengo', 'zotsika mtengo', 'zotchipa', 'yotchipa', 'wotchipa',
+const CHEAP_PHRASES = ['mtengo wotsika', 'otsika mtengo', 'wotsika mtengo', 'zotsika mtengo', 'yotsika mtengo', 'chotsika mtengo', 'lotsika mtengo',
+  'mtengo otsika', 'mtengo wabwino', 'zotchipa', 'yotchipa', 'wotchipa', 'chotchipa', 'lotchipa', 'zotsika', 'yotsika', 'chotsika', 'wotsika', 'lotsika',
   'cheapest', 'cheap', 'affordable', 'low price', 'lowest price', 'budget'];
-const DELIVERY_PHRASES = ['with delivery', 'home delivery', 'delivery', 'deliver', 'kubweretsa', 'kubweretsera', 'kutumiza', 'adzabweretse'];
+const DELIVERY_PHRASES = ['with delivery', 'home delivery', 'delivery', 'deliver', 'kubweretsa', 'kubweretsera', 'kutumiza', 'adzabweretse',
+  'kundibweretsera', 'abweretse', 'kubweretsa kunyumba', 'atumize'];
 const MAX_PRICE_MARKERS = ['less than', 'under', 'below', 'up to', 'max', 'maximum', 'not more than',
-  'pansi pa', 'osapitirira', 'zosaposa', 'mpaka', 'osaposa', 'zochepera'];
+  'pansi pa', 'osapitirira', 'zosaposa', 'mpaka', 'osaposa', 'zochepera',
+  'zosapitirira', 'yosapitirira', 'yosaposa', 'chosaposa', 'zosaposera'];
 const MIN_PRICE_MARKERS = ['more than', 'above', 'over', 'at least', 'minimum', 'kuposa', 'kupitirira', 'zoposa'];
 const LOCATION_MARKERS = ['pafupi ndi', 'near', 'around', 'in', 'at', 'ku', 'kwa'];
 
@@ -182,6 +285,81 @@ for (const c of LEXICON) {
   }
 }
 const MULTIWORD_KEYS = [...KEY_TO_CONCEPT.keys()].filter((k) => k.includes(' ')).sort((a, b) => b.length - a.length);
+const SINGLE_KEYS = [...KEY_TO_CONCEPT.keys()].filter((k) => !k.includes(' ') && k.length >= 4);
+const PREFIXES_LONGEST_FIRST = [...NY_PREFIXES].sort((a, b) => b.length - a.length);
+
+/**
+ * Peel Chichewa prefixes (up to two, e.g. "kwamagetsi" → kwa + magetsi,
+ * "mnyumba" → m + nyumba) and enclitics ("chimanganso") off a token until
+ * it hits a known concept or filler word.
+ * @returns {{ concept?: object, stop?: true } | null}
+ */
+const chichewaRoot = (tok) => {
+  const lookup = (w) => {
+    if (w.length < 3) return null;
+    const c = KEY_TO_CONCEPT.get(w);
+    if (c) return { concept: c };
+    if (STOPWORDS_NY.has(w)) return { stop: true };
+    return null;
+  };
+  const bases = [tok];
+  for (const s of NY_SUFFIXES) {
+    if (tok.endsWith(s) && tok.length - s.length >= 3) bases.push(tok.slice(0, -s.length));
+  }
+  for (const base of bases) {
+    if (base !== tok) {
+      const hit = lookup(base);
+      if (hit) return hit;
+    }
+    for (const p of PREFIXES_LONGEST_FIRST) {
+      if (!base.startsWith(p)) continue;
+      const rest = base.slice(p.length);
+      const hit = lookup(rest);
+      if (hit) return hit;
+      for (const p2 of PREFIXES_LONGEST_FIRST) {
+        if (p2.length > 1 && rest.startsWith(p2)) {
+          const hit2 = lookup(rest.slice(p2.length));
+          if (hit2) return hit2;
+        }
+      }
+    }
+  }
+  return null;
+};
+
+// Edit distance with an early exit once every cell in a row exceeds `max`.
+const editDistance = (a, b, max) => {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      rowMin = Math.min(rowMin, cur[j]);
+    }
+    if (rowMin > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+};
+
+/** Closest dictionary word for a likely typo (same first letter, 1–2 edits). */
+const fuzzyConcept = (tok) => {
+  if (tok.length < 5) return null;
+  const max = tok.length >= 8 ? 2 : 1;
+  let best = null;
+  let bestD = max + 1;
+  let tie = false;
+  for (const k of SINGLE_KEYS) {
+    if (k[0] !== tok[0]) continue;
+    const d = editDistance(tok, k, max);
+    if (d < bestD) { best = k; bestD = d; tie = false; }
+    else if (d === bestD && best && KEY_TO_CONCEPT.get(k) !== KEY_TO_CONCEPT.get(best)) tie = true;
+  }
+  if (!best || bestD > max || tie) return null;
+  return { concept: KEY_TO_CONCEPT.get(best), key: best };
+};
 
 // Terms we search listings for, per concept (both languages, stemmed, deduped).
 const searchTermsFor = (c) => {
@@ -275,7 +453,7 @@ export const parseQuery = (input) => {
   // --- concepts: multi-word phrases, then single words ---
   const concepts = [];
   const seen = new Set();
-  const addConcept = (c, matched) => {
+  const addConcept = (c, matched, source = 'dictionary') => {
     if (seen.has(c.id)) return;
     seen.add(c.id);
     concepts.push({
@@ -285,7 +463,7 @@ export const parseQuery = (input) => {
       terms: searchTermsFor(c),
       category: c.cat,
       service: !!c.service,
-      source: 'dictionary',
+      source,
     });
   };
 
@@ -301,7 +479,7 @@ export const parseQuery = (input) => {
   const unknown = [];
   for (const raw of text.split(' ').filter(Boolean)) {
     const tok = raw.replace(/^[-.]+|[-.]+$/g, '');
-    if (!tok || /^\d+([.,]\d+)?k?$/.test(tok)) continue;
+    if (!tok || /^\d+([.,]\d+)?(k|kg|kgs|g|l|ltr|litres?|m|cm|mm|pcs)?$/.test(tok)) continue;
     if (STOPWORDS_NY.has(tok)) { nyHits++; continue; }
     if (STOPWORDS_EN.has(tok)) { enHits++; continue; }
     const c = KEY_TO_CONCEPT.get(tok) || KEY_TO_CONCEPT.get(stem(tok));
@@ -311,10 +489,22 @@ export const parseQuery = (input) => {
       else if (EN_KEYS.has(tok) || EN_KEYS.has(stem(tok))) enHits++;
       continue;
     }
-    // Chichewa noun-class prefixes on a known word: "zachimanga", "yamagetsi"
-    const prefixed = tok.match(/^(za|ya|wa|la|cha|ka|kwa|ma)(.{3,})$/);
-    const inner = prefixed && KEY_TO_CONCEPT.get(prefixed[2]);
-    if (inner) { addConcept(inner, tok); nyHits++; continue; }
+    // Chichewa prefixes/enclitics on a known word: "zachimanga", "mnyumba", "kukhitchini"
+    const root = chichewaRoot(tok);
+    if (root) {
+      if (root.stop) { nyHits++; continue; }
+      addConcept(root.concept, tok);
+      nyHits++;
+      continue;
+    }
+    if (tok.length >= 4 && NY_FILLER_VERB.test(tok)) { nyHits++; continue; }
+    // Misspellings: "chimaga", "feteleza", "simenthi"
+    const near = fuzzyConcept(tok);
+    if (near) {
+      addConcept(near.concept, tok, 'fuzzy');
+      if (NY_KEYS.has(near.key)) nyHits++; else enHits++;
+      continue;
+    }
     if (tok.length >= 3 && unknown.length < 6) unknown.push(tok);
   }
 
@@ -341,33 +531,42 @@ export const parseQuery = (input) => {
 };
 
 /**
- * Fold extra English words (e.g. from the AI translator) into a parsed query.
- * Words matching dictionary concepts become concepts; the rest attach to
- * the raw-word concepts so a mistranslation can't remove matches.
+ * Fold extra English keywords (e.g. from the AI) into a parsed query.
+ * Phrases/words matching dictionary concepts become those concepts; other
+ * words form one AI concept. AI concepts are placed before raw leftovers so
+ * they survive the 8-concept cap and count as "understood" when matching.
  */
 export const mergeTranslatedTerms = (parsed, words = []) => {
-  const extra = [...new Set(words.map(normKey).flatMap((w) => w.split(' ')))]
-    .filter((w) => w.length >= 3 && !STOPWORDS_EN.has(w) && !STOPWORDS_NY.has(w));
-  if (!extra.length) return parsed;
+  const isUseful = (w) => w.length >= 3 && !STOPWORDS_EN.has(w) && !STOPWORDS_NY.has(w);
+  const phrases = [...new Set(words.map(normKey).filter(Boolean))];
+  if (!phrases.length) return parsed;
 
-  const concepts = [...parsed.concepts];
-  const have = new Set(concepts.map((c) => c.id));
+  const known = parsed.concepts.filter((c) => c.source !== 'raw');
+  const raw = parsed.concepts.filter((c) => c.source === 'raw');
+  const have = new Set(known.map((c) => c.id));
+  const added = [];
   const loose = [];
-  for (const w of extra) {
-    const c = KEY_TO_CONCEPT.get(w) || KEY_TO_CONCEPT.get(stem(w));
-    if (c && !have.has(c.id)) {
-      have.add(c.id);
-      concepts.push({ id: c.id, label: c.en[0], matched: w, terms: searchTermsFor(c), category: c.cat, service: !!c.service, source: 'ai' });
-    } else if (!c) {
-      loose.push(stem(w));
+  const addKnown = (c, matched) => {
+    if (have.has(c.id)) return;
+    have.add(c.id);
+    added.push({ id: c.id, label: c.en[0], matched, terms: searchTermsFor(c), category: c.cat, service: !!c.service, source: 'ai' });
+  };
+
+  for (const phrase of phrases) {
+    const whole = KEY_TO_CONCEPT.get(phrase) || KEY_TO_CONCEPT.get(stem(phrase));
+    if (whole) { addKnown(whole, phrase); continue; }
+    for (const w of phrase.split(' ').filter(isUseful)) {
+      const c = KEY_TO_CONCEPT.get(w) || KEY_TO_CONCEPT.get(stem(w));
+      if (c) addKnown(c, w);
+      else if (!loose.includes(stem(w))) loose.push(stem(w));
     }
   }
   if (loose.length) {
-    const raw = concepts.find((c) => c.source === 'raw');
-    if (raw) raw.terms = [...new Set([...raw.terms, ...loose])].slice(0, 10);
-    else concepts.push({ id: `ai:${loose[0]}`, label: loose.join(' '), matched: parsed.original, terms: loose.slice(0, 10), source: 'ai' });
+    added.push({ id: `ai:${loose[0]}`, label: loose.slice(0, 3).join(' '), matched: parsed.original, terms: loose.slice(0, 10), source: 'ai' });
   }
-  return { ...parsed, concepts: concepts.slice(0, 8), aiUsed: true };
+  if (!added.length) return parsed;
+  const concepts = [...known, ...added, ...raw].slice(0, 8);
+  return { ...parsed, concepts, isService: concepts.some((c) => c.service), aiUsed: true };
 };
 
 /** Short, UI-ready summary of how the query was understood. */
@@ -381,6 +580,7 @@ export const describeInterpretation = (p) => ({
   location: p.location,
   isService: p.isService,
   aiUsed: !!p.aiUsed,
+  relaxed: p.relaxed || null,
 });
 
-export const _internals = { LEXICON, KEY_TO_CONCEPT, stem, parseAmount };
+export const _internals = { LEXICON, KEY_TO_CONCEPT, stem, parseAmount, chichewaRoot, fuzzyConcept };

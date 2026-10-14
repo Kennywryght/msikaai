@@ -362,7 +362,7 @@ export default function Deliveries() {
 
         .header {
           position: sticky;
-          top: 0;
+          top: var(--app-nav-height, 68px);
           z-index: 10;
           display: flex;
           align-items: center;

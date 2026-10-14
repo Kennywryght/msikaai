@@ -274,7 +274,7 @@ const Footer = () => {
           transform: translateY(-2px);
         }
 
-        .footer-social-btn:hover :global(svg) {
+        .footer-social-btn:hover svg {
           stroke: #1E293B;
         }
 

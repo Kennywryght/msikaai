@@ -155,6 +155,16 @@ const Login = () => {
         });
       }
 
+      if (result.needsConfirmation && (!isLogin || !result.success)) {
+        success(isLogin ? 'Please confirm your email first 📧' : '📧 Check your email to confirm your account');
+        navigate('/verify-email', {
+          replace: true,
+          // a fresh sign-up was just sent an email: start the resend cooldown
+          state: { email: result.email, justRegistered: !isLogin },
+        });
+        return;
+      }
+
       if (result.success) {
         success(
           isLogin
@@ -758,9 +768,9 @@ const Login = () => {
       </aside>
 
       <style jsx>{`
-        :global(html),
-        :global(body),
-        :global(#root) {
+        html,
+        body,
+        #root {
           width: 100%;
           height: 100%;
           margin: 0;

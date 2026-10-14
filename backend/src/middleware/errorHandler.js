@@ -4,8 +4,27 @@ import { logger } from '../utils/logger.js';
 /**
  * Global error handler middleware
  */
+const SECRET_KEYS = /pass(word)?|token|secret|otp|code|pin|authorization|card|cvv/i;
+const redact = (body) => {
+  if (!body || typeof body !== 'object') return body;
+  return Object.fromEntries(
+    Object.entries(body).map(([k, v]) => [k, SECRET_KEYS.test(k) ? '[redacted]' : v])
+  );
+};
+
+const UPLOAD_ERRORS = {
+  LIMIT_FILE_SIZE: 'File is too large (max 10 MB)',
+  LIMIT_FILE_COUNT: 'Too many files (max 5)',
+  LIMIT_UNEXPECTED_FILE: 'Unexpected file field',
+};
+
 export const errorHandler = (err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
+  // Upload problems (multer) are the client's to fix, not server errors.
+  if (err?.name === 'MulterError') {
+    err.statusCode = 400;
+    err.message = UPLOAD_ERRORS[err.code] || err.message;
+  }
+  const statusCode = err.statusCode || err.status || 500;
   const errorId = req.requestId || 'unknown';
   
   // Log the error
@@ -16,10 +35,11 @@ export const errorHandler = (err, req, res, next) => {
     method: req.method,
     ip: req.ip,
     requestId: errorId,
-    body: req.body,
+    // Never log credentials: tokens live in headers, passwords in auth bodies.
+    body: redact(req.body),
     query: req.query,
     params: req.params,
-    headers: req.headers,
+    userAgent: req.headers?.['user-agent'],
     user: req.user?.id,
   });
 
@@ -28,7 +48,8 @@ export const errorHandler = (err, req, res, next) => {
   
   res.status(statusCode).json({
     success: false,
-    error: isProduction ? 'Internal server error' : err.message,
+    // 4xx messages are meant for the user; only hide internals of real failures.
+    error: isProduction && statusCode >= 500 ? 'Internal server error' : err.message,
     errorId: errorId,
     ...(isProduction ? {} : { stack: err.stack }),
     ...(err.code ? { code: err.code } : {}),

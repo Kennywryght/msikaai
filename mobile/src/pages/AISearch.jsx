@@ -6,6 +6,7 @@ import { useTranslation } from '../context/TranslationContext';
 import { aiAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 import SearchInterpretation from '../components/SearchInterpretation';
+import { handleImageError } from '../utils/imageUtils';
 
 // ============================================================
 // LUCIDE-STYLE ICONS
@@ -347,7 +348,7 @@ const AISearch = () => {
                     </div>
                   </div>
                   {item.images && item.images.length > 0 && (
-                    <img src={item.images[0]} alt={item.title} className="result-image" loading="lazy" />
+                    <img src={item.images[0]} alt={item.title} className="result-image" loading="lazy" onError={handleImageError} />
                   )}
                 </div>
               </div>

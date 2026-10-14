@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { businessAPI } from '../services/api';
 import { useToast } from '../components/ToastContainer';
 
+import LocationPicker from '../components/LocationPicker';
 // ============================================================
 // LUCIDE-STYLE ICONS
 // ============================================================
@@ -78,16 +79,6 @@ const CATEGORIES = [
   { id: 'other',        label: 'Other',               emoji: '✨' },
 ];
 
-const LOCATIONS = [
-  'Mitundu Trading Centre',
-  'Mitundu Bunda',
-  'Mitundu Chimbiri',
-  'Mitundu Motolosi',
-  'Mitundu Nkhoma',
-  'Mitundu Town',
-  'Mitundu Rural',
-  'Other',
-];
 
 // ============================================================
 // MAIN COMPONENT
@@ -361,19 +352,12 @@ const ProfileSetup = () => {
                 />
                 Location
               </label>
-              <select
+              <LocationPicker
                 name="location"
                 value={formData.location}
-                onChange={handleChange}
-                className="form-select"
-              >
-                <option value="">Select location</option>
-                {LOCATIONS.map((loc) => (
-                  <option key={loc} value={loc}>
-                    {loc}
-                  </option>
-                ))}
-              </select>
+                onChange={(text) => handleChange({ target: { name: 'location', value: text } })}
+                placeholder="e.g., Kawale 1, Lilongwe"
+              />
             </div>
           </div>
         )}

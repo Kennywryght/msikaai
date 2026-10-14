@@ -114,9 +114,9 @@ const AdGenerator = () => {
   };
 
   const handleGenerateAd = async () => {
-    if (!image) {
-      setErrorMsg('Please select an image first');
-      showToast('Please select an image first', 'error');
+    if (!image && !productInfo.title.trim()) {
+      setErrorMsg('Add a photo or a product title first');
+      showToast('Add a photo or a product title first', 'error');
       return;
     }
 
@@ -125,7 +125,7 @@ const AdGenerator = () => {
 
     try {
       const formData = new FormData();
-      formData.append('image', image);
+      if (image) formData.append('image', image);
       formData.append('productInfo', JSON.stringify(productInfo));
 
       const response = await adAPI.generate(formData);
@@ -252,7 +252,7 @@ const AdGenerator = () => {
               <Icon name="sparkles" size={28} color="#F59E0B" strokeWidth={1.75} />
             </div>
             <h1 className="page-title">AI Ad Generator</h1>
-            <p className="page-subtitle">Upload a product image and let AI create a professional ad</p>
+            <p className="page-subtitle">Upload a product photo (or just enter a title) and let AI create a professional ad</p>
           </div>
         </div>
 
@@ -367,7 +367,7 @@ const AdGenerator = () => {
           <button 
             className="generate-btn" 
             onClick={handleGenerateAd}
-            disabled={loading || !image}
+            disabled={loading || (!image && !productInfo.title.trim())}
           >
             <Icon name="sparkles" size={18} color="#FFFFFF" strokeWidth={1.75} />
             {loading ? 'Generating...' : 'Generate Ad'}
@@ -393,6 +393,22 @@ const AdGenerator = () => {
                   </span>
                 ))}
               </div>
+              {result.ad?.hashtags?.length > 0 && (
+                <p className="ad-hashtags">{result.ad.hashtags.join(' ')}</p>
+              )}
+              {result.ad?.chichewa?.headline && (
+                <div className="ad-chichewa">
+                  <span className="ad-chichewa-label">Chichewa</span>
+                  <strong>{result.ad.chichewa.headline}</strong>
+                  {result.ad.chichewa.shortCopy && <p>{result.ad.chichewa.shortCopy}</p>}
+                </div>
+              )}
+              {result.vision?.detectedProduct && (
+                <p className="ad-vision">
+                  📷 From your photo: <strong>{result.vision.detectedProduct}</strong>
+                  {result.vision.category ? ` · ${result.vision.category}` : ''}
+                </p>
+              )}
             </div>
 
             <div className="social-section">
@@ -781,6 +797,43 @@ const AdGenerator = () => {
           border-radius: 6px;
           font-size: 12px;
           font-weight: 500;
+        }
+
+        .ad-hashtags {
+          margin: 10px 0 0;
+          font-size: 12.5px;
+          font-weight: 600;
+          color: #2563EB;
+          word-break: break-word;
+        }
+
+        .ad-chichewa {
+          margin-top: 12px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          background: #FFF7ED;
+          font-size: 13px;
+          color: #1E293B;
+        }
+
+        .ad-chichewa p {
+          margin: 4px 0 0;
+        }
+
+        .ad-chichewa-label {
+          display: block;
+          font-size: 10.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: #C2410C;
+          margin-bottom: 2px;
+        }
+
+        .ad-vision {
+          margin: 10px 0 0;
+          font-size: 12px;
+          color: #64748B;
         }
 
         /* ===== SOCIAL SECTION ===== */

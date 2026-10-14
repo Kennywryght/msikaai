@@ -6,6 +6,7 @@ import SocialShare from '../components/SocialShare';
 import SearchInterpretation, { SearchExamples } from '../components/SearchInterpretation';
 import { useToast } from '../components/ToastContainer';
 import { useAuth } from '../context/AuthContext';
+import { handleImageError } from '../utils/imageUtils';
 
 // ============================================================
 // ICONS
@@ -328,7 +329,7 @@ const Search = () => {
                         </div>
                       </div>
                       {listing.images && listing.images.length > 0 && (
-                        <img src={listing.images[0]} alt={listing.title} className="result-image" loading="lazy" />
+                        <img src={listing.images[0]} alt={listing.title} className="result-image" loading="lazy" onError={handleImageError} />
                       )}
                     </div>
 

@@ -87,7 +87,7 @@ const NOTIFICATION_ICONS = {
 };
 
 const Navbar = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isAdmin } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -265,12 +265,26 @@ const Navbar = () => {
         { label: 'About', path: '/about', icon: 'info' },
       ],
     },
+    // Only admins see this; the routes themselves are also guarded (AdminRoute) and the API checks the role.
+    ...(isAdmin()
+      ? [{
+          label: 'Admin',
+          items: [
+            { label: 'Admin Dashboard', path: '/admin', icon: 'dashboard' },
+            { label: 'Users', path: '/admin/users', icon: 'user' },
+            { label: 'Listings', path: '/admin/listings', icon: 'store' },
+            { label: 'Verifications', path: '/admin/verifications', icon: 'shield' },
+            { label: 'Reports', path: '/admin/reports', icon: 'trending' },
+          ],
+        }]
+      : []),
   ];
 
   const isActive = (path) => {
     if (path === '/landing') {
       return location.pathname === '/landing' || location.pathname === '/';
     }
+    if (path === '/admin') return location.pathname === '/admin' || location.pathname === '/admin/';
     return location.pathname.startsWith(path);
   };
 

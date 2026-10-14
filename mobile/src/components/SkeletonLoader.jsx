@@ -167,7 +167,7 @@ const SkeletonLoader = ({
 
       <style jsx>{`
         /* ===== BASE ANIMATION ===== */
-        :global(.skeleton-base) {
+        .skeleton-base {
           background: linear-gradient(
             90deg,
             #F1F5F9 0%,
@@ -344,7 +344,7 @@ const SkeletonLoader = ({
         }
 
         @media (prefers-reduced-motion: reduce) {
-          :global(.skeleton-base) {
+          .skeleton-base {
             animation: none;
             background: #F1F5F9;
           }

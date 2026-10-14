@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 import CommentSection from '../components/CommentSection';
 import BoostModal from '../components/BoostModal';
+import { handleImageError } from '../utils/imageUtils';
 
 // ============================================================
 // ICONS
@@ -860,7 +861,7 @@ const ListingDetails = () => {
                       alt={`${listing.title} ${i + 1}`}
                       className="gallery-image"
                       loading={i === 0 ? 'eager' : 'lazy'}
-                      onError={(e) => { e.target.style.opacity = 0; }}
+                      onError={handleImageError}
                     />
                   ))}
                 </div>
@@ -896,7 +897,7 @@ const ListingDetails = () => {
                       onClick={() => setImageIdx(i)}
                       aria-label={`View photo ${i + 1}`}
                     >
-                      <img src={img} alt="" />
+                      <img src={img} alt="" onError={handleImageError} />
                     </button>
                   ))}
                 </div>
@@ -1060,7 +1061,7 @@ const ListingDetails = () => {
               <button
                 type="button"
                 className="quality-improve-btn"
-                onClick={() => navigate(`/create-listing?edit=${listing.id}`)}
+                onClick={() => navigate(`/listing/${listing.id}/edit`)}
               >
                 <Icon name="pencil" size={13} color="var(--color-text-inverse)" strokeWidth={2.2} />
                 Improve this listing
@@ -1180,7 +1181,7 @@ const ListingDetails = () => {
             <div className="contact-actions">
               <button
                 className="contact-btn primary"
-                onClick={() => navigate(`/create-listing?edit=${listing.id}`)}
+                onClick={() => navigate(`/listing/${listing.id}/edit`)}
               >
                 <Icon name="pencil" size={16} color="var(--color-text-inverse)" strokeWidth={2} />
                 Edit listing
@@ -1369,7 +1370,7 @@ const ListingDetails = () => {
             <div className="pop-preview">
               <div className="pop-thumb">
                 {listing.images?.length ? (
-                  <img src={listing.images[0]} alt={listing.title} />
+                  <img src={listing.images[0]} alt={listing.title} onError={handleImageError} />
                 ) : (
                   <div className="pop-thumb-fallback">
                     <Icon name="store" size={18} color="var(--color-text-muted)" strokeWidth={1.5} />

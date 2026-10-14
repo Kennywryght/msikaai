@@ -478,7 +478,7 @@ const Messages = () => {
           -webkit-backdrop-filter: blur(12px);
           border-bottom: 1px solid var(--color-border);
           position: sticky;
-          top: 0;
+          top: var(--app-nav-height, 68px);
           z-index: 10;
           padding: 18px 16px 14px;
         }

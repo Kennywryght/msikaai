@@ -24,6 +24,8 @@
     to --primary-*, --gray-*, etc. still work.)
    ============================================ */
 :root {
+  /* height of the fixed app navbar; sticky page headers sit just below it */
+  --app-nav-height: 68px;
   /* ---- Primary (maps to Kumsika primary) ---- */
   --primary-50:  var(--orange-50);
   --primary-100: var(--orange-100);
@@ -127,6 +129,24 @@ body {
   background-color: var(--color-bg);
   line-height: 1.6;
   min-height: 100vh;
+  /* long emails, URLs and business names wrap instead of widening the page */
+  overflow-wrap: break-word;
+}
+
+/* Media never wider than its container, on any screen */
+img,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+/* Form controls shrink inside flex rows instead of overflowing */
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* ============================================

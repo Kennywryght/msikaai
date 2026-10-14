@@ -1,8 +1,11 @@
 // mobile/src/pages/CreateListing.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { businessAPI, aiAPI, locationAPI } from '../services/api';
+import { businessAPI, aiAPI, listingsAPI, getAccessToken } from '../services/api';
+import cacheService from '../services/cacheService';
+import { handleImageError } from '../utils/imageUtils';
+import LocationPicker from '../components/LocationPicker';
 import { useToast } from '../components/ToastContainer';
 
 // ============================================================
@@ -94,9 +97,17 @@ const GRADE_META = {
 // ============================================================
 // MAIN COMPONENT
 // ============================================================
+const MAX_PHOTOS = 4;
+
+// Used for both /create-listing and /listing/:id/edit.
 const CreateListing = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const { id: editId } = useParams();
+  const isEdit = Boolean(editId);
+  const [loadingListing, setLoadingListing] = useState(isEdit);
+  // Photos already saved on the listing (URLs) — kept unless removed.
+  const [existingImages, setExistingImages] = useState([]);
   const { showToast, success, error } = useToast();
   const [loading, setLoading] = useState(false);
   const [businesses, setBusinesses] = useState([]);
@@ -116,15 +127,15 @@ const CreateListing = () => {
     deliveryFee: '',
     contactPhone: ''
   });
+  const [writingDesc, setWritingDesc] = useState(false);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const titleInputRef = useRef(null);
 
-  // ★ PHASE 1: coords + locating
+  // ★ PHASE 1: coords captured by LocationPicker
   const [coords, setCoords] = useState(null);
-  const [locating, setLocating] = useState(false);
 
   // ★ PHASE 7B: price suggestion state
   const [priceSuggestion, setPriceSuggestion] = useState(null);
@@ -144,8 +155,53 @@ const CreateListing = () => {
   }, []);
 
   useEffect(() => {
-    fetchBusinesses();
+    if (!isEdit) fetchBusinesses();
   }, [user]);
+
+  // Edit mode: load the listing and fill the form with it.
+  useEffect(() => {
+    if (!isEdit || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingListing(true);
+      try {
+        const res = await listingsAPI.getById(editId);
+        const l = res?.data?.listing;
+        if (!l) throw new Error('Listing not found');
+        const ownerId = l.businesses?.user_id || l.businesses?.userId;
+        if (ownerId && ownerId !== user.id && !isAdmin()) {
+          error('You can only edit your own listings');
+          navigate(`/listing/${editId}`, { replace: true });
+          return;
+        }
+        if (cancelled) return;
+        const str = (v) => (v === null || v === undefined ? '' : String(v));
+        setFormData((prev) => ({
+          ...prev,
+          title: str(l.title),
+          description: str(l.description),
+          category: str(l.category),
+          subCategory: str(l.sub_category),
+          price: l.price != null ? String(Number(l.price)) : '',
+          priceType: l.price_type || 'fixed',
+          quantity: str(l.quantity),
+          unit: str(l.unit),
+          locationArea: str(l.location_area || l.location_name),
+          deliveryAvailable: !!l.delivery_available,
+          deliveryFee: l.delivery_fee != null ? String(Number(l.delivery_fee)) : '',
+          contactPhone: str(l.contact_phone),
+        }));
+        setExistingImages(Array.isArray(l.images) ? l.images : []);
+        setSelectedBusiness(l.business_id || '');
+      } catch (err) {
+        error(err.response?.data?.error || err.message || 'Could not load this listing');
+        navigate('/dashboard', { replace: true });
+      } finally {
+        if (!cancelled) setLoadingListing(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isEdit, editId, user?.id]);
 
   // ★ PHASE 7B: debounced price suggestion fetch (800ms)
   useEffect(() => {
@@ -256,50 +312,38 @@ const CreateListing = () => {
     }));
   };
 
-  // ★ PHASE 1: capture coords + reverse-geocode
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      showToast('Geolocation not supported on this device', 'error');
-      return;
+  // Draft (or polish) the description from what the seller has filled in so far.
+  const handleWriteDescription = async () => {
+    if (writingDesc || formData.title.trim().length < 3) return;
+    setWritingDesc(true);
+    try {
+      const res = await aiAPI.generateDescription({
+        title: formData.title.trim(),
+        category: formData.subCategory || formData.category,
+        features: formData.description.trim(),
+        price: formData.price,
+        unit: formData.unit,
+        location: formData.locationArea,
+      });
+      if (res.data?.success && res.data.description) {
+        setFormData((prev) => ({ ...prev, description: res.data.description }));
+        success('Description written — edit it as you like ✨');
+      } else {
+        error(res.data?.error || 'Could not write a description right now');
+      }
+    } catch (err) {
+      error(err.response?.data?.error || 'Could not write a description right now');
+    } finally {
+      setWritingDesc(false);
     }
-
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setCoords({ lat: latitude, lng: longitude });
-
-        try {
-          const res = await locationAPI.reverse(latitude, longitude);
-          const name = res?.data?.name;
-          if (name) {
-            setFormData((prev) => ({ ...prev, locationArea: name }));
-            success(`Location set: ${name}`);
-          } else {
-            const fallback = `Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
-            setFormData((prev) => ({ ...prev, locationArea: fallback }));
-            showToast('Could not resolve a place name — you can edit it', 'warning');
-          }
-        } catch (err) {
-          console.warn('reverse geocode error:', err);
-          const fallback = `Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
-          setFormData((prev) => ({ ...prev, locationArea: fallback }));
-          showToast('Could not resolve a place name — you can edit it', 'warning');
-        } finally {
-          setLocating(false);
-        }
-      },
-      (err) => {
-        console.warn('Geolocation error:', err);
-        showToast('Could not access your location', 'error');
-        setLocating(false);
-      },
-      { enableHighAccuracy: false, timeout: 8000 }
-    );
   };
 
   const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
+    const slots = MAX_PHOTOS - existingImages.length - imageFiles.length;
+    const picked = Array.from(e.target.files);
+    const files = picked.slice(0, Math.max(0, slots));
+    if (picked.length > files.length) showToast(`You can have up to ${MAX_PHOTOS} photos`, 'warning');
+    if (fileInputRef.current) fileInputRef.current.value = '';
     if (files.length > 0) {
       setUploading(true);
       setTimeout(() => {
@@ -353,8 +397,53 @@ const CreateListing = () => {
     setPriceSuggestion(null);
   };
 
+  // Edit mode: save changes with PUT (existing photos kept by URL, new ones uploaded).
+  const handleUpdate = async () => {
+    if (!formData.title.trim()) {
+      showToast('Please enter a title', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const fd = new FormData();
+      const fields = ['title', 'description', 'category', 'subCategory', 'price', 'priceType',
+        'quantity', 'unit', 'locationArea', 'deliveryFee', 'contactPhone'];
+      for (const k of fields) fd.append(k, typeof formData[k] === 'string' ? formData[k].trim() : formData[k] ?? '');
+      fd.append('deliveryAvailable', String(!!formData.deliveryAvailable));
+      if (coords) {
+        fd.append('locationLat', String(coords.lat));
+        fd.append('locationLng', String(coords.lng));
+      }
+      fd.append('images', JSON.stringify(existingImages));
+      imageFiles.forEach((f) => fd.append('newImages', f));
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/listings/${editId}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${(await getAccessToken()) || ''}` },
+        body: fd,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+
+      cacheService.clear(); // listing pages must show the new version
+      success('✅ Listing updated');
+      navigate(`/listing/${editId}`);
+    } catch (err) {
+      const msg = /401|Unauthorized/.test(err.message)
+        ? 'Your session has expired. Please log in again.'
+        : err.message || 'Failed to update listing';
+      showToast(msg, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isEdit) {
+      await handleUpdate();
+      return;
+    }
     if (!selectedBusiness) {
       showToast('Please select a business', 'error');
       return;
@@ -368,7 +457,7 @@ const CreateListing = () => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('access_token') || '';
+      const token = (await getAccessToken()) || '';
 
       const formDataToSend = new FormData();
       formDataToSend.append('businessId', selectedBusiness);
@@ -419,6 +508,7 @@ const CreateListing = () => {
       const data = await response.json();
 
       if (data.success) {
+        cacheService.clear(); // dashboard / feeds should include the new listing
         success('🎉 Listing created successfully!');
         navigate('/dashboard');
       } else {
@@ -458,12 +548,12 @@ const CreateListing = () => {
       {/* Header */}
       <div className="page-header">
         <div className="header-inner">
-          <button className="back-btn" onClick={() => navigate('/dashboard')} aria-label="Back">
+          <button className="back-btn" onClick={() => navigate(isEdit ? `/listing/${editId}` : '/dashboard')} aria-label="Back">
             <Icon name="arrowLeft" size={18} color="var(--color-text)" strokeWidth={2.2} />
           </button>
           <div className="header-text">
-            <h1 className="page-title">New Listing</h1>
-            <p className="page-subtitle">Share what you're selling</p>
+            <h1 className="page-title">{isEdit ? 'Edit Listing' : 'New Listing'}</h1>
+            <p className="page-subtitle">{isEdit ? 'Update the details buyers see' : "Share what you're selling"}</p>
           </div>
           <div className="header-spacer" />
         </div>
@@ -471,15 +561,26 @@ const CreateListing = () => {
 
       {/* Main Form */}
       <div className="form-container">
+        {loadingListing ? (
+          <div className="upload-progress" role="status">
+            <span className="upload-loader" />
+            <span>Loading your listing…</span>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit}>
           {/* Image Upload */}
           <div className="upload-section">
             <label className="form-label">
               <Icon name="camera" size={14} color="var(--color-secondary-hover)" strokeWidth={2} />
               Photos
-              <span className="form-label-hint">Up to 4 images</span>
+              <span className="form-label-hint">Up to {MAX_PHOTOS} images</span>
             </label>
-            <div className="upload-area" onClick={() => fileInputRef.current?.click()}>
+            <div
+              className="upload-area"
+              onClick={() => {
+                if (existingImages.length + imageFiles.length < MAX_PHOTOS) fileInputRef.current?.click();
+              }}
+            >
               <input
                 ref={fileInputRef}
                 type="file"
@@ -488,8 +589,24 @@ const CreateListing = () => {
                 onChange={handleImageUpload}
                 style={{ display: 'none' }}
               />
-              {imagePreviews.length > 0 ? (
+              {existingImages.length + imagePreviews.length > 0 ? (
                 <div className="image-preview-grid">
+                  {existingImages.map((url) => (
+                    <div key={url} className="image-preview-item">
+                      <img src={url} alt="Saved photo" className="image-preview" onError={handleImageError} />
+                      <button
+                        type="button"
+                        className="image-remove"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExistingImages((prev) => prev.filter((u) => u !== url));
+                        }}
+                        aria-label="Remove photo"
+                      >
+                        <Icon name="close" size={11} color="var(--color-text-inverse)" strokeWidth={3} />
+                      </button>
+                    </div>
+                  ))}
                   {imagePreviews.map((url, index) => (
                     <div key={index} className="image-preview-item">
                       <img src={url} alt={`Upload ${index}`} className="image-preview" />
@@ -503,7 +620,7 @@ const CreateListing = () => {
                       </button>
                     </div>
                   ))}
-                  {imagePreviews.length < 4 && (
+                  {existingImages.length + imagePreviews.length < MAX_PHOTOS && (
                     <div className="image-upload-btn">
                       <Icon name="plus" size={20} color="var(--color-accent)" strokeWidth={2.2} />
                       <span>Add</span>
@@ -529,7 +646,7 @@ const CreateListing = () => {
           </div>
 
           {/* Business Selection */}
-          {businesses.length > 0 && (
+          {!isEdit && businesses.length > 0 && (
             <div className="form-group">
               <label className="form-label">Business</label>
               <select
@@ -565,7 +682,18 @@ const CreateListing = () => {
 
           {/* Description */}
           <div className="form-group">
-            <label className="form-label">Description</label>
+            <label className="form-label">
+              Description
+              <button
+                type="button"
+                className="ai-write-btn"
+                onClick={handleWriteDescription}
+                disabled={writingDesc || formData.title.trim().length < 3}
+                title={formData.title.trim().length < 3 ? 'Add a title first' : 'Write a description with AI'}
+              >
+                {writingDesc ? 'Writing…' : formData.description.trim() ? '✨ Improve with AI' : '✨ Write with AI'}
+              </button>
+            </label>
             <textarea
               name="description"
               value={formData.description}
@@ -733,35 +861,15 @@ const CreateListing = () => {
             <label className="form-label">
               Location <span className="required">*</span>
             </label>
-            <div className="input-with-btn">
-              <input
-                type="text"
-                name="locationArea"
-                value={formData.locationArea}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, locationArea: e.target.value }));
-                  setCoords(null); // manual edit clears captured coords
-                }}
-                className="form-input"
-                placeholder="e.g. Mitundu Trading Centre"
-                required
-                autoComplete="off"
-              />
-              <button
-                type="button"
-                className="icon-inline-btn"
-                onClick={handleUseLocation}
-                disabled={loading || locating}
-                aria-label="Use my location"
-              >
-                <Icon
-                  name="crosshair"
-                  size={18}
-                  color={locating ? 'var(--color-text-muted)' : 'var(--color-primary)'}
-                  strokeWidth={2}
-                />
-              </button>
-            </div>
+            <LocationPicker
+              name="locationArea"
+              value={formData.locationArea}
+              onChange={(text) => setFormData((prev) => ({ ...prev, locationArea: text }))}
+              onDetected={(r) => setCoords(r.coords)}
+              onManualEdit={() => setCoords(null)} // typed place: don't send stale coords
+              disabled={loading}
+              required
+            />
             <span className="field-hint">
               Where can this be picked up or delivered?
             </span>
@@ -881,11 +989,12 @@ const CreateListing = () => {
             ) : (
               <>
                 <Icon name="check" size={18} color="var(--color-text-inverse)" strokeWidth={2.4} />
-                Post Listing
+                {isEdit ? 'Save Changes' : 'Post Listing'}
               </>
             )}
           </button>
         </form>
+        )}
       </div>
 
       {/* Bottom Nav */}
@@ -932,7 +1041,7 @@ const CreateListing = () => {
           -webkit-backdrop-filter: blur(12px);
           border-bottom: 1px solid var(--color-border);
           position: sticky;
-          top: 0;
+          top: var(--app-nav-height, 68px);
           z-index: 10;
           padding: 14px 16px;
         }
@@ -1010,6 +1119,26 @@ const CreateListing = () => {
           margin-bottom: 7px;
           letter-spacing: 0.02em;
           text-transform: uppercase;
+        }
+
+        .ai-write-btn {
+          margin-left: auto;
+          padding: 4px 10px;
+          border: 1.5px solid var(--color-accent);
+          border-radius: 999px;
+          background: var(--color-accent-tint);
+          color: var(--color-accent);
+          font-size: 11.5px;
+          font-weight: 700;
+          text-transform: none;
+          letter-spacing: 0;
+          cursor: pointer;
+          font-family: inherit;
+        }
+
+        .ai-write-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         .form-label-hint {

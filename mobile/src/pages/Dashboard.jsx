@@ -8,7 +8,9 @@ import AnalyticsWidget from '../components/AnalyticsWidget';
 import PrimaryButton from '../components/PrimaryButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../components/ToastContainer';
+import { handleImageError } from '../utils/imageUtils';
 
+import LocationPicker from '../components/LocationPicker';
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
     store: "M3 9l1-5h16l1 5M3 9v10a2 2 0 002 2h14a2 2 0 002-2V9M3 9h18M9 21V12h6v9",
@@ -633,7 +635,7 @@ const Dashboard = () => {
                 >
                   <div className="listing-info">
                     {listing.images && listing.images[0] ? (
-                      <img src={listing.images[0]} alt={listing.title} className="listing-image" />
+                      <img src={listing.images[0]} alt={listing.title} className="listing-image" onError={handleImageError} />
                     ) : (
                       <div className="listing-image-placeholder">
                         <Icon name="store" size={16} color="var(--color-text-muted)" strokeWidth={1.5} />
@@ -656,6 +658,14 @@ const Dashboard = () => {
                       <Icon name="eye" size={10} color="var(--color-text-muted)" strokeWidth={1.85} />
                       {listing.view_count || 0}
                     </div>
+                    <button
+                      type="button"
+                      className="listing-edit-btn"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/listing/${listing.id}/edit`); }}
+                      aria-label={`Edit ${listing.title}`}
+                    >
+                      Edit
+                    </button>
                   </div>
                 </div>
               ))}
@@ -774,13 +784,13 @@ const Dashboard = () => {
 
               <div className="field-group">
                 <label className="field-label">Location / Address</label>
-                <input
-                  type="text"
+                <LocationPicker
                   name="address"
                   value={formData.address}
-                  onChange={handleChange}
-                  className="field-input"
-                  placeholder="e.g., Mitundu Trading Centre"
+                  onChange={(text) => handleChange({ target: { name: 'address', value: text } })}
+                  inputClassName="field-input"
+                  format="full"
+                  placeholder="e.g., Kawale 1, Lilongwe"
                 />
               </div>
 
@@ -1329,6 +1339,24 @@ const Dashboard = () => {
           font-weight: 600;
           color: var(--color-primary);
           letter-spacing: -0.01em;
+        }
+
+        .listing-edit-btn {
+          margin-top: 6px;
+          padding: 4px 12px;
+          min-height: 32px;
+          border: 1.5px solid var(--color-border);
+          border-radius: 999px;
+          background: var(--color-surface);
+          color: var(--color-primary);
+          font: inherit;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .listing-edit-btn:hover {
+          border-color: var(--color-primary);
         }
 
         .listing-views {

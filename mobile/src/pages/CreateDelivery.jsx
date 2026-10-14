@@ -3,7 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
-import { deliveriesAPI, locationAPI } from '../services/api';
+import { deliveriesAPI } from '../services/api';
+import LocationPicker from '../components/LocationPicker';
 
 const PACKAGE_OPTIONS = [
   { value: 'small', label: 'Small', emoji: '✉️', desc: 'Envelope, documents' },
@@ -74,11 +75,9 @@ export default function CreateDelivery() {
   const [error, setError] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  // ★ PHASE 1: captured coords + per-field locating flags
+  // ★ PHASE 1: coords captured by LocationPicker
   const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffCoords, setDropoffCoords] = useState(null);
-  const [locatingPickup, setLocatingPickup] = useState(false);
-  const [locatingDropoff, setLocatingDropoff] = useState(false);
 
   const validation = useMemo(() => {
     const errors = {};
@@ -96,51 +95,6 @@ export default function CreateDelivery() {
   }, [title, pickupLocation, dropoffLocation, courierFee]);
 
   const isValid = Object.keys(validation).length === 0;
-
-  // ★ PHASE 1: capture coords + reverse-geocode to a place name
-  const useMyLocation = (which) => {
-    if (!navigator.geolocation) {
-      showError('Geolocation not supported on this device');
-      return;
-    }
-
-    const isPickup = which === 'pickup';
-    const setLocating = isPickup ? setLocatingPickup : setLocatingDropoff;
-    const setCoords = isPickup ? setPickupCoords : setDropoffCoords;
-    const setLocation = isPickup ? setPickupLocation : setDropoffLocation;
-
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setCoords({ lat: latitude, lng: longitude });
-
-        try {
-          const res = await locationAPI.reverse(latitude, longitude);
-          const name = res?.data?.name;
-          if (name) {
-            setLocation(name);
-            success(`${isPickup ? 'Pickup' : 'Dropoff'} set: ${name}`);
-          } else {
-            setLocation(`Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
-            showError('Could not resolve a place name — you can edit it');
-          }
-        } catch (err) {
-          console.warn('reverse geocode error:', err);
-          setLocation(`Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
-          showError('Could not resolve a place name — you can edit it');
-        } finally {
-          setLocating(false);
-        }
-      },
-      (err) => {
-        console.warn('Geolocation error:', err);
-        showError('Could not access your location');
-        setLocating(false);
-      },
-      { enableHighAccuracy: false, timeout: 8000 }
-    );
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -318,33 +272,16 @@ export default function CreateDelivery() {
             <label className="label">
               Pickup location <span className="req">*</span>
             </label>
-            <div className="input-with-btn">
-              <input
-                type="text"
-                className={`input ${validation.pickupLocation ? 'input-error' : ''}`}
-                placeholder="e.g. Mitundu Market"
-                value={pickupLocation}
-                onChange={(e) => {
-                  setPickupLocation(e.target.value);
-                  setPickupCoords(null); // ★ PHASE 1: manual edit clears coords
-                }}
-                disabled={submitting}
-              />
-              <button
-                type="button"
-                className="icon-inline-btn"
-                onClick={() => useMyLocation('pickup')}
-                disabled={submitting || locatingPickup}
-                aria-label="Use my location for pickup"
-              >
-                <Icon
-                  name="crosshair"
-                  size={18}
-                  color={locatingPickup ? '#9CA3AF' : '#1E40AF'}
-                  strokeWidth={2}
-                />
-              </button>
-            </div>
+            <LocationPicker
+              value={pickupLocation}
+              onChange={setPickupLocation}
+              onDetected={(r) => setPickupCoords(r.coords)}
+              onManualEdit={() => setPickupCoords(null)}
+              inputClassName={`input ${validation.pickupLocation ? 'input-error' : ''}`}
+              placeholder="e.g. Mitundu Market"
+              ariaLabel="Pickup location"
+              disabled={submitting}
+            />
             {validation.pickupLocation && (
               <span className="field-error">{validation.pickupLocation}</span>
             )}
@@ -383,33 +320,17 @@ export default function CreateDelivery() {
             <label className="label">
               Dropoff location <span className="req">*</span>
             </label>
-            <div className="input-with-btn">
-              <input
-                type="text"
-                className={`input ${validation.dropoffLocation ? 'input-error' : ''}`}
-                placeholder="e.g. Area 47, Lilongwe"
-                value={dropoffLocation}
-                onChange={(e) => {
-                  setDropoffLocation(e.target.value);
-                  setDropoffCoords(null); // ★ PHASE 1: manual edit clears coords
-                }}
-                disabled={submitting}
-              />
-              <button
-                type="button"
-                className="icon-inline-btn"
-                onClick={() => useMyLocation('dropoff')}
-                disabled={submitting || locatingDropoff}
-                aria-label="Use my location for dropoff"
-              >
-                <Icon
-                  name="crosshair"
-                  size={18}
-                  color={locatingDropoff ? '#9CA3AF' : '#1E40AF'}
-                  strokeWidth={2}
-                />
-              </button>
-            </div>
+            <LocationPicker
+              value={dropoffLocation}
+              onChange={setDropoffLocation}
+              onDetected={(r) => setDropoffCoords(r.coords)}
+              onManualEdit={() => setDropoffCoords(null)}
+              inputClassName={`input ${validation.dropoffLocation ? 'input-error' : ''}`}
+              placeholder="e.g. Area 47, Lilongwe"
+              ariaLabel="Dropoff location"
+              autoDetect={false} // the destination is usually elsewhere; the button still works
+              disabled={submitting}
+            />
             {validation.dropoffLocation && (
               <span className="field-error">{validation.dropoffLocation}</span>
             )}
@@ -511,7 +432,7 @@ export default function CreateDelivery() {
 
         .header {
           position: sticky;
-          top: 0;
+          top: var(--app-nav-height, 68px);
           z-index: 10;
           display: flex;
           align-items: center;
@@ -550,7 +471,7 @@ export default function CreateDelivery() {
           border-color: var(--color-primary);
         }
 
-        .preview-toggle.active :global(svg) { stroke: #FFFFFF; }
+        .preview-toggle.active svg { stroke: #FFFFFF; }
 
         .header-title { flex: 1; min-width: 0; }
 

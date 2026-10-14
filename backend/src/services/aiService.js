@@ -2,6 +2,7 @@
 import dotenv from 'dotenv';
 import { logger } from '../utils/logger.js';
 import { createClient } from '@supabase/supabase-js';
+import { MODELS, geminiGenerationConfig } from '../config/ai-providers.js';
 
 dotenv.config();
 
@@ -14,6 +15,13 @@ const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
+
+// Same list the listing form offers (mobile CreateListing.jsx)
+export const LISTING_CATEGORIES = [
+  'Products', 'Services', 'Farm Inputs', 'Food & Groceries', 'Construction Materials', 'Electronics',
+  'Clothing & Fashion', 'Vehicles & Parts', 'Furniture', 'Tools & Equipment', 'Other',
+];
+export const LISTING_UNITS = ['piece', 'kg', 'bag', 'litre', 'bundle', 'dozen', 'tray', 'bucket', 'metre', 'hour', 'day', 'job'];
 
 // ============================================================
 // In-memory caches
@@ -140,7 +148,7 @@ class AIService {
           "summary": "Brief summary of what this search is about"
         }`;
 
-      const response = await this.callProvider(provider, systemPrompt, query);
+      const response = await this.callAny(provider, systemPrompt, query);
       return this.parseAIResponse(response);
     } catch (error) {
       logger.error('AI Search error:', error);
@@ -222,7 +230,7 @@ Return ONLY valid JSON, no markdown, no preamble:
 }`;
 
     try {
-      const raw = await this.callProvider(
+      const raw = await this.callAny(
         provider,
         systemPrompt,
         `Translate: "${originalQuery}"`,
@@ -249,6 +257,79 @@ Return ONLY valid JSON, no markdown, no preamble:
         keywords: [originalQuery],
       };
       return passthrough;
+    }
+  }
+
+  // ============================================
+  // 3b. UNDERSTAND A FULL SEARCH SENTENCE
+  // ============================================
+  /**
+   * One AI call that turns a Chichewa / English / mixed sentence into
+   * English listing keywords plus a category, a short reply and related
+   * searches. Cached for 24h; resolves to null on timeout or failure so
+   * search never waits on it for longer than `timeoutMs`.
+   */
+  async understandSearchQuery(query, { timeoutMs = 2500, unknownWords = [] } = {}) {
+    const q = String(query || '').trim().slice(0, 300);
+    if (!q || !this.getProviderChain().length) return null;
+
+    const cacheKey = `u:${q.toLowerCase()}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    const system = `You understand shopping searches for Kumsika, a marketplace in Mitundu / Lilongwe, Malawi.
+Queries are Chichewa (Chinyanja), English, or a mix, often full sentences with filler words,
+verb forms (ndikufuna, ndimafuna, ndikusowa, mukundipezera, ndingapeze kuti), noun-class prefixes
+(zachimanga, yamagetsi, mnyumba, kukhitchini), relative forms (yotsika mtengo, zouma, yobwereka)
+and typos (chimaga, feteleza, simenthi).
+
+Return the PRODUCTS or SERVICES the person wants as short English listing keywords a seller would
+write in a title, with useful synonyms (e.g. "plumber", "plumbing"). Ignore filler, quantities,
+prices and places. Never invent items that are not in the query. Keep brand names.
+
+Categories: Products, Services, Farm Inputs, Food & Groceries, Construction Materials, Electronics,
+Clothing & Fashion, Vehicles & Parts, Furniture, Tools & Equipment, Other.
+
+Examples:
+"ndili ndi vuto la madzi mnyumba mwanga" → keywords ["plumber","plumbing","water pipes"], category "Services"
+"ndikufuna ana a nkhuku" → ["chicks","day old chicks","poultry"], "Farm Inputs"
+"ndikufuna wina wondimetera tsitsi" → ["barber","haircut","salon"], "Services"
+"nsomba zouma za ku Nkhotakota" → ["dried fish","fish","usipa"], "Food & Groceries"
+"ndikufunafuna nyumba yobwereka" → ["house for rent","house","rent"], "Other"
+"foni ya samsung yotsika mtengo" → ["samsung phone","phone","smartphone"], "Electronics"
+
+Reply with JSON only:
+{"keywords":[...max 6],"category":"one of the categories","language":"ny|en|mixed",
+ "reply":"one short friendly sentence in the user's language saying what you are searching for",
+ "related":["3 short related searches in the user's language"]}`;
+
+    const hint = unknownWords.length ? `\nWords our dictionary did not know: ${unknownWords.join(', ')}` : '';
+
+    try {
+      const result = await Promise.race([
+        this.callJSON(system, `Query: "${q}"${hint}`, 0.1, { maxTokens: 300, timeoutMs }),
+        new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs + 200)),
+      ]);
+      if (!result) return null;
+
+      const d = result.data || {};
+      const clean = (arr, n) => (Array.isArray(arr) ? arr : [])
+        .map((s) => String(s || '').trim())
+        .filter((s) => s && s.length <= 60)
+        .slice(0, n);
+      const understood = {
+        keywords: clean(d.keywords, 6),
+        category: typeof d.category === 'string' ? d.category.trim() : null,
+        language: ['ny', 'en', 'mixed'].includes(d.language) ? d.language : 'unknown',
+        reply: typeof d.reply === 'string' ? d.reply.trim().slice(0, 240) : null,
+        related: clean(d.related, 3),
+        provider: result.provider,
+      };
+      cacheSet(cacheKey, understood);
+      return understood;
+    } catch (error) {
+      logger.warn('understandSearchQuery failed:', error?.message || error);
+      return null;
     }
   }
 
@@ -410,7 +491,7 @@ Sample size: ${sampleSize}
 
 Return ONLY the sentence, no JSON, no quotes.`;
 
-        const raw = await this.callProvider(provider, prompt, 'Write the sentence.', 0.3);
+        const raw = await this.callAny(provider, prompt, 'Write the sentence.', 0.3);
         const cleaned = String(raw || '')
           .replace(/^["'`]+|["'`]+$/g, '')
           .replace(/\s+/g, ' ')
@@ -705,7 +786,7 @@ Each tip: max 14 words, concrete, no greetings, no fluff, no emoji.
 Reference specifics from the listing where possible.
 Return ONLY a JSON array of 3 strings, no other text.`;
 
-        const raw = await this.callProvider(provider, prompt, 'Give the tips.', 0.4);
+        const raw = await this.callAny(provider, prompt, 'Give the tips.', 0.4);
         const parsed = this.parseTipsArray(raw);
         if (parsed.length >= 2) {
           tips = parsed.slice(0, 3);
@@ -894,7 +975,7 @@ Return ONLY valid JSON, no markdown, no preamble:
 }`;
 
     try {
-      const raw = await this.callProvider(
+      const raw = await this.callAny(
         provider,
         systemPrompt,
         `Draft a reply to: "${message}"`,
@@ -989,161 +1070,171 @@ Return ONLY valid JSON, no markdown, no preamble:
   }
 
   // ============================================
-  // 4. VOICE TRANSCRIPTION
+  // 4. VOICE → LISTING DATA
   // ============================================
-  async transcribeAudio(audioBuffer, language = 'ny') {
+  /**
+   * Turn a spoken (Chichewa / English / mixed) transcript into listing fields.
+   * Returns null when no AI provider answers, so the caller can fall back to
+   * rule-based extraction.
+   */
+  async extractListingData(transcript, language = 'ny') {
+    const text = String(transcript || '').trim().slice(0, 2000);
+    if (!text || !this.getProviderChain().length) return null;
+
+    const system = `You turn a seller's spoken description into a marketplace listing for Kumsika (Mitundu, Malawi).
+The transcript may be Chichewa, English or mixed, and speech-to-text may misspell Chichewa words
+(e.g. "chimanga" as "chi manga"). Chichewa numbers: modzi=1, ziwiri=2, zitatu=3, zinayi=4, zisanu=5,
+khumi=10, makumi awiri=20, zana=100, chikwi=1000, zikwi zisanu=5000. "pa thumba"=per bag.
+
+Return JSON only:
+{"title":"short English title a buyer would search for (max 60 chars)",
+ "titleNy":"same title in Chichewa",
+ "description":"2-3 sentence English description using only facts from the transcript",
+ "category":"one of: ${LISTING_CATEGORIES.join(', ')}",
+ "price":number or null (Malawi Kwacha, per unit),
+ "priceType":"fixed|negotiable",
+ "quantity":number or null,
+ "unit":"one of: ${LISTING_UNITS.join(', ')}",
+ "deliveryAvailable":true|false,
+ "location":"place name if mentioned, else null",
+ "contactPhone":"phone number if spoken, else null",
+ "missing":["fields the seller did not mention, from: price, quantity, location"],
+ "confidence":0.0-1.0}
+Never invent a price, quantity or phone number that was not said.`;
+
     try {
-      if (!GROQ_API_KEY) {
-        logger.warn('Groq API key not available for transcription');
-        return this.getFallbackTranscription();
-      }
-
-      const formData = new FormData();
-      const blob = new Blob([audioBuffer], { type: 'audio/wav' });
-      formData.append('file', blob, 'audio.wav');
-      formData.append('model', 'whisper-large-v3');
-      formData.append('language', language);
-      formData.append('response_format', 'text');
-      formData.append('temperature', '0.2');
-
-      const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Groq API error: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.text();
-      logger.info(`Voice transcription successful: ${result.length} characters`);
-      return result;
-    } catch (error) {
-      logger.error('Voice transcription error:', error);
-      return this.getFallbackTranscription();
-    }
-  }
-
-  // ============================================
-  // 5. EXTRACT LISTING DATA
-  // ============================================
-  async extractListingData(transcript) {
-    try {
-      const provider = this.getAvailableProvider();
-      if (!provider) {
-        logger.warn('No AI provider available for extraction');
-        return this.getFallbackExtraction();
-      }
-
-      const systemPrompt = `Extract listing data from the transcript.
-        Return ONLY valid JSON:
-        {
-          "title": "Product title",
-          "category": "Farm Inputs|Construction|Plumber|Retail|Electronics|Fashion|Food|Other",
-          "price": null,
-          "quantity": null,
-          "unit": "kg|litre|piece|bag|bundle|other",
-          "description": "Brief description",
-          "confidence": 0.9
-        }`;
-
-      const response = await this.callProvider(provider, systemPrompt, transcript, 0.2);
-      const parsed = JSON.parse(response);
-
+      const { data } = await this.callJSON(system, `Transcript (${language}): "${text}"`, 0.1, { maxTokens: 500 });
+      const num = (v) => {
+        const n = typeof v === 'string' ? Number(v.replace(/[^\d.]/g, '')) : Number(v);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
       return {
-        title: parsed.title || 'Product',
-        category: this.validateCategory(parsed.category),
-        price: parsed.price ? parseFloat(parsed.price) : null,
-        quantity: parsed.quantity ? parseFloat(parsed.quantity) : null,
-        unit: this.validateUnit(parsed.unit),
-        description: parsed.description || '',
-        confidence: Math.min(parsed.confidence || 0.5, 1),
+        title: String(data.title || '').trim().slice(0, 80),
+        titleNy: String(data.titleNy || '').trim().slice(0, 80),
+        description: String(data.description || '').trim().slice(0, 1000),
+        category: this.validateCategory(data.category),
+        price: num(data.price),
+        priceType: data.priceType === 'negotiable' ? 'negotiable' : 'fixed',
+        quantity: num(data.quantity) ? Math.round(num(data.quantity)) : null,
+        unit: this.validateUnit(data.unit),
+        deliveryAvailable: data.deliveryAvailable === true,
+        location: data.location ? String(data.location).trim().slice(0, 80) : null,
+        contactPhone: data.contactPhone ? String(data.contactPhone).replace(/[^\d+]/g, '').slice(0, 15) : '',
+        missing: Array.isArray(data.missing) ? data.missing.filter((m) => ['price', 'quantity', 'location'].includes(m)) : [],
+        confidence: Math.max(0, Math.min(1, Number(data.confidence) || 0.6)),
       };
     } catch (error) {
-      logger.error('Extract error:', error);
-      return this.getFallbackExtraction();
+      logger.error('Voice listing extraction error:', error?.message || error);
+      return null;
     }
   }
 
   // ============================================
-  // 6. GENERATE AD
+  // 5. LISTING DESCRIPTION WRITER
   // ============================================
-  async generateAd(productInfo) {
+  /**
+   * Write a listing description from the seller's details.
+   * language: 'en' | 'ny' | 'both'. Returns { description, provider } or throws.
+   */
+  async writeListingDescription({ title, category, features, price, unit, location, language = 'en' }) {
+    const lang = language === 'ny'
+      ? 'Write it in Chichewa.'
+      : language === 'both'
+        ? 'Write it in English, then a blank line, then the same text in Chichewa.'
+        : 'Write it in simple English that Malawian buyers understand.';
+    const system = `You write listing descriptions for Kumsika, a local marketplace in Mitundu, Malawi.
+Use only the facts given; never invent specifications, warranties or delivery terms.
+60-120 words, short sentences, no markdown, no hashtags, no emoji. End with a one-line call to action
+(e.g. "Send a message to order."). ${lang}`;
+    const details = [
+      `Title: ${title}`,
+      category && `Category: ${category}`,
+      features && `Seller's notes: ${features}`,
+      price && `Price: MK ${price}${unit ? ` per ${unit}` : ''}`,
+      `Location: ${location || 'Mitundu'}`,
+    ].filter(Boolean).join('\n');
+    const { text, provider } = await this.callWithFallback(system, details, 0.6, { maxTokens: 450 });
+    return { description: text.trim().replace(/^["']|["']$/g, ''), provider };
+  }
+
+  // ============================================
+  // 6. AD COPY (optionally from a photo analysis)
+  // ============================================
+  /**
+   * @param productInfo { title, description, category, price, unit, tone, platform }
+   * @param vision      result of VisionService.analyzeImage (optional)
+   * @returns {Promise<{ad: object, provider: string} | null>} null if no provider answers
+   */
+  async generateAd(productInfo = {}, vision = null) {
+    if (!this.getProviderChain().length) return null;
+    const seen = vision?.success
+      ? `\nThe product photo shows: ${vision.detectedProduct}. ${vision.description || ''} ${vision.features?.length ? `Visible: ${vision.features.join(', ')}.` : ''} ${vision.ocr_text ? `Label text: ${vision.ocr_text}.` : ''}`
+      : '';
+    const system = `You are an advertising copywriter for small sellers on Kumsika, a marketplace in Mitundu, Malawi.
+Write honest, local, persuasive ads. Use only facts provided; don't invent discounts or guarantees.
+Tone: ${productInfo.tone || 'Friendly'}. Prices are in Malawi Kwacha (MK).
+Return JSON only:
+{"headline":"max 60 chars","shortCopy":"max 150 chars","fullCopy":"max 400 chars",
+ "cta":"short call to action","sellingPoints":["3-4 short points"],
+ "hashtags":["4-6 hashtags without spaces"],
+ "chichewa":{"headline":"headline in Chichewa","shortCopy":"short copy in Chichewa"}}`;
+    const user = [
+      `Product: ${productInfo.title || vision?.detectedProduct || 'Product'}`,
+      `Category: ${productInfo.category || vision?.category || 'Other'}`,
+      productInfo.price && `Price: MK ${productInfo.price}${productInfo.unit ? ` per ${productInfo.unit}` : ''}`,
+      productInfo.description && `Seller's description: ${productInfo.description}`,
+    ].filter(Boolean).join('\n') + seen;
+
     try {
-      const provider = this.getAvailableProvider();
-      if (!provider) {
-        logger.warn('No AI provider available for ad generation');
-        return this.getFallbackAd(productInfo);
-      }
-
-      const systemPrompt = `Generate a compelling ad for a product in Mitundu, Malawi.
-        Product: ${productInfo.title || 'Product'}
-        Category: ${productInfo.category || 'Other'}
-        Price: ${productInfo.price || 'competitive'}
-        Description: ${productInfo.description || ''}
-        
-        Return JSON:
-        {
-          "title": "Catchy title",
-          "description": "Engaging description",
-          "callToAction": "Action prompt",
-          "hashtags": ["#tag1", "#tag2"],
-          "targetAudience": "Who should buy this?"
-        }`;
-
-      const response = await this.callProvider(
+      const { data, provider } = await this.callJSON(system, user, 0.7, { maxTokens: 700 });
+      if (!data.headline && !data.fullCopy) return null;
+      const strings = (arr, n) => (Array.isArray(arr) ? arr.map(String).filter(Boolean).slice(0, n) : []);
+      return {
         provider,
-        systemPrompt,
-        `Generate an ad for ${productInfo.title || 'this product'}`,
-        0.7
-      );
-
-      const parsed = JSON.parse(response);
-
-      return {
-        title: parsed.title || '📢 Product Available!',
-        description: parsed.description || 'Quality product in Mitundu. Contact us today.',
-        callToAction: parsed.callToAction || '📞 Call now!',
-        hashtags: parsed.hashtags || ['#Mitundu', '#Quality'],
-        targetAudience: parsed.targetAudience || 'Local community',
-        confidence: parsed.confidence || 0.8,
+        ad: {
+          headline: String(data.headline || '').trim(),
+          shortCopy: String(data.shortCopy || '').trim(),
+          fullCopy: String(data.fullCopy || data.shortCopy || '').trim(),
+          cta: String(data.cta || '').trim(),
+          sellingPoints: strings(data.sellingPoints, 5),
+          hashtags: strings(data.hashtags, 6).map((h) => `#${h.replace(/^#/, '').replace(/\s+/g, '')}`),
+          chichewa: data.chichewa && typeof data.chichewa === 'object'
+            ? { headline: String(data.chichewa.headline || ''), shortCopy: String(data.chichewa.shortCopy || '') }
+            : null,
+        },
       };
     } catch (error) {
-      logger.error('Ad generation error:', error);
-      return this.getFallbackAd(productInfo);
+      logger.error('Ad generation error:', error?.message || error);
+      return null;
     }
   }
 
   // ============================================
   // 7. AI RECOMMENDATIONS
   // ============================================
-  async getRecommendations(userHistory, limit = 5) {
+  /**
+   * Turn a user's interests / recent activity into search phrases the
+   * caller runs against real listings. Returns { searches, categories, reason } or null.
+   */
+  async getRecommendations({ interests = [], history = [], location = 'Mitundu', userType = 'buyer' } = {}) {
+    if (!this.getProviderChain().length) return null;
+    const system = `You plan product recommendations for a ${userType} on Kumsika, a marketplace in ${location}, Malawi.
+From the user's interests and recent searches/views, choose what to show them next, considering the
+Malawian farming season and everyday needs. Return JSON only:
+{"searches":["3-5 short English product/service keywords to look up"],
+ "categories":["1-3 of: ${LISTING_CATEGORIES.join(', ')}"],
+ "reason":"one short sentence explaining the picks"}`;
+    const user = `Interests: ${JSON.stringify(interests).slice(0, 500)}\nRecent activity: ${JSON.stringify(history).slice(0, 1000)}\nMonth: ${new Date().toLocaleString('en', { month: 'long' })}`;
     try {
-      const provider = this.getAvailableProvider();
-      if (!provider) {
-        logger.warn('No AI provider available for recommendations');
-        return this.getFallbackRecommendations();
-      }
-
-      const systemPrompt = `Based on this user's history: ${JSON.stringify(userHistory)}
-        Recommend products they might be interested in.
-        Return JSON: { "categories": [], "products": [], "interests": [], "budget": {} }`;
-
-      const response = await this.callProvider(
-        provider,
-        systemPrompt,
-        `Generate recommendations based on: ${JSON.stringify(userHistory)}`,
-        0.5
-      );
-
-      return JSON.parse(response);
+      const { data } = await this.callJSON(system, user, 0.4, { maxTokens: 300 });
+      return {
+        searches: (Array.isArray(data.searches) ? data.searches : []).map(String).filter(Boolean).slice(0, 5),
+        categories: (Array.isArray(data.categories) ? data.categories : []).map((c) => this.validateCategory(c)).filter((c) => c !== 'Other'),
+        reason: String(data.reason || '').slice(0, 200),
+      };
     } catch (error) {
-      logger.error('Recommendations error:', error);
-      return this.getFallbackRecommendations();
+      logger.error('Recommendations error:', error?.message || error);
+      return null;
     }
   }
 
@@ -1156,10 +1247,10 @@ Return ONLY valid JSON, no markdown, no preamble:
       if (!provider) return 'Other';
 
       const systemPrompt = `Based on the title and description, suggest the most appropriate category.
-        Categories: Farm Inputs, Construction, Plumber, Retail, Electronics, Fashion, Food, Services, Automotive, Other
+        Categories: ${LISTING_CATEGORIES.join(', ')}
         Return only the category name.`;
 
-      const response = await this.callProvider(
+      const response = await this.callAny(
         provider,
         systemPrompt,
         `Title: "${title}"\nDescription: "${description}"\nCategory:`,
@@ -1191,7 +1282,7 @@ Return ONLY valid JSON, no markdown, no preamble:
         Provide helpful, friendly support. If you don't know something, be honest.
         Include any helpful links or contacts in your response.`;
 
-      const response = await this.callProvider(provider, systemPrompt, message, 0.7);
+      const response = await this.callAny(provider, systemPrompt, message, 0.7);
       return response;
     } catch (error) {
       logger.error('Support chat error:', error);
@@ -1202,101 +1293,137 @@ Return ONLY valid JSON, no markdown, no preamble:
   // ============================================
   // 10. PROVIDER CALLER
   // ============================================
-  async callProvider(provider, systemPrompt, userMessage, temperature = 0.5) {
-    const config = {
-      groq: {
-        url: 'https://api.groq.com/openai/v1/chat/completions',
-        headers: {
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        model: 'llama-3.3-70b-versatile',
-      },
-      gemini: {
-        url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        model: 'gemini-pro',
-      },
-      openrouter: {
-        url: 'https://openrouter.ai/api/v1/chat/completions',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        model: 'meta-llama/llama-3-8b-instruct:free',
-      },
-    };
+  /**
+   * One chat completion from one provider.
+   * opts: { maxTokens = 300, json = false, timeoutMs = 15000, model }
+   */
+  async callProvider(provider, systemPrompt, userMessage, temperature = 0.5, opts = {}) {
+    const { maxTokens = 300, json = false, timeoutMs = 15000 } = opts;
+    const signal = AbortSignal.timeout(timeoutMs);
+    let url;
+    let headers = { 'Content-Type': 'application/json' };
+    let body;
 
-    const providerConfig = config[provider];
-    if (!providerConfig) {
+    if (provider === 'gemini') {
+      const model = opts.model || MODELS.geminiText;
+      url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+      headers['x-goog-api-key'] = GEMINI_API_KEY;
+      body = {
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: geminiGenerationConfig(model, { temperature, maxTokens, json }),
+      };
+    } else if (provider === 'groq' || provider === 'openrouter') {
+      const isGroq = provider === 'groq';
+      url = isGroq
+        ? 'https://api.groq.com/openai/v1/chat/completions'
+        : 'https://openrouter.ai/api/v1/chat/completions';
+      headers.Authorization = `Bearer ${isGroq ? GROQ_API_KEY : OPENROUTER_API_KEY}`;
+      body = {
+        model: opts.model || (isGroq ? MODELS.groqText : MODELS.openrouterText),
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        temperature,
+        max_tokens: maxTokens,
+      };
+      if (json) body.response_format = { type: 'json_object' };
+    } else {
       throw new Error(`Unknown provider: ${provider}`);
     }
 
-    const body = {
-      model: providerConfig.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      temperature: temperature,
-      max_tokens: 300,
-    };
-
-    if (provider === 'gemini') {
-      body.contents = [{ parts: [{ text: `${systemPrompt}\n\nUser: ${userMessage}` }] }];
-      delete body.messages;
-    }
-
-    const response = await fetch(providerConfig.url, {
-      method: 'POST',
-      headers: providerConfig.headers,
-      body: JSON.stringify(body),
-    });
+    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`${provider} API error: ${response.status} - ${errorText}`);
+      throw new Error(`${provider} API error: ${response.status} - ${errorText.slice(0, 300)}`);
     }
 
     const data = await response.json();
+    this.providers[provider].used++;
 
-    if (provider === 'gemini') {
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const text = provider === 'gemini'
+      ? (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('')
+      : data.choices?.[0]?.message?.content || '';
+    if (!text.trim()) throw new Error(`${provider} returned an empty response`);
+    return text;
+  }
+
+  /** Providers with a key, preferred first (an explicit preference goes to the front). */
+  getProviderChain(preferred) {
+    const order = ['groq', 'gemini', 'openrouter'].filter((p) => this.providers[p].available);
+    return preferred && order.includes(preferred) ? [preferred, ...order.filter((p) => p !== preferred)] : order;
+  }
+
+  /** Like callProvider, but falls through to the other providers if `preferred` fails. Returns text. */
+  async callAny(preferred, systemPrompt, userMessage, temperature = 0.5, opts = {}) {
+    const { text } = await this.callWithFallback(systemPrompt, userMessage, temperature, { ...opts, preferred });
+    return text;
+  }
+
+  /**
+   * Try each configured provider in turn until one answers.
+   * Same opts as callProvider; throws only if every provider fails.
+   */
+  async callWithFallback(systemPrompt, userMessage, temperature = 0.5, opts = {}) {
+    const chain = this.getProviderChain(opts.preferred);
+    if (!chain.length) throw new Error('No AI provider configured');
+    let lastError;
+    for (const provider of chain) {
+      try {
+        const text = await this.callProvider(provider, systemPrompt, userMessage, temperature, opts);
+        return { text, provider };
+      } catch (error) {
+        lastError = error;
+        logger.warn(`AI provider ${provider} failed, trying next:`, error?.message || error);
+      }
     }
+    throw lastError;
+  }
 
-    return data.choices?.[0]?.message?.content || '';
+  /** Pull the first JSON object/array out of a model reply (tolerates ``` fences and preambles). */
+  extractJSON(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    try { return JSON.parse(cleaned); } catch { /* fall through */ }
+    const start = cleaned.search(/[{[]/);
+    const end = Math.max(cleaned.lastIndexOf('}'), cleaned.lastIndexOf(']'));
+    if (start === -1 || end <= start) return null;
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch { return null; }
+  }
+
+  /** callWithFallback + JSON parsing; returns { data, provider } or throws. */
+  async callJSON(systemPrompt, userMessage, temperature = 0.3, opts = {}) {
+    const { text, provider } = await this.callWithFallback(systemPrompt, userMessage, temperature, { ...opts, json: true });
+    const data = this.extractJSON(text);
+    if (!data) throw new Error(`${provider} returned invalid JSON`);
+    return { data, provider };
   }
 
   // ============================================
   // 11. VALIDATION HELPERS
   // ============================================
   validateCategory(category) {
-    const validCategories = [
-      'Farm Inputs',
-      'Construction',
-      'Plumber',
-      'Retail',
-      'Electronics',
-      'Fashion',
-      'Food',
-      'Services',
-      'Automotive',
-      'Other',
-    ];
-    const found = validCategories.find(
-      (c) => c.toLowerCase() === category?.toLowerCase()
-    );
-    return found || 'Other';
+    const c = String(category || '').trim().toLowerCase();
+    const exact = LISTING_CATEGORIES.find((x) => x.toLowerCase() === c);
+    if (exact) return exact;
+    // Older / looser names the models still produce
+    const alias = {
+      food: 'Food & Groceries', groceries: 'Food & Groceries', construction: 'Construction Materials',
+      hardware: 'Construction Materials', fashion: 'Clothing & Fashion', clothing: 'Clothing & Fashion',
+      automotive: 'Vehicles & Parts', vehicles: 'Vehicles & Parts', transport: 'Vehicles & Parts',
+      tools: 'Tools & Equipment', plumber: 'Services', electrician: 'Services', retail: 'Products',
+      livestock: 'Farm Inputs', agriculture: 'Farm Inputs',
+    };
+    return alias[c] || LISTING_CATEGORIES.find((x) => c && x.toLowerCase().includes(c)) || 'Other';
   }
 
   validateUnit(unit) {
-    const validUnits = ['kg', 'litre', 'piece', 'bag', 'bundle', 'other'];
-    const found = validUnits.find(
-      (u) => u.toLowerCase() === unit?.toLowerCase()
-    );
-    return found || 'piece';
+    const u = String(unit || '').trim().toLowerCase().replace(/s$/, '');
+    const alias = { thumba: 'bag', matumba: 'bag', liter: 'litre', l: 'litre', kilo: 'kg', kilogram: 'kg', pc: 'piece', pcs: 'piece', item: 'piece' };
+    const v = alias[u] || u;
+    return LISTING_UNITS.includes(v) ? v : 'piece';
   }
 
   // ============================================
@@ -1319,41 +1446,6 @@ Return ONLY valid JSON, no markdown, no preamble:
     };
   }
 
-  getFallbackTranscription() {
-    return 'Ndili ndi matumba 10 a chimanga ndikugulitsa. (I have 10 bags of maize for sale.)';
-  }
-
-  getFallbackExtraction() {
-    return {
-      title: 'Product',
-      category: 'Other',
-      price: null,
-      quantity: null,
-      unit: 'piece',
-      description: '',
-      confidence: 0.5,
-    };
-  }
-
-  getFallbackAd(productInfo) {
-    return {
-      title: `📢 ${productInfo.title || 'Product Available!'}`,
-      description: `Quality ${productInfo.title || 'product'} in Mitundu. Contact us today!`,
-      callToAction: '📞 Call now!',
-      hashtags: ['#Mitundu', '#Quality'],
-      targetAudience: 'Local community',
-      confidence: 0.5,
-    };
-  }
-
-  getFallbackRecommendations() {
-    return {
-      categories: ['Other'],
-      products: [],
-      interests: ['Local products'],
-      budget: { min: 0, max: 1000 },
-    };
-  }
 }
 
 export default new AIService();

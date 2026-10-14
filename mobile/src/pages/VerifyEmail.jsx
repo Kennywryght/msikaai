@@ -1,7 +1,9 @@
 // mobile/src/pages/VerifyEmail.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { trustAPI } from '../services/api';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
 
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75 }) => {
@@ -24,38 +26,86 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75 }) =
 
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+const RESEND_COOLDOWN_S = 60;
+
+// Supabase puts link errors in the query or the hash: ?error_description=…
+const readLinkError = () => {
+  const params = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const desc = params.get('error_description') || hash.get('error_description');
+  return desc ? desc.replace(/\+/g, ' ') : null;
+};
+
+/**
+ * /verify-email — reached after sign-up ("check your inbox") and from the
+ * confirmation link in that email. Public, because the link may be opened
+ * on a device where the user isn't signed in.
+ */
 const VerifyEmail = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { success } = useToast();
+  const { user, isAuthenticated, isAnonymous } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const signedIn = isAuthenticated && !isAnonymous && !!user?.email;
+  const confirmed = signedIn && !!(user.email_confirmed_at || user.confirmed_at);
+  const justRegistered = !!location.state?.justRegistered;
+
+  const [email, setEmail] = useState(location.state?.email || (signedIn ? user.email : ''));
+  const [linkError] = useState(readLinkError);
+  const [cooldown, setCooldown] = useState(justRegistered ? RESEND_COOLDOWN_S : 0);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const [trustSynced, setTrustSynced] = useState(false);
+  const synced = useRef(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (signedIn && !email) setEmail(user.email);
+  }, [signedIn, user?.email]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  // Once confirmed, record it on the trust profile (+ points) — once.
+  useEffect(() => {
+    if (!confirmed || synced.current) return;
+    synced.current = true;
+    trustAPI.submitEmail(user.email)
+      .then((res) => { if (res?.data?.verified) setTrustSynced(true); })
+      .catch(() => { /* trust sync is a bonus; confirmation already worked */ });
+  }, [confirmed]);
+
+  const handleResend = async (e) => {
+    e?.preventDefault();
     setError(null);
-
-    if (!isValidEmail(email.trim())) {
+    setNotice(null);
+    const target = email.trim().toLowerCase();
+    if (!isValidEmail(target)) {
       setError('Please enter a valid email address');
       return;
     }
-
-    setLoading(true);
+    setSending(true);
     try {
-      const res = await trustAPI.submitEmail(email.trim());
-      const data = res?.data || {};
-      if (data.success) {
-        setSubmitted(true);
-        success('Email submitted for review');
-      } else {
-        setError(data.error || 'Failed to submit');
-      }
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: target,
+        options: { emailRedirectTo: `${window.location.origin}/verify-email` },
+      });
+      if (resendError) throw resendError;
+      setNotice(`We sent a new confirmation link to ${target}.`);
+      success('Confirmation email sent 📧');
+      setCooldown(RESEND_COOLDOWN_S);
     } catch (err) {
-      setError(err?.response?.data?.error || err.message || 'Submission failed');
+      const msg = String(err?.message || '');
+      setError(/rate|seconds|too many/i.test(msg)
+        ? 'Please wait a minute before asking for another email.'
+        : msg || 'Could not send the email. Please try again.');
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
@@ -69,57 +119,67 @@ const VerifyEmail = () => {
       </div>
 
       <div className="content">
-        {submitted ? (
-          <div className="done-card">
-            <div className="done-icon">
-              <Icon name="clock" size={40} color="#F59E0B" strokeWidth={2.5} />
-            </div>
-            <h2 className="done-title">Submitted for Review</h2>
-            <p className="done-desc">
-              Your email verification is now pending admin approval. You'll see the
-              status update on your Trust Profile within 24–48 hours.
-            </p>
-            <button className="submit" onClick={() => navigate('/trust')}>
-              Back to Trust Profile
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="hero">
-              <div className="hero-icon-wrap">
-                <Icon name="mail" size={28} color="#0EA5E9" strokeWidth={1.9} />
+        {confirmed ? (
+            <div className="done-card">
+              <div className="done-icon">
+                <Icon name="check" size={40} color="#16A34A" strokeWidth={2.5} />
               </div>
-              <p className="hero-text">
-                Confirming your email earns you <strong>+3 trust points</strong>.
-                Admin reviews submissions within 24–48 hours.
+              <h2 className="done-title">Email confirmed</h2>
+              <p className="done-desc">
+                <strong>{user.email}</strong> is verified.
+                {trustSynced ? ' +3 trust points were added to your profile.' : ''}
               </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="form">
-              <label className="label">Email address</label>
-              <input
-                type="email"
-                className="input"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoFocus
-                disabled={loading}
-              />
-              {error && <p className="error">{error}</p>}
-              <button type="submit" className="submit" disabled={loading || !email.trim()}>
-                {loading ? 'Submitting…' : 'Submit for review'}
+              <button className="submit" onClick={() => navigate(user?.onboarding_completed ? '/landing' : '/role-selection')}>
+                Continue
               </button>
-            </form>
-
-            <div className="info-card">
-              <Icon name="info" size={16} color="#1E40AF" strokeWidth={1.9} />
-              <span>
-                Email verification is manual for now. Automated confirmation flows
-                arrive in a later phase.
-              </span>
+              <button className="link-btn" onClick={() => navigate('/trust')}>View Trust Profile</button>
             </div>
-          </>
+        ) : (
+        <>
+        <div className="hero">
+          <div className="hero-icon-wrap">
+            <Icon name="mail" size={28} color="#0EA5E9" strokeWidth={1.9} />
+          </div>
+          <p className="hero-text">
+            {linkError ? (
+              <>That link didn&apos;t work ({linkError}). It may have expired — send yourself a new one below.</>
+            ) : email ? (
+              <>We sent a confirmation link to <strong>{email}</strong>. Open it on this phone to activate your account.</>
+            ) : (
+              <>Enter the email you signed up with and we&apos;ll send you a confirmation link.</>
+            )}
+          </p>
+        </div>
+
+        <form onSubmit={handleResend} className="form">
+          <label className="label" htmlFor="verify-email-input">Email address</label>
+          <input
+            id="verify-email-input"
+            type="email"
+            className="input"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={sending || signedIn}
+            autoComplete="email"
+          />
+          {error && <p className="error" role="alert">{error}</p>}
+          {notice && <p className="notice" role="status">{notice}</p>}
+          <button type="submit" className="submit" disabled={sending || cooldown > 0 || !email.trim()}>
+            {sending ? 'Sending…' : cooldown > 0 ? `Resend email in ${cooldown}s` : 'Resend confirmation email'}
+          </button>
+        </form>
+
+        <div className="info-card">
+          <Icon name="info" size={16} color="#1E40AF" strokeWidth={1.9} />
+          <span>
+            Can&apos;t find it? Check your Spam or Promotions folder. The link expires after 24 hours.
+            {!signedIn && (
+              <> Already confirmed? <Link to="/login">Sign in</Link>.</>
+            )}
+          </span>
+        </div>
+        </>
         )}
       </div>
 
@@ -133,7 +193,7 @@ const VerifyEmail = () => {
         }
         .header {
           position: sticky;
-          top: 0;
+          top: var(--app-nav-height, 68px);
           z-index: 10;
           display: flex;
           align-items: center;
@@ -233,6 +293,24 @@ const VerifyEmail = () => {
           color: var(--color-error);
           margin: 4px 0 0;
           font-weight: 600;
+        }
+        .notice {
+          font-size: 12.5px;
+          color: var(--color-success, #15803D);
+          margin: 4px 0 0;
+          font-weight: 600;
+        }
+        .link-btn {
+          display: block;
+          margin: 12px auto 0;
+          background: none;
+          border: none;
+          color: var(--color-primary);
+          font: inherit;
+          font-size: 13.5px;
+          font-weight: 600;
+          cursor: pointer;
+          min-height: 40px;
         }
         .submit {
           margin-top: 8px;
