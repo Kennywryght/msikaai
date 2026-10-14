@@ -1,22 +1,33 @@
 // backend/src/services/groqService.js
 import Groq from 'groq-sdk';
 import { logger } from '../utils/logger.js';
+import { MODELS } from '../config/ai-providers.js';
+
+// Whisper has no Chichewa language code; a prompt in Chichewa steers its
+// spelling toward the words sellers actually use.
+const CHICHEWA_WHISPER_PROMPT =
+  'Ndili ndi matumba khumi a chimanga ndikugulitsa. Mtengo ndi kwacha zikwi zisanu pa thumba. ' +
+  'Nkhuku, mazira, simenti, feteleza, nsapato, zovala, foni, njinga. Ndikupezeka ku Mitundu.';
 
 class GroqService {
   constructor() {
     this.apiKey = process.env.GROQ_API_KEY;
-    this.client = new Groq({
-      apiKey: this.apiKey,
-    });
+    this._client = null;
     this.models = {
-      llama: 'llama-3.3-70b-versatile',
-      mixtral: 'mixtral-8x7b-32768',
-      gemma: 'gemma2-9b-it',
-      whisper: 'whisper-large-v3-turbo'
+      llama: MODELS.groqText,
+      fast: MODELS.groqFast,
+      whisper: MODELS.groqWhisper,
     };
     this.defaultModel = this.models.llama;
-    this.maxRetries = 3;
+    this.maxRetries = 2;
     this.retryDelay = 1000;
+  }
+
+  // The SDK throws at construction without a key, so build it on first use.
+  get client() {
+    if (!this.apiKey) throw new Error('GROQ_API_KEY is not set');
+    if (!this._client) this._client = new Groq({ apiKey: this.apiKey });
+    return this._client;
   }
 
   // ============================================
@@ -25,7 +36,8 @@ class GroqService {
   async generateText(prompt, options = {}) {
     const model = options.model || this.defaultModel;
     const maxTokens = options.maxTokens || 1000;
-    const temperature = options.temperature || 0.7;
+    const temperature = options.temperature ?? 0.7;
+    if (!this.apiKey) throw new Error('GROQ_API_KEY is not set');
 
     let lastError = null;
 
@@ -204,26 +216,37 @@ class GroqService {
   // ============================================
   // VOICE TRANSCRIPTION (Whisper)
   // ============================================
+  /**
+   * options: { language: 'ny' | 'en', mimeType, filename, temperature }
+   * Chichewa ('ny') isn't a Whisper language, so it's auto-detected with a
+   * Chichewa prompt instead of being forced to English.
+   */
   async transcribeAudio(audioBuffer, options = {}) {
     try {
       logger.info('Transcribing audio with Groq Whisper...');
 
-      // Create a File object from the buffer
-      const file = new File([audioBuffer], 'audio.webm', { type: 'audio/webm' });
+      const mimeType = options.mimeType || 'audio/webm';
+      const ext = (mimeType.split('/')[1] || 'webm').split(';')[0].replace('mpeg', 'mp3').replace('x-m4a', 'm4a');
+      const file = new File([audioBuffer], options.filename || `audio.${ext}`, { type: mimeType });
 
-      const transcription = await this.client.audio.transcriptions.create({
-        file: file,
+      const request = {
+        file,
         model: this.models.whisper,
         response_format: 'json',
-        language: options.language || 'en',
-        temperature: options.temperature || 0.0,
-      });
+        temperature: options.temperature ?? 0.0,
+      };
+      if (options.language === 'en') request.language = 'en';
+      else request.prompt = CHICHEWA_WHISPER_PROMPT;
+
+      const transcription = await this.client.audio.transcriptions.create(request);
+      const text = String(transcription.text || '').trim();
+      if (!text) throw new Error('No speech detected in the recording');
 
       logger.info('Transcription successful');
-      
+
       return {
         success: true,
-        text: transcription.text,
+        text,
         provider: 'groq-whisper'
       };
 
@@ -322,6 +345,7 @@ class GroqService {
   // CHECK AVAILABILITY
   // ============================================
   async checkAPIKey() {
+    if (!this.apiKey) return false;
     try {
       await this.generateText('Hello, test connection.', {
         maxTokens: 10,

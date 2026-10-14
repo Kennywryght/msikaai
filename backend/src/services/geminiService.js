@@ -1,21 +1,14 @@
 // backend/src/services/geminiService.js
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger } from '../utils/logger.js';
+import { MODELS, geminiGenerationConfig } from '../config/ai-providers.js';
 
 class GeminiService {
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY;
     this.genAI = new GoogleGenerativeAI(this.apiKey);
-    this.model = this.genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-pro',
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1000,
-      }
-    });
-    this.maxRetries = 3;
+    this.modelName = MODELS.geminiText;
+    this.maxRetries = 2;
     this.retryDelay = 1000;
   }
 
@@ -23,7 +16,8 @@ class GeminiService {
   // GENERATE TEXT WITH RETRY LOGIC
   // ============================================
   async generateText(prompt, options = {}) {
-    const temperature = options.temperature || 0.7;
+    if (!this.apiKey) throw new Error('GEMINI_API_KEY is not set');
+    const temperature = options.temperature ?? 0.7;
     const maxTokens = options.maxTokens || 1000;
 
     let lastError = null;
@@ -36,13 +30,8 @@ class GeminiService {
 
         // Configure model with custom settings
         const model = this.genAI.getGenerativeModel({
-          model: 'gemini-1.5-pro',
-          generationConfig: {
-            temperature: temperature,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: maxTokens,
-          }
+          model: this.modelName,
+          generationConfig: geminiGenerationConfig(this.modelName, { temperature, maxTokens }),
         });
 
         // Generate content

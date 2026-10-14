@@ -7,6 +7,7 @@ import { messagesAPI, aiAPI } from '../services/api';
 import { supabase } from '../lib/supabase';
 import { useUserPresence } from '../hooks/usePresence';
 import { useTyping } from '../hooks/useTyping';
+import { handleImageError } from '../utils/imageUtils';
 
 const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, className = '' }) => {
   const icons = {
@@ -1028,7 +1029,7 @@ const Chat = () => {
         <button className="listing-pinned" onClick={handleViewListing}>
           <div className="pinned-thumb">
             {conversation.listing.images?.[0] ? (
-              <img src={conversation.listing.images[0]} alt="" />
+              <img src={conversation.listing.images[0]} alt="" onError={handleImageError} />
             ) : (
               <div className="pinned-thumb-fallback">📦</div>
             )}

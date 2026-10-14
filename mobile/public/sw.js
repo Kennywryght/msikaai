@@ -1,12 +1,10 @@
 // mobile/public/sw.js
-const CACHE_NAME = 'kumsika-v1';
+const CACHE_NAME = 'kumsika-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/favicon.ico',
-  '/logo192.png',
-  '/logo512.png',
+  '/kumsika-symbol.png',
 ];
 
 // ============================================================
@@ -49,6 +47,34 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (event.request.url.includes('/api/')) return;
   if (!event.request.url.startsWith('http')) return;
+  // Leave cross-origin requests (Cloudinary/Supabase images, fonts, APIs) to the
+  // browser. Fetches made from the SW are checked against CSP connect-src, not
+  // img-src, so proxying them here blocks image hosts that connect-src omits.
+  if (new URL(event.request.url).origin !== self.location.origin) return;
+
+  // Page loads: network-first so a new deploy's index.html (with new hashed
+  // asset names) is picked up; fall back to the cached shell when offline.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', responseClone));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match('/index.html').then((cached) =>
+            cached || new Response('Offline - Please check your connection', {
+              status: 503,
+              statusText: 'Service Unavailable',
+            })
+          )
+        )
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
@@ -93,8 +119,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Kumsika';
   const options = {
     body: data.body || '',
-    icon: data.icon || '/logo192.png',
-    badge: data.badge || '/logo192.png',
+    icon: data.icon || '/kumsika-symbol.png',
+    badge: data.badge || '/kumsika-symbol.png',
     tag: data.tag || 'kumsika-notification',
     renotify: true,
     data: {

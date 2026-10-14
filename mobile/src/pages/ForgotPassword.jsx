@@ -236,7 +236,7 @@ const styles = `
     margin-bottom: 24px;
   }
 
-  .auth-brand :global(.kumsika-logo) {
+  .auth-brand .kumsika-logo {
     margin: 0 auto 14px;
   }
 

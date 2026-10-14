@@ -446,7 +446,7 @@ const SearchResults = () => {
         .search-results { min-height: 100vh; background: var(--color-bg); background-image: radial-gradient(var(--color-accent-tint) 1px, transparent 1px); background-size: 22px 22px; font-family: var(--font-sans); color: var(--color-text); padding-bottom: 100px; }
         @media (min-width: 769px) { .search-results { padding-bottom: 40px; } }
 
-        .search-header { background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 12px 16px; position: sticky; top: 0; z-index: 10; }
+        .search-header { background: var(--color-surface); border-bottom: 1px solid var(--color-border); padding: 12px 16px; position: sticky; top: var(--app-nav-height, 68px); z-index: 10; }
         .search-header-top { display: flex; align-items: center; gap: 10px; max-width: 900px; margin: 0 auto; }
         .back-btn { width: 40px; height: 40px; border-radius: var(--radius-lg); border: none; background: var(--color-surface-alt); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
         .back-btn:hover { background: var(--color-border); }

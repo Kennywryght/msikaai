@@ -345,9 +345,13 @@ class DBService {
 
       const doc = sql`concat_ws(' ', ${l.title}, ${l.description}, ${l.category}, ${l.subCategory}, ${b.businessName}, ${b.category})`;
       const concepts = (parsed?.concepts || []).filter((c) => c.terms?.length);
+      // Words we understood decide what matches; leftover raw words only
+      // re-rank, so a filler word we don't know can't drag in noise.
+      const known = concepts.filter((c) => c.source !== 'raw');
+      const filterConcepts = known.length ? known : concepts;
 
       const conditions = [eq(l.status, 'active')];
-      if (concepts.length) conditions.push(anyTerm(doc, concepts.flatMap((c) => c.terms)));
+      if (filterConcepts.length) conditions.push(anyTerm(doc, filterConcepts.flatMap((c) => c.terms)));
 
       const minPrice = params.minPrice ?? parsed?.minPrice ?? null;
       const maxPrice = params.maxPrice ?? parsed?.maxPrice ?? null;
@@ -367,6 +371,11 @@ class DBService {
       const parts = concepts.map(
         (c) => sql`(case when ${anyTerm(l.title, c.terms)} then 3 when ${anyTerm(doc, c.terms)} then 1 else 0 end)`
       );
+      // +1 when the listing sits in the category the concept belongs to
+      const conceptCats = [...new Set(known.map((c) => c.category).filter(Boolean))];
+      if (conceptCats.length) {
+        parts.push(sql`(case when ${l.category} in (${sql.join(conceptCats.map((c) => sql`${c}`), sql`, `)}) then 1 else 0 end)`);
+      }
       if (softLoc) {
         parts.push(sql`(case when ${l.locationArea} ilike ${`%${softLoc}%`} or ${l.locationName} ilike ${`%${softLoc}%`} then 2 else 0 end)`);
       }
@@ -395,6 +404,28 @@ class DBService {
         .from(l)
         .leftJoin(b, eq(l.businessId, b.id))
         .where(where);
+
+      // Nothing matched because of a price/delivery limit the *sentence* set
+      // (not an explicit UI filter): show the closest matches instead, flagged.
+      const total = Number(countResult[0]?.count || 0);
+      const sentenceLimits =
+        (parsed?.minPrice != null && params.minPrice == null) ||
+        (parsed?.maxPrice != null && params.maxPrice == null) ||
+        (parsed?.deliveryOnly && params.deliveryOnly == null);
+      if (!total && !offset && params.relax !== false && concepts.length && sentenceLimits) {
+        const relaxed = [];
+        if (parsed.minPrice != null || parsed.maxPrice != null) relaxed.push('price');
+        if (parsed.deliveryOnly) relaxed.push('delivery');
+        const retry = await this.searchListings(null, {
+          ...params,
+          relax: false,
+          parsed: { ...parsed, minPrice: null, maxPrice: null, deliveryOnly: false },
+        });
+        return {
+          ...retry,
+          interpretation: describeInterpretation({ ...parsed, relaxed }),
+        };
+      }
 
       return {
         listings: result.map((row) => ({

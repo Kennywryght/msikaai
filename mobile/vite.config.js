@@ -36,7 +36,7 @@ export default defineConfig({
   build: {
     target: 'es2015',
     minify: 'esbuild',
-    sourcemap: true, // Enable source maps for production debugging
+    sourcemap: false, // don't publish readable source; use `vite build --sourcemap` locally to debug
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {

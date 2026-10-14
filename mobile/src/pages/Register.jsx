@@ -93,10 +93,13 @@ const Register = () => {
     setErrorMsg('');
 
     try {
+      const email = formData.email.trim().toLowerCase();
       const { data, error: signupError } = await supabase.auth.signUp({
-        email: formData.email,
+        email,
         password: formData.password,
         options: {
+          // The confirmation link in the email brings the user back here.
+          emailRedirectTo: `${window.location.origin}/verify-email`,
           data: {
             full_name: formData.fullName,
             phone: formData.phone || null,
@@ -107,35 +110,24 @@ const Register = () => {
 
       if (signupError) throw signupError;
 
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              email: formData.email,
-              full_name: formData.fullName,
-              phone: formData.phone || null,
-              role: formData.role,
-              onboarding_completed: false,
-            },
-          ]);
-
-        if (profileError) console.error('Profile creation error:', profileError);
-
-        success('🎉 Account created successfully!');
-
-        const loginResult = await login(formData.email, formData.password);
-
-        if (loginResult.success) {
-          navigate('/onboarding', { replace: true });
-        } else {
-          navigate('/login', {
-            replace: true,
-            state: { message: 'Account created! Please log in.' }
-          });
-        }
+      // With email confirmation on, Supabase answers an already-registered
+      // address with a user that has no identities (and sends no email).
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        throw new Error('User already registered');
       }
+
+      if (!data.session) {
+        // Confirmation required: the profile row is created by the
+        // handle_new_user trigger; the user signs in after clicking the link.
+        success('📧 Check your email to confirm your account');
+        navigate('/verify-email', { replace: true, state: { email, justRegistered: true } });
+        return;
+      }
+
+      // Confirmation off: already signed in.
+      success('🎉 Account created successfully!');
+      const loginResult = await login(email, formData.password);
+      navigate(loginResult.success ? '/role-selection' : '/login', { replace: true });
     } catch (err) {
       console.error('Registration error:', err);
       let errorMessage = 'Registration failed. Please try again.';
@@ -349,7 +341,7 @@ const Register = () => {
                 type="checkbox"
                 name="agreeToTerms"
                 checked={agreeToTerms}
-                onChange={handleChange}
+                onChange={(e) => { setAgreeToTerms(e.target.checked); setErrorMsg(''); }}
                 className="checkbox-input"
                 disabled={loading}
               />
@@ -413,7 +405,7 @@ const Register = () => {
           margin-bottom: 28px;
         }
 
-        .logo-section :global(.kumsika-logo) {
+        .logo-section .kumsika-logo {
           margin: 0 auto 12px;
         }
 
@@ -733,7 +725,7 @@ const Register = () => {
           .register-page { padding: 10px 10px; }
           .register-card { padding: 18px 16px; border-radius: var(--radius-md); }
           .logo-section { margin-bottom: 10px; }
-          .logo-section :global(.kumsika-logo) { max-height: 100px; }
+          .logo-section .kumsika-logo { max-height: 100px; }
           .brand-tagline { font-size: 11px; }
           .header { margin-bottom: 12px; }
           .title { font-size: 20px; }

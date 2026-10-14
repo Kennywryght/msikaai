@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { matchingAPI } from '../services/api';
 import { X, AlertCircle } from 'lucide-react';
 
+import LocationPicker from './LocationPicker';
 const NeedPostModal = ({ isOpen, onClose, onSuccess }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -146,13 +147,13 @@ const NeedPostModal = ({ isOpen, onClose, onSuccess }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Location
               </label>
-              <input
-                type="text"
+              <LocationPicker
                 name="location"
                 value={formData.location}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Mitundu Trading Centre"
+                // functional update: detection resolves later, after other fields may have changed
+                onChange={(text) => setFormData((prev) => ({ ...prev, location: text }))}
+                inputClassName="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g. Kawale 1, Lilongwe"
               />
             </div>
           </div>

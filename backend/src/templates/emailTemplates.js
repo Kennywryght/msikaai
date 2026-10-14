@@ -1,7 +1,7 @@
 // backend/src/templates/emailTemplates.js
 
 /**
- * Base email wrapper with MsikaAI branding
+ * Base email wrapper with Kumsika branding
  */
 const baseTemplate = (content) => `
 <!DOCTYPE html>
@@ -9,7 +9,7 @@ const baseTemplate = (content) => `
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MsikaAI</title>
+  <title>Kumsika</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -137,7 +137,7 @@ const baseTemplate = (content) => `
   <div style="max-width: 600px; margin: 20px auto; padding: 0 10px;">
     <div class="container">
       <div class="header">
-        <h1>🛒 MsikaAI</h1>
+        <h1>🛒 Kumsika</h1>
         <p>⚡ Malawi's Smart Marketplace</p>
       </div>
       ${content}
@@ -155,12 +155,12 @@ export const welcomeEmailTemplate = ({ name, email, verificationLink, dashboardL
     <div class="content">
       <h2>👋 Welcome, ${name}!</h2>
       <p>
-        You've successfully joined <strong>MsikaAI</strong> — Malawi's premier AI-powered marketplace!
+        You've successfully joined <strong>Kumsika</strong> — Malawi's premier AI-powered marketplace!
         Your account has been created with the email: <strong>${email}</strong>
       </p>
       
       <div class="highlight">
-        <p><strong>✨ What you can do with MsikaAI:</strong></p>
+        <p><strong>✨ What you can do with Kumsika:</strong></p>
         <ul>
           <li>🛒 Buy and sell goods in Malawi</li>
           <li>🔧 Find local services like plumbers and electricians</li>
@@ -192,7 +192,7 @@ export const welcomeEmailTemplate = ({ name, email, verificationLink, dashboardL
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} MsikaAI. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Kumsika. All rights reserved.</p>
       <p>📍 Mitundu, Malawi</p>
     </div>
   `;
@@ -208,7 +208,7 @@ export const passwordResetEmailTemplate = ({ name, resetLink, expiresIn = '1 hou
       <h2>🔐 Reset Your Password</h2>
       <p>Hello ${name},</p>
       <p>
-        We received a request to reset your MsikaAI password. 
+        We received a request to reset your Kumsika password. 
         Click the button below to create a new password:
       </p>
       
@@ -230,7 +230,7 @@ export const passwordResetEmailTemplate = ({ name, resetLink, expiresIn = '1 hou
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} MsikaAI. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Kumsika. All rights reserved.</p>
     </div>
   `;
   return baseTemplate(content);
@@ -239,13 +239,13 @@ export const passwordResetEmailTemplate = ({ name, resetLink, expiresIn = '1 hou
 /**
  * Email verification template
  */
-export const emailVerificationTemplate = ({ name, verificationLink }) => {
+export const emailVerificationTemplate = ({ name, verificationLink, loginLink = `${process.env.FRONTEND_URL || ""}/login` }) => {
   const content = `
     <div class="content">
       <h2>📧 Verify Your Email</h2>
       <p>Hello ${name},</p>
       <p>
-        Welcome to MsikaAI! Please verify your email address to unlock all features
+        Welcome to Kumsika! Please verify your email address to unlock all features
         and start buying and selling on Malawi's smartest marketplace.
       </p>
       
@@ -260,11 +260,11 @@ export const emailVerificationTemplate = ({ name, verificationLink }) => {
       <hr class="divider" />
       
       <p style="font-size: 14px; color: #94a3b8; text-align: center;">
-        Already verified? <a href="https://msikaai.com/login" style="color: #A51130;">Login here</a>
+        Already verified? <a href="${loginLink}" style="color: #A51130;">Sign in here</a>
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} MsikaAI. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Kumsika. All rights reserved.</p>
     </div>
   `;
   return baseTemplate(content);
@@ -279,7 +279,7 @@ export const listingCreatedTemplate = ({ name, listingTitle, listingUrl }) => {
       <h2>🚀 Your Listing is Live!</h2>
       <p>Hello ${name},</p>
       <p>
-        Congratulations! Your listing <strong>"${listingTitle}"</strong> is now live on MsikaAI.
+        Congratulations! Your listing <strong>"${listingTitle}"</strong> is now live on Kumsika.
         It's visible to thousands of buyers across Malawi.
       </p>
       
@@ -297,7 +297,7 @@ export const listingCreatedTemplate = ({ name, listingTitle, listingUrl }) => {
       </div>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} MsikaAI. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Kumsika. All rights reserved.</p>
     </div>
   `;
   return baseTemplate(content);
@@ -332,7 +332,7 @@ export const listingSoldTemplate = ({ name, listingTitle, buyerName, price }) =>
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} MsikaAI. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Kumsika. All rights reserved.</p>
     </div>
   `;
   return baseTemplate(content);
@@ -348,7 +348,7 @@ export const businessApprovedTemplate = ({ name, businessName, dashboardLink }) 
       <p>Hello ${name},</p>
       <p>
         Congratulations! Your business <strong>"${businessName}"</strong> has been approved
-        on MsikaAI. You can now start listing products and services.
+        on Kumsika. You can now start listing products and services.
       </p>
       
       <div style="text-align: center;">
@@ -367,7 +367,7 @@ export const businessApprovedTemplate = ({ name, businessName, dashboardLink }) 
       </div>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} MsikaAI. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Kumsika. All rights reserved.</p>
     </div>
   `;
   return baseTemplate(content);
@@ -425,7 +425,7 @@ export const orderConfirmationTemplate = ({ name, orderId, items, total, deliver
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} MsikaAI. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Kumsika. All rights reserved.</p>
     </div>
   `;
   return baseTemplate(content);
@@ -437,7 +437,7 @@ export const orderConfirmationTemplate = ({ name, orderId, items, total, deliver
 export const notificationEmailTemplate = ({ name, subject, message, actionText, actionUrl }) => {
   const content = `
     <div class="content">
-      <h2>${subject || 'MsikaAI Notification'}</h2>
+      <h2>${subject || 'Kumsika Notification'}</h2>
       <p>Hello ${name},</p>
       <p>${message}</p>
       
@@ -448,7 +448,7 @@ export const notificationEmailTemplate = ({ name, subject, message, actionText, 
       ` : ''}
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} MsikaAI. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Kumsika. All rights reserved.</p>
     </div>
   `;
   return baseTemplate(content);

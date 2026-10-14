@@ -329,47 +329,47 @@ const AdminManage = ({ section = 'users' }) => {
         .tab { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         .tab.active { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-text-inverse); }
 
-        :global(.admin-manage .toolbar) { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-        :global(.admin-manage .search) { flex: 1; min-width: 180px; }
-        :global(.admin-manage input), :global(.admin-manage select) {
+        .admin-manage .toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+        .admin-manage .search { flex: 1; min-width: 180px; }
+        .admin-manage input, .admin-manage select {
           padding: 9px 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border);
           background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 13px;
         }
-        :global(.admin-manage .meta) { font-size: 12px; color: var(--color-text-muted); margin: 6px 0 10px; }
-        :global(.admin-manage .list) { display: flex; flex-direction: column; gap: 8px; }
-        :global(.admin-manage .row) {
+        .admin-manage .meta { font-size: 12px; color: var(--color-text-muted); margin: 6px 0 10px; }
+        .admin-manage .list { display: flex; flex-direction: column; gap: 8px; }
+        .admin-manage .row {
           display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-xl);
           background: var(--color-surface); border: 1px solid var(--color-border);
         }
-        :global(.admin-manage .row-main) { flex: 1; min-width: 0; }
-        :global(.admin-manage .row-title) { font-size: 14px; font-weight: 600; color: var(--color-text); text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        :global(.admin-manage .row-sub) { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; overflow-wrap: anywhere; }
-        :global(.admin-manage .row-end) { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-        :global(.admin-manage .amount) { font-weight: 700; font-size: 14px; }
-        :global(.admin-manage .thumb) { width: 44px; height: 44px; border-radius: var(--radius-md); overflow: hidden; background: var(--color-surface-alt); flex-shrink: 0; }
-        :global(.admin-manage .thumb img) { width: 100%; height: 100%; object-fit: cover; display: block; }
-        :global(.admin-manage .status-suspended) { border-color: var(--color-error, #DC2626); }
-        :global(.admin-manage .pill) { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--color-surface-alt); color: var(--color-text-muted); text-transform: capitalize; }
-        :global(.admin-manage .pill-completed), :global(.admin-manage .pill-success) { background: var(--color-success-bg); color: var(--color-success); }
-        :global(.admin-manage .pill-failed) { background: #FEE2E2; color: #DC2626; }
-        :global(.admin-manage .empty) { color: var(--color-text-muted); font-size: 13px; text-align: center; padding: 24px 0; }
-        :global(.admin-manage .pager) { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; font-size: 13px; }
-        :global(.admin-manage .pager button) { padding: 8px 14px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: inherit; cursor: pointer; }
-        :global(.admin-manage .pager button:disabled) { opacity: 0.5; cursor: default; }
+        .admin-manage .row-main { flex: 1; min-width: 0; }
+        .admin-manage .row-title { font-size: 14px; font-weight: 600; color: var(--color-text); text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .admin-manage .row-sub { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; overflow-wrap: anywhere; }
+        .admin-manage .row-end { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        .admin-manage .amount { font-weight: 700; font-size: 14px; }
+        .admin-manage .thumb { width: 44px; height: 44px; border-radius: var(--radius-md); overflow: hidden; background: var(--color-surface-alt); flex-shrink: 0; }
+        .admin-manage .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .admin-manage .status-suspended { border-color: var(--color-error, #DC2626); }
+        .admin-manage .pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--color-surface-alt); color: var(--color-text-muted); text-transform: capitalize; }
+        .admin-manage .pill-completed, .admin-manage .pill-success { background: var(--color-success-bg); color: var(--color-success); }
+        .admin-manage .pill-failed { background: #FEE2E2; color: #DC2626; }
+        .admin-manage .empty { color: var(--color-text-muted); font-size: 13px; text-align: center; padding: 24px 0; }
+        .admin-manage .pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; font-size: 13px; }
+        .admin-manage .pager button { padding: 8px 14px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font: inherit; cursor: pointer; }
+        .admin-manage .pager button:disabled { opacity: 0.5; cursor: default; }
 
-        :global(.admin-manage .summary) { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
-        :global(.admin-manage .summary-card) { padding: 14px; border-radius: var(--radius-xl); background: var(--color-surface); border: 1px solid var(--color-border); }
-        :global(.admin-manage .summary-label) { font-size: 12px; color: var(--color-text-muted); }
-        :global(.admin-manage .summary-value) { font-size: 20px; font-weight: 700; margin-top: 4px; }
-        :global(.admin-manage .summary-sub) { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; }
-        :global(.admin-manage .months) { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: var(--radius-xl); background: var(--color-surface); border: 1px solid var(--color-border); margin-bottom: 14px; }
-        :global(.admin-manage .month) { display: grid; grid-template-columns: 64px 1fr 110px; align-items: center; gap: 10px; font-size: 12px; }
-        :global(.admin-manage .month-label) { order: -1; color: var(--color-text-muted); }
-        :global(.admin-manage .month-track) { height: 8px; border-radius: 999px; background: var(--color-surface-alt); overflow: hidden; }
-        :global(.admin-manage .month-bar) { height: 100%; background: var(--color-primary); border-radius: 999px; }
-        :global(.admin-manage .month-amount) { text-align: right; font-weight: 600; }
+        .admin-manage .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+        .admin-manage .summary-card { padding: 14px; border-radius: var(--radius-xl); background: var(--color-surface); border: 1px solid var(--color-border); }
+        .admin-manage .summary-label { font-size: 12px; color: var(--color-text-muted); }
+        .admin-manage .summary-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+        .admin-manage .summary-sub { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; }
+        .admin-manage .months { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: var(--radius-xl); background: var(--color-surface); border: 1px solid var(--color-border); margin-bottom: 14px; }
+        .admin-manage .month { display: grid; grid-template-columns: 64px 1fr 110px; align-items: center; gap: 10px; font-size: 12px; }
+        .admin-manage .month-label { order: -1; color: var(--color-text-muted); }
+        .admin-manage .month-track { height: 8px; border-radius: 999px; background: var(--color-surface-alt); overflow: hidden; }
+        .admin-manage .month-bar { height: 100%; background: var(--color-primary); border-radius: 999px; }
+        .admin-manage .month-amount { text-align: right; font-weight: 600; }
         @media (max-width: 480px) {
-          :global(.admin-manage .month) { grid-template-columns: 56px 1fr 90px; }
+          .admin-manage .month { grid-template-columns: 56px 1fr 90px; }
         }
       `}</style>
     </div>

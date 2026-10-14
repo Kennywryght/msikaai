@@ -54,14 +54,15 @@ const UpdatePassword = () => {
       const { data } = await supabase.auth.getSession();
       if (cancelled) return;
 
-      if (data?.session) {
+      // An anonymous browsing session is not a reset link.
+      if (data?.session && !data.session.user?.is_anonymous) {
         setReady(true);
         setLinkValid(true);
       } else {
         setTimeout(async () => {
           if (cancelled) return;
           const { data: retry } = await supabase.auth.getSession();
-          if (retry?.session) {
+          if (retry?.session && !retry.session.user?.is_anonymous) {
             setReady(true);
             setLinkValid(true);
           } else {
@@ -346,7 +347,7 @@ const styles = `
     margin-bottom: 24px;
   }
 
-  .auth-brand :global(.kumsika-logo) {
+  .auth-brand .kumsika-logo {
     margin: 0 auto 14px;
   }
 

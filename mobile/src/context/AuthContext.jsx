@@ -390,7 +390,19 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user: data.user };
     } catch (err) {
       console.error('❌ Login error:', err);
-      return { success: false, error: err.message };
+      const msg = String(err?.message || '');
+      if (/email not confirmed/i.test(msg)) {
+        return {
+          success: false,
+          needsConfirmation: true,
+          email: String(email || '').trim().toLowerCase(),
+          error: 'Please confirm your email first — we can send you a new link.',
+        };
+      }
+      if (/invalid login credentials/i.test(msg)) {
+        return { success: false, error: 'Wrong email or password. Please try again.' };
+      }
+      return { success: false, error: msg || 'Could not sign in. Please try again.' };
     } finally {
       setLoading(false);
     }
@@ -405,78 +417,17 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
 
-      // If an anonymous session exists, upgrade in place instead of signUp.
-      // This keeps the same user id, so likes/comments/messages survive.
-      const { data: current } = await supabase.auth.getUser();
-      const hasAnonSession = isAnonymousUser(current?.user);
-
-      if (hasAnonSession) {
-        const { error: updateError } = await supabase.auth.updateUser({
-          email: email.trim().toLowerCase(),
-          password,
-          data: {
-            full_name: fullName,
-            phone: phone || null,
-            role,
-            is_anonymous: false,
-          },
-        });
-
-        // ★ FIX: turn the raw Supabase 422 into a readable message.
-        if (updateError) {
-          if (/already (been )?registered/i.test(updateError.message)) {
-            return {
-              success: false,
-              error:
-                'An account with this email already exists. Please sign in instead.',
-            };
-          }
-          throw updateError;
-        }
-
-        // Force a fresh verified session
-        const { data, error: signInError } =
-          await supabase.auth.signInWithPassword({
-            email: email.trim().toLowerCase(),
-            password,
-          });
-        if (signInError) throw signInError;
-
-        if (data.session?.access_token) {
-          localStorage.setItem('access_token', data.session.access_token);
-          localStorage.setItem('refresh_token', data.session.refresh_token);
-        }
-
-        // ★ Also write the chosen role into profiles — this is what
-        //   makes the RoleChoiceBlock disappear on next landing visit.
-        try {
-          await supabase
-            .from('profiles')
-            .update({
-              role,
-              full_name: fullName || null,
-              phone: phone || null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', data.user.id);
-        } catch (profileErr) {
-          console.warn('Could not write role to profile:', profileErr?.message);
-        }
-
-        await fetchUserProfile(data.user);
-        setSession(data.session);
-        setIsAuthenticated(true);
-        setIsAnonymous(false);
-        scheduleTokenRefresh(data.session);
-
-        return { success: true, user: data.user, upgraded: true };
-      }
-
-      // Normal signup path — the handle_new_user trigger creates profiles row.
+      // Always a normal sign-up. (Upgrading the anonymous browsing session
+      // in place can't work when email confirmation is on: Supabase won't set
+      // a password until the new address is confirmed.) The handle_new_user
+      // trigger creates the profiles row.
+      const cleanEmail = email.trim().toLowerCase();
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: cleanEmail,
         password,
         options: {
+          // The confirmation link in the email returns the user to the app.
+          emailRedirectTo: `${window.location.origin}/verify-email`,
           data: {
             full_name: fullName,
             phone,
@@ -486,6 +437,15 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) throw error;
+
+      // With confirmation on, an already-registered address comes back as a
+      // user with no identities (and no email is sent).
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        return {
+          success: false,
+          error: 'An account with this email already exists. Please sign in instead.',
+        };
+      }
 
       if (data.session?.access_token) {
         localStorage.setItem('access_token', data.session.access_token);
@@ -502,7 +462,8 @@ export const AuthProvider = ({ children }) => {
         );
       }
 
-      return { success: true, user: data.user };
+      // needsConfirmation: no session until the user clicks the email link
+      return { success: true, user: data.user, needsConfirmation: !data.session, email: cleanEmail };
     } catch (err) {
       console.error('❌ Registration error:', err);
       return { success: false, error: err.message };

@@ -22,7 +22,7 @@ const api = axios.create({
 // TOKEN HELPERS
 // ============================================
 
-async function getAccessToken() {
+export async function getAccessToken() {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.access_token) return session.access_token;
@@ -422,6 +422,10 @@ api.interceptors.response.use(
     if (response.config.method === 'get' && response.config._cacheKey) {
       const cacheTTL = response.config.cacheTTL || 5 * 60 * 1000;
       cacheService.set(response.config._cacheKey, response.data, cacheTTL);
+    } else if (response.config.method && response.config.method !== 'get') {
+      // Something changed on the server (edit, create, delete…): cached GETs
+      // may now be stale, so drop them all.
+      cacheService.clear();
     }
 
     return response;
@@ -1081,6 +1085,18 @@ export const aiAPI = {
       };
     }
   },
+
+  // { title, category?, features?, price?, unit?, location?, language?: 'en'|'ny'|'both' }
+  generateDescription: (input) =>
+    api.post('/ai/generate-description', input, { cache: false, timeout: 30000 }),
+
+  // Live listings that fit a need sentence (Chichewa / English / mixed)
+  match: (query, opts = {}) =>
+    api.post('/ai/match', { query, category: opts.category }, { cache: false }),
+
+  // { interests?: string[], history?: string[], location?, userType? }
+  recommendations: (input = {}) =>
+    api.post('/ai/recommendations', input, { cache: false, timeout: 30000 }),
 };
 
 // ============================================
@@ -1090,11 +1106,11 @@ export const voiceAPI = {
   processVoice: (formData) =>
     api.post('/ai/voice/process', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
     }),
-  createListing: (formData) =>
-    api.post('/ai/voice/create-listing', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  // Plain JSON: { businessId, listingData, transcript, language }. The owner
+  // comes from the auth token on the server.
+  createListing: (data) => api.post('/ai/voice/create-listing', data),
   getPrompts: (language) =>
     api.get('/ai/voice/prompts', {
       params: { language },
@@ -1131,6 +1147,17 @@ export const profileAPI = {
     api.get(`/profile/user/${userId}`, { cacheTTL: 10 * 60 * 1000 }),
   update: (data) => api.put('/profile/update', data),
   updateBusiness: (data) => api.put('/profile/business/update', data),
+  uploadAvatar: (file) => {
+    const fd = new FormData();
+    fd.append('avatar', file);
+    return api.post('/profile/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 });
+  },
+  uploadLogo: (file, businessId) => {
+    const fd = new FormData();
+    fd.append('logo', file);
+    if (businessId) fd.append('businessId', businessId);
+    return api.post('/profile/business/logo', fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 });
+  },
 };
 
 // ============================================

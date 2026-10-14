@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import { reverseGeocode } from '../services/geocodingService.js';
+import { reverseGeocode, reverseGeocodeDetailed } from '../services/geocodingService.js';
 import { logger } from '../utils/logger.js';
 
 dotenv.config();
@@ -64,11 +64,12 @@ router.post('/reverse', async (req, res) => {
       });
     }
 
-    const name = await reverseGeocode(lat, lng);
+    const place = await reverseGeocodeDetailed(lat, lng);
 
     return res.json({
       success: true,
-      name: name || null,
+      name: place?.name || null, // "Kawale 1, Lilongwe"
+      place, // { name, locality, town, district, region, road, landmark, full }
     });
   } catch (error) {
     logger.error('Reverse geocode route error', { error: error?.message });

@@ -1,5 +1,5 @@
 // mobile/src/App.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TrustProvider } from './context/TrustContext';
@@ -11,62 +11,63 @@ import './styles/global.css';
 import './index.css';
 
 import SplashScreen from './pages/SplashScreen';
-import About from './pages/About';
+// Pages load on demand so the first visit only downloads the home page.
+const About = lazy(() => import('./pages/About'));
 import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import UpdatePassword from './pages/UpdatePassword';
-import PaymentCallback from './pages/PaymentCallback';
-import Dashboard from './pages/Dashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import RoleSelection from './pages/RoleSelection';
-import ProfileSetup from './pages/ProfileSetup';
-import CreateListing from './pages/CreateListing';
-import Search from './pages/Search';
-import SearchResults from './pages/SearchResults';
-import CategoryBrowse from './pages/CategoryBrowse';
-import ListingDetails from './pages/ListingDetails';
-import AISearch from './pages/AISearch';
-import VoiceListing from './pages/VoiceListing';
-import AdGenerator from './pages/AdGenerator';
-import EditProfile from './pages/EditProfile';
-import Chat from './pages/Chat';
-import Messages from './pages/Messages';
-import MyReservations from './pages/MyReservations';
-import IncomingRequests from './pages/IncomingRequests';
-import RatingReview from './pages/RatingReview';
-import PriceBoard from './pages/PriceBoard';
-import PostStock from './pages/PostStock';
-import Settings from './pages/Settings';
-import Notifications from './pages/Notifications';
-import NotFound from './pages/NotFound';
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const UpdatePassword = lazy(() => import('./pages/UpdatePassword'));
+const PaymentCallback = lazy(() => import('./pages/PaymentCallback'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const RoleSelection = lazy(() => import('./pages/RoleSelection'));
+const ProfileSetup = lazy(() => import('./pages/ProfileSetup'));
+const CreateListing = lazy(() => import('./pages/CreateListing'));
+const Search = lazy(() => import('./pages/Search'));
+const SearchResults = lazy(() => import('./pages/SearchResults'));
+const CategoryBrowse = lazy(() => import('./pages/CategoryBrowse'));
+const ListingDetails = lazy(() => import('./pages/ListingDetails'));
+const AISearch = lazy(() => import('./pages/AISearch'));
+const VoiceListing = lazy(() => import('./pages/VoiceListing'));
+const AdGenerator = lazy(() => import('./pages/AdGenerator'));
+const EditProfile = lazy(() => import('./pages/EditProfile'));
+const Chat = lazy(() => import('./pages/Chat'));
+const Messages = lazy(() => import('./pages/Messages'));
+const MyReservations = lazy(() => import('./pages/MyReservations'));
+const IncomingRequests = lazy(() => import('./pages/IncomingRequests'));
+const RatingReview = lazy(() => import('./pages/RatingReview'));
+const PriceBoard = lazy(() => import('./pages/PriceBoard'));
+const PostStock = lazy(() => import('./pages/PostStock'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Phase 3G
-import TrustProfile from './pages/TrustProfile';
+const TrustProfile = lazy(() => import('./pages/TrustProfile'));
 
 // Phase 3H
-import VerifyPhone from './pages/VerifyPhone';
-import VerifyEmail from './pages/VerifyEmail';
-import VerifyID from './pages/VerifyID';
-import VerifyBusiness from './pages/VerifyBusiness';
+const VerifyPhone = lazy(() => import('./pages/VerifyPhone'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const VerifyID = lazy(() => import('./pages/VerifyID'));
+const VerifyBusiness = lazy(() => import('./pages/VerifyBusiness'));
 
 // Phase 3I
-import AdminVerifications from './pages/AdminVerifications';
-import AdminManage from './pages/AdminManage';
+const AdminVerifications = lazy(() => import('./pages/AdminVerifications'));
+const AdminManage = lazy(() => import('./pages/AdminManage'));
 
 // Phase 5F + 5H
-import Requests from './pages/Requests';
-import RequestDetail from './pages/RequestDetail';
+const Requests = lazy(() => import('./pages/Requests'));
+const RequestDetail = lazy(() => import('./pages/RequestDetail'));
 
 // Phase 5G
-import CreateRequest from './pages/CreateRequest';
+const CreateRequest = lazy(() => import('./pages/CreateRequest'));
 
 // ★ PHASE 6F-6H
-import Deliveries from './pages/Deliveries';
-import CreateDelivery from './pages/CreateDelivery';
-import DeliveryDetail from './pages/DeliveryDetail';
-import DeliveryEarnings from './pages/DeliveryEarnings';
+const Deliveries = lazy(() => import('./pages/Deliveries'));
+const CreateDelivery = lazy(() => import('./pages/CreateDelivery'));
+const DeliveryDetail = lazy(() => import('./pages/DeliveryDetail'));
+const DeliveryEarnings = lazy(() => import('./pages/DeliveryEarnings'));
 
 function PresencePublisher() {
   const { user } = useAuth();
@@ -190,6 +191,14 @@ const Layout = ({ children }) => {
   );
 };
 
+// Shown for the split second a page's code is downloading.
+const PageLoader = () => (
+  <div role="status" aria-label="Loading" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="page-loader-spinner" />
+    <style>{`.page-loader-spinner{width:32px;height:32px;border-radius:50%;border:3px solid var(--color-border,#E2E8F0);border-top-color:var(--color-primary,#1E3A8A);animation:pl-spin .8s linear infinite}@keyframes pl-spin{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){.page-loader-spinner{animation-duration:2s}}`}</style>
+  </div>
+);
+
 function AppRoutes() {
   const { authInitialized } = useAuth();
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
@@ -206,6 +215,7 @@ function AppRoutes() {
   if (showSplash) return <SplashScreen onComplete={() => setMinTimeElapsed(true)} />;
 
   return (
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* ---------- Auth pages (public) ---------- */}
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -266,7 +276,7 @@ function AppRoutes() {
 
       {/* ---------- VERIFICATION FLOWS ---------- */}
       <Route path="/verify-phone" element={<ProtectedRoute><Layout><VerifyPhone /></Layout></ProtectedRoute>} />
-      <Route path="/verify-email" element={<ProtectedRoute><Layout><VerifyEmail /></Layout></ProtectedRoute>} />
+      <Route path="/verify-email" element={<Layout><VerifyEmail /></Layout>} />
       <Route path="/verify-id" element={<ProtectedRoute><Layout><VerifyID /></Layout></ProtectedRoute>} />
       <Route path="/verify-business" element={<ProtectedRoute><Layout><VerifyBusiness /></Layout></ProtectedRoute>} />
 
@@ -274,6 +284,7 @@ function AppRoutes() {
       <Route path="/role-selection" element={<VerifiedRoute><Layout><RoleSelection /></Layout></VerifiedRoute>} />
       <Route path="/profile-setup" element={<VerifiedRoute><Layout><ProfileSetup /></Layout></VerifiedRoute>} />
       <Route path="/create-listing" element={<VerifiedRoute><Layout><CreateListing /></Layout></VerifiedRoute>} />
+      <Route path="/listing/:id/edit" element={<ProtectedRoute><Layout><CreateListing /></Layout></ProtectedRoute>} />
       <Route path="/ai-search" element={<VerifiedRoute><Layout><AISearch /></Layout></VerifiedRoute>} />
       <Route path="/voice-listing" element={<VerifiedRoute><Layout><VoiceListing /></Layout></VerifiedRoute>} />
       <Route path="/ad-generator" element={<VerifiedRoute><Layout><AdGenerator /></Layout></VerifiedRoute>} />
@@ -284,6 +295,7 @@ function AppRoutes() {
       {/* 404 */}
       <Route path="*" element={<Layout><NotFound /></Layout>} />
     </Routes>
+    </Suspense>
   );
 }
 

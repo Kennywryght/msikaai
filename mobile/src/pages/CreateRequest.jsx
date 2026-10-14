@@ -3,7 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContainer';
-import { requestsAPI, locationAPI } from '../services/api';
+import { requestsAPI } from '../services/api';
+import LocationPicker from '../components/LocationPicker';
 
 // ============================================================
 // CONSTANTS
@@ -103,7 +104,6 @@ const CreateRequest = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [locating, setLocating] = useState(false);
 
   // ★ PHASE 1: captured coords (hidden from UI, sent to backend)
   const [coords, setCoords] = useState(null); // { lat, lng }
@@ -145,45 +145,6 @@ const CreateRequest = () => {
   // ============================================================
   // HANDLERS
   // ============================================================
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      showToast('Geolocation not supported on this device', 'error');
-      return;
-    }
-
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setCoords({ lat: latitude, lng: longitude });
-
-        // ★ PHASE 1: reverse-geocode on the backend
-        try {
-          const res = await locationAPI.reverse(latitude, longitude);
-          const name = res?.data?.name;
-          if (name) {
-            setLocationArea(name);
-            success(`Location set: ${name}`);
-          } else {
-            setLocationArea(`Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
-            showToast('Could not resolve a place name — you can edit it', 'warning');
-          }
-        } catch (err) {
-          console.warn('reverse geocode error:', err);
-          setLocationArea(`Near ${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
-          showToast('Could not resolve a place name — you can edit it', 'warning');
-        } finally {
-          setLocating(false);
-        }
-      },
-      (err) => {
-        console.warn('Geolocation error:', err);
-        showToast('Could not access your location', 'error');
-        setLocating(false);
-      },
-      { enableHighAccuracy: false, timeout: 8000 }
-    );
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -395,33 +356,15 @@ const CreateRequest = () => {
           {/* Location */}
           <div className="field">
             <label className="label">Location (optional)</label>
-            <div className="input-with-btn">
-              <input
-                type="text"
-                className="input"
-                placeholder="e.g. Mitundu, Lilongwe"
-                value={locationArea}
-                onChange={(e) => {
-                  setLocationArea(e.target.value);
-                  setCoords(null); // ★ PHASE 1: manual edit invalidates captured coords
-                }}
-                disabled={submitting}
-              />
-              <button
-                type="button"
-                className="icon-inline-btn"
-                onClick={handleUseLocation}
-                disabled={submitting || locating}
-                aria-label="Use my location"
-              >
-                <Icon
-                  name="crosshair"
-                  size={18}
-                  color={locating ? '#9CA3AF' : '#1E40AF'}
-                  strokeWidth={2}
-                />
-              </button>
-            </div>
+            <LocationPicker
+              value={locationArea}
+              onChange={setLocationArea}
+              onDetected={(r) => setCoords(r.coords)}
+              onManualEdit={() => setCoords(null)} // typed place: don't send stale coords
+              inputClassName="input"
+              replaceDefault
+              disabled={submitting}
+            />
             <span className="field-hint">
               Where can this be picked up or delivered?
             </span>
@@ -560,7 +503,7 @@ const CreateRequest = () => {
 
         .header {
           position: sticky;
-          top: 0;
+          top: var(--app-nav-height, 68px);
           z-index: 10;
           display: flex;
           align-items: center;
@@ -600,7 +543,7 @@ const CreateRequest = () => {
           color: #FFFFFF;
         }
 
-        .preview-toggle.active :global(svg) {
+        .preview-toggle.active svg {
           stroke: #FFFFFF;
         }
 

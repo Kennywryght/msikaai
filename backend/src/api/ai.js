@@ -5,9 +5,13 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import groqService from '../services/groqService.js';
 import geminiService from '../services/geminiService.js';
-import aiService from '../services/aiService.js';
+import aiService, { LISTING_CATEGORIES } from '../services/aiService.js';
 import dbService from '../services/dbService.js';
-import { parseQuery, mergeTranslatedTerms } from '../services/bilingualSearch.js';
+import searchService from '../services/searchService.js';
+import { parseQuery, mergeTranslatedTerms, _internals as lexiconInternals } from '../services/bilingualSearch.js';
+import visionService from '../services/VisionService.js';
+import { invalidateCache } from '../middleware/cache.js';
+import { checkBusinessAccess } from '../utils/authz.js';
 import { logger } from '../utils/logger.js';
 
 dotenv.config();
@@ -19,10 +23,28 @@ const supabase = createClient(
 );
 
 const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
+const typeFilter = (pattern, label) => (req, file, cb) =>
+  pattern.test(file.mimetype)
+    ? cb(null, true)
+    : cb(Object.assign(new Error(`Please upload ${label}`), { status: 400 }));
+const imageUpload = multer({
+  storage,
   limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: typeFilter(/^image\//, 'an image (JPG, PNG or WebP)'),
 });
+const audioUpload = multer({
+  storage,
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: typeFilter(/^(audio|video)\/(webm|ogg|mp4|mpeg|mp3|wav|x-wav|m4a|x-m4a|aac|3gpp)/, 'an audio recording'),
+});
+// Upload problems (wrong type, too big) are the client's to fix: answer 400
+// with the reason instead of falling through to the generic 500 handler.
+const handleUpload = (mw) => (req, res, next) =>
+  mw(req, res, (err) => {
+    if (!err) return next();
+    const message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large' : err.message || 'Upload failed';
+    return res.status(400).json({ success: false, error: message });
+  });
 
 // ============================================
 // ★ PHASE 7A: TRANSLATE SEARCH QUERY (Chichewa → English)
@@ -251,7 +273,7 @@ router.post('/sales-assist', async (req, res) => {
 // ============================================
 router.post('/search', async (req, res) => {
   try {
-    const { query, location, category, history } = req.body;
+    const { query, category } = req.body;
 
     if (!query) {
       return res.status(400).json({
@@ -260,32 +282,18 @@ router.post('/search', async (req, res) => {
       });
     }
 
-    logger.info('🔍 AI Search:', { query, category });
+    const text = String(query).trim().slice(0, 300);
+    logger.info('🔍 AI Search:', { query: text, category });
 
-    let aiResults = null;
-    let searchMethod = 'fallback';
-
-    try {
-      const result = await groqService.smartSearch(query, {
-        location: location || 'Mitundu',
-        category: category || 'All',
-        history: history || [],
-      });
-
-      if (result.success) {
-        aiResults = result.parsed || result.data;
-        searchMethod = 'groq-ai';
-        logger.info('✅ Groq search successful');
-      }
-    } catch (error) {
-      logger.error('Groq search error:', error.message);
-    }
-
-    // Bilingual parse of the full sentence; Groq's terms (if any) only add to it.
-    let parsed = parseQuery(String(query));
-    const aiTerms = Array.isArray(aiResults?.searchTerms) ? aiResults.searchTerms : [];
-    if (aiTerms.length) parsed = mergeTranslatedTerms(parsed, aiTerms);
-    const suggestedCategory = aiResults?.category || category || 'All';
+    // Dictionary parse of the full sentence is instant and works offline; the
+    // AI (capped at ~3.5s, cached 24h) adds keywords for words it didn't know,
+    // plus a reply and related searches.
+    let parsed = parseQuery(text);
+    const ai = await aiService.understandSearchQuery(text, {
+      timeoutMs: 3500,
+      unknownWords: parsed.unknown,
+    });
+    if (ai?.keywords?.length) parsed = mergeTranslatedTerms(parsed, ai.keywords);
 
     const { listings: rows, interpretation } = await dbService.searchListings(null, {
       parsed,
@@ -295,18 +303,18 @@ router.post('/search', async (req, res) => {
     });
 
     const maxRelevance = Math.max(1, ...rows.map((r) => r.relevance || 0));
-    const results = rows.map((r) => toAISearchItem(r, query, maxRelevance));
+    const results = rows.map((r) => toAISearchItem(r, text, maxRelevance));
 
     res.json({
       success: true,
       results,
       total: results.length,
-      query,
-      ai_processed: !!aiResults,
-      method: searchMethod === 'groq-ai' ? 'groq-ai+bilingual' : 'bilingual',
-      ai_response: aiResults?.response || null,
-      related_searches: aiResults?.relatedSearches || [],
-      suggested_category: suggestedCategory,
+      query: text,
+      ai_processed: !!ai,
+      method: ai ? `${ai.provider}+bilingual` : 'bilingual',
+      ai_response: ai?.reply || null,
+      related_searches: ai?.related || [],
+      suggested_category: ai?.category || category || 'All',
       interpretation,
     });
   } catch (error) {
@@ -359,35 +367,57 @@ router.get('/suggestions', async (req, res) => {
       return res.json({ success: true, suggestions: [] });
     }
 
-    const { data, error } = await supabase
-      .from('listings')
-      .select('category')
-      .eq('status', 'active')
-      .limit(50);
+    const text = String(q).trim().slice(0, 100);
+    const lower = text.toLowerCase();
+    // Suggest on the last word being typed, so "ndikufuna chim" → chimanga
+    const lastWord = lower.split(/\s+/).pop();
+    const escLike = (s) => s.replace(/[\\%_]/g, '\\$&');
 
-    if (error) throw error;
+    const [{ data: titles }, { data: cats }] = await Promise.all([
+      supabase
+        .from('listings')
+        .select('title')
+        .eq('status', 'active')
+        .ilike('title', `%${escLike(lastWord.length >= 2 ? lastWord : lower)}%`)
+        .order('created_at', { ascending: false })
+        .limit(8),
+      supabase.from('listings').select('category').eq('status', 'active').limit(200),
+    ]);
 
-    const categories = [...new Set(data.map((item) => item.category))];
-    const suggestions = categories
-      .filter((cat) => cat.toLowerCase().includes(q.toLowerCase()))
-      .slice(0, 5);
+    const categories = [...new Set((cats || []).map((r) => r.category).filter(Boolean))]
+      .filter((c) => c.toLowerCase().includes(lastWord));
+
+    // Dictionary words (both languages) that start with what's being typed
+    const dictionary = lastWord.length >= 2
+      ? [...lexiconInternals.KEY_TO_CONCEPT.keys()].filter((k) => k.startsWith(lastWord) && k !== lastWord).slice(0, 4)
+      : [];
+    const prefix = lower.slice(0, lower.length - lastWord.length);
 
     const chichewaQueries = [
-      'Ndikufuna plumber pafupi',
-      'Kodi pali shop yamagetsi?',
-      'Ntchito za zomanga',
-      'Kugula chimanga',
-      'Salon yatsitsi',
-    ];
+      'Ndikufuna chimanga cha mtengo wotsika',
+      'Ndikufuna plumber pafupi ndi Mitundu',
+      'Kodi pali wokonza magetsi?',
+      'Ndikufuna ana a nkhuku',
+      'Nsapato za akazi pansi pa 5000',
+      'Ndikufunafuna nyumba yobwereka',
+      'Ndikufuna wina wondimetera tsitsi',
+      'Feteleza ndi mbewu za chimanga',
+    ].filter((s) => s.toLowerCase().includes(lastWord));
 
-    const chichewaSuggestions = chichewaQueries
-      .filter((qs) => qs.toLowerCase().includes(q.toLowerCase()))
-      .slice(0, 3);
+    const seen = new Set();
+    const suggestions = [
+      ...dictionary.map((w) => `${prefix}${w}`),
+      ...(titles || []).map((r) => r.title),
+      ...categories,
+      ...chichewaQueries,
+    ].filter((s) => {
+      const k = String(s || '').toLowerCase().trim();
+      if (!k || k === lower || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    }).slice(0, 8);
 
-    res.json({
-      success: true,
-      suggestions: [...suggestions, ...chichewaSuggestions],
-    });
+    res.json({ success: true, suggestions });
   } catch (error) {
     console.error('❌ AI Suggestions error:', error);
     res.status(500).json({
@@ -400,544 +430,325 @@ router.get('/suggestions', async (req, res) => {
 // ============================================
 // 3. GENERATE DESCRIPTION
 // ============================================
+/**
+ * POST /api/ai/generate-description
+ * Body: { title, category?, features?, price?, unit?, location?, language?: 'en'|'ny'|'both' }
+ */
 router.post('/generate-description', async (req, res) => {
+  const body = req.body || {};
+  const title = String(body.title || '').trim();
+  if (title.length < 3) {
+    return res.status(400).json({ success: false, error: 'Title (min 3 chars) is required' });
+  }
+
   try {
-    const { title, category, features, price, location } = req.body;
-
-    if (!title) {
-      return res.status(400).json({
-        success: false,
-        error: 'Title is required',
-      });
-    }
-
-    let result = null;
-    let provider = 'gemini';
-
-    try {
-      result = await geminiService.generateDescription({
-        title,
-        category: category || 'General',
-        features: features || 'Not specified',
-        price: price || 'Contact for price',
-        location: location || 'Mitundu',
-      });
-
-      if (result.success) {
-        logger.info('✅ Gemini description generated');
-      }
-    } catch (error) {
-      logger.error('Gemini description error:', error.message);
-
-      try {
-        const prompt = `
-          Generate a compelling product listing description for Kumsika marketplace in Mitundu, Malawi.
-          
-          Product Title: ${title}
-          Category: ${category || 'General'}
-          Key Features: ${features || 'Not specified'}
-          Price: ${price || 'Contact for price'}
-          Location: ${location || 'Mitundu'}
-          
-          Write a friendly, professional description (150-250 words) with a call-to-action.
-        `;
-
-        const fallbackResult = await groqService.generateText(prompt, {
-          temperature: 0.7,
-          maxTokens: 500,
-          systemPrompt:
-            'You are a professional marketplace assistant for Kumsika in Mitundu, Malawi.',
-        });
-
-        result = fallbackResult;
-        provider = 'groq (fallback)';
-      } catch (fallbackError) {
-        logger.error('Fallback description error:', fallbackError);
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to generate description',
-        });
-      }
-    }
-
-    if (result && result.success) {
-      res.json({
-        success: true,
-        description: result.parsed?.text || result.data,
-        provider: provider,
-        usage: result.usage,
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: 'Failed to generate description',
-      });
-    }
+    const { description, provider } = await aiService.writeListingDescription({
+      title: title.slice(0, 200),
+      category: String(body.category || '').slice(0, 60),
+      features: String(body.features || body.description || '').slice(0, 1000),
+      price: body.price,
+      unit: String(body.unit || '').slice(0, 30),
+      location: String(body.location || '').slice(0, 80),
+      language: ['en', 'ny', 'both'].includes(body.language) ? body.language : 'en',
+    });
+    return res.json({ success: true, description, provider });
   } catch (error) {
-    logger.error('Description generation error:', error);
-    res.status(500).json({
+    logger.error('❌ /generate-description error:', error?.message || error);
+    return res.status(503).json({
       success: false,
-      error: error.message,
+      error: 'The AI writer is unavailable right now. Please write the description yourself.',
     });
   }
 });
 
 // ============================================
-// 4. GENERATE AD
+// 4. GENERATE AD (optionally from a product photo)
 // ============================================
-router.post('/ads/generate', upload.single('image'), async (req, res) => {
+router.post('/ads/generate', handleUpload(imageUpload.single('image')), async (req, res) => {
+  let productInfo = {};
   try {
-    const productInfo = req.body.productInfo
+    productInfo = typeof req.body.productInfo === 'string'
       ? JSON.parse(req.body.productInfo)
-      : {};
-    const imageBuffer = req.file ? req.file.buffer : null;
+      : req.body.productInfo || {};
+  } catch {
+    return res.status(400).json({ success: false, error: 'productInfo must be valid JSON' });
+  }
 
-    logger.info('🎨 Generating ad for:', productInfo.title || 'Product');
+  try {
+    const vision = req.file
+      ? await visionService.analyzeImage(req.file.buffer, req.file.mimetype)
+      : null;
 
-    let result = null;
-    let provider = 'gemini';
+    const info = {
+      title: String(productInfo.title || vision?.detectedProduct || '').slice(0, 120),
+      description: String(productInfo.description || vision?.description || '').slice(0, 1000),
+      category: productInfo.category || vision?.category || 'Other',
+      price: productInfo.price || '',
+      unit: productInfo.unit || '',
+      tone: productInfo.tone || '',
+    };
+    logger.info('🎨 Generating ad for:', info.title || '(from photo)');
 
-    try {
-      result = await geminiService.generateAd({
-        title: productInfo.title || 'Product',
-        description: productInfo.description || '',
-        category: productInfo.category || 'Other',
-        price: productInfo.price || 'Contact for price',
-      });
+    const generated = await aiService.generateAd(info, vision);
+    const ad = generated?.ad || generateAdCopy(info);
 
-      if (result.success) {
-        logger.info('✅ Gemini ad generated');
-      }
-    } catch (error) {
-      logger.error('Gemini ad error:', error.message);
-
-      try {
-        const prompt = `
-          Create engaging ad content for a listing on Kumsika marketplace.
-          
-          Title: ${productInfo.title || 'Product'}
-          Category: ${productInfo.category || 'Other'}
-          Price: ${productInfo.price || 'Contact for price'}
-          
-          Generate headline, short copy, full copy, call to action, and selling points.
-        `;
-
-        const fallbackResult = await groqService.generateText(prompt, {
-          temperature: 0.8,
-          maxTokens: 600,
-          systemPrompt: 'You are an advertising expert for Kumsika marketplace.',
-        });
-
-        result = fallbackResult;
-        provider = 'groq (fallback)';
-      } catch (fallbackError) {
-        logger.error('Fallback ad error:', fallbackError);
-        const adCopy = generateAdCopy(productInfo);
-        return res.json({
-          success: true,
-          ad: adCopy,
-          socialPosts: generateSocialPosts(adCopy, productInfo),
-          provider: 'built-in',
-          ai_processed: false,
-        });
-      }
-    }
-
-    let adData = result.parsed || result.data;
-
-    if (typeof adData === 'string') {
-      try {
-        const parsed = JSON.parse(adData);
-        adData = parsed;
-      } catch (e) {
-        adData = { fullCopy: adData };
-      }
-    }
-
-    if (!adData.headline && !adData.fullCopy) {
-      const fallbackAd = generateAdCopy(productInfo);
-      adData = fallbackAd;
-      provider = 'built-in (fallback)';
-    }
-
-    const socialPosts = generateSocialPosts(adData, productInfo);
-
-    res.json({
+    return res.json({
       success: true,
-      ad: adData,
-      socialPosts: socialPosts,
-      provider: provider,
-      ai_processed: true,
+      ad,
+      socialPosts: generateSocialPosts(ad, info),
+      provider: generated?.provider || 'built-in',
+      ai_processed: !!generated,
+      vision: vision?.success
+        ? {
+            detectedProduct: vision.detectedProduct,
+            category: vision.category,
+            description: vision.description,
+            features: vision.features,
+            confidence: vision.confidence,
+          }
+        : null,
     });
   } catch (error) {
     logger.error('❌ Ad generation error:', error);
-
-    const adCopy = generateAdCopy(
-      req.body.productInfo ? JSON.parse(req.body.productInfo) : {}
-    );
-    res.json({
+    const ad = generateAdCopy(productInfo);
+    return res.json({
       success: true,
-      ad: adCopy,
-      socialPosts: generateSocialPosts(adCopy, {}),
+      ad,
+      socialPosts: generateSocialPosts(ad, productInfo),
+      provider: 'built-in',
       ai_processed: false,
-      error: error.message,
     });
   }
 });
 
 // ============================================
-// 5. VOICE LISTING
+// 5. VOICE LISTING — transcribe + extract fields
 // ============================================
-router.post('/voice/process', upload.single('audio'), async (req, res) => {
+router.post('/voice/process', handleUpload(audioUpload.single('audio')), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: 'Audio file is required' });
+  }
+  const language = req.body.language === 'en' ? 'en' : 'ny';
+
+  if (!process.env.GROQ_API_KEY) {
+    return res.status(503).json({
+      success: false,
+      error: 'Voice listing is not available right now. Please use the normal listing form.',
+    });
+  }
+
   try {
-    if (!req.file) {
-      return res.status(400).json({
+    logger.info('🎤 Processing voice...', { bytes: req.file.size, type: req.file.mimetype, language });
+    const transcription = await groqService.transcribeAudio(req.file.buffer, {
+      language,
+      mimeType: req.file.mimetype,
+    });
+
+    if (!transcription.success) {
+      return res.status(422).json({
         success: false,
-        error: 'Audio file is required',
+        error: language === 'ny'
+          ? 'Sitinamve bwino. Chonde yesaninso pamalo opanda phokoso. (We could not hear the recording clearly. Please try again somewhere quiet.)'
+          : 'We could not hear the recording clearly. Please try again somewhere quiet.',
       });
     }
 
-    const { language = 'ny' } = req.body;
-    logger.info('🎤 Processing voice...');
+    const transcript = transcription.text;
+    const ai = await aiService.extractListingData(transcript, language);
+    const listing = ai || extractListingData(transcript);
 
-    let transcript = '';
-    let aiProcessed = false;
-
-    try {
-      const transcription = await groqService.transcribeAudio(req.file.buffer, {
-        language: language === 'ny' ? 'en' : 'en',
-      });
-
-      if (transcription.success) {
-        transcript = transcription.text;
-        aiProcessed = true;
-        logger.info('✅ Groq Whisper transcription successful');
-      } else {
-        throw new Error(transcription.error);
-      }
-    } catch (error) {
-      logger.error('Whisper transcription error:', error.message);
-      transcript =
-        language === 'ny'
-          ? 'Ndili ndi matumba 10 a chimanga ndikugulitsa. Mtengo ndi 5000 per bag.'
-          : 'I have 10 bags of maize for sale. Price is 5000 per bag.';
-      aiProcessed = false;
-    }
-
-    logger.info('📝 Transcript:', transcript);
-
-    let listingData = null;
-    let validation = null;
-
-    try {
-      const result = await groqService.processVoiceListing(transcript, {
-        location: 'Mitundu',
-        language: language,
-      });
-
-      if (result.success) {
-        listingData = result.parsed || result.data;
-        validation = {
-          isValid: true,
-          errors: [],
-          warnings: [],
-          confidence: 0.8,
-        };
-      }
-    } catch (error) {
-      logger.error('Voice processing error:', error.message);
-      listingData = extractListingData(transcript, language);
-      validation = validateListing(listingData);
-    }
-
-    res.json({
+    return res.json({
       success: true,
-      transcript: transcript,
-      listing: listingData,
-      validation: validation || {
-        isValid: true,
-        errors: [],
-        warnings: [],
-        confidence: 0.5,
-      },
-      ai_processed: aiProcessed,
-      method: 'whisper',
+      transcript,
+      listing,
+      validation: validateListing(listing),
+      ai_processed: !!ai,
+      method: ai ? 'whisper+ai' : 'whisper+rules',
     });
   } catch (error) {
     logger.error('❌ Voice processing error:', error);
-
-    const mockTranscript = 'Ndili ndi matumba 10 a chimanga ndikugulitsa.';
-    const listingData = extractListingData(mockTranscript, 'ny');
-
-    res.json({
-      success: true,
-      transcript: mockTranscript,
-      listing: listingData,
-      validation: validateListing(listingData),
-      ai_processed: false,
-      method: 'fallback',
-    });
+    return res.status(500).json({ success: false, error: 'Failed to process the recording. Please try again.' });
   }
 });
 
 // ============================================
-// 6. VOICE LISTING - CREATE
+// 6. VOICE LISTING — create
 // ============================================
-router.post('/voice/create-listing', upload.single('audio'), async (req, res) => {
+/**
+ * POST /api/ai/voice/create-listing
+ * JSON body: { businessId, listingData, transcript?, language? }
+ * The owner is always the signed-in user (req.user), never a body field.
+ */
+router.post('/voice/create-listing', async (req, res) => {
   try {
-    const { businessId, userId, language = 'ny' } = req.body;
-
-    let transcript = req.body.transcript || '';
-    let listingData = req.body.listingData
-      ? JSON.parse(req.body.listingData)
-      : null;
-    let validation = req.body.validation
-      ? JSON.parse(req.body.validation)
-      : null;
-
-    if (req.file) {
-      try {
-        const transcription = await groqService.transcribeAudio(
-          req.file.buffer,
-          { language: language === 'ny' ? 'en' : 'en' }
-        );
-
-        if (transcription.success) {
-          transcript = transcription.text;
-
-          const result = await groqService.processVoiceListing(transcript, {
-            location: 'Mitundu',
-            language: language,
-          });
-
-          if (result.success) {
-            listingData = result.parsed || result.data;
-            validation = {
-              isValid: true,
-              errors: [],
-              warnings: [],
-              confidence: 0.8,
-            };
-          }
-        }
-      } catch (error) {
-        logger.error('Voice processing error:', error.message);
-      }
+    const { businessId } = req.body || {};
+    const language = req.body?.language === 'en' ? 'en' : 'ny';
+    const transcript = String(req.body?.transcript || '').slice(0, 2000);
+    let listingData = req.body?.listingData;
+    if (typeof listingData === 'string') {
+      try { listingData = JSON.parse(listingData); } catch { listingData = null; }
+    }
+    if (!listingData || typeof listingData !== 'object') {
+      return res.status(400).json({ success: false, error: 'Listing data is required' });
     }
 
-    if (!businessId || !userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Business ID and User ID are required',
-      });
+    const access = await checkBusinessAccess(req.user.id, businessId);
+    if (!access.ok) {
+      return res.status(access.status).json({ success: false, error: access.error });
     }
 
-    if (!listingData) {
-      return res.status(400).json({
-        success: false,
-        error: 'Listing data is required',
-      });
+    const validation = validateListing(listingData);
+    if (!validation.isValid) {
+      return res.status(400).json({ success: false, error: validation.errors.join(', '), validation });
     }
 
-    const { data: business, error: bizError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('id', businessId)
-      .eq('user_id', userId)
-      .single();
+    const num = (v) => (v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
+    const price = num(listingData.price);
+    const quantity = num(listingData.quantity);
+    const location = String(listingData.location || listingData.locationArea || '').trim().slice(0, 80) || null;
 
-    if (bizError || !business) {
-      return res.status(403).json({
-        success: false,
-        error:
-          'You do not have permission to create listings for this business',
-      });
+    const listing = await dbService.createListing({
+      businessId,
+      title: String(listingData.title).trim().slice(0, 200),
+      description: String(listingData.description || transcript || '').slice(0, 2000),
+      category: aiService.validateCategory(listingData.category),
+      price: price != null && price <= 99999999.99 ? price : null,
+      priceType: listingData.priceType === 'negotiable' ? 'negotiable' : 'fixed',
+      quantity: quantity != null ? Math.round(quantity) : null,
+      unit: String(listingData.unit || '').slice(0, 30),
+      images: [],
+      status: 'active',
+      locationName: location,
+      locationArea: location,
+      deliveryAvailable: listingData.deliveryAvailable === true || listingData.delivery_available === true,
+      contactPhone: String(listingData.contactPhone || listingData.contact_phone || '').slice(0, 20),
+    });
+
+    try {
+      const full = await dbService.getListing(listing.id);
+      if (full) await searchService.indexListing(full);
+    } catch (searchError) {
+      logger.warn('Voice listing search indexing skipped:', searchError?.message);
     }
+    await invalidateCache('listings:');
+    await invalidateCache(`business:${businessId}`);
 
-    const validationResult = validateListing(listingData);
-    if (!validationResult.isValid) {
-      return res.status(400).json({
-        success: false,
-        error: validationResult.errors.join(', '),
-        validation: validationResult,
-      });
-    }
-
-    const { data: newListing, error: createError } = await supabase
-      .from('listings')
-      .insert({
-        business_id: businessId,
-        title: listingData.title || 'Voice Listing',
-        description: transcript || listingData.description || '',
-        category: listingData.category || 'Other',
-        price: listingData.price || null,
-        quantity: listingData.quantity || null,
-        unit: listingData.unit || '',
-        delivery_available: listingData.deliveryAvailable || false,
-        contact_phone: listingData.contact_phone || '',
-        status: 'active',
-        metadata: {
-          voice_created: true,
-          language: language,
-          transcript: transcript,
-          confidence: validationResult.confidence || 0.5,
-          ai_processed: true,
-        },
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      logger.error('❌ Listing creation error:', createError);
-      return res.status(400).json({
-        success: false,
-        error: createError.message,
-      });
-    }
-
-    res.json({
+    logger.info('✅ Voice listing created', { id: listing.id, language });
+    return res.status(201).json({
       success: true,
-      listing: newListing,
-      transcript: transcript,
-      validation: validationResult,
+      listing,
+      transcript,
+      validation,
       ai_processed: true,
-      method: 'whisper',
     });
   } catch (error) {
     logger.error('❌ Voice listing creation error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, error: 'Failed to create listing' });
   }
 });
 
 // ============================================
-// 7. SMART MATCHING
+// 7. SMART MATCHING — real listings for a need
 // ============================================
+/**
+ * POST /api/ai/match  { query, category? }
+ * Understands the need (dictionary + AI) and returns matching live listings.
+ */
 router.post('/match', async (req, res) => {
   try {
-    const { query, userType, location } = req.body;
-
+    const query = String(req.body?.query || '').trim().slice(0, 300);
     if (!query) {
-      return res.status(400).json({
-        success: false,
-        error: 'Query is required',
-      });
+      return res.status(400).json({ success: false, error: 'Query is required' });
     }
 
-    let matches = [];
-    let provider = 'built-in';
+    let parsed = parseQuery(query);
+    const ai = await aiService.understandSearchQuery(query, { timeoutMs: 3000, unknownWords: parsed.unknown });
+    if (ai?.keywords?.length) parsed = mergeTranslatedTerms(parsed, ai.keywords);
 
-    try {
-      const result = await groqService.findMatches(query, {
-        userType: userType || 'buyer',
-        location: location || 'Mitundu',
-      });
+    const { listings: rows, interpretation } = await dbService.searchListings(null, {
+      parsed,
+      category: req.body?.category || undefined,
+      limit: 10,
+    });
+    const maxRelevance = Math.max(1, ...rows.map((r) => r.relevance || 0));
 
-      if (result.success) {
-        const parsed = result.parsed || result.data;
-        matches = parsed.recommendations || [];
-        provider = 'groq';
-        logger.info('✅ Groq matching successful');
-      }
-    } catch (error) {
-      logger.error('Groq matching error:', error.message);
-
-      const { data, err } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          businesses:business_id (
-            business_name,
-            category
-          )
-        `)
-        .eq('status', 'active')
-        .limit(5);
-
-      if (!err && data) {
-        matches = data.map((item) => ({
-          type: 'product',
-          name: item.title,
-          description: item.description,
-          reason: 'Available in Mitundu',
-          confidence: 0.5,
-        }));
-      }
-    }
-
-    res.json({
+    return res.json({
       success: true,
-      matches: matches,
-      provider: provider,
-      ai_processed: true,
+      matches: rows.map((r) => {
+        const item = toAISearchItem(r, query, maxRelevance);
+        return {
+          ...item,
+          type: /service/i.test(r.category || '') ? 'service' : 'product',
+          name: r.title,
+          reason: item.ai_summary,
+          confidence: item.relevance_score,
+        };
+      }),
+      interpretation,
+      message: ai?.reply || null,
+      provider: ai?.provider || 'bilingual',
+      ai_processed: !!ai,
     });
   } catch (error) {
     logger.error('Matching error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, error: 'Matching failed' });
   }
 });
 
 // ============================================
-// 8. RECOMMENDATIONS
+// 8. RECOMMENDATIONS — AI picks, real listings
 // ============================================
+/**
+ * POST /api/ai/recommendations  { interests?: string[], history?: string[], location?, userType? }
+ */
 router.post('/recommendations', async (req, res) => {
   try {
-    const { interests, history, location, userType } = req.body;
+    const interests = Array.isArray(req.body?.interests) ? req.body.interests.slice(0, 20) : [];
+    const history = Array.isArray(req.body?.history) ? req.body.history.slice(0, 30) : [];
 
-    let recommendations = {};
-    let provider = 'built-in';
+    const plan = await aiService.getRecommendations({
+      interests,
+      history,
+      location: req.body?.location || 'Mitundu',
+      userType: req.body?.userType || 'buyer',
+    });
 
-    try {
-      const result = await groqService.getRecommendations({
-        interests: interests || [],
-        history: history || [],
-        location: location || 'Mitundu',
-        userType: userType || 'buyer',
-      });
-
-      if (result.success) {
-        recommendations = result.parsed || result.data;
-        provider = 'groq';
-        logger.info('✅ Groq recommendations successful');
+    // Without AI, recommend from the user's own words.
+    const searches = plan?.searches?.length ? plan.searches : [...interests, ...history].map(String).slice(0, 4);
+    const seen = new Set();
+    const personalized = [];
+    for (const s of searches) {
+      const { listings: rows } = await dbService.searchListings(s, { limit: 4 });
+      for (const r of rows) {
+        if (seen.has(r.id)) continue;
+        seen.add(r.id);
+        personalized.push({ ...toAISearchItem(r, s, Math.max(1, r.relevance || 1)), matched_search: s });
       }
-    } catch (error) {
-      logger.error('Groq recommendations error:', error.message);
+      if (personalized.length >= 12) break;
+    }
 
-      const { data, err } = await supabase
-        .from('listings')
-        .select('*')
-        .eq('status', 'active')
-        .limit(3);
-
-      if (!err && data) {
-        recommendations = {
-          personalized: data.map((item) => ({
-            name: item.title,
-            category: item.category,
-            reason: 'Popular in Mitundu',
-          })),
-          trendingCategories: ['Farm Inputs', 'Construction', 'Plumber'],
-        };
+    // Top up with the newest listings so the section is never empty.
+    if (personalized.length < 4) {
+      const { listings: latest } = await dbService.searchListings(null, { limit: 8 });
+      for (const r of latest) {
+        if (!seen.has(r.id)) personalized.push(toAISearchItem(r, '', 1));
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
-      recommendations: recommendations,
-      provider: provider,
-      ai_processed: true,
+      recommendations: {
+        personalized: personalized.slice(0, 12),
+        searches,
+        trendingCategories: plan?.categories || [],
+        reason: plan?.reason || null,
+      },
+      provider: plan ? 'ai' : 'built-in',
+      ai_processed: !!plan,
     });
   } catch (error) {
     logger.error('Recommendations error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, error: 'Could not load recommendations' });
   }
 });
 
@@ -949,24 +760,24 @@ router.get('/voice/prompts', (req, res) => {
 
   const prompts = {
     ny: [
-      'Ndili ndi matumba 10 a chimanga ndikugulitsa. Mtengo ndi 5000 per bag.',
-      'Ndikufuna kugulitsa nkhuku 20 ndi mazira 50.',
-      'Ndili ndi simenti 50kg ndikugulitsa.',
-      'Ndikufuna plumber ku Mitundu.',
-      'Ndili ndi fensi 100m ndikugulitsa.',
+      'Ndili ndi matumba khumi a chimanga ndikugulitsa. Mtengo ndi 5000 pa thumba.',
+      'Ndikugulitsa nkhuku makumi awiri ndi mazira makumi asanu. Ndikupezeka ku Mitundu.',
+      'Ndili ndi simenti matumba makumi asanu ndikugulitsa, ndikhoza kubweretsa.',
+      'Ndine plumber ku Mitundu, ndimakonza mipope ndi matanki a madzi.',
+      'Ndikugulitsa nsapato za amuna, mtengo ndi 12,000, mtengo ukhoza kuchepa.',
     ],
     en: [
       'I have 10 bags of maize for sale. Price is 5000 per bag.',
-      'I want to sell 20 chickens and 50 eggs.',
-      'I have 50kg cement for sale.',
-      'I need a plumber in Mitundu.',
-      'I have 100m of fencing wire for sale.',
+      'I am selling 20 chickens and 50 eggs in Mitundu.',
+      'I have 50 bags of cement for sale and can deliver.',
+      'I am a plumber in Mitundu. I fix pipes and water tanks.',
+      'Selling men\'s shoes for 12,000 kwacha, price is negotiable.',
     ],
   };
 
   res.json({
     success: true,
-    prompts: prompts[language] || prompts['ny'],
+    prompts: prompts[language] || prompts.ny,
   });
 });
 
@@ -974,27 +785,13 @@ router.get('/voice/prompts', (req, res) => {
 // 10. AD TEMPLATES
 // ============================================
 router.get('/ads/templates', (req, res) => {
-  const templates = {
-    categories: [
-      'Farm Inputs',
-      'Construction',
-      'Plumber',
-      'Electrician',
-      'Retail',
-      'Restaurant',
-      'Tailor',
-      'Hairdresser',
-      'Mechanic',
-      'Carpenter',
-      'Other',
-    ],
-    tones: ['Professional', 'Friendly', 'Urgent', 'Luxury', 'Budget', 'Eco-friendly'],
-    platforms: ['Facebook', 'WhatsApp', 'Twitter', 'Instagram'],
-  };
-
   res.json({
     success: true,
-    templates: templates,
+    templates: {
+      categories: LISTING_CATEGORIES,
+      tones: ['Professional', 'Friendly', 'Urgent', 'Luxury', 'Budget', 'Eco-friendly'],
+      platforms: ['Facebook', 'WhatsApp', 'Twitter', 'Instagram'],
+    },
   });
 });
 
@@ -1003,59 +800,31 @@ router.get('/ads/templates', (req, res) => {
 // ============================================
 router.post('/ads/batch-generate', async (req, res) => {
   try {
-    const { items } = req.body;
+    const { items } = req.body || {};
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'Items array is required' });
+    }
+    if (items.length > 10) {
+      return res.status(400).json({ success: false, error: 'At most 10 items per batch' });
+    }
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Items array is required',
+    // Sequential: free-tier AI quotas reject bursts of parallel calls.
+    const results = [];
+    for (const item of items) {
+      const generated = await aiService.generateAd(item || {});
+      const ad = generated?.ad || generateAdCopy(item || {});
+      results.push({
+        ad,
+        socialPosts: generateSocialPosts(ad, item || {}),
+        originalItem: item,
+        provider: generated?.provider || 'built-in',
       });
     }
 
-    const results = await Promise.all(
-      items.map(async (item) => {
-        try {
-          const result = await geminiService.generateAd({
-            title: item.title || 'Product',
-            description: item.description || '',
-            category: item.category || 'Other',
-            price: item.price || 'Contact for price',
-          });
-
-          if (result.success) {
-            const adData = result.parsed || result.data;
-            return {
-              ad: adData,
-              socialPosts: generateSocialPosts(adData, item),
-              originalItem: item,
-              provider: 'gemini',
-            };
-          }
-        } catch (error) {
-          logger.error('Batch ad error:', error);
-        }
-
-        const adCopy = generateAdCopy(item);
-        return {
-          ad: adCopy,
-          socialPosts: generateSocialPosts(adCopy, item),
-          originalItem: item,
-          provider: 'built-in',
-        };
-      })
-    );
-
-    res.json({
-      success: true,
-      results: results,
-      ai_processed: true,
-    });
+    return res.json({ success: true, results, ai_processed: results.some((r) => r.provider !== 'built-in') });
   } catch (error) {
     logger.error('❌ Batch ad generation error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, error: 'Batch ad generation failed' });
   }
 });
 
@@ -1126,88 +895,93 @@ function getAISummary(item, query) {
   );
 }
 
-function extractListingData(transcript, language) {
-  const lower = transcript.toLowerCase();
+// Chichewa number words → values, for the no-AI fallback ("matumba khumi")
+const NY_NUMBERS = {
+  modzi: 1, mmodzi: 1, imodzi: 1, chimodzi: 1, limodzi: 1, ziwiri: 2, awiri: 2, iwiri: 2,
+  zitatu: 3, atatu: 3, itatu: 3, zinayi: 4, anayi: 4, zisanu: 5, asanu: 5, khumi: 10,
+};
+
+/** Rule-based listing extraction, used only when no AI provider answers. */
+function extractListingData(transcript) {
+  const text = String(transcript || '');
+  const parsed = parseQuery(text);
+  const main = parsed.concepts.find((c) => c.source !== 'raw');
   const data = {
     title: '',
-    description: transcript,
-    category: 'Other',
+    description: text,
+    category: main?.category ? aiService.validateCategory(main.category) : 'Other',
     price: null,
+    priceType: /negotiable|kuchepa|tikambirana/i.test(text) ? 'negotiable' : 'fixed',
     quantity: null,
     unit: '',
-    delivery_available: false,
-    contact_phone: '',
-    confidence: 0.5,
+    deliveryAvailable: parsed.deliveryOnly || /deliver|kubweretsa|ndikhoza kubweretsa/i.test(text),
+    location: parsed.location,
+    contactPhone: (text.match(/(?:\+?265|0)\s?[89]\d{2}\s?\d{3}\s?\d{3}/) || [''])[0].replace(/\s/g, ''),
+    missing: [],
+    confidence: main ? 0.6 : 0.3,
   };
 
-  if (lower.includes('chimanga') || lower.includes('maize')) {
-    data.title = 'Maize for Sale';
-    data.category = 'Farm Inputs';
-    data.confidence = 0.8;
-  } else if (lower.includes('nkhuku') || lower.includes('chicken')) {
-    data.title = 'Chickens for Sale';
-    data.category = 'Livestock';
-    data.confidence = 0.8;
-  } else if (lower.includes('simenti') || lower.includes('cement')) {
-    data.title = 'Cement for Sale';
-    data.category = 'Construction';
-    data.confidence = 0.8;
-  } else if (lower.includes('plumber') || lower.includes('mipope')) {
-    data.title = 'Plumbing Services';
-    data.category = 'Plumber';
-    data.confidence = 0.8;
-  } else if (lower.includes('electrician') || lower.includes('magetsi')) {
-    data.title = 'Electrical Services';
-    data.category = 'Electrician';
-    data.confidence = 0.8;
+  if (main) {
+    const label = main.label.charAt(0).toUpperCase() + main.label.slice(1);
+    data.title = main.service ? `${label} services` : `${label} for sale`;
   } else {
-    data.title = transcript.split(' ').slice(0, 5).join(' ') + '...';
+    data.title = text.split(/\s+/).slice(0, 6).join(' ');
   }
 
+  const amount = (s) => Number(String(s).replace(/,/g, ''));
   const priceMatch =
-    transcript.match(/(\d+)\s*(per|each|bag|kg|piece)/i) ||
-    transcript.match(/MWK\s*(\d+)/i);
-  if (priceMatch) {
-    data.price = parseInt(priceMatch[1]);
+    text.match(/(?:mk|k|mwk|kwacha)\s*([\d,]+)/i) ||
+    text.match(/([\d,]+)\s*(?:kwacha|mk)/i) ||
+    text.match(/(?:mtengo|price)\D{0,20}([\d,]+)/i) ||
+    text.match(/([\d,]+)\s*(?:per|each|pa)\s/i);
+  if (priceMatch && amount(priceMatch[1]) > 0) {
+    data.price = amount(priceMatch[1]);
     data.confidence += 0.1;
   }
 
-  const qtyMatch = transcript.match(/(\d+)\s*(matumba|kg|bags|pieces|pcs)/i);
+  const qtyMatch = text.match(/(\d+)\s*(matumba|thumba|bags?|kg|pieces|pcs|malita|litres?)/i)
+    || text.match(/(matumba|bags?)\s+(\w+)/i);
   if (qtyMatch) {
-    data.quantity = parseInt(qtyMatch[1]);
-    data.unit = qtyMatch[2];
-    data.confidence += 0.1;
+    const n = /^\d+$/.test(qtyMatch[1]) ? Number(qtyMatch[1]) : NY_NUMBERS[String(qtyMatch[2]).toLowerCase()];
+    const unitWord = /^\d+$/.test(qtyMatch[1]) ? qtyMatch[2] : qtyMatch[1];
+    if (n) {
+      data.quantity = n;
+      data.unit = aiService.validateUnit(unitWord);
+      data.confidence += 0.1;
+    }
   }
 
+  if (data.price == null) data.missing.push('price');
+  if (data.quantity == null) data.missing.push('quantity');
+  if (!data.location) data.missing.push('location');
   data.confidence = Math.min(1, Math.max(0, data.confidence));
-
   return data;
 }
 
-function validateListing(data) {
+function validateListing(data = {}) {
   const errors = [];
   const warnings = [];
 
-  if (!data.title || data.title.length < 3) {
+  if (!data.title || String(data.title).trim().length < 3) {
     errors.push('Title is missing or too short');
   }
-
   if (!data.category || data.category === 'Other') {
     warnings.push('Category is set to "Other". Please review.');
   }
-
-  if (data.price && data.price <= 0) {
+  if (data.price != null && Number(data.price) <= 0) {
     errors.push('Price must be greater than 0');
   }
-
-  if (data.quantity && data.quantity <= 0) {
+  if (data.quantity != null && Number(data.quantity) <= 0) {
     errors.push('Quantity must be greater than 0');
   }
+  const missing = Array.isArray(data.missing) ? data.missing : [];
+  if (missing.includes('price') || data.price == null) warnings.push('No price was mentioned — buyers will see "Price on request".');
+  if (missing.includes('location')) warnings.push('No location was mentioned — nearby buyers find listings with a place name more easily.');
 
   return {
     isValid: errors.length === 0,
-    errors: errors,
-    warnings: warnings,
+    errors,
+    warnings,
     confidence: data.confidence || 0.5,
   };
 }
@@ -1270,7 +1044,9 @@ function generateAdCopy(productInfo) {
     },
   };
 
-  const template = adTemplates[category] || adTemplates['default'];
+  const template = adTemplates[category]
+    || adTemplates[{ 'Construction Materials': 'Construction' }[category]]
+    || adTemplates['default'];
 
   return {
     headline: template.headline,
@@ -1281,18 +1057,21 @@ function generateAdCopy(productInfo) {
   };
 }
 
-function generateSocialPosts(ad, productInfo) {
-  const hashtags = '#Mitundu #Quality #BestPrice #Kumsika';
-  const title = ad.headline || ad.title || 'New Listing';
+function generateSocialPosts(ad, productInfo = {}) {
+  const tags = Array.isArray(ad.hashtags) && ad.hashtags.length
+    ? ad.hashtags
+    : ['#Kumsika', '#Mitundu', '#Malawi'];
+  const hashtags = [...new Set([...tags, '#Kumsika'])].join(' ');
+  const title = ad.headline || ad.title || productInfo.title || 'New Listing';
+  const cta = ad.cta || 'Contact for details.';
+  const price = productInfo.price ? `\n💰 MK ${Number(productInfo.price).toLocaleString()}${productInfo.unit ? ` / ${productInfo.unit}` : ''}` : '';
+  const ny = ad.chichewa?.headline ? `\n\n🇲🇼 ${ad.chichewa.headline}\n${ad.chichewa.shortCopy || ''}` : '';
+  const short = ad.shortCopy || ad.description || '';
 
   return {
-    facebook: `${title}\n\n${ad.fullCopy || ad.description || ''}\n\n${
-      ad.cta || 'Contact for details.'
-    }\n\n${hashtags}`,
-    whatsapp: `${title}\n\n${ad.shortCopy || ad.description || ''}\n\n${
-      ad.cta || 'Contact for details.'
-    }`,
-    twitter: `${title}\n${ad.shortCopy?.substring(0, 100) || ''}...\n${hashtags}`,
+    facebook: `${title}\n\n${ad.fullCopy || ad.description || ''}${price}\n\n${cta}${ny}\n\n${hashtags}`,
+    whatsapp: `*${title}*\n\n${short}${price}\n\n${cta}${ny}`,
+    twitter: `${title}\n${short.length > 120 ? `${short.slice(0, 117)}...` : short}\n${hashtags}`.slice(0, 280),
   };
 }
 

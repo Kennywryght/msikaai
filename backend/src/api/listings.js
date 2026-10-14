@@ -42,7 +42,12 @@ const supabaseAdmin = createClient(
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024, files: 5 },
+  // Listing photos only — anything else is rejected before it reaches storage.
+  fileFilter: (req, file, cb) =>
+    /^image\/(jpeg|png|webp|gif|heic|heif)$/i.test(file.mimetype)
+      ? cb(null, true)
+      : cb(Object.assign(new Error('Only image files (JPG, PNG, WebP) can be uploaded'), { statusCode: 400 })),
 });
 
 // ============================================
@@ -161,18 +166,21 @@ router.get('/search', cacheMiddleware(180, keyGenerators.search), async (req, re
 
     // Chichewa / English / mixed sentence → concepts + price/delivery/location intent
     let parsed = q ? parseQuery(String(q)) : null;
-    if (parsed && parsed.unknown.length && parsed.language !== 'en' && aiService.getAvailableProvider()) {
-      // Dictionary missed some words: ask the AI translator, but never let it
-      // hold up search for more than ~1.5s (results are cached for 24h).
+    const needsAI = parsed && (
+      (parsed.unknown.length && parsed.language !== 'en') ||
+      !parsed.concepts.some((c) => c.source !== 'raw')
+    );
+    if (needsAI && aiService.getAvailableProvider()) {
+      // Dictionary missed some words: ask the AI, but never let it hold up
+      // search for more than ~2s (answers are cached for 24h).
       try {
-        const ai = await Promise.race([
-          aiService.translateChichewaQuery(parsed.original),
-          new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
-        ]);
-        const words = ai ? [ai.translated, ...(ai.keywords || [])].filter(Boolean) : [];
-        if (words.length) parsed = mergeTranslatedTerms(parsed, words);
+        const ai = await aiService.understandSearchQuery(parsed.original, {
+          timeoutMs: 2000,
+          unknownWords: parsed.unknown,
+        });
+        if (ai?.keywords?.length) parsed = mergeTranslatedTerms(parsed, ai.keywords);
       } catch (err) {
-        logger.warn('Search AI translation skipped:', err?.message);
+        logger.warn('Search AI understanding skipped:', err?.message);
       }
     }
 
@@ -391,7 +399,9 @@ router.post('/create', authenticateToken, upload.array('images', 5), async (req,
 });
 
 // UPDATE LISTING
-router.put('/:id', authenticateToken, async (req, res) => {
+// JSON, or multipart with `newImages` files plus `images` = JSON list of the
+// existing photo URLs to keep (in order). Max 5 photos in total.
+router.put('/:id', authenticateToken, upload.array('newImages', 5), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -416,6 +426,31 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (updates.deliveryAvailable !== undefined) {
       updates.deliveryAvailable = updates.deliveryAvailable === true || updates.deliveryAvailable === 'true';
     }
+    if (updates.title !== undefined) {
+      updates.title = String(updates.title).trim();
+      if (!updates.title) return res.status(400).json({ success: false, error: 'Title is required' });
+      if (updates.title.length > 200) {
+        return res.status(400).json({ success: false, error: 'Title is too long (max 200 characters)' });
+      }
+    }
+    // Multipart sends lat/lng as '' when the location wasn't re-detected.
+    for (const k of ['locationLat', 'locationLng']) if (updates[k] === '') delete updates[k];
+
+    // New photos: upload, then append to the kept ones.
+    if (req.files?.length) {
+      let uploaded = [];
+      try {
+        uploaded = await storageService.uploadListingImages(req.files, access.listing.businessId);
+      } catch (uploadError) {
+        logger.error('Listing update image upload failed', { id, error: uploadError?.message });
+        return res.status(502).json({ success: false, error: 'Could not upload the new photos. Please try again.' });
+      }
+      const kept = updates.images !== undefined
+        ? sanitizeImages(updates.images)
+        : sanitizeImages((await dbService.getListing(id))?.images);
+      updates.images = [...kept, ...uploaded].slice(0, 5);
+    }
+
     if (!Object.keys(updates).length) {
       return res.status(400).json({ success: false, error: 'No editable fields provided' });
     }

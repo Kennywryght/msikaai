@@ -2678,12 +2678,12 @@ const Landing = () => {
           padding: 12px 14px 18px;
           background: var(--color-surface);
         }
-        .pop-body :global(.cs-title) { color: var(--color-text); font-weight: 700; }
-        .pop-body :global(.cs-subtitle) { color: var(--color-text-secondary); }
-        .pop-body :global(.cmt-name) { color: var(--color-text); }
-        .pop-body :global(.cmt-text) { color: var(--color-text); }
-        .pop-body :global(.cmt-time) { color: var(--color-text-secondary); }
-        .pop-body :global(.cmt-act) { color: var(--color-text-secondary); font-weight: 600; }
+        .pop-body .cs-title { color: var(--color-text); font-weight: 700; }
+        .pop-body .cs-subtitle { color: var(--color-text-secondary); }
+        .pop-body .cmt-name { color: var(--color-text); }
+        .pop-body .cmt-text { color: var(--color-text); }
+        .pop-body .cmt-time { color: var(--color-text-secondary); }
+        .pop-body .cmt-act { color: var(--color-text-secondary); font-weight: 600; }
 
         /* ================= EMPTY ================= */
         .hero-tour-btn {

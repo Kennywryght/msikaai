@@ -40,18 +40,7 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- The service worker is registered in src/main.tsx (no inline scripts, so CSP can forbid them) -->
     <script type="module" src="/src/main.tsx"></script>
-
-    <!-- Service Worker registration for PWA + push notifications -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker
-            .register('/sw.js')
-            .then((reg) => console.log('✅ SW registered:', reg.scope))
-            .catch((err) => console.warn('❌ SW registration failed:', err));
-        });
-      }
-    </script>
   </body>
 </html>

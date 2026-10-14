@@ -4,8 +4,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from '../context/TranslationContext';
 import { profileAPI, businessAPI } from '../services/api';
+import { supabase } from '../lib/supabase';
 import { useToast } from '../components/ToastContainer';
 
+import LocationPicker from '../components/LocationPicker';
 // ============================================================
 // LUCIDE-STYLE ICONS
 // ============================================================
@@ -52,7 +54,8 @@ const Icon = ({ name, size = 20, color = 'currentColor', strokeWidth = 1.75, cla
 // MAIN COMPONENT
 // ============================================================
 const EditProfile = () => {
-  const { user } = useAuth();
+  const { user, fetchUserProfile } = useAuth();
+  const [businessId, setBusinessId] = useState(null); // null: user has no business
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { showToast, success, error } = useToast();
@@ -146,6 +149,7 @@ const EditProfile = () => {
       const businessRes = await businessAPI.getByUser(user.id);
       if (businessRes.data.success && businessRes.data.business) {
         const b = businessRes.data.business;
+        setBusinessId(b.id);
         setBusiness({
           business_name: b.business_name || '',
           category: b.category || '',
@@ -206,42 +210,56 @@ const EditProfile = () => {
     setSuccessMsg('');
 
     try {
-      const profileData = {
-        userId: user.id,
-        fullName: profile.full_name,
-        phone: profile.phone,
-        location_text: profile.location_text,
-      };
+      if (profile.full_name.trim().length < 2) {
+        throw new Error('Please enter your full name');
+      }
 
-      const profileResponse = await profileAPI.update(profileData);
+      // New profile photo first, so the saved profile includes it.
+      if (avatarFile) {
+        const up = await profileAPI.uploadAvatar(avatarFile);
+        if (!up.data?.success) throw new Error(up.data?.error || 'Could not upload your photo');
+        setAvatarFile(null);
+      }
+
+      const profileResponse = await profileAPI.update({
+        fullName: profile.full_name.trim(),
+        phone: profile.phone.trim(),
+        location_text: profile.location_text.trim(),
+      });
       if (!profileResponse.data.success) {
         throw new Error(profileResponse.data.error || 'Failed to update profile');
       }
 
-      const businessData = {
-        userId: user.id,
-        businessName: business.business_name,
-        category: business.category,
-        description: business.description,
-        phone: business.phone,
-        address: business.address,
-      };
-
-      const businessResponse = await profileAPI.updateBusiness(businessData);
-      if (!businessResponse.data.success) {
-        throw new Error(businessResponse.data.error || 'Failed to update business');
+      // Business details only for users who have a business.
+      if (businessId) {
+        if (logoFile) {
+          const up = await profileAPI.uploadLogo(logoFile, businessId);
+          if (!up.data?.success) throw new Error(up.data?.error || 'Could not upload the logo');
+          setLogoFile(null);
+        }
+        const businessResponse = await profileAPI.updateBusiness({
+          businessId,
+          businessName: business.business_name.trim(),
+          category: business.category,
+          description: business.description.trim(),
+          phone: business.phone.trim(),
+          address: business.address.trim(),
+        });
+        if (!businessResponse.data.success) {
+          throw new Error(businessResponse.data.error || 'Failed to update business');
+        }
       }
+
+      // Navbar / menus read the user from AuthContext: refresh it.
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) await fetchUserProfile(authUser);
 
       setSuccessMsg('✅ Profile updated successfully!');
       success('Profile updated successfully! 🎉');
-
-      setTimeout(() => {
-        fetchData();
-      }, 2000);
-
+      fetchData();
     } catch (err) {
       console.error('Error updating profile:', err);
-      const errMsg = err.message || 'Failed to update profile';
+      const errMsg = err.response?.data?.error || err.message || 'Failed to update profile';
       setErrorMsg(errMsg);
       showToast(errMsg, 'error');
     } finally {
@@ -425,133 +443,134 @@ const EditProfile = () => {
                   <Icon name="mapPin" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
                   Location
                 </label>
-                <input
-                  type="text"
+                <LocationPicker
                   name="location_text"
-                  value={profile.location_text}
-                  onChange={handleProfileChange}
-                  className="form-input"
-                  placeholder="e.g., Mitundu Trading Centre"
-                  autoComplete="address-level2"
+                  value={profile.location_text || ''}
+                  onChange={(text) => handleProfileChange({ target: { name: 'location_text', value: text } })}
+                  placeholder="e.g., Kawale 1, Lilongwe"
                 />
               </div>
             </div>
 
-            {/* Business Information */}
-            <div className="section">
-              <h3 className="section-title">
-                <Icon name="store" size={18} color="var(--color-accent)" strokeWidth={1.75} />
-                Business Information
-              </h3>
-              <p className="section-subtitle">Update your business details</p>
+            {/* Business Information — only for users who have a business */}
+            {businessId ? (
+              <div className="section">
+                <h3 className="section-title">
+                  <Icon name="store" size={18} color="var(--color-accent)" strokeWidth={1.75} />
+                  Business Information
+                </h3>
+                <p className="section-subtitle">Update your business details</p>
 
-              <div className="avatar-section">
-                <div className="avatar-wrapper">
-                  {logoPreview ? (
-                    <img src={logoPreview} alt="Logo" className="logo-avatar" />
-                  ) : (
-                    <div className="logo-placeholder">🏪</div>
-                  )}
+                <div className="avatar-section">
+                  <div className="avatar-wrapper">
+                    {logoPreview ? (
+                      <img src={logoPreview} alt="Logo" className="logo-avatar" />
+                    ) : (
+                      <div className="logo-placeholder">🏪</div>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      ref={logoInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      className="upload-btn"
+                    >
+                      <Icon name="camera" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
+                      Upload Logo
+                    </button>
+                    <p className="hint-text">JPG, PNG or GIF. Max 2MB.</p>
+                  </div>
                 </div>
-                <div>
-                  <input
-                    ref={logoInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    style={{ display: 'none' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => logoInputRef.current?.click()}
-                    className="upload-btn"
-                  >
-                    <Icon name="camera" size={14} color="var(--color-text-secondary)" strokeWidth={1.75} />
-                    Upload Logo
-                  </button>
-                  <p className="hint-text">JPG, PNG or GIF. Max 2MB.</p>
-                </div>
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">
-                  Business Name <span className="required">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="business_name"
-                  value={business.business_name}
-                  onChange={handleBusinessChange}
-                  className="form-input"
-                  placeholder="Your business name"
-                  autoComplete="organization"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  <Icon name="tag" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
-                  Category <span className="required">*</span>
-                </label>
-                <select
-                  name="category"
-                  value={business.category}
-                  onChange={handleBusinessChange}
-                  className="form-select"
-                  required
-                >
-                  <option value="">Select category</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Description</label>
-                <textarea
-                  name="description"
-                  value={business.description}
-                  onChange={handleBusinessChange}
-                  className="form-textarea"
-                  placeholder="Describe what products or services you offer..."
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-group half">
+                <div className="form-group">
                   <label className="form-label">
-                    <Icon name="phone" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
-                    Business Phone
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={business.phone}
-                    onChange={handleBusinessChange}
-                    className="form-input"
-                    placeholder="e.g., 0999123456"
-                    autoComplete="tel"
-                  />
-                </div>
-                <div className="form-group half">
-                  <label className="form-label">
-                    <Icon name="mapPin" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
-                    Business Address
+                    Business Name <span className="required">*</span>
                   </label>
                   <input
                     type="text"
-                    name="address"
-                    value={business.address}
+                    name="business_name"
+                    value={business.business_name}
                     onChange={handleBusinessChange}
                     className="form-input"
-                    placeholder="e.g., Mitundu Trading Centre"
-                    autoComplete="address-line1"
+                    placeholder="Your business name"
+                    autoComplete="organization"
+                    required
                   />
                 </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <Icon name="tag" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
+                    Category <span className="required">*</span>
+                  </label>
+                  <select
+                    name="category"
+                    value={business.category}
+                    onChange={handleBusinessChange}
+                    className="form-select"
+                    required
+                  >
+                    <option value="">Select category</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Description</label>
+                  <textarea
+                    name="description"
+                    value={business.description}
+                    onChange={handleBusinessChange}
+                    className="form-textarea"
+                    placeholder="Describe what products or services you offer..."
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group half">
+                    <label className="form-label">
+                      <Icon name="phone" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
+                      Business Phone
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={business.phone}
+                      onChange={handleBusinessChange}
+                      className="form-input"
+                      placeholder="e.g., 0999123456"
+                      autoComplete="tel"
+                    />
+                  </div>
+                  <div className="form-group half">
+                    <label className="form-label">
+                      <Icon name="mapPin" size={14} color="var(--color-text-muted)" strokeWidth={1.75} />
+                      Business Address
+                    </label>
+                    <LocationPicker
+                      name="address"
+                      value={business.address || ''}
+                      onChange={(text) => handleBusinessChange({ target: { name: 'address', value: text } })}
+                      format="full"
+                      placeholder="e.g., Kawale 1, Lilongwe"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <p className="no-business-note">
+                Selling on Kumsika? <Link to="/dashboard">Set up your business</Link> to add a business name, logo and address.
+              </p>
+            )}
 
             <button type="submit" className="submit-btn" disabled={saving}>
               <Icon name="save" size={18} color="var(--color-text-inverse)" strokeWidth={1.75} />
@@ -762,6 +781,15 @@ const EditProfile = () => {
         }
 
         /* ===== AVATAR ===== */
+        .no-business-note {
+          margin: 0 0 20px;
+          padding: 12px 14px;
+          border-radius: var(--radius-lg, 12px);
+          background: var(--color-surface-alt, #F1F5F9);
+          font-size: 13.5px;
+          color: var(--color-text-secondary);
+        }
+
         .avatar-section {
           display: flex;
           align-items: center;

@@ -119,6 +119,7 @@ class StorageService {
         .upload(fileName, compressed, {
           contentType: 'image/jpeg',
           cacheControl: '3600',
+          upsert: true, // same path every time: replace the old logo
         });
 
       if (error) throw error;
@@ -128,7 +129,8 @@ class StorageService {
         .getPublicUrl(data.path);
 
       logger.info(`✅ Logo uploaded to Supabase bucket: ${bucketName}`);
-      return urlData.publicUrl;
+      // version param so browsers/CDNs don't keep showing the old image
+      return `${urlData.publicUrl}?v=${Date.now()}`;
     } catch (error) {
       logger.error('Logo upload error:', error);
       return null;
@@ -173,6 +175,7 @@ class StorageService {
         .upload(fileName, compressed, {
           contentType: 'image/jpeg',
           cacheControl: '3600',
+          upsert: true, // same path every time: replace the old avatar
         });
 
       if (error) throw error;
@@ -182,7 +185,8 @@ class StorageService {
         .getPublicUrl(data.path);
 
       logger.info(`✅ Avatar uploaded to Supabase bucket: ${bucketName}`);
-      return urlData.publicUrl;
+      // version param so browsers/CDNs don't keep showing the old image
+      return `${urlData.publicUrl}?v=${Date.now()}`;
     } catch (error) {
       logger.error('Avatar upload error:', error);
       return null;

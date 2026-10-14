@@ -372,7 +372,7 @@ const PriceBoard = () => {
           padding: 14px 16px 20px;
           border-bottom: 1px solid var(--color-border);
           position: sticky;
-          top: 0;
+          top: var(--app-nav-height, 68px);
           z-index: 10;
         }
 

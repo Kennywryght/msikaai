@@ -391,12 +391,29 @@ router.post('/verify-phone/confirm', authenticateToken, async (req, res) => {
 // ============================================
 router.post('/verify-email', authenticateToken, async (req, res) => {
   try {
-    const { email } = req.body;
+    const accountEmail = String(req.user.email || '').toLowerCase();
+    const email = String(req.body?.email || accountEmail).trim().toLowerCase();
 
     if (!email || !email.includes('@')) {
       return res.status(400).json({ success: false, error: 'Valid email required' });
     }
 
+    // The account email is verified by Supabase's confirmation link, so it
+    // needs no admin review: grant the trust bonus straight away.
+    if (email === accountEmail) {
+      if (!req.user.email_confirmed_at) {
+        return res.status(409).json({
+          success: false,
+          needsConfirmation: true,
+          error: 'Please confirm your email first — open the link we sent to your inbox.',
+        });
+      }
+      const trust = await trustScoreService.applyVerificationApproval(req.user.id, 'email');
+      logger.info('Email verified via Supabase confirmation', { userId: req.user.id });
+      return res.json({ success: true, verified: true, trust });
+    }
+
+    // A different address can't be proven automatically: queue it for review.
     const [request] = await db
       .insert(verificationRequests)
       .values({

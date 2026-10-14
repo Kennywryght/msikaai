@@ -81,7 +81,7 @@ const getInitials = (name) => {
 };
 
 const Settings = () => {
-  const { user, logout, updateRole } = useAuth();
+  const { user, logout, updateRole, isAdmin } = useAuth();
   const { t, language, setLanguage } = useTranslation();
   const navigate = useNavigate();
   const { showToast, success } = useToast();
@@ -256,6 +256,19 @@ const Settings = () => {
               </div>
               <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
             </Link>
+
+            {isAdmin() && (
+              <Link to="/admin" className="settings-item">
+                <div className="item-icon-wrap" style={{ background: 'var(--color-accent-tint)' }}>
+                  <Icon name="shield" size={18} color="var(--color-accent)" strokeWidth={1.9} />
+                </div>
+                <div className="item-content">
+                  <span className="item-label">Admin Panel</span>
+                  <span className="item-desc">Users, listings, verifications and reports</span>
+                </div>
+                <Icon name="chevronRight" size={16} color="var(--color-text-muted)" strokeWidth={2} />
+              </Link>
+            )}
 
             <Link to="/profile" className="settings-item">
               <div className="item-icon-wrap" style={{ background: 'var(--color-primary-tint)' }}>
@@ -594,7 +607,7 @@ const Settings = () => {
           padding: 14px 16px 20px;
           border-bottom: 1px solid var(--color-border);
           position: sticky;
-          top: 0;
+          top: var(--app-nav-height, 68px);
           z-index: 10;
         }
 

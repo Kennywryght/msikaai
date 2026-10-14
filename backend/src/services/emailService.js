@@ -1,5 +1,6 @@
 // backend/src/services/emailService.js
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger.js';
 import {
   welcomeEmailTemplate,
@@ -12,17 +13,41 @@ import {
   notificationEmailTemplate,
 } from '../templates/emailTemplates.js';
 
+/**
+ * Sends email through whichever FREE provider is configured:
+ *   1. Any SMTP server (SMTP_HOST/SMTP_USER/SMTP_PASS) — e.g.
+ *        Gmail:  smtp.gmail.com : 465, an App Password    (~500 emails/day)
+ *        Brevo:  smtp-relay.brevo.com : 587, SMTP key     (300 emails/day)
+ *   2. Resend (RESEND_API_KEY) — 100/day, needs a verified domain.
+ * Supabase's built-in mailer is not used (it only sends ~2 emails/hour).
+ */
 class EmailService {
   constructor() {
     this.resend = null;
+    this.smtp = null;
+    this.provider = null;
     this.isConfigured = false;
-    this.fromEmail = process.env.RESEND_FROM_EMAIL || 'no-reply@msikaai.com';
-    this.fromName = process.env.RESEND_FROM_NAME || 'MsikaAI Marketplace';
+    this.fromEmail = process.env.EMAIL_FROM || process.env.SMTP_FROM || process.env.RESEND_FROM_EMAIL || process.env.SMTP_USER || 'no-reply@msikaai.com';
+    this.fromName = process.env.EMAIL_FROM_NAME || process.env.RESEND_FROM_NAME || 'Kumsika';
     this.isEnabled = process.env.EMAIL_ENABLED !== 'false';
 
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      const port = Number.parseInt(process.env.SMTP_PORT || '465', 10);
+      this.smtp = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port,
+        secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+        pool: true, // reuse the connection for bursts of emails
+        maxConnections: 2,
+      });
+      this.provider = 'smtp';
+      this.isConfigured = true;
+      logger.info(`✅ Email via SMTP (${process.env.SMTP_HOST})`);
+    } else if (process.env.RESEND_API_KEY) {
       try {
         this.resend = new Resend(process.env.RESEND_API_KEY);
+        this.provider = 'resend';
         this.isConfigured = true;
         logger.info('✅ Resend email service configured');
       } catch (error) {
@@ -30,7 +55,7 @@ class EmailService {
         this.isConfigured = false;
       }
     } else {
-      logger.warn('⚠️ RESEND_API_KEY not configured, email service disabled');
+      logger.warn('⚠️ No email provider configured (set SMTP_HOST/SMTP_USER/SMTP_PASS or RESEND_API_KEY)');
     }
   }
 
@@ -53,6 +78,19 @@ class EmailService {
       // Validate email
       if (!to || !subject || !html) {
         throw new Error('Missing required fields: to, subject, html');
+      }
+
+      if (this.provider === 'smtp') {
+        const info = await this.smtp.sendMail({
+          from: `"${this.fromName}" <${from || this.fromEmail}>`,
+          to: Array.isArray(to) ? to.join(', ') : to,
+          subject,
+          html,
+          text: text || this.convertHtmlToText(html),
+          replyTo: replyTo || undefined,
+        });
+        logger.info(`✅ Email sent via SMTP: ${subject} (ID: ${info.messageId})`);
+        return { success: true, id: info.messageId, to, subject };
       }
 
       const result = await this.resend.emails.send({
@@ -89,11 +127,11 @@ class EmailService {
   async sendWelcomeEmail(to, data = {}) {
     const { name = 'there', email = to, verificationLink, dashboardLink } = data;
     const html = welcomeEmailTemplate({ name, email, verificationLink, dashboardLink });
-    const text = `Welcome to MsikaAI, ${name}! Please verify your email to get started.`;
+    const text = `Welcome to Kumsika, ${name}! Please verify your email to get started.`;
 
     return this.sendEmail({
       to,
-      subject: `Welcome to MsikaAI! 🎉`,
+      subject: `Welcome to Kumsika! 🎉`,
       html,
       text,
       tags: [{ name: 'category', value: 'welcome' }],
@@ -109,7 +147,7 @@ class EmailService {
 
     return this.sendEmail({
       to,
-      subject: `Reset Your MsikaAI Password`,
+      subject: `Reset Your Kumsika Password`,
       html,
       tags: [{ name: 'category', value: 'password-reset' }],
     });
@@ -124,7 +162,7 @@ class EmailService {
 
     return this.sendEmail({
       to,
-      subject: `Verify Your MsikaAI Email Address`,
+      subject: `Verify Your Kumsika Email Address`,
       html,
       tags: [{ name: 'category', value: 'verification' }],
     });
@@ -184,7 +222,7 @@ class EmailService {
 
     return this.sendEmail({
       to,
-      subject: `Order #${orderId} Confirmation - MsikaAI 🛒`,
+      subject: `Order #${orderId} Confirmation - Kumsika 🛒`,
       html,
       tags: [{ name: 'category', value: 'order-confirmation' }],
     });
@@ -199,7 +237,7 @@ class EmailService {
 
     return this.sendEmail({
       to,
-      subject: subject || 'MsikaAI Notification',
+      subject: subject || 'Kumsika Notification',
       html,
       tags: [{ name: 'category', value: 'notification' }],
     });
